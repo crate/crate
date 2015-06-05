@@ -42,6 +42,8 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -85,9 +87,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
-    protected final EvaluatingNormalizer clusterNormalizer;
     protected final ClusterService clusterService;
-    private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -102,6 +102,13 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     private final OneRowCollectService clusterCollectService;
     private final CollectService nodeCollectService;
 
+    private final Functions functions;
+    private final NodeSysExpression nodeSysExpression;
+    private ThreadPool threadPool;
+    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
+    private final TransportActionProvider transportActionProvider;
+    private final Settings settings;
+
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
@@ -109,6 +116,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
+                                       NodeSysExpression nodeSysExpression,
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
@@ -125,20 +133,19 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
-        this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
+
         this.collectServiceResolver = collectServiceResolver;
-        this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver,
-                functions,
-                RowGranularity.NODE
-        );
+
+        this.settings = settings;
+        this.functions = functions;
+        this.nodeSysExpression = nodeSysExpression;
+
         this.clusterCollectService = new OneRowCollectService(new ImplementationSymbolVisitor(
                 referenceResolver,
                 functions,
                 RowGranularity.CLUSTER
         ));
         this.nodeCollectService = new CollectService() {
-
             @Override
             public CrateCollector getCollector(CollectNode node, RowDownstream downstream) {
                 return getNodeLevelCollector(node, downstream);
@@ -146,6 +153,16 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         };
         this.fileInputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
+
+        this.threadPool = threadPool;
+        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
+        this.transportActionProvider = transportActionProvider;
+
+        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver,
+                functions,
+                RowGranularity.NODE
+        );
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 threadPool,
@@ -256,6 +273,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             @Override
             public List<Void> call() throws Exception {
                 try {
+                    EvaluatingNormalizer nodeNormalizer = MapSideDataCollectOperation.this.nodeNormalizer;
+                    if (node.maxRowGranularity().finerThan(RowGranularity.CLUSTER)) {
+                        nodeNormalizer = new EvaluatingNormalizer(functions,
+                                RowGranularity.NODE,
+                                new NodeSysReferenceResolver(nodeSysExpression));
+                    }
                     CollectNode localCollectNode = node.normalize(nodeNormalizer);
                     RowDownstream localRowDownStream = rowDownstream;
                     if (localCollectNode.whereClause().noMatch()) {
@@ -311,6 +334,11 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             if (service != null) {
                 return service.getCollector(collectNode, downstream);
             }
+            ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+                    new NodeSysReferenceResolver(nodeSysExpression),
+                    functions,
+                    RowGranularity.NODE
+            );
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
             return new SimpleOneRowCollector(
@@ -344,6 +372,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
         final int numShards = numShards(collectNode, localNodeId);
 
+        NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
+        EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
+                RowGranularity.NODE,
+                referenceResolver);
         CollectNode normalizedCollectNode = collectNode.normalize(nodeNormalizer);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
@@ -352,6 +384,20 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         assert normalizedCollectNode.jobId() != null : "jobId must be set on CollectNode";
+
+        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver,
+                functions,
+                RowGranularity.NODE
+        );
+        ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(
+                clusterService,
+                threadPool,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                implementationSymbolVisitor
+        );
 
         ShardProjectorChain projectorChain = new ShardProjectorChain(
                 collectNode.jobId(),
@@ -406,7 +452,11 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             } else if (TableInfo.NULL_NODE_ID.equals(nodeEntry.getKey()) && localNodeId.equals(collectNode.handlerSideCollect())) {
                 // collect unassigned shards
                 LOGGER.trace("collecting unassigned shards on node {}", localNodeId);
+                EvaluatingNormalizer clusterNormalizer = new EvaluatingNormalizer(functions,
+                        RowGranularity.CLUSTER,
+                        referenceResolver);
                 CollectNode clusterNormalizedCollectNode = collectNode.normalize(clusterNormalizer);
+
                 RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
                 CrateCollector collector = unassignedShardsCollectService.getCollector(
                         clusterNormalizedCollectNode,
@@ -440,7 +490,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             downstream.registerUpstream(this).fail(e);
             return Futures.immediateFailedFuture(e);
         }
-
 
     }
 

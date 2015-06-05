@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.os.OsService;
+import org.elasticsearch.monitor.os.OsStats;
 
 public class NodeMemoryExpression extends SysNodeObjectReference {
 
@@ -37,37 +36,33 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
 
-    private final OsService osService;
-
-    @Inject
-    public NodeMemoryExpression(OsService osService) {
-        this.osService = osService;
-        addChildImplementations();
+    public NodeMemoryExpression(OsStats stats) {
+        addChildImplementations(stats);
     }
 
-    private void addChildImplementations() {
+    private void addChildImplementations(final OsStats stats) {
         childImplementations.put(FREE, new MemoryExpression() {
             @Override
             public Long value() {
-                return osService.stats().mem().actualFree().bytes();
+                return stats.mem().actualFree().bytes();
             }
         });
         childImplementations.put(USED, new MemoryExpression() {
             @Override
             public Long value() {
-                return osService.stats().mem().actualUsed().bytes();
+                return stats.mem().actualUsed().bytes();
             }
         });
         childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return osService.stats().mem().freePercent();
+                return stats.mem().freePercent();
             }
         });
         childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return osService.stats().mem().usedPercent();
+                return stats.mem().usedPercent();
             }
         });
     }

@@ -23,16 +23,16 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.monitor.network.NetworkStats;
 
 public class NodeNetworkExpression extends SysNodeObjectReference {
 
     public static final String NAME = "network";
 
     @Inject
-    public NodeNetworkExpression(NetworkService networkService) {
+    public NodeNetworkExpression(NetworkStats stats) {
         childImplementations.put(NodeNetworkTCPExpression.NAME,
-                new NodeNetworkTCPExpression(networkService));
+                new NodeNetworkTCPExpression(stats));
     }
 
 

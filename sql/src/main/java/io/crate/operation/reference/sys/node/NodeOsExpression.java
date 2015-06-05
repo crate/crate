@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.monitor.os.OsStats;
 
 
 public class NodeOsExpression extends SysNodeObjectReference {
@@ -31,25 +30,20 @@ public class NodeOsExpression extends SysNodeObjectReference {
     public static final String NAME = "os";
 
     abstract class OsExpression extends SysNodeExpression<Object> {
-
     }
 
     public static final String UPTIME = "uptime";
     public static final String TIMESTAMP = "timestamp";
 
-    private final NodeService nodeService;
-
-    @Inject
-    public NodeOsExpression(NodeService nodeService) {
-        this.nodeService = nodeService;
-        addChildImplementations();
+    public NodeOsExpression(OsStats stats) {
+        addChildImplementations(stats);
     }
 
-    private void addChildImplementations() {
+    private void addChildImplementations(final OsStats os) {
         childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
-                return nodeService.stats().getOs().uptime().millis();
+                return os.uptime().millis();
             }
         });
         childImplementations.put(TIMESTAMP, new OsExpression() {
@@ -59,7 +53,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
             }
         });
         childImplementations.put(NodeOsCpuExpression.NAME,
-                new NodeOsCpuExpression(nodeService));
+                new NodeOsCpuExpression(os));
     }
 
 }

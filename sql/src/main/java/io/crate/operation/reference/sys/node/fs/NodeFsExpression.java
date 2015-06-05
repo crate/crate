@@ -22,7 +22,6 @@
 package io.crate.operation.reference.sys.node.fs;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.sigar.SigarService;
 
@@ -30,7 +29,6 @@ public class NodeFsExpression extends SysNodeObjectReference {
 
     public static final String NAME = "fs";
 
-    @Inject
     public NodeFsExpression(SigarService sigarService,
                             NodeEnvironment nodeEnvironment) {
         childImplementations.put(NodeFsTotalExpression.NAME, new NodeFsTotalExpression(sigarService));

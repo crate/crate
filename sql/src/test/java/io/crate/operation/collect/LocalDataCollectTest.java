@@ -37,11 +37,14 @@ import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
@@ -86,6 +89,7 @@ import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -97,6 +101,10 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.monitor.os.OsService;
+import org.elasticsearch.monitor.os.OsStats;
+import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.InternalSearchService;
@@ -119,33 +127,17 @@ import static org.mockito.Mockito.when;
 
 public class LocalDataCollectTest extends CrateUnitTest {
 
-
-    static class TestExpression implements ReferenceImplementation<Integer> {
-        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
-        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataTypes.INTEGER);
-
-        @Override
-        public Integer value() {
-            return 42;
-        }
-
-        @Override
-        public ReferenceImplementation getChildImplementation(String name) {
-            return null;
-        }
-    }
-
-    static class TestFunction extends Scalar<Integer, Object> {
+    static class TestFunction extends Scalar<Integer,Object> {
         public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.<DataType>asList(DataTypes.INTEGER));
         public static final FunctionInfo info = new FunctionInfo(ident, DataTypes.INTEGER);
 
         @Override
-        public Integer evaluate(Input[] args) {
+        public Integer evaluate(Input<Object>... args) {
             if (args.length == 0) {
                 return 0;
             }
-            Integer value = (Integer) args[0].value();
-            return (value) * 2;
+            Short value = (Short) args[0].value();
+            return value * 2;
         }
 
         @Override
@@ -193,7 +185,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
     private final static String TEST_NODE_ID = "test_node";
     private final static String TEST_TABLE_NAME = "test_table";
 
-    private static Reference testNodeReference = new Reference(TestExpression.info);
+    private static Reference testNodeReference = new Reference(
+            SysNodesTableInfo.INFOS.get(new ColumnIdent("os", ImmutableList.of("cpu", "stolen")))
+    );
     private static Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
@@ -228,6 +222,18 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(TransportService.class).toInstance(mock(TransportService.class));
             bind(MapperService.class).toInstance(mock(MapperService.class));
 
+            OsService osService = mock(OsService.class);
+            OsStats osStats = mock(OsStats.class);
+            when(osService.stats()).thenReturn(osStats);
+            OsStats.Cpu osCpu = mock(OsStats.Cpu.class);
+            when(osCpu.stolen()).thenReturn((short) 1);
+            when(osStats.cpu()).thenReturn(osCpu);
+
+            bind(OsService.class).toInstance(osService);
+            bind(NodeService.class).toInstance(mock(NodeService.class));
+            bind(Discovery.class).toInstance(mock(Discovery.class));
+            bind(NetworkService.class).toInstance(mock(NetworkService.class));
+
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
 
@@ -242,7 +248,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
             when(discoveryNodes.localNodeId()).thenReturn(TEST_NODE_ID);
             when(state.nodes()).thenReturn(discoveryNodes);
             when(clusterService.state()).thenReturn(state);
-
             when(clusterService.localNode()).thenReturn(discoveryNode);
             bind(ClusterService.class).toInstance(clusterService);
 
@@ -273,9 +278,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(BlobIndices.class).toInstance(blobIndices);
 
             bind(ReferenceResolver.class).to(GlobalReferenceResolver.class);
-            MapBinder<ReferenceIdent, ReferenceImplementation> binder = MapBinder
-                    .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-            binder.addBinding(TestExpression.ident).toInstance(new TestExpression());
 
             TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
             bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
@@ -325,7 +327,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
         Injector injector = new ModulesBuilder().add(
                 new CircuitBreakerModule(),
                 new OperatorModule(),
-                new TestModule()
+                new TestModule(),
+                new SysNodeExpressionModule()
         ).createInjector();
         Injector shard0Injector = injector.createChildInjector(
                 new TestShardModule(0)
@@ -354,7 +357,10 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 injector.getInstance(BulkRetryCoordinatorPool.class),
                 functions,
-                injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
+                injector.getInstance(ReferenceResolver.class),
+                injector.getInstance(NodeSysExpression.class),
+                indicesService,
+                testThreadPool,
                 new CollectServiceResolver(discoveryService,
                         new SystemCollectService(
                                 discoveryService,
@@ -391,13 +397,13 @@ public class LocalDataCollectTest extends CrateUnitTest {
     public void testCollectExpressions() throws Exception {
         CollectNode collectNode = new CollectNode(0, "collect", testRouting);
         collectNode.jobId(UUID.randomUUID());
-        collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
+        collectNode.maxRowGranularity(RowGranularity.NODE);
 
         Bucket result = getBucket(collectNode);
 
         assertThat(result.size(), equalTo(1));
-        assertThat(result, contains(isRow(42)));
+        assertThat(result, contains(isRow((short) 1)));
     }
 
     @Test
@@ -456,7 +462,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), equalTo(1));
-        assertThat(result, contains(isRow(84, 42)));
+        assertThat(result, contains(isRow(2, (short) 1)));
     }
 
 
@@ -521,7 +527,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Bucket result = getBucket(collectNode);
-        assertThat(result, contains(isRow(42)));
+        assertThat(result, contains(isRow((short) 1)));
 
     }
 
@@ -587,6 +593,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), is(2));
-        assertThat(result, containsInAnyOrder(isRow(0, true, 42), isRow(1, true, 42)));
+        assertThat(result, containsInAnyOrder(isRow(0, true, (short) 1), isRow(1, true, (short) 1)));
     }
 }
