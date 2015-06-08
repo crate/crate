@@ -58,26 +58,35 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("name", DataTypes.STRING, null);
         register("hostname", DataTypes.STRING, null);
         register("rest_url", DataTypes.STRING, null);
+
         register("port", DataTypes.OBJECT, null);
         register("port", DataTypes.INTEGER, ImmutableList.of("http"));
         register("port", DataTypes.INTEGER, ImmutableList.of("transport"));
+
         register("load", DataTypes.OBJECT, null);
         register("load", DataTypes.DOUBLE, ImmutableList.of("1"));
         register("load", DataTypes.DOUBLE, ImmutableList.of("5"));
         register("load", DataTypes.DOUBLE, ImmutableList.of("15"));
+        register("load", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
+
         register("mem", DataTypes.OBJECT, null);
         register("mem", DataTypes.LONG, ImmutableList.of("free"));
         register("mem", DataTypes.LONG, ImmutableList.of("used"));
         register("mem", DataTypes.SHORT, ImmutableList.of("free_percent"));
         register("mem", DataTypes.SHORT, ImmutableList.of("used_percent"));
+        register("mem", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
+
         register("heap", DataTypes.OBJECT, null);
         register("heap", DataTypes.LONG, ImmutableList.of("free"));
         register("heap", DataTypes.LONG, ImmutableList.of("used"));
         register("heap", DataTypes.LONG, ImmutableList.of("max"));
+        register("heap", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
+
         register("version", DataTypes.OBJECT, null);
         register("version", StringType.INSTANCE, ImmutableList.of("number"));
         register("version", StringType.INSTANCE, ImmutableList.of("build_hash"));
         register("version", DataTypes.BOOLEAN, ImmutableList.of("build_snapshot"));
+
         register("thread_pools", objectArrayType, null);
         register("thread_pools", StringType.INSTANCE, ImmutableList.of("name"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("active"));
@@ -88,6 +97,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"));
 
         register("network", DataTypes.OBJECT, null);
+        register("network", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
         register("network", DataTypes.OBJECT, ImmutableList.of("tcp"));
         register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "connections"));
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "initiated"));
@@ -105,15 +115,18 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("os", DataTypes.OBJECT, null);
         register("os", DataTypes.LONG, ImmutableList.of("uptime"));
         register("os", DataTypes.TIMESTAMP, ImmutableList.of("timestamp"));
+        register("os", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
         register("os", DataTypes.OBJECT, ImmutableList.of("cpu"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "system"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "user"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "idle"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "used"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "stolen"));
+
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));
         register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"));
+        register("process", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"));
         register("process", DataTypes.OBJECT, ImmutableList.of("cpu"));
         register("process", DataTypes.SHORT, ImmutableList.of("cpu", "percent"));
         register("process", DataTypes.LONG, ImmutableList.of("cpu", "user"));

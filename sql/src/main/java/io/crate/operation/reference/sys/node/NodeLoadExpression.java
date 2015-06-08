@@ -31,11 +31,18 @@ public class NodeLoadExpression extends SysNodeObjectReference {
     public static final String ONE = "1";
     public static final String FIVE = "5";
     public static final String FIFTEEN = "15";
+    private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeLoadExpression(OsStats os) {
+    public NodeLoadExpression(final OsStats os) {
         childImplementations.put(ONE, new LoadExpression(os, 0));
         childImplementations.put(FIVE, new LoadExpression(os, 1));
         childImplementations.put(FIFTEEN, new LoadExpression(os, 2));
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return os.timestamp();
+            }
+        });
     }
 
     class LoadExpression extends SysNodeExpression<Double> {

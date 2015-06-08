@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.SimpleObjectExpression;
@@ -80,7 +79,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -489,7 +487,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
-                is("tcp={" +
+                is("probe_timestamp=0, tcp={" +
                         "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
                         "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
                         "}"));
