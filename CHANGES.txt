@@ -7,11 +7,6 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
- - Added ``os['cpu']`` expression to sys.nodes table
-
- - Added ``os['probe_timestamp']`` and ``process['probe_timestamp']`` expressions
-   to sys.nodes table
-
  - Fix: make sure sys.nodes expressions that utilize os/process/network/jvm
    services use the same stats probe per row; previously values derived from
    these services could have been from different probes
