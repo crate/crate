@@ -104,8 +104,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         LOGGER.trace("adding query subContext {}, now there are {} query subContexts", jobSearchContextId, numActive);
 
         shardQueryContext.addCallback(new RemoveQueryContextCallback(jobSearchContextId));
-        EngineSearcherDelegate searcherDelegate = acquireSearcher(shardQueryContext.indexShard());
+        EngineSearcherDelegate searcherDelegate;
         try {
+            searcherDelegate = acquireSearcher(shardQueryContext.indexShard());
             shardQueryContext.searcher(searcherDelegate);
         } catch (Exception e) {
             // all resources (specially engine searcher) must be closed
