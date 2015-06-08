@@ -105,7 +105,13 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
         shardQueryContext.addCallback(new RemoveQueryContextCallback(jobSearchContextId));
         EngineSearcherDelegate searcherDelegate = acquireSearcher(shardQueryContext.indexShard());
-        shardQueryContext.searcher(searcherDelegate);
+        try {
+            shardQueryContext.searcher(searcherDelegate);
+        } catch (Exception e) {
+            // all resources (specially engine searcher) must be closed
+            shardQueryContext.close();
+            throw e;
+        }
 
         if (collectNode.keepContextForFetcher()) {
             JobFetchShardContext shardFetchContext = new JobFetchShardContext(
