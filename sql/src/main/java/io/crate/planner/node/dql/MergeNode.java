@@ -124,10 +124,12 @@ public class MergeNode extends AbstractDQLPlanNode {
         return numUpstreams;
     }
 
+    @Override
     public List<DataType> inputTypes() {
         return inputTypes;
     }
 
+    @Override
     public void inputTypes(List<DataType> inputTypes) {
         this.inputTypes = inputTypes;
     }

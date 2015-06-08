@@ -55,6 +55,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
         this.name = name;
     }
 
+    @Override
     public String name() {
         return name;
     }
@@ -74,6 +75,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
         return executionNodeId;
     }
 
+    @Override
     public boolean hasProjections() {
         return projections != null && projections.size() > 0;
     }
