@@ -42,7 +42,7 @@ import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.reference.sys.node.NodeLoadExpression;
+import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
@@ -58,6 +58,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -81,10 +83,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     static class TestMetaDataModule extends MetaDataModule {
 
         @Override
-        protected void bindReferences() {
-            super.bindReferences();
-            referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
-            referenceBinder.addBinding(CLUSTER_NAME_INFO.ident()).toInstance(new ClusterNameExpression());
+        protected void configure() {
+            super.configure();
+            bind(NetworkService.class).toInstance(mock(NetworkService.class));
+            bind(NodeService.class).toInstance(mock(NodeService.class));
         }
 
         @Override

@@ -22,15 +22,15 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.monitor.network.NetworkStats;
 
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
     public static final String NAME = "tcp";
 
-    public NodeNetworkTCPExpression(NetworkService networkService) {
-        childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(networkService));
-        childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(networkService));
+    public NodeNetworkTCPExpression(NetworkStats stats) {
+        childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(stats));
+        childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(stats));
     }
 
     static class TCPConnectionsExpression extends SysNodeObjectReference {
@@ -43,48 +43,44 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String DROPPED = "dropped";
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
-        private final NetworkService networkService;
-
-        protected TCPConnectionsExpression(NetworkService networkService) {
-            this.networkService = networkService;
-            addChildImplementations();
+        protected TCPConnectionsExpression(NetworkStats stats) {
+            addChildImplementations(stats);
         }
 
-        private void addChildImplementations() {
+        private void addChildImplementations(final NetworkStats stats) {
             childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().activeOpens();
+                    return stats.tcp().activeOpens();
                 }
             });
             childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().passiveOpens();
+                    return stats.tcp().passiveOpens();
                 }
             });
             childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().currEstab();
+                    return stats.tcp().currEstab();
                 }
             });
             childImplementations.put(DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().estabResets();
+                    return stats.tcp().estabResets();
                 }
             });
             childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().attemptFails();
+                    return stats.tcp().attemptFails();
                 }
             });
         }
 
         private abstract class TCPConnectionsChildExpression extends SysNodeExpression<Long> {
-
         }
     }
 
@@ -98,48 +94,44 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String ERRORS_RECEIVED = "errors_received";
         private static final String RST_SENT = "rst_sent";
 
-        private final NetworkService networkService;
-
-        protected TCPPacketsExpression(NetworkService networkService) {
-            this.networkService = networkService;
-            addChildImplementations();
+        protected TCPPacketsExpression(NetworkStats stats) {
+            addChildImplementations(stats);
         }
 
-        private void addChildImplementations() {
+        private void addChildImplementations(final NetworkStats stats) {
             childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().outSegs();
+                    return stats.tcp().outSegs();
                 }
             });
             childImplementations.put(RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().inSegs();
+                    return stats.tcp().inSegs();
                 }
             });
             childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().retransSegs();
+                    return stats.tcp().retransSegs();
                 }
             });
             childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().inErrs();
+                    return stats.tcp().inErrs();
                 }
             });
             childImplementations.put(RST_SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return networkService.stats().tcp().outRsts();
+                    return stats.tcp().outRsts();
                 }
             });
         }
 
         private abstract class TCPPacketsChildExpression extends SysNodeExpression<Long> {
-
         }
 
     }

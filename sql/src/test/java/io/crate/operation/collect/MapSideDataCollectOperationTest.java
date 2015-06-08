@@ -26,6 +26,7 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
@@ -94,13 +95,13 @@ public class MapSideDataCollectOperationTest {
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 functions,
                 referenceResolver,
+                mock(NodeSysExpression.class),
                 indicesService,
                 new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build(), null),
                 new CollectServiceResolver(discoveryService,
