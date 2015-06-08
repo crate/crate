@@ -105,6 +105,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("os", DataTypes.OBJECT, null);
         register("os", DataTypes.LONG, ImmutableList.of("uptime"));
         register("os", DataTypes.TIMESTAMP, ImmutableList.of("timestamp"));
+        register("os", DataTypes.LONG, ImmutableList.of("probe_timestamp"));
         register("os", DataTypes.OBJECT, ImmutableList.of("cpu"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "system"));
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "user"));
@@ -114,6 +115,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));
         register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"));
+        register("process", DataTypes.LONG, ImmutableList.of("probe_timestamp"));
         register("process", DataTypes.OBJECT, ImmutableList.of("cpu"));
         register("process", DataTypes.SHORT, ImmutableList.of("cpu", "percent"));
         register("process", DataTypes.LONG, ImmutableList.of("cpu", "user"));
