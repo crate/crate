@@ -46,7 +46,7 @@ public class ESDeleteByQueryTask extends JobTask {
     private final static ESQueryBuilder QUERY_BUILDER = new ESQueryBuilder();
 
     private final List<ListenableFuture<TaskResult>> resultList;
-    private final ESJobContext context;
+    private final JobExecutionContext context;
 
     public ESDeleteByQueryTask(UUID jobId,
                                ESDeleteByQueryNode node,
@@ -78,9 +78,9 @@ public class ESDeleteByQueryTask extends JobTask {
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESJobContext("delete by query", requests, listeners, resultList, transport);
-        contextBuilder.addSubContext(node.executionNodeId(), context);
-        jobContextService.createContext(contextBuilder);
+        ESJobContext esJobContext = new ESJobContext("delete by query", requests, listeners, resultList, transport);
+        contextBuilder.addSubContext(node.executionNodeId(), esJobContext);
+        context = jobContextService.createContext(contextBuilder);
     }
 
     @Override

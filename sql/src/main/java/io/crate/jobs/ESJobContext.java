@@ -113,14 +113,14 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
         @Override
         public void onResponse(Object o) {
-            listener.onResponse(o);
             context.doClose(null);
+            listener.onResponse(o);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            listener.onFailure(e);
             context.doClose(e);
+            listener.onFailure(e);
         }
     }
 }
