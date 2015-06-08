@@ -25,6 +25,7 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.List;
@@ -45,7 +46,8 @@ public interface ExecutionNode extends Streamable {
         COLLECT(CollectNode.FACTORY),
         COUNT(CountNode.FACTORY),
         FILE_URI_COLLECT(FileUriCollectNode.FACTORY),
-        MERGE(MergeNode.FACTORY);
+        MERGE(MergeNode.FACTORY),
+        NESTED_LOOP(NestedLoopNode.FACTORY);
 
         private final ExecutionNodeFactory factory;
 
