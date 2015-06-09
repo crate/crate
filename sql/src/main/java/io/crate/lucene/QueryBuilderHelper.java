@@ -7,15 +7,19 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.TermFilter;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 public abstract class QueryBuilderHelper {
 
     private final static QueryBuilderHelper intQueryBuilder = new IntegerQueryBuilder();
     private final static QueryBuilderHelper longQueryBuilder = new LongQueryBuilder();
     private final static QueryBuilderHelper stringQueryBuilder = new StringQueryBuilder();
+    private final static QueryBuilderHelper ipQueryBuilder = new IpQueryBuilder();
     private final static QueryBuilderHelper doubleQueryBuilder = new DoubleQueryBuilder();
     private final static QueryBuilderHelper floatQueryBuilder = new FloatQueryBuilder();
     private final static QueryBuilderHelper booleanQueryBuilder = new BooleanQueryBuilder();
@@ -45,7 +49,10 @@ public abstract class QueryBuilderHelper {
         if (dataType.equals(DataTypes.DOUBLE)) {
             return doubleQueryBuilder;
         }
-        if (dataType.equals(DataTypes.IP) || dataType.equals(DataTypes.STRING)) {
+        if (dataType.equals(DataTypes.IP)) {
+            return ipQueryBuilder;
+        }
+        if (dataType.equals(DataTypes.STRING)) {
             return stringQueryBuilder;
         }
         throw new UnsupportedOperationException(String.format("type %s not supported", dataType));
@@ -181,6 +188,56 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
             return NumericRangeQuery.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
+        }
+    }
+
+    static final class IpQueryBuilder extends QueryBuilderHelper {
+
+        private BytesRef valueForSearch(Object value) {
+            if (value == null) return null;
+            BytesRefBuilder bytesRef = new BytesRefBuilder();
+            NumericUtils.longToPrefixCoded(parseValue(value), 0, bytesRef); // 0 because of exact match
+            return bytesRef.get();
+        }
+
+        private Long parseValueOrNull(Object value) {
+            return value == null ? null : parseValue(value);
+        }
+
+        private long parseValue(Object value) {
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof BytesRef) {
+                return IpFieldMapper.ipToLong(((BytesRef) value).utf8ToString());
+            }
+            return IpFieldMapper.ipToLong(value.toString());
+        }
+
+        @Override
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeFilter.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
+        }
+
+        @Override
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeQuery.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
+        }
+
+        @Override
+        public Query eq(String columnName, Object value) {
+            if (value == null) {
+                return Queries.newMatchNoDocsQuery();
+            }
+            return new TermQuery(new Term(columnName, valueForSearch(value)));
+        }
+
+        @Override
+        public Filter eqFilter(String columnName, Object value) {
+            if (value == null) {
+                return new MatchNoDocsFilter();
+            }
+            return new TermFilter(new Term(columnName, valueForSearch(value)));
         }
     }
 

@@ -1440,18 +1440,40 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertAndSelectGeoType() throws Exception {
-        execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
+    public void testInsertAndSelectIpType() throws Exception {
+        execute("create table ip_table (fqdn string, addr ip) with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{1, new Double[]{47.22, 12.09}});
-        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{2, new Double[]{57.22, 7.12}});
-        refresh();
+        execute("insert into ip_table (fqdn, addr) values ('localhost', '127.0.0.1'), ('crate.io', '23.235.33.143')");
+        execute("refresh table ip_table");
 
-        execute("select p from geo_point_table order by id desc");
+        execute("select addr from ip_table where addr = '23.235.33.143'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
 
+        execute("select addr from ip_table where addr > '127.0.0.1'");
+        assertThat(response.rowCount(), is(0L));
+        execute("select addr from ip_table where addr > 2130706433"); // 2130706433 == 127.0.0.1
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select addr from ip_table where addr < '127.0.0.1'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+        execute("select addr from ip_table where addr < 2130706433"); // 2130706433 == 127.0.0.1
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+
+        execute("select addr from ip_table where addr <= '127.0.0.1'");
         assertThat(response.rowCount(), is(2L));
-        assertThat(((Double[]) response.rows()[0][0]), Matchers.arrayContaining(57.22, 7.12));
-        assertThat(((Double[]) response.rows()[1][0]), Matchers.arrayContaining(47.22, 12.09));
+
+        execute("select addr from ip_table where addr >= '23.235.33.143'");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select addr from ip_table where addr IS NULL");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select addr from ip_table where addr IS NOT NULL");
+        assertThat(response.rowCount(), is(2L));
+
     }
 
     @Test
@@ -1467,6 +1489,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][1], is(2L));
         assertThat((String) response.rows()[1][0], is("192.168.1.3"));
         assertThat((Long) response.rows()[1][1], is(1L));
+    }
+
+    @Test
+    public void testDeleteOnIpType() throws Exception {
+        execute("create table ip_table (fqdn string, addr ip) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into ip_table (fqdn, addr) values ('localhost', '127.0.0.1'), ('crate.io', '23.235.33.143')");
+        execute("refresh table ip_table");
+        execute("delete from ip_table where addr = '127.0.0.1'");
+        assertThat(response.rowCount(), is(-1L));
+        execute("select addr from ip_table");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+    }
+
+    @Test
+    public void testInsertAndSelectGeoType() throws Exception {
+        execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{1, new Double[]{47.22, 12.09}});
+        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[]{2, new Double[]{57.22, 7.12}});
+        refresh();
+
+        execute("select p from geo_point_table order by id desc");
+
+        assertThat(response.rowCount(), is(2L));
+        assertThat(((Double[]) response.rows()[0][0]), Matchers.arrayContaining(57.22, 7.12));
+        assertThat(((Double[]) response.rows()[1][0]), Matchers.arrayContaining(47.22, 12.09));
     }
 
     @Test

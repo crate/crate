@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed incorrect comparison in query by IP type
+
  - Fix: make sure sys.nodes expressions that utilize os/process/network/jvm
    services use the same stats probe per row; previously values derived from
    these services could have been from different probes
