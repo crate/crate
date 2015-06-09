@@ -226,51 +226,61 @@ port
 load
 ----
 
-+----------------+----------------------------------------+-------------+
-|  Column Name   |              Description               | Return Type |
-+================+========================================+=============+
-| ``load``       | System load statistics                 | ``Object``  |
-+----------------+----------------------------------------+-------------+
-| ``load['1']``  | Average load over the last 1 minute.   | ``Double``  |
-+----------------+----------------------------------------+-------------+
-| ``load['5']``  | Average load over the last 5 minutes.  | ``Double``  |
-+----------------+----------------------------------------+-------------+
-| ``load['15']`` | Average load over the last 15 minutes. | ``Double``  |
-+----------------+----------------------------------------+-------------+
++-----------------------------+------------------------------------------+-------------+
+|  Column Name                |              Description                 | Return Type |
++=============================+==========================================+=============+
+| ``load``                    | System load statistics                   | ``Object``  |
++-----------------------------+------------------------------------------+-------------+
+| ``load['1']``               | Average load over the last 1 minute.     | ``Double``  |
++-----------------------------+------------------------------------------+-------------+
+| ``load['5']``               | Average load over the last 5 minutes.    | ``Double``  |
++-----------------------------+------------------------------------------+-------------+
+| ``load['15']``              | Average load over the last 15 minutes.   | ``Double``  |
++-----------------------------+------------------------------------------+-------------+
+| ``load['probe_timestamp']`` | Unix timestamp at the time of collection | ``Long``    |
+|                             | of the load probe.                       |             |
++-----------------------------+------------------------------------------+-------------+
+
 
 mem
 ---
 
-+-------------------------+-------------------------------------------------+-------------+
-|       Column Name       |                   Description                   | Return Type |
-+=========================+=================================================+=============+
-| ``mem``                 | Memory utilization statistics of the host.      | ``Object``  |
-+-------------------------+-------------------------------------------------+-------------+
-| ``mem['used']``         | Currently used memory in bytes.                 | ``Long``    |
-+-------------------------+-------------------------------------------------+-------------+
-| ``mem['used_percent']`` | Currently used memory in percent of total.      | ``Short``   |
-+-------------------------+-------------------------------------------------+-------------+
-| ``mem['free']``         | Currently available memory in bytes.            | ``Long``    |
-+-------------------------+-------------------------------------------------+-------------+
-| ``mem['free_percent']`` | Currently available memory in percent of total. | ``Short``   |
-+-------------------------+-------------------------------------------------+-------------+
++----------------------------+-------------------------------------------------+-------------+
+|       Column Name          |                   Description                   | Return Type |
++============================+=================================================+=============+
+| ``mem``                    | Memory utilization statistics of the host.      | ``Object``  |
++----------------------------+-------------------------------------------------+-------------+
+| ``mem['used']``            | Currently used memory in bytes.                 | ``Long``    |
++----------------------------+-------------------------------------------------+-------------+
+| ``mem['used_percent']``    | Currently used memory in percent of total.      | ``Short``   |
++----------------------------+-------------------------------------------------+-------------+
+| ``mem['free']``            | Currently available memory in bytes.            | ``Long``    |
++----------------------------+-------------------------------------------------+-------------+
+| ``mem['free_percent']``    | Currently available memory in percent of total. | ``Short``   |
++----------------------------+-------------------------------------------------+-------------+
+| ``mem['probe_timestamp']`` | Unix timestamp at the time of collection        | ``Long``    |
+|                            | of the memory probe.                            |             |
++----------------------------+-------------------------------------------------+-------------+
 
 heap
 ----
 
-+------------------+------------------------------------------------+-------------+
-|   Column Name    |                  Description                   | Return Type |
-+==================+================================================+=============+
-| ``heap``         | Heap memory utilization statistics.            | ``Object``  |
-+------------------+------------------------------------------------+-------------+
-| ``heap['used']`` | Currently used heap memory in bytes.           | ``Long``    |
-+------------------+------------------------------------------------+-------------+
-| ``heap['max']``  | Maximum available heap memory. You can specify | ``Long``    |
-|                  | the max heap memory Crate should use in the    |             |
-|                  | `configuration`_.                              |             |
-+------------------+------------------------------------------------+-------------+
-| ``heap['free']`` | Currently available heap memory in bytes.      | ``Long``    |
-+------------------+------------------------------------------------+-------------+
++-----------------------------+------------------------------------------------+-------------+
+|   Column Name               |                  Description                   | Return Type |
++=============================+================================================+=============+
+| ``heap``                    | Heap memory utilization statistics.            | ``Object``  |
++-----------------------------+------------------------------------------------+-------------+
+| ``heap['used']``            | Currently used heap memory in bytes.           | ``Long``    |
++-----------------------------+------------------------------------------------+-------------+
+| ``heap['max']``             | Maximum available heap memory. You can specify | ``Long``    |
+|                             | the max heap memory Crate should use in the    |             |
+|                             | `configuration`_.                              |             |
++-----------------------------+------------------------------------------------+-------------+
+| ``heap['free']``            | Currently available heap memory in bytes.      | ``Long``    |
++-----------------------------+------------------------------------------------+-------------+
+| ``heap['probe_timestamp']`` | Unix timestamp at the time of collection       | ``Long``    |
+|                             | of the heap probe.                             |             |
++-----------------------------+------------------------------------------------+-------------+
 
 .. _sys-versions:
 
@@ -371,28 +381,36 @@ thread_pools
 os
 ---
 
-+-------------------------+----------------------------------------------+-------------+
-|       Column Name       |                 Description                  | Return Type |
-+=========================+==============================================+=============+
-| ``os``                  | Operating system stats                       | ``Object``  |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['uptime']``        | System uptime in milliseconds                | ``Long``    |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['timestamp']``     | UNIX timestamp in millisecond resolution     | ``Long``    |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']``           | Information about CPU utilization            | ``Object``  |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']['system']`` | CPU time used by the system                  | ``Short``   |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']['user']``   | CPU time used by applications                | ``Short``   |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']['idle']``   | Idle CPU time                                | ``Short``   |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']['used']``   | Used CPU (system + user)                     | ``Short``   |
-+-------------------------+----------------------------------------------+-------------+
-| ``os['cpu']['stolen']`` | The amount of CPU 'stolen' from this virtual | ``Short``   |
-|                         | machine by the hypervisor for other tasks.   |             |
-+-------------------------+----------------------------------------------+-------------+
++---------------------------+----------------------------------------------+-------------+
+|       Column Name         |                 Description                  | Return Type |
++===========================+==============================================+=============+
+| ``os``                    | Operating system stats                       | ``Object``  |
++---------------------------+----------------------------------------------+-------------+
+| ``os['uptime']``          | System uptime in milliseconds                | ``Long``    |
++---------------------------+----------------------------------------------+-------------+
+| ``os['timestamp']``       | UNIX timestamp in millisecond resolution     | ``Long``    |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']``             | Information about CPU utilization            | ``Object``  |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']['system']``   | CPU time used by the system                  | ``Short``   |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']['user']``     | CPU time used by applications                | ``Short``   |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']['idle']``     | Idle CPU time                                | ``Short``   |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']['used']``     | Used CPU (system + user)                     | ``Short``   |
++---------------------------+----------------------------------------------+-------------+
+| ``os['cpu']['stolen']``   | The amount of CPU 'stolen' from this virtual | ``Short``   |
+|                           | machine by the hypervisor for other tasks.   |             |
++---------------------------+----------------------------------------------+-------------+
+| ``os['probe_timestamp']`` | Unix timestamp at the time of collection     | ``Long``    |
+|                           | of the OS probe.                             |             |
++---------------------------+----------------------------------------------+-------------+
+
+The cpu information values are cached for 1s. They might differ from the actual values 
+at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
+cpu usage over time, always use ``os['probe_timestamp']`` to calculate the time difference 
+between 2 probes.
 
 network
 -------
@@ -401,6 +419,8 @@ network
 |                      Column Name                       |                                        Description                                         | Return Type |
 +========================================================+============================================================================================+=============+
 | ``network``                                            | Statistics about network activity on the host.                                             | ``Object``  |
++--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
+| ``network['probe_timestamp']``                         | Unix timestamp at the time of collection of the network probe.                             | ``Long``    |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
 | ``network['tcp']``                                     | TCP network activity on the host.                                                          | ``Object``  |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
@@ -438,7 +458,7 @@ process
 +------------------------------------------+------------------------------------------------+--------------+
 | Column Name                              | Description                                    | Return Type  |
 +==========================================+================================================+==============+
-| ``process``                              | Statistics about the Crate process             | ``Object``   |
+| ``process``                              | Statistics about the Crate process.            | ``Object``   |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['open_file_descriptors']``     | Number of currently open file descriptors used | ``Long``     |
 |                                          | by the Crate process.                          |              |
@@ -446,7 +466,24 @@ process
 | ``process['max_open_file_descriptors']`` | The maximum number of open file descriptors    | ``Long``     |
 |                                          | Crate can use.                                 |              |
 +------------------------------------------+------------------------------------------------+--------------+
+| ``process['probe_timestamp']``           | The system UNIX timestamp at the moment of     | ``Long``     |
+|                                          | the probe collection.                          |              |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']``                       | Information about the CPU usage of the Crate   | ``Object``   |
+|                                          | process.                                       |              |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['percent']``            | The CPU usage of the Crate JVM process given   | ``Short``    |
+|                                          | in percent.                                    |              |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['user']``               | The process CPU user time in milliseconds.     | ``Long``     |
++------------------------------------------+------------------------------------------------+--------------+
+| ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
++------------------------------------------+------------------------------------------------+--------------+
 
+The cpu information values are cached for 1s. They might differ from the actual values 
+at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
+cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference 
+between 2 probes.
 
 Shards
 ======
@@ -587,7 +624,8 @@ operation is listed on each node it is being executed on.
 In order to see on which nodes the operations are being executed the
 ``_node`` system column can be used in the query::
 
-    cr> select _node['name'], job_id, name, used_bytes from sys.operations order by name limit 1;
+    cr> select _node['name'], job_id, name, used_bytes from sys.operations
+    ... order by name limit 1;
     +---------------+--------...-+---------+------------+
     | _node['name'] | job_id     | name    | used_bytes |
     +---------------+--------...-+---------+------------+
@@ -652,7 +690,8 @@ For example to set the timeout to 30 minutes::
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
     SET OK (... sec)
 
-Crate supports string literals for time values the same way as the ``crate.yml`` does.
+Crate supports string literals for time values the same way as the ``crate.yml`` 
+does.
 So you can write the previous statmement as::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
