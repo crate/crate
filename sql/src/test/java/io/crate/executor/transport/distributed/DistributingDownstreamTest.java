@@ -66,6 +66,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         downstream = new DistributingDownstream(
                 UUID.randomUUID(),
                 1,
+                (byte) 0,
                 0,
                 downstreamNodes,
                 distributedResultAction,

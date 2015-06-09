@@ -50,6 +50,7 @@ public class DistributingDownstream extends ResultProviderBase {
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
+                                  byte targetInputId,
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
@@ -62,7 +63,8 @@ public class DistributingDownstream extends ResultProviderBase {
 
         int idx = 0;
         for (String downstreamNodeId : downstreamNodeIds) {
-            downstreams[idx] = new Downstream(downstreamNodeId, jobId, targetExecutionNodeId, bucketIdx, streamers);
+            downstreams[idx] = new Downstream(downstreamNodeId, jobId, targetExecutionNodeId,
+                    targetInputId, bucketIdx, streamers);
             idx++;
         }
     }
@@ -173,10 +175,11 @@ public class DistributingDownstream extends ResultProviderBase {
         public Downstream(String node,
                           UUID jobId,
                           int targetExecutionNodeId,
+                          byte targetInputId,
                           int bucketIdx,
                           Streamer<?>[] streamers) {
             this.node = node;
-            this.request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers);
+            this.request = new DistributedResultRequest(jobId, targetExecutionNodeId, targetInputId, bucketIdx, streamers);
         }
     }
 

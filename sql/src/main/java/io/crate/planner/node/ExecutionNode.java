@@ -72,6 +72,8 @@ public interface ExecutionNode extends Streamable {
 
     int downstreamExecutionNodeId();
 
+    byte downstreamInputId();
+
     UUID jobId();
 
     void jobId(UUID jobId);

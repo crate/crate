@@ -25,7 +25,7 @@ import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
-public class CountPlan extends PlanAndPlannedAnalyzedRelation{
+public class CountPlan extends PlanAndPlannedAnalyzedRelation {
 
     private final CountNode countNode;
     private final MergeNode mergeNode;

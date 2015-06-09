@@ -50,43 +50,43 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitQueryAndFetch(QueryAndFetch node, C context){
-        return visitPlan(node, context);
+    public R visitQueryAndFetch(QueryAndFetch plan, C context){
+        return visitPlan(plan, context);
     }
 
-    public R visitQueryThenFetch(QueryThenFetch node, C context){
-        return visitPlan(node, context);
+    public R visitQueryThenFetch(QueryThenFetch plan, C context){
+        return visitPlan(plan, context);
     }
 
-    public R visitNonDistributedGroupBy(NonDistributedGroupBy node, C context) {
-        return visitPlan(node, context);
+    public R visitNonDistributedGroupBy(NonDistributedGroupBy plan, C context) {
+        return visitPlan(plan, context);
     }
 
-    public R visitUpsert(Upsert node, C context) {
-        return visitPlan(node, context);
+    public R visitUpsert(Upsert plan, C context) {
+        return visitPlan(plan, context);
     }
 
-    public R visitDistributedGroupBy(DistributedGroupBy node, C context) {
-        return visitPlan(node, context);
+    public R visitDistributedGroupBy(DistributedGroupBy plan, C context) {
+        return visitPlan(plan, context);
     }
 
-    public R visitInsertByQuery(InsertFromSubQuery node, C context) {
-        return visitPlan(node, context);
+    public R visitInsertByQuery(InsertFromSubQuery plan, C context) {
+        return visitPlan(plan, context);
     }
 
     public R visitCollectAndMerge(CollectAndMerge plan, C context) {
         return visitPlan(plan, context);
     }
 
-    public R visitCountPlan(CountPlan countPlan, C context) {
-        return visitPlan(countPlan, context);
+    public R visitCountPlan(CountPlan plan, C context) {
+        return visitPlan(plan, context);
     }
 
-    public R visitKillPlan(KillPlan killPlan, C context) {
-        return visitPlan(killPlan, context);
+    public R visitKillPlan(KillPlan plan, C context) {
+        return visitPlan(plan, context);
     }
 
-    public R visitNestedLoop(NestedLoop nestedLoop, C context) {
-        return visitPlan(nestedLoop, context);
+    public R visitNestedLoop(NestedLoop plan, C context) {
+        return visitPlan(plan, context);
     }
 }

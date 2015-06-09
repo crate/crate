@@ -59,10 +59,6 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final PlannedAnalyzedRelation right;
     private final NestedLoopNode nestedLoopNode;
     @Nullable
-    private MergeNode leftMergeNode;
-    @Nullable
-    private MergeNode rightMergeNode;
-    @Nullable
     private MergeNode localMergeNode;
 
     private boolean leftOuterLoop = true;
@@ -122,24 +118,6 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     public boolean leftOuterLoop() {
         return leftOuterLoop;
-    }
-
-    public void leftMergeNode(MergeNode leftMergeNode) {
-        this.leftMergeNode = leftMergeNode;
-    }
-
-    @Nullable
-    public MergeNode leftMergeNode() {
-        return leftMergeNode;
-    }
-
-    public void rightMergeNode(MergeNode rightMergeNode) {
-        this.rightMergeNode = rightMergeNode;
-    }
-
-    @Nullable
-    public MergeNode rightMergeNode() {
-        return rightMergeNode;
     }
 
     public void localMergeNode(MergeNode localMergeNode) {

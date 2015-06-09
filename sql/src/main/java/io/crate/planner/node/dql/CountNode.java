@@ -110,6 +110,11 @@ public class CountNode implements ExecutionNode {
     }
 
     @Override
+    public byte downstreamInputId() {
+        return 0;
+    }
+
+    @Override
     public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCountNode(this, context);
     }

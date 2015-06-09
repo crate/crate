@@ -23,10 +23,12 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.RowCountResult;
@@ -49,9 +51,13 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.symbol.*;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -744,4 +750,166 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(results, hasSize(1));
         results.get(0).get();
     }
+
+    @Test
+    public void testNestedLoopWithOrderedQAF() throws Exception {
+        // select characters.id, characters.name,
+        //        locations.position, locations.id, locations.name,
+        //        employees.name, employees.department
+        //   from characters, locations, employees
+        //   order by characters.id, locations.position, locations.id, employees.name;
+        setup.setUpCharacters();
+        setup.setUpLocations();
+        setup.setUpEmployees();
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        DocTableInfo locations = docSchemaInfo.getTableInfo("locations");
+        DocTableInfo employees = docSchemaInfo.getTableInfo("employees");
+
+        Reference outerLeftIdRef = new Reference(characters.getReferenceInfo(new ColumnIdent("id")));
+        Reference outerLeftNameRef = new Reference(characters.getReferenceInfo(new ColumnIdent("name")));
+
+        Reference innerLeftIdRef = new Reference(locations.getReferenceInfo(new ColumnIdent("id")));
+        Reference innerLeftNameRef = new Reference(locations.getReferenceInfo(new ColumnIdent("name")));
+        Reference innerLeftPosRef = new Reference(locations.getReferenceInfo(new ColumnIdent("position")));
+
+        Reference innerRightNameRef = new Reference(employees.getReferenceInfo(new ColumnIdent("name")));
+        Reference innerRightDepartmentRef = new Reference(employees.getReferenceInfo(new ColumnIdent("department")));
+
+        List<Symbol> outerLeftCollectSymbols = Lists.<Symbol>newArrayList(outerLeftIdRef, outerLeftNameRef);
+        List<Symbol> innerLeftCollectSymbols = Lists.<Symbol>newArrayList(innerLeftPosRef, innerLeftIdRef, innerLeftNameRef);
+        List<Symbol> innerRightCollectSymbols = Lists.<Symbol>newArrayList(innerRightNameRef, innerRightDepartmentRef);
+        List<Symbol> outputSymbols = Lists.newArrayList(outerLeftCollectSymbols);
+        outputSymbols.addAll(innerLeftCollectSymbols);
+        outputSymbols.addAll(innerRightCollectSymbols);
+
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(null);
+        Planner.Context ctx = new Planner.Context(clusterService());
+        String localNodeId = clusterService.localNode().id();
+        Set<String> localExecutionNode = Sets.newHashSet(localNodeId);
+
+        // outer left relation
+        CollectNode outerLeftCollectNode = PlanNodeBuilder.distributingCollect(
+                characters,
+                ctx,
+                WhereClause.MATCH_ALL,
+                outerLeftCollectSymbols,
+                Lists.newArrayList(localExecutionNode),
+                ImmutableList.<Projection>of());
+        OrderBy outerLeftOrderBy = new OrderBy(ImmutableList.<Symbol>of(outerLeftIdRef),
+                new boolean[]{false}, new Boolean[]{false});
+        outerLeftCollectNode.orderBy(outerLeftOrderBy);
+        MergeProjection outerLeftMergeProjection = projectionBuilder.mergeProjection(
+                outerLeftCollectSymbols,
+                outerLeftOrderBy);
+        outerLeftCollectNode.projections(ImmutableList.<Projection>of(outerLeftMergeProjection));
+
+        // inner left relation
+        CollectNode innerLeftCollectNode = PlanNodeBuilder.distributingCollect(
+                locations,
+                ctx,
+                WhereClause.MATCH_ALL,
+                innerLeftCollectSymbols,
+                Lists.newArrayList(localExecutionNode),
+                ImmutableList.<Projection>of());
+        OrderBy innerLeftOrderBy = new OrderBy(ImmutableList.<Symbol>of(innerLeftPosRef, innerLeftIdRef),
+                new boolean[]{false, false}, new Boolean[]{false, false});
+        innerLeftCollectNode.orderBy(innerLeftOrderBy);
+        MergeProjection innerLeftMergeProjection = projectionBuilder.mergeProjection(
+                innerLeftCollectSymbols,
+                innerLeftOrderBy);
+        innerLeftCollectNode.projections(ImmutableList.<Projection>of(innerLeftMergeProjection));
+
+        // inner right relation
+        CollectNode innerRightCollectNode = PlanNodeBuilder.distributingCollect(
+                employees,
+                ctx,
+                WhereClause.MATCH_ALL,
+                innerRightCollectSymbols,
+                Lists.newArrayList(localExecutionNode),
+                ImmutableList.<Projection>of());
+        OrderBy innerRightOrderBy = new OrderBy(ImmutableList.<Symbol>of(innerRightNameRef),
+                new boolean[]{false}, new Boolean[]{false});
+        innerRightCollectNode.orderBy(innerRightOrderBy);
+        MergeProjection innerRightMergeProjection = projectionBuilder.mergeProjection(
+                innerRightCollectSymbols,
+                innerRightOrderBy);
+        innerRightCollectNode.projections(ImmutableList.<Projection>of(innerRightMergeProjection));
+
+        // inner nested loop node
+        NestedLoopNode innerNestedLoopNode = PlanNodeBuilder.localNestedLoopNode(
+                ImmutableList.<Projection>of(),
+                localExecutionNode,
+                innerLeftCollectNode,
+                innerRightCollectNode,
+                innerLeftCollectSymbols,
+                innerRightCollectSymbols,
+                innerLeftOrderBy,
+                innerRightOrderBy,
+                ctx);
+
+        PlannedAnalyzedRelation innerPlan = new NestedLoop(
+                new QueryThenFetch(innerLeftCollectNode, null),
+                new QueryThenFetch(innerRightCollectNode, null),
+                innerNestedLoopNode,
+                false);
+
+
+        // outer nested loop node
+        List<Symbol> outerRightCollectSymbols = Lists.newArrayList(innerLeftCollectSymbols);
+        outerRightCollectSymbols.addAll(innerRightCollectSymbols);
+        OrderBy outerRightOrderBy = new OrderBy(ImmutableList.<Symbol>of(innerLeftPosRef, innerLeftIdRef, innerRightNameRef),
+                new boolean[]{false, false, false}, new Boolean[]{false, false, false});
+        NestedLoopNode outerNestedLoopNode = PlanNodeBuilder.localNestedLoopNode(
+                ImmutableList.<Projection>of(),
+                localExecutionNode,
+                outerLeftCollectNode,
+                innerNestedLoopNode,
+                outerLeftCollectSymbols,
+                outerRightCollectSymbols,
+                outerLeftOrderBy,
+                outerRightOrderBy,
+                ctx);
+        innerNestedLoopNode.downstreamExecutionNodeId(outerNestedLoopNode.executionNodeId());
+        innerNestedLoopNode.downstreamNodes(Lists.newArrayList(outerNestedLoopNode.executionNodes()));
+
+        // final local merge
+        MergeNode localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                ImmutableList.<Projection>of(),
+                innerLeftOrderBy,
+                outputSymbols,
+                null,
+                outerNestedLoopNode,
+                ctx);
+        localMergeNode.executionNodes(localExecutionNode);
+        outerNestedLoopNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+        outerNestedLoopNode.downstreamNodes(Lists.newArrayList(localMergeNode.executionNodes()));
+
+        // nested loop plan
+        NestedLoop nestedLoopPlan = new NestedLoop(
+                new QueryThenFetch(outerLeftCollectNode, null),
+                innerPlan,
+                outerNestedLoopNode,
+                false);
+        nestedLoopPlan.localMergeNode(localMergeNode);
+
+        Job job = executor.newJob(nestedLoopPlan);
+        assertThat(job.tasks().size(), is(1));
+        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
+        Bucket rows = result.get(0).get().rows();
+        assertThat(rows.size(), is(312));
+
+        assertThat(TestingHelpers.printedTable(rows), startsWith("" +
+                "1| Arthur| 1| 1| North West Ripple| asok| internship\n" +
+                "1| Arthur| 1| 1| North West Ripple| catbert| HR\n" +
+                "1| Arthur| 1| 1| North West Ripple| dilbert| engineering\n" +
+                "1| Arthur| 1| 1| North West Ripple| pointy haired boss| management\n" +
+                "1| Arthur| 1| 1| North West Ripple| ratbert| HR\n" +
+                "1| Arthur| 1| 1| North West Ripple| wally| engineering\n" +
+                "1| Arthur| 1| 4| Aldebaran| asok| internship\n"));
+
+        assertThat(TestingHelpers.printedTable(rows), endsWith("" +
+                "4| Arthur| 6| 13| End of the Galaxy| wally| engineering\n"));
+    }
+
 }

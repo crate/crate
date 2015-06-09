@@ -48,7 +48,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         };
         UUID uuid = UUID.randomUUID();
 
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, 1, streamers);
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 0, 1, streamers);
         r1.rows(new ArrayBucket(rows));
 
         BytesStreamOutput out = new BytesStreamOutput();

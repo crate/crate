@@ -23,18 +23,17 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A plan node which merges results from upstreams
@@ -48,7 +47,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
     };
 
-    private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
 
@@ -59,8 +57,6 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
-    private int downstreamExecutionNodeId = NO_EXECUTION_NODE;
-    private List<String> downstreamNodes = ImmutableList.of();
 
     public MergeNode() {
         numUpstreams = 0;
@@ -102,36 +98,12 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
     }
 
-    @Override
-    public List<String> downstreamNodes() {
-        return downstreamNodes;
-    }
-
-    public void downstreamNodes(Set<String> nodes) {
-        downstreamNodes = ImmutableList.copyOf(nodes);
-    }
-
-    @Override
-    public int downstreamExecutionNodeId() {
-        return downstreamExecutionNodeId;
-    }
-
     public void executionNodes(Set<String> executionNodes) {
         this.executionNodes = executionNodes;
     }
 
     public int numUpstreams() {
         return numUpstreams;
-    }
-
-    @Override
-    public List<DataType> inputTypes() {
-        return inputTypes;
-    }
-
-    @Override
-    public void inputTypes(List<DataType> inputTypes) {
-        this.inputTypes = inputTypes;
     }
 
     public boolean sortedInputOutput() {
@@ -166,23 +138,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionNodeId = in.readVInt();
-
-        int numDownstreamNodes = in.readVInt();
-        downstreamNodes = new ArrayList<>(numDownstreamNodes);
-        for (int i = 0; i < numDownstreamNodes; i++) {
-            downstreamNodes.add(in.readString());
-        }
-
         numUpstreams = in.readVInt();
 
-        int numCols = in.readVInt();
-        if (numCols > 0) {
-            inputTypes = new ArrayList<>(numCols);
-            for (int i = 0; i < numCols; i++) {
-                inputTypes.add(DataTypes.fromStream(in));
-            }
-        }
         int numExecutionNodes = in.readVInt();
 
         if (numExecutionNodes > 0) {
@@ -209,20 +166,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionNodeId);
-
-        out.writeVInt(downstreamNodes.size());
-        for (String downstreamNode : downstreamNodes) {
-            out.writeString(downstreamNode);
-        }
-
         out.writeVInt(numUpstreams);
-
-        int numCols = inputTypes.size();
-        out.writeVInt(numCols);
-        for (DataType inputType : inputTypes) {
-            DataTypes.toStream(inputType, out);
-        }
 
         if (executionNodes == null) {
             out.writeVInt(0);
@@ -254,7 +198,7 @@ public class MergeNode extends AbstractDQLPlanNode {
                 .add("jobId", jobId())
                 .add("numUpstreams", numUpstreams)
                 .add("executionNodes", executionNodes)
-                .add("inputTypes", inputTypes)
+                .add("inputTypes", inputTypes())
                 .add("sortedInputOutput", sortedInputOutput);
         if (sortedInputOutput) {
             helper.add("orderByIndices", Arrays.toString(orderByIndices))
@@ -264,7 +208,4 @@ public class MergeNode extends AbstractDQLPlanNode {
         return helper.toString();
     }
 
-    public void downstreamExecutionNodeId(int downstreamExecutionNodeId) {
-        this.downstreamExecutionNodeId = downstreamExecutionNodeId;
-    }
 }

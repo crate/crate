@@ -44,7 +44,7 @@ public class NestedLoopNodeTest extends CrateUnitTest {
     @Test
     public void testSerialization() throws Exception {
 
-        NestedLoopNode node = new NestedLoopNode(3, 2, "nestedLoop");
+        NestedLoopNode node = new NestedLoopNode(1, "nestedLoop");
         node.jobId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
         node.leftInputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
@@ -67,8 +67,7 @@ public class NestedLoopNodeTest extends CrateUnitTest {
         assertThat(node.jobId(), Is.is(node2.jobId()));
         assertThat(node.leftInputTypes(), is(node2.leftInputTypes()));
         assertThat(node.rightInputTypes(), is(node2.rightInputTypes()));
-        assertThat(node.leftExecutionNodeId(), is(node2.leftExecutionNodeId()));
-        assertThat(node.rightExecutionNodeId(), is(node2.rightExecutionNodeId()));
+        assertThat(node.executionNodeId(), is(node2.executionNodeId()));
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));
     }

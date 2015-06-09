@@ -29,6 +29,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -118,6 +119,12 @@ public class StreamerVisitor {
         @Override
         public Void visitCollectNode(CollectNode collectNode, Context context) {
             extractFromCollectNode(collectNode, context);
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoopNode(NestedLoopNode node, Context context) {
+            setOutputStreamers(node.outputTypes(), ImmutableList.<DataType>of(), node.projections(), context);
             return null;
         }
 

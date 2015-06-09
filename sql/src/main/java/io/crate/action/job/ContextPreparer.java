@@ -30,6 +30,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.NestedLoopContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageDownstreamFactory;
@@ -46,6 +47,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -121,8 +123,8 @@ public class ContextPreparer {
     private class InnerPreparer extends ExecutionNodeVisitor<PreparerContext, Void> {
 
         @Override
-        public Void visitCountNode(CountNode countNode, PreparerContext context) {
-            Map<String, Map<String, List<Integer>>> locations = countNode.routing().locations();
+        public Void visitCountNode(CountNode node, PreparerContext context) {
+            Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
             if (locations == null) {
                 throw new IllegalArgumentException("locations are empty. Can't start count operation");
             }
@@ -137,15 +139,15 @@ public class ContextPreparer {
                     countOperation,
                     singleBucketBuilder,
                     indexShardMap,
-                    countNode.whereClause()
+                    node.whereClause()
             );
             context.directResultFuture = singleBucketBuilder.result();
-            context.contextBuilder.addSubContext(countNode.executionNodeId(), countContext);
+            context.contextBuilder.addSubContext(node.executionNodeId(), countContext);
             return null;
         }
 
         @Override
-        public Void visitMergeNode(final MergeNode node, final PreparerContext context) {
+        public Void visitMergeNode(MergeNode node, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
@@ -172,9 +174,9 @@ public class ContextPreparer {
         }
 
         @Override
-        public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
+        public Void visitCollectNode(CollectNode node, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
-            ResultProvider downstream = collectOperation.createDownstream(node);
+            ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
 
             if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
@@ -187,6 +189,24 @@ public class ContextPreparer {
                     downstream
             );
             context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoopNode(NestedLoopNode node, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
+
+            ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
+
+            NestedLoopContext nestedLoopContext = new NestedLoopContext(
+                    node,
+                    downstream,
+                    ramAccountingContext,
+                    pageDownstreamFactory,
+                    threadPool,
+                    streamerVisitor);
+
+            context.contextBuilder.addSubContext(node.executionNodeId(), nestedLoopContext);
             return null;
         }
     }

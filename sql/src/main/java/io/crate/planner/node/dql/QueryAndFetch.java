@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 public class QueryAndFetch extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
+    @Nullable
     private MergeNode localMergeNode;
 
     public QueryAndFetch(CollectNode collectNode, @Nullable MergeNode localMergeNode){
@@ -27,6 +28,7 @@ public class QueryAndFetch extends PlanAndPlannedAnalyzedRelation {
         return collectNode;
     }
 
+    @Nullable
     public MergeNode localMergeNode(){
         return localMergeNode;
     }

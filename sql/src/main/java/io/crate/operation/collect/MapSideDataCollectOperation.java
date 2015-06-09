@@ -39,7 +39,6 @@ import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
@@ -173,10 +172,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         );
     }
 
-
-    public ResultProvider createDownstream(CollectNode collectNode) {
-        return resultProviderFactory.createDownstream(collectNode, collectNode.jobId());
-    }
 
     /**
      * dispatch by the following criteria:

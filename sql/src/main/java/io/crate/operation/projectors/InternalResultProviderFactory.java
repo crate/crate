@@ -69,6 +69,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
             return new DistributingDownstream(
                     jobId,
                     node.downstreamExecutionNodeId(),
+                    node.downstreamInputId(),
                     bucketIdx,
                     node.downstreamNodes(),
                     transportDistributedResultAction,

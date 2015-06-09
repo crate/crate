@@ -43,7 +43,7 @@ public class Job {
         return id;
     }
 
-    public void addTasks(Collection<Task> tasks) {
+    public void addTasks(Collection<? extends Task> tasks) {
         this.tasks.addAll(tasks);
     }
 

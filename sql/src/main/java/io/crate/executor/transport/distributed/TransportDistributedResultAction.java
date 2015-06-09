@@ -25,9 +25,7 @@ import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.PageDownstreamContext;
+import io.crate.jobs.*;
 import io.crate.operation.PageResultListener;
 import io.crate.planner.node.ExecutionNode;
 import org.elasticsearch.action.ActionListener;
@@ -108,11 +106,25 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionNodeId());
-        if (pageDownstreamContext == null) {
+        DownstreamExecutionSubContext executionContext;
+        try {
+            executionContext = context.getSubContextOrNull(request.executionNodeId());
+        } catch (ClassCastException e) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Found execution context for %d but it's not a downstream context", request.executionNodeId())));
+            return;
+        }
+        if (executionContext == null) {
             // this is currently sometimes the case when upstreams send failures more than once
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
+                    "Couldn't find execution context for %d", request.executionNodeId())));
+            return;
+        }
+
+        PageDownstreamContext pageDownstreamContext = executionContext.pageDownstreamContext(request.executionNodeInputId());
+        if (pageDownstreamContext == null) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Couldn't find pageDownstreamContext for input %d", request.executionNodeInputId())));
             return;
         }
 

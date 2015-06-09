@@ -19,36 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.jobs;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.node.dql.join.NestedLoopNode;
+import javax.annotation.Nullable;
 
-public class ExecutionNodeVisitor<C, R> {
+public interface DownstreamExecutionSubContext extends ExecutionSubContext {
 
-    public R process(ExecutionNode node, C context) {
-        return node.accept(this, context);
-    }
-
-    protected R visitExecutionNode(ExecutionNode node, C context) {
-        return null;
-    }
-
-    public R visitCollectNode(CollectNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitMergeNode(MergeNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitCountNode(CountNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitNestedLoopNode(NestedLoopNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
+    @Nullable
+    PageDownstreamContext pageDownstreamContext(byte inputId);
 }

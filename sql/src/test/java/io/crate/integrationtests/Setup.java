@@ -131,6 +131,7 @@ public class Setup {
                 }
         };
         transportExecutor.exec(insertStmt, rows);
+        transportExecutor.refresh("locations");
     }
 
     public void groupBySetup() throws Exception {
