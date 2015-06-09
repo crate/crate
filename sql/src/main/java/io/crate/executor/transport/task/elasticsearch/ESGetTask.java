@@ -68,7 +68,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
     private final List<? extends ListenableFuture<TaskResult>> results;
-    private final ESJobContext context;
+    private final JobExecutionContext context;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
@@ -123,17 +123,16 @@ public class ESGetTask extends JobTask implements RowUpstream {
             listener = new GetResponseListener(settableFuture, extractors);
             results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
         }
-        context = new ESJobContext("lookup by primary key",
+        ESJobContext esJobContext = new ESJobContext("lookup by primary key",
                 ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
 
         if (projectorChain != null) {
-            projectorChain.startProjections(context);
+            projectorChain.startProjections(esJobContext);
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(executionNodeId, context);
-        jobContextService.createContext(contextBuilder);
-
+        contextBuilder.addSubContext(executionNodeId, esJobContext);
+        context = jobContextService.createContext(contextBuilder);
     }
 
     public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values) {

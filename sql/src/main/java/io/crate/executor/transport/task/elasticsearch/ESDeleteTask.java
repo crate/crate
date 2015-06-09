@@ -45,7 +45,7 @@ import java.util.UUID;
 public class ESDeleteTask extends JobTask {
 
     private final List<ListenableFuture<TaskResult>> resultList;
-    private final ESJobContext context;
+    private final JobExecutionContext context;
 
     public ESDeleteTask(UUID jobId,
                         ESDeleteNode node,
@@ -70,9 +70,9 @@ public class ESDeleteTask extends JobTask {
         }
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        context = new ESJobContext("delete", requests, listeners, resultList, transport);
-        contextBuilder.addSubContext(node.executionNodeId(), context);
-        jobContextService.createContext(contextBuilder);
+        ESJobContext esJobContext = new ESJobContext("delete", requests, listeners, resultList, transport);
+        contextBuilder.addSubContext(node.executionNodeId(), esJobContext);
+        context = jobContextService.createContext(contextBuilder);
     }
 
     @Override
