@@ -7,6 +7,8 @@ Unreleased
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
+ - Fixed incorrect comparison in query by IP type
+
  - Added ``probe_timestamp`` child expressions for os, process, heap, mem, and
    network columns to sys.nodes table
 
