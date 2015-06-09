@@ -84,10 +84,10 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
 
     @Override
     public void resume(boolean async) {
+        pendingPause = false;
         if (paused.compareAndSet(true, false)) {
+            LOGGER.trace("resume");
             processBuckets(pausedIterator, pausedListener);
-        } else {
-            pendingPause = false;
         }
     }
 
@@ -96,8 +96,9 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         if (finished.compareAndSet(true, false)) {
             LOGGER.trace("received repeat: {}", downstream);
             paused.set(false);
-            processBuckets(repeatIt(), PageConsumeListener.NO_OP_LISTENER);
-            consumeRemaining();
+            if (processBuckets(repeatIt(), PageConsumeListener.NO_OP_LISTENER)) {
+                consumeRemaining();
+            }
             downstream.finish();
             finished.set(true);
         } else {
@@ -112,11 +113,11 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         return pagingIterator;
     }
 
-    private void processBuckets(PagingIterator<Row> iterator, PageConsumeListener listener) {
+    private boolean processBuckets(PagingIterator<Row> iterator, PageConsumeListener listener) {
         while (iterator.hasNext()) {
             if (finished.get()) {
                 listener.finish();
-                return;
+                return false;
             }
             Row row = iterator.next();
             boolean wantMore = downstream.setNextRow(row);
@@ -125,14 +126,15 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
                 pausedIterator = iterator;
                 paused.set(true);
                 pendingPause = false;
-                return;
+                return wantMore;
             }
             if (!wantMore) {
                 listener.finish();
-                return;
+                return false;
             }
         }
         listener.needMore();
+        return true;
     }
 
     @Override
