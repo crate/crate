@@ -59,7 +59,11 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final PlannedAnalyzedRelation right;
     private final NestedLoopNode nestedLoopNode;
     @Nullable
-    private MergeNode mergeNode;
+    private MergeNode leftMergeNode;
+    @Nullable
+    private MergeNode rightMergeNode;
+    @Nullable
+    private MergeNode localMergeNode;
 
     private boolean leftOuterLoop = true;
 
@@ -120,8 +124,26 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
         return leftOuterLoop;
     }
 
-    public void mergeNode(MergeNode mergeNode) {
-        this.mergeNode = mergeNode;
+    public void leftMergeNode(MergeNode leftMergeNode) {
+        this.leftMergeNode = leftMergeNode;
+    }
+
+    @Nullable
+    public MergeNode leftMergeNode() {
+        return leftMergeNode;
+    }
+
+    public void rightMergeNode(MergeNode rightMergeNode) {
+        this.rightMergeNode = rightMergeNode;
+    }
+
+    @Nullable
+    public MergeNode rightMergeNode() {
+        return rightMergeNode;
+    }
+
+    public void localMergeNode(MergeNode localMergeNode) {
+        this.localMergeNode = localMergeNode;
     }
 
     public NestedLoopNode nestedLoopNode() {
@@ -129,8 +151,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     }
 
     @Nullable
-    public MergeNode mergeNode() {
-        return mergeNode;
+    public MergeNode localMergeNode() {
+        return localMergeNode;
     }
 
     @Override
@@ -144,7 +166,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public DQLPlanNode resultNode() {
-        return mergeNode == null ? outer().resultNode() : mergeNode;
+        return localMergeNode == null ? outer().resultNode() : localMergeNode;
     }
 
     @Override
