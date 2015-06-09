@@ -41,6 +41,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 
@@ -59,6 +60,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
+    ClusterService clusterService;
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
     TableIdent booksIdent = new TableIdent(null, "books");
@@ -91,8 +93,11 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetUp() {
-        executor = internalCluster().getInstance(TransportExecutor.class);
-        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
+        String[] nodeNames = internalCluster().getNodeNames();
+        String handlerNodeName = nodeNames[randomIntBetween(0, nodeNames.length-1)];
+        executor = internalCluster().getInstance(TransportExecutor.class, handlerNodeName);
+        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class, handlerNodeName);
+        clusterService = internalCluster().getInstance(ClusterService.class, handlerNodeName);
     }
 
     @After
