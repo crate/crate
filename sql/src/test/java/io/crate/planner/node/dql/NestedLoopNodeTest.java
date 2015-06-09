@@ -21,8 +21,11 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -48,6 +51,8 @@ public class NestedLoopNodeTest extends CrateUnitTest {
         node.rightInputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.INTEGER, DataTypes.DOUBLE));
         node.downstreamNodes(Sets.newHashSet("node3", "node4"));
         node.downstreamExecutionNodeId(5);
+        TopNProjection topNProjection = new TopNProjection(10, 0);
+        node.projections(ImmutableList.<Projection>of(topNProjection));
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
