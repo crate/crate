@@ -2,7 +2,10 @@ apply plugin: 'java'
 apply plugin: 'maven'
 
 archivesBaseName = 'crate-sql-parser'
-
+def parserFiles = files(
+        'src/main/java/io/crate/sql/parser/StatementLexer.java',
+        'src/main/java/io/crate/sql/parser/StatementParser.java'
+)
 import org.apache.tools.ant.taskdefs.condition.Os
 
 repositories {
@@ -33,13 +36,15 @@ task generateWithANTLR3(type:Exec) {
     if (Os.isFamily(Os.FAMILY_WINDOWS)) {
         outputPath = 'src/main/java/io/crate/sql/parser';
     }
+    outputs.files(parserFiles)
     commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', outputPath, 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
 }
 
-compileJava {
-    dependsOn generateWithANTLR3
-    source 'src/main/java/'
+
+tasks.withType(JavaCompile) {
+    it.dependsOn generateWithANTLR3
 }
+
 
 test {
     // show standard out and standard error of the test JVM(s) on the console
@@ -54,5 +59,13 @@ test {
                 "TreeAssertions*",
                 "TreePrinter*"
                 ]
+    }
+}
+
+clean {
+    doLast {
+        parserFiles.each {
+            it.delete()
+        }
     }
 }
