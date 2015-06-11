@@ -36,15 +36,14 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.Stubber;
 import org.powermock.api.mockito.PowerMockito;
 
 import javax.annotation.Nullable;
@@ -265,7 +264,7 @@ public class TestingHelpers {
                 }
                 if (((Literal) item).value() == null && expectedValue != null) {
                     mismatchDescription.appendText("wrong value ").appendValue(
-                            ((Literal) item).value());
+                            BytesRefs.toString(((Literal) item).value()));
                     result = false;
                 } else if (((Literal) item).value() == null && expectedValue == null) {
                     return true;

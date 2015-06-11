@@ -43,7 +43,7 @@ public abstract class CmpOperator extends Operator<Object> {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
 
-        if (containsNull(left, right)) {
+        if (containsNullLiteral(symbol.arguments())) {
             return Literal.NULL;
         }
 

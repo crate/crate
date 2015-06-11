@@ -302,6 +302,106 @@ timestamp will have second precision, no fractional seconds (milliseconds) are g
    operating system.
 
 
+date_format([format_string, [timezone,]] timestamp) returns string
+------------------------------------------------------------------
+
+The ``date_format`` function formats a timestamp as string according to the
+(optional) format string.
+
+synopsis
+........
+
+::
+
+    DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
+
+The only mandatory argument is the ``timestamp`` value to format.
+It can be any expression that is safely convertible to timestamp.
+
+Format
+......
+
+The syntax for the ``format_string`` is 100% compatible to the syntax of the
+`MySQL date_format`_ function. For reference, the format is listed in detail below [#MySQL-Docs]_ :
+
+.. csv-table:: date_format Format
+   :header: "Format Specifier", "Description"
+
+   %a,	"Abbreviated weekday name (Sun..Sat)"
+   %b,	"Abbreviated month name (Jan..Dec)"
+   %c,	"Month in year, numeric (0..12)"
+   %D,	"Day of month as ordinal number (1st, 2nd, ... 24th)"
+   %d,	"Day of month, padded to 2 digits (00..31)"
+   %e,	"Day of month (0..31)"
+   %f,	"Microseconds, padded to 6 digits (000000..999999)"
+   %H,	"Hour in 24-hour clock, padded to 2 digits (00..23)"
+   %h,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   %I,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   %i,	"Minutes, numeric (00..59)"
+   %j,	"Day of year, padded to 3 digits (001..366)"
+   %k,	"Hour in 24-hour clock (0..23)"
+   %l,	"Hour in 12-hour clock (1..12)"
+   %M,	"Month name (January..December)"
+   %m,	"Month in year, numeric, padded to 2 digits (00..12)"
+   %p,	"AM or PM"
+   %r,	"Time, 12-hour (hh:mm:ss followed by AM or PM)"
+   %S,	"Seconds, padded to 2 digits (00..59)"
+   %s,	"Seconds, padded to 2 digits (00..59)"
+   %T,	"Time, 24-hour (hh:mm:ss)"
+   %U,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, week 00 starts in last year (00..53)"
+   %u,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year (00..53)"
+   %V,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   %v,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   %W,	"Weekday name (Sunday..Saturday)"
+   %w,	"Day of the week (0=Sunday..6=Saturday)"
+   %X,	"weekyear, sunday as first day of the week, numeric, four digits; used with %V"
+   %x,	"weekyear, monday as first day of the week, numeric, four digits; used with %v"
+   %Y,	"Year, numeric, four digits"
+   %y,	"Year, numeric, two digits"
+   %%,	"A literal '%' character"
+   %x,	"x, for any 'x' not listed above"
+
+If no ``format_string`` is given the default format will be used::
+
+    %Y-%m-%dT%H:%i:%s.%fZ
+
+::
+
+    cr> select date_format('1970-01-01') as epoque from sys.cluster;
+    +-----------------------------+
+    | epoque                      |
+    +-----------------------------+
+    | 1970-01-01T00:00:00.000000Z |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+Timezone
+........
+
+Valid values for ``timezone`` are either the name of a time zone (for example
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
+To get a complete overview of all possible values take a look at the
+`available time zones`_ supported by `Joda-Time`_.
+
+The ``timezone`` will be ``UTC`` if not provided::
+
+    cr> select date_format('%W the %D of %M %Y %H:%i %p', 0) as epoque from sys.cluster;
+    +-------------------------------------------+
+    | epoque                                    |
+    +-------------------------------------------+
+    | Thursday the 1st of January 1970 00:00 AM |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select date_format('%Y/%m/%d %H:%i', 'EST',  0) as est_epoque from sys.cluster;
+    +------------------+
+    | est_epoque       |
+    +------------------+
+    | 1969/12/31 19:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
 
 Geo Functions
 =============
@@ -735,4 +835,9 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
-.. _Java Regular Expressions: http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
+.. rubric:: Footnotes
+
+.. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+
+.. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
+.. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format

@@ -68,27 +68,26 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
         assert (symbol != null);
         assert (symbol.arguments().size() == 2);
 
-        Symbol left = symbol.arguments().get(0);
-        Symbol right = symbol.arguments().get(1);
-
-        if (containsNull(left, right)) {
+        if (containsNullLiteral(symbol.arguments())) {
             return Literal.NULL;
         }
-        if (left instanceof Literal && right instanceof Literal) {
-            Literal collLiteral = (Literal) right;
-            Object leftValue = ((Literal) left).value();
-            if (!DataTypes.isCollectionType(collLiteral.valueType())) {
-                throw new IllegalArgumentException("invalid array expression");
-            }
-            Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
-            Boolean result = doEvaluate(leftValue, collectionIterable);
-            if (result == null) {
-                return Literal.NULL;
-            } else {
-                return Literal.newLiteral(result);
-            }
+
+        if (anyNonLiterals(symbol.arguments())) {
+            return symbol;
         }
-        return symbol;
+
+        Literal collLiteral = (Literal) symbol.arguments().get(1);
+        Object leftValue = ((Literal) symbol.arguments().get(0)).value();
+        if (!DataTypes.isCollectionType(collLiteral.valueType())) {
+            throw new IllegalArgumentException("invalid array expression");
+        }
+        Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
+        Boolean result = doEvaluate(leftValue, collectionIterable);
+        if (result == null) {
+            return Literal.NULL;
+        } else {
+            return Literal.newLiteral(result);
+        }
     }
 
     @SuppressWarnings("unchecked")

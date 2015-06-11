@@ -74,16 +74,19 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
         assert (symbol != null);
         assert symbol.arguments().size() == 2;
 
-        Symbol sourceSymbol = symbol.arguments().get(0);
-        Symbol patternSymbol = symbol.arguments().get(1);
-
-        if (containsNull(sourceSymbol, patternSymbol)) {
-            return Literal.NULL;
-        }
-        if (!sourceSymbol.symbolType().isValueSymbol() || !patternSymbol.symbolType().isValueSymbol()) {
+        if (anyNonLiterals(symbol.arguments())) {
             return symbol;
         }
 
-        return Literal.newLiteral(evaluate((Literal) sourceSymbol, (Literal) patternSymbol));
+        if (containsNullLiteral(symbol.arguments())) {
+            return Literal.NULL;
+        }
+
+        return Literal.newLiteral(
+                evaluate(
+                        (Literal) symbol.arguments().get(0),
+                        (Literal) symbol.arguments().get(1)
+                )
+        );
     }
 }

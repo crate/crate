@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 
@@ -86,7 +87,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         }
         Scalar<Long, Object> function = func.compile(Arrays.<Symbol>asList(
                 Literal.newLiteral(interval),
-                DateTruncFunction.DEFAULT_TZ_LITERAL,
+                TimeZoneParser.DEFAULT_TZ_LITERAL,
                 Literal.newLiteral(timestamp)));
         Input[] inputs = new Input[] {
                 new DateTruncInput(ival),
@@ -165,10 +166,11 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullInterval() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid interval NULL for scalar 'date_trunc'");
         String val = null;
-        normalize(Literal.newLiteral(val), Literal.newLiteral(TIMESTAMP));
+        assertThat(
+                normalize(Literal.newLiteral(val), Literal.newLiteral(TIMESTAMP)),
+                isLiteral(null)
+        );
     }
 
     @Test
@@ -264,16 +266,17 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullTimezone() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid time zone value NULL for scalar 'date_trunc'");
         String tz = null;
-        normalize(Literal.newLiteral("day"), Literal.newLiteral(tz), Literal.newLiteral(TIMESTAMP));
+        assertThat(
+                normalize(Literal.newLiteral("day"), Literal.newLiteral(tz), Literal.newLiteral(TIMESTAMP)),
+                isLiteral(null)
+        );
     }
 
     @Test
     public void testInvalidTimeZone() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid time zone value 'no time zone' for scalar 'date_trunc'");
+        expectedException.expectMessage("invalid time zone value 'no time zone'");
         normalize(Literal.newLiteral("day"), Literal.newLiteral("no time zone"), Literal.newLiteral(TIMESTAMP));
     }
 

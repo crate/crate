@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -52,6 +54,24 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             }
         }
         return false;
+    }
+
+    protected static boolean hasNullInputs(Input[] args) {
+        for (Input arg : args) {
+            if (arg.value() == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected static boolean containsNullLiteral(Collection<Symbol> symbols) {
+        return Iterables.any(symbols, new Predicate<Symbol>() {
+            @Override
+            public boolean apply(Symbol input) {
+                return input.isLiteral() && ((Input<?>)input).value() == null;
+            }
+        });
     }
 
     /**

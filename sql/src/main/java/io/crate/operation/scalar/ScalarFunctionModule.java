@@ -56,7 +56,6 @@ public class ScalarFunctionModule extends AbstractModule {
     protected void configure() {
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
-        DateTruncFunction.register(this);
         FormatFunction.register(this);
         SubstrFunction.register(this);
         MatchesFunction.register(this);
@@ -101,8 +100,10 @@ public class ScalarFunctionModule extends AbstractModule {
         ToShortArrayFunction.register(this);
         ToNullFunction.register(this);
 
+        DateTruncFunction.register(this);
         ExtractFunctions.register(this);
         CurrentTimestampFunction.register(this);
+        DateFormatFunction.register(this);
 
         ConcatFunction.register(this);
 

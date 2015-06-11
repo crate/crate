@@ -41,17 +41,10 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
-
-    public static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
-    public static final Literal<BytesRef> DEFAULT_TZ_LITERAL = Literal.newLiteral("UTC");
-    public static final BytesRef DEFAULT_TZ_BYTES_REF = new BytesRef("UTC");
-    private static final ConcurrentMap<BytesRef, DateTimeZone> TIME_ZONE_MAP = new ConcurrentHashMap<>();
 
     protected static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
             // we only store timestamps in milliseconds since epoch.
@@ -111,7 +104,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
         // all validation is already done by {@link #normalizeSymbol()}
         BytesRef interval = (BytesRef)((Input)arguments.get(0)).value();
-        BytesRef timeZone = DEFAULT_TZ_BYTES_REF;
+        BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
         if (arguments.size() == 3) {
             timeZone = (BytesRef)((Input)arguments.get(1)).value();
         }
@@ -123,6 +116,10 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public Symbol normalizeSymbol(Function symbol) {
         assert symbol.arguments().size() > 1 && symbol.arguments().size() < 4 : "Invalid number of arguments";
 
+        if (containsNullLiteral(symbol.arguments())) {
+            return Literal.NULL;
+        }
+
         if (anyNonLiterals(symbol.arguments())) {
             return symbol;
         }
@@ -132,7 +129,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         Literal timezone;
 
         if (symbol.arguments().size() == 2) {
-            timezone = DEFAULT_TZ_LITERAL;
+            timezone = TimeZoneParser.DEFAULT_TZ_LITERAL;
             tsSymbol = (Literal)symbol.arguments().get(1);
         } else {
             timezone = (Literal) symbol.arguments().get(1);
@@ -149,7 +146,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public final Long evaluate(Input[] args) {
         assert args.length > 1 && args.length < 4 : "Invalid number of arguments";
         Object value;
-        BytesRef timeZone = DEFAULT_TZ_BYTES_REF;
+        BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
         if (args.length == 2) {
             value = args[1].value();
         } else {
@@ -168,7 +165,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
     protected Rounding rounding(BytesRef interval, BytesRef timeZoneString) {
         DateTimeUnit intervalAsUnit = intervalAsUnit(interval);
-        DateTimeZone timeZone = parseZone(timeZoneString);
+        DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
         TimeZoneRounding.Builder tzRoundingBuilder = TimeZoneRounding.builder(intervalAsUnit);
         return tzRoundingBuilder
@@ -201,38 +198,5 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return intervalAsUnit;
     }
 
-    protected DateTimeZone parseZone(BytesRef zone) throws IllegalArgumentException {
-        if (zone == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid time zone value NULL for scalar '%s'", NAME));
-        }
-        if (zone.equals(DEFAULT_TZ_BYTES_REF)) {
-            return DEFAULT_TZ;
-        }
 
-        DateTimeZone tz = TIME_ZONE_MAP.get(zone);
-        if (tz == null) {
-            try {
-                String text = zone.utf8ToString();
-                int index = text.indexOf(':');
-                if (index != -1) {
-                    int beginIndex = text.charAt(0) == '+' ? 1 : 0;
-                    // format like -02:30
-                    tz = DateTimeZone.forOffsetHoursMinutes(
-                            Integer.parseInt(text.substring(beginIndex, index)),
-                            Integer.parseInt(text.substring(index + 1))
-                    );
-                } else {
-                    // id, listed here: http://joda-time.sourceforge.net/timezones.html
-                    // or here: http://www.joda.org/joda-time/timezones.html
-                    tz = DateTimeZone.forID(text);
-                }
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid time zone value '%s' for scalar '%s'", zone.utf8ToString(), NAME));
-            }
-            TIME_ZONE_MAP.putIfAbsent(zone, tz);
-        }
-        return tz;
-    }
 }
