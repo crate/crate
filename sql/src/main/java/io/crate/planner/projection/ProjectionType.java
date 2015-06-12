@@ -32,8 +32,7 @@ public enum ProjectionType {
     COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY),
     UPDATE(UpdateProjection.FACTORY),
     FETCH(FetchProjection.FACTORY),
-    MERGE(MergeProjection.FACTORY),
-    NESTED_LOOP(NestedLoopProjection.FACTORY);
+    MERGE(MergeProjection.FACTORY);
 
     private final Projection.ProjectionFactory factory;
 
