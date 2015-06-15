@@ -116,6 +116,11 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
+    public void invalidateTableCache(String tableName) {
+        cache.invalidate(tableName);
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
             cache.invalidateAll();

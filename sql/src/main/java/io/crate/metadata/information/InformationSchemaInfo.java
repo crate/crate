@@ -62,6 +62,11 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
+    public void invalidateTableCache(String tableName) {
+
+    }
+
+    @Override
     public Iterator<? extends TableInfo> iterator() {
         return tableInfoMap.values().iterator();
     }

@@ -200,6 +200,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
         if (schemaInfo == null) {
             return false;
         }
+        schemaInfo.invalidateTableCache(tableIdent.name());
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         //noinspection RedundantIfStatement
         if (tableInfo == null || isOrphanedAlias(tableInfo)) {
