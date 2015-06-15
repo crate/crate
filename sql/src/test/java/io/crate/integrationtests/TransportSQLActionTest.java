@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -1865,6 +1866,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table t (name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (name, score) values ('Ford', 1.2)");
+    }
+
+    @Test
+    public void testUnderRawColumn() throws Exception {
+        this.setup.setUpLocations();
+        ensureYellow();
+        refresh();
+
+        //execute("select name from locations where id=2");
+        execute("select _raw, id from locations where id=2");
+        String _raw = (String) response.rows()[0][0];
+        System.out.println("Raw Data: "+ _raw);
+        assertNotNull(response.rows()[0][0]);
+        assertEquals(response.rows()[0][1], "2");
     }
 }
 

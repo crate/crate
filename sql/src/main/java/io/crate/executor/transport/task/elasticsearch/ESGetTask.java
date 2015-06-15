@@ -57,6 +57,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
@@ -96,8 +97,23 @@ public class ESGetTask extends JobTask implements RowUpstream {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
 
-        final FetchSourceContext fsc = new FetchSourceContext(ctx.referenceNames());
-
+        FetchSourceContext fsc = null;
+        fsc = new FetchSourceContext(ctx.referenceNames());
+        for (Reference ref : ctx.references()) {
+            if (ref.ident().columnIdent().isSystemColumn()) {
+                if (ref.ident().columnIdent().name().equals("_raw")
+                        && ref.ident().columnIdent().name().equals("_doc")) {
+                    fsc = new FetchSourceContext(Strings.EMPTY_ARRAY);
+                    break;
+                } else {
+                    fsc = new FetchSourceContext(ctx.referenceNames());
+                    break;
+                }
+            } else {
+                fsc = new FetchSourceContext(ctx.referenceNames());
+                break;
+            }
+        }
 
         ActionListener listener;
         ActionRequest request;
@@ -326,6 +342,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
         @Override
         public FieldExtractor<GetResponse> build(final Reference reference, final GetResponseContext context) {
             final String field = reference.info().ident().columnIdent().fqn();
+
             if (field.equals("_version")) {
                 return new FieldExtractor<GetResponse>() {
                     @Override
@@ -338,6 +355,20 @@ public class ESGetTask extends JobTask implements RowUpstream {
                     @Override
                     public Object extract(GetResponse response) {
                         return response.getId();
+                    }
+                };
+            } else if (field.equals("_raw")) {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getSourceAsBytesRef().toBytesRef();
+                    }
+                };
+            } else if (field.equals("_doc")) {
+                return new FieldExtractor<GetResponse>() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getSource();
                     }
                 };
             } else if (context.node.tableInfo().isPartitioned()
