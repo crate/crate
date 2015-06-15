@@ -3,7 +3,7 @@ Storage and Consistency
 =======================
 
 This document provides an overview on how Crate stores and distributes
-state accross the cluster and what consistency and durabiltiy
+state across the cluster and what consistency and durability
 guarantees are provided.
 
 .. note::
@@ -17,8 +17,8 @@ Data Storage
 ============
 
 Every table in Crate is sharded, which means that tables are divided
-and distributed accross the nodes of a cluster. Each shard in Crate is
-a Lucene_ index which is broken down into segments getting stored on
+and distributed across the nodes of a cluster. Each shard in Crate is
+a Lucene_ index broken down into segments getting stored on
 the filesystem. Physically the files reside under one of the
 configured data directories of a node.
 
@@ -31,10 +31,10 @@ An arbitrary number of replica shards can be configured per
 table. Every operational replica holds a full synchronized copy of the
 primary shard.
 
-In terms of read operations, there is no difference between executing
+With read operations, there is no difference between executing
 the operation on the primary shard or on any of the replicas. Crate
 randomly assigns a shard when routing an operation. However it is
-possible to configure this behaviour if required - for example in a
+possible to configure this behavior if required - for example in a
 :ref:`multi_zone_setup`.
 
 Write operations are handled differently than reads. Such operations
@@ -53,11 +53,11 @@ are synchronous over all active replicas with the following flow:
 4. If the operation succeeds on the primary, the operation gets
    executed on all replicas in parallel.
 
-5. After all replica operations are finished the operation result gets
+5. After all replica operations finish the operation result gets
    returned to the caller.
 
 Should any replica shard fail to write the data or times out in step
-5, it is immediatly considered as unavailable.
+5, it's immediatly considered as unavailable.
 
 
 Atomic on Document Level
@@ -71,7 +71,7 @@ a document either succeeds as a whole or has no effect at all. This is
 always the case, regardless of the nesting depth or size of the
 document.
 
-Crate does not provide transactions. However, since every document in
+Crate does not provide transactions. Since every document in
 Crate has a version number assigned, which gets increased every time a
 change occurs, patterns like optimistic concurrency control (see
 :ref:`sql_occ`) can help to work around that limitation.
@@ -89,22 +89,20 @@ In case of an unclean shutdown of a shard, the transactions in the
 translog are getting replayed upon startup to ensure that all executed
 operations are permanent.
 
-The translog is also directly transfered when a newly allocated
-replica initialises itself from the primary shard. So there is no need
+The translog is also directly transferred when a newly allocated
+replica initializes itself from the primary shard. There is no need
 to flush segments to disc just for replica-recovery purposes.
 
 Adressing of Documents
 ======================
 
 Every document has an internal identifier (see
-:ref:`_id <sql_ddl_system_column_id>`) . This identifier is derived from the
-primary key by default. Documents living in tables without a primary
-key are assigned a unique auto-generated id automatically when they
-are created.
+:ref:`_id <sql_ddl_system_column_id>`) . By default this identifier is derived from the primary key. Documents living in tables without a primary
+key are assigned a unique auto-generated id automatically when created.
 
 Each document is routed by its routing key to one specific shard. By
 default this key is the value of the ``_id`` column. However this can
-be configugred in the table schema (see :ref:`routing`).
+be configured in the table schema (see :ref:`routing`).
 
 While transparent to the user, internally there are two ways how Crate
 accesses documents:
@@ -126,18 +124,18 @@ Consistency
 
 Crate is eventual consistent for search operations. Search operations
 are performed on shared ``IndexReaders`` which besides other
-functionalities, provide caching and reverse lookup capabilities for
+functionality, provide caching and reverse lookup capabilities for
 shards. An ``IndexReader`` is always bound to the Lucene_ segment it
 was started from, which means it has to be refreshed in order to see
-new changes, this is done on a time based mannner, but can also be
+new changes, this is done on a time based manner, but can also be
 done manually (see :ref:`refresh_data`). Therefore a search only sees
 a change if the according `IndexReader` was refreshed after that
-change occured.
+change occurred.
 
 If a query specification results in a ``get`` operation, changes are
-visible immediatly. This is achieved by looking up the document in the
+visible immediately. This is achieved by looking up the document in the
 translog first, which will always have the most recent version of the
-document. The common update and fetch use-case is therfore
+document. The common update and fetch use-case is therefore
 possible. If a client updates a row and that row is looked up by its
 primary key after that update the changes will always be visible,
 since the information will be retrieved directly from the translog.
@@ -147,7 +145,7 @@ since the information will be retrieved directly from the translog.
   Every replica shard is updated synchronously with its primary and
   always carries the same information. Therefore it does not matter if
   the primary or a replica shard is accessed in terms of
-  conistency. Only the refresh of the ``IndexReader`` affects
+  consistency. Only the refresh of the ``IndexReader`` affects
   consistency.
 
 .. _storage_consistency_cluster_meta_data:
@@ -163,8 +161,8 @@ contains the following information:
 - Primary and replica shard locations. Basically just a mapping from
   shard number to the storage node.
 
-- Status of each shard, wich tells if a shard is currently ready for
-  use or has any other state like "initialising", "recovering" or
+- Status of each shard, which tells if a shard is currently ready for
+  use or has any other state like "initializing", "recovering" or
   cannot be assigned at all.
 
 - Information about discovered nodes and their status.
@@ -180,12 +178,12 @@ current master node goes down for some reason.
 
 .. note::
 
-  In order to avoid a scenario where two masters are elected due to
-  network partitioning it is required to define a quorum of nodes with
-  wich it is possible to elect a master. For details in how to do this
+  To avoid a scenario where two masters are elected due to
+  network partitioning it's required to define a quorum of nodes with
+  which it's possible to elect a master. For details in how to do this
   and further information see :ref:`master_node_election`.
 
-In order to explain the flow of events for any cluster state change -
+To explain the flow of events for any cluster state change -
 here an example flow for an "ALTER TABLE" statement which changes the
 schema of a table:
 
