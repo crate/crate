@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.collect.Sets;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -36,42 +37,44 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+@Singleton
 public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(ReferenceInfos.class);
 
     public static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
     public static final String DEFAULT_SCHEMA_NAME = "doc";
 
-    private final Map<String, SchemaInfo> builtInSchemas;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final ExecutorService executorService;
 
-    private volatile Map<String, SchemaInfo> schemas = new HashMap<>();
+    private final Map<String, SchemaInfo> schemas = new HashMap<>();
+    private final Map<String, SchemaInfo> builtInSchemas;
 
     @Inject
     public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
                           ClusterService clusterService,
                           ThreadPool threadPool,
                           TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        this.builtInSchemas = builtInSchemas;
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
         schemas.putAll(builtInSchemas);
-        schemas.putAll(resolveCustomSchemas(clusterService.state().metaData()));
+        this.builtInSchemas = builtInSchemas;
         clusterService.add(this);
     }
 
@@ -123,11 +126,44 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (event.metaDataChanged()) {
-            Map<String, SchemaInfo> newSchemas = new HashMap<>();
-            newSchemas.putAll(builtInSchemas);
-            newSchemas.putAll(resolveCustomSchemas(event.state().metaData()));
-            schemas = newSchemas;
+        if (!event.metaDataChanged()) {
+            return;
+        }
+
+        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
+        synchronized (schemas) {
+            Sets.SetView<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
+            Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas).immutableCopy();
+            Set<String> added = Sets.difference(newCurrentSchemas, schemas.keySet()).immutableCopy();
+
+            for (String deletedSchema : deleted) {
+                try {
+                    schemas.remove(deletedSchema).close();
+                } catch (Exception e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+            }
+            for (String addedSchema : added) {
+                schemas.put(addedSchema, getCustomSchemaInfo(addedSchema));
+            }
+        }
+    }
+
+    private Set<String> getNewCurrentSchemas(MetaData metaData) {
+        Set<String> schemas = new HashSet<>();
+        for (String openIndex : metaData.concreteAllOpenIndices()) {
+            addIfSchema(schemas, openIndex);
+        }
+        for (ObjectCursor<String> cursor : metaData.templates().keys()) {
+            addIfSchema(schemas, cursor.value);
+        }
+        return schemas;
+    }
+
+    private void addIfSchema(Set<String> schemas, String indexOrTemplate) {
+        Matcher matcher = SCHEMA_PATTERN.matcher(indexOrTemplate);
+        if (matcher.matches()) {
+            schemas.add(matcher.group(1));
         }
     }
 
@@ -139,36 +175,6 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
         return new DocSchemaInfo(name, executorService, clusterService, transportPutIndexTemplateAction);
-    }
-
-    /**
-     * Parse indices with custom schema name patterns out of the cluster state
-     * and creates custom schema infos.
-     *
-     * @param metaData The cluster state meta data
-     * @return a map of schema names and schema infos
-     */
-    private Map<String, SchemaInfo> resolveCustomSchemas(MetaData metaData) {
-        Map<String, SchemaInfo> customSchemas = new HashMap<>();
-        for (String index : metaData.concreteAllOpenIndices()) {
-            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(index);
-            if (matcher.matches()) {
-                String schemaName = matcher.group(1);
-                customSchemas.put(schemaName, getCustomSchemaInfo(schemaName));
-            }
-        }
-
-        // iterate over templates for empty partitions
-        for (ObjectCursor<String> template : metaData.templates().keys()) {
-            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(template.value);
-            if (matcher.matches()) {
-                String schemaName = matcher.group(1);
-                if (!customSchemas.containsKey(schemaName)) {
-                    customSchemas.put(schemaName, getCustomSchemaInfo(schemaName));
-                }
-            }
-        }
-        return customSchemas;
     }
 
     /**

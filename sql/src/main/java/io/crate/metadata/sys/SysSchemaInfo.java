@@ -72,4 +72,9 @@ public class SysSchemaInfo implements SchemaInfo {
     public Iterator<? extends TableInfo> iterator() {
         return tableInfos.values().iterator();
     }
+
+    @Override
+    public void close() throws Exception {
+
+    }
 }

@@ -131,6 +131,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         clusterService.add(this);
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
 
+
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
@@ -302,5 +303,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Override
     public Iterator<TableInfo> iterator() {
         return Iterators.transform(tableNames().iterator(), tableInfoFunction);
+    }
+
+    @Override
+    public void close() throws Exception {
+        clusterService.remove(this);
     }
 }
