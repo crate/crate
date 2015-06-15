@@ -223,6 +223,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
+    public void invalidateTableCache(String tableName) {
+        cache.invalidate(tableName);
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.metaDataChanged() && cache.size() > 0) {
             cache.invalidateAll(event.indicesDeleted());

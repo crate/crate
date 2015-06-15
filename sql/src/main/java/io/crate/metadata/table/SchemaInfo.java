@@ -31,4 +31,6 @@ public interface SchemaInfo<T extends TableInfo> extends Iterable<T>, AutoClosea
     String name();
 
     boolean systemSchema();
+
+    void invalidateTableCache(String tableName);
 }

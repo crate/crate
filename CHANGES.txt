@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause a `CREATE TABLE` statement
+   immediately after a `DROP TABLE` statement to fail.
+
  - Fixed a minor memory leak that occurred if custom schemas were deleted.
 
  - Fixed incorrect comparison in query by IP type
