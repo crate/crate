@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a minor memory leak that occurred if custom schemas were deleted.
+
  - Fixed incorrect comparison in query by IP type
 
  - Fix: make sure sys.nodes expressions that utilize os/process/network/jvm

@@ -135,4 +135,9 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
                 .filter(BlobIndices.indicesFilter)
                 .transform(BlobIndices.stripPrefix);
     }
+
+    @Override
+    public void close() throws Exception {
+        clusterService.remove(this);
+    }
 }

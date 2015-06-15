@@ -65,4 +65,9 @@ public class InformationSchemaInfo implements SchemaInfo {
     public Iterator<? extends TableInfo> iterator() {
         return tableInfoMap.values().iterator();
     }
+
+    @Override
+    public void close() throws Exception {
+
+    }
 }
