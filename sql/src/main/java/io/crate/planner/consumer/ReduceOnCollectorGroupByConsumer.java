@@ -24,11 +24,11 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.table.TableInfo;
@@ -58,51 +58,34 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return VISITOR.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
-
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
-        }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             if (table.querySpec().groupBy() == null) {
-                return table;
+                return null;
             }
 
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                     table.tableRelation(), table.querySpec().where(), table.querySpec().groupBy())) {
-                return table;
+                return null;
             }
 
             if (table.querySpec().where().hasVersions()) {
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
-            context.result = true;
-            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context.consumerContext);
+            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context);
         }
 
-        @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
-        }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
 
         /**
@@ -115,7 +98,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
          */
-        private AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
+        private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                     tableRelation, table.querySpec().where(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
             TableInfo tableInfo = tableRelation.tableInfo();

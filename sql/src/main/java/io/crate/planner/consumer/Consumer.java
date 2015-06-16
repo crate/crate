@@ -22,8 +22,9 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 
 public interface Consumer {
 
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context);
+    PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context);
 }

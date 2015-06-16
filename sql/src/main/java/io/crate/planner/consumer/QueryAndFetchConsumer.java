@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -58,29 +59,18 @@ public class QueryAndFetchConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return VISITOR.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
-
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
-        }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             TableRelation tableRelation = table.tableRelation();
             if(table.querySpec().where().hasVersions()){
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
 
@@ -88,24 +78,15 @@ public class QueryAndFetchConsumer implements Consumer {
                 ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
             }
             if (table.querySpec().hasAggregates()) {
-                context.result = true;
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where(), context.consumerContext);
+                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where(), context);
             } else {
-               context.result = true;
                return normalSelect(table, table.querySpec().where(), tableRelation, context);
             }
         }
 
         @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement,
-                                                     Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
-        }
-
-        @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {
@@ -126,10 +107,10 @@ public class QueryAndFetchConsumer implements Consumer {
             }
         }
 
-        private AnalyzedRelation normalSelect(QueriedTable table,
-                                              WhereClause whereClause,
-                                              TableRelation tableRelation,
-                                              Context context){
+        private PlannedAnalyzedRelation normalSelect(QueriedTable table,
+                                                     WhereClause whereClause,
+                                                     TableRelation tableRelation,
+                                                     ConsumerContext context){
             QuerySpec querySpec = table.querySpec();
             TableInfo tableInfo = tableRelation.tableInfo();
 
@@ -145,14 +126,14 @@ public class QueryAndFetchConsumer implements Consumer {
             CollectNode collectNode;
             MergeNode mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
-            if (context.consumerContext.rootRelation() != table) {
+            if (context.rootRelation() != table) {
                 // insert directly from shards
                 assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
                         "Analyzer should have thrown an exception already.";
 
                 ImmutableList<Projection> projections = ImmutableList.<Projection>of();
                 collectNode = PlanNodeBuilder.collect(tableInfo,
-                        context.consumerContext.plannerContext(),
+                        context.plannerContext(),
                         whereClause, outputSymbols, projections);
             } else if (querySpec.isLimited() || orderBy != null) {
                 /**
@@ -208,7 +189,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 }
                 tnp.outputs(allOutputs);
                 collectNode = PlanNodeBuilder.collect(tableInfo,
-                        context.consumerContext.plannerContext(),
+                        context.plannerContext(),
                         whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
                 // MERGE
@@ -217,7 +198,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 if (orderBy == null) {
                     // no sorting needed
                     mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode,
-                            context.consumerContext.plannerContext());
+                            context.plannerContext());
                 } else {
                     // no order by needed in TopN as we already sorted on collector
                     // and we merge sorted with SortedBucketMerger
@@ -227,16 +208,16 @@ public class QueryAndFetchConsumer implements Consumer {
                             allOutputs,
                             orderByInputColumns,
                             collectNode,
-                            context.consumerContext.plannerContext()
+                            context.plannerContext()
                     );
                 }
             } else {
                 collectNode = PlanNodeBuilder.collect(tableInfo,
-                        context.consumerContext.plannerContext(),
+                        context.plannerContext(),
                         whereClause, outputSymbols, ImmutableList.<Projection>of());
                 mergeNode = PlanNodeBuilder.localMerge(
                         ImmutableList.<Projection>of(), collectNode,
-                        context.consumerContext.plannerContext());
+                        context.plannerContext());
             }
             return new QueryAndFetch(collectNode, mergeNode);
         }

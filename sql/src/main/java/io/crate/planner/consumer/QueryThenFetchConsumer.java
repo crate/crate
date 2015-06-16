@@ -66,19 +66,17 @@ public class QueryThenFetchConsumer implements Consumer {
     private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = VISITOR.process(rootRelation, context);
-        if (plannedAnalyzedRelation == null) {
-            return false;
-        }
-        context.rootRelation(plannedAnalyzedRelation);
-        return true;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return VISITOR.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (context.rootRelation() != table) {
+                return null;
+            }
             QuerySpec querySpec = table.querySpec();
             if (querySpec.hasAggregates() || querySpec.groupBy()!=null) {
                 return null;

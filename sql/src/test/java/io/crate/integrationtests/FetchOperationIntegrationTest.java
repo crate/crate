@@ -203,9 +203,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         QueryThenFetchConsumer queryThenFetchConsumer = internalCluster().getInstance(QueryThenFetchConsumer.class);
         Planner.Context plannerContext = new Planner.Context(clusterService());
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
-        queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
+        QueryThenFetch plan = (QueryThenFetch) queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext).plan();
 
-        QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
         UUID jobId = UUID.randomUUID();
         plan.collectNode().jobId(jobId);
 

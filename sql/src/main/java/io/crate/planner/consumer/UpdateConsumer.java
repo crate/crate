@@ -70,13 +70,8 @@ public class UpdateConsumer implements Consumer {
     }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, context);
-        if (plannedAnalyzedRelation == null) {
-            return false;
-        }
-        context.rootRelation(plannedAnalyzedRelation);
-        return true;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+        return visitor.process(rootRelation, context);
     }
 
     class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {

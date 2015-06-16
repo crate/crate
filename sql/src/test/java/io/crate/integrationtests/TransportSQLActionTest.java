@@ -28,8 +28,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -41,7 +39,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
-import java.security.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 

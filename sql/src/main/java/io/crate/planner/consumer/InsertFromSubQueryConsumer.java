@@ -41,83 +41,62 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public InsertFromSubQueryConsumer(){
-        visitor = new Visitor();
+    public InsertFromSubQueryConsumer(ConsumingPlanner consumingPlanner) {
+        visitor = new Visitor(consumingPlanner);
     }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(visitor.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        public Context(ConsumerContext context){
-            this.consumerContext = context;
+        private final ConsumingPlanner consumingPlanner;
+
+        public Visitor(ConsumingPlanner consumingPlanner) {
+            this.consumingPlanner = consumingPlanner;
         }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
+        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
+                                                            ConsumerContext context) {
 
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                    insertFromSubQueryAnalyzedStatement.tableInfo().ident(),
+                    statement.tableInfo().ident(),
                     null,
-                    insertFromSubQueryAnalyzedStatement.tableInfo().primaryKey(),
-                    insertFromSubQueryAnalyzedStatement.columns(),
-                    insertFromSubQueryAnalyzedStatement.onDuplicateKeyAssignments(),
-                    insertFromSubQueryAnalyzedStatement.primaryKeyColumnIndices(),
-                    insertFromSubQueryAnalyzedStatement.partitionedByIndices(),
-                    insertFromSubQueryAnalyzedStatement.routingColumn(),
-                    insertFromSubQueryAnalyzedStatement.routingColumnIndex(),
+                    statement.tableInfo().primaryKey(),
+                    statement.columns(),
+                    statement.onDuplicateKeyAssignments(),
+                    statement.primaryKeyColumnIndices(),
+                    statement.partitionedByIndices(),
+                    statement.routingColumn(),
+                    statement.routingColumnIndex(),
                     ImmutableSettings.EMPTY,
-                    insertFromSubQueryAnalyzedStatement.tableInfo().isPartitioned()
+                    statement.tableInfo().isPartitioned()
             );
-
-            AnalyzedRelation innerRelation = insertFromSubQueryAnalyzedStatement.subQueryRelation();
-            if (innerRelation instanceof PlannedAnalyzedRelation) {
-                PlannedAnalyzedRelation analyzedRelation = (PlannedAnalyzedRelation)innerRelation;
-                analyzedRelation.addProjection(indexWriterProjection);
-
-                MergeNode mergeNode = null;
-                if (analyzedRelation.resultIsDistributed()) {
-                    // add local merge Node which aggregates the distributed results
-                    AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
-                    mergeNode = PlanNodeBuilder.localMerge(
-                            ImmutableList.<Projection>of(aggregationProjection),
-                            analyzedRelation.resultNode(),
-                            context.consumerContext.plannerContext());
-                }
-                context.result = true;
-                return new InsertFromSubQuery(((PlannedAnalyzedRelation) innerRelation).plan(), mergeNode);
-            } else {
-                return insertFromSubQueryAnalyzedStatement;
+            PlannedAnalyzedRelation plannedSubQuery = consumingPlanner.plan(statement.subQueryRelation(), context);
+            if (plannedSubQuery == null) {
+                return null;
             }
+
+            plannedSubQuery.addProjection(indexWriterProjection);
+
+            MergeNode mergeNode = null;
+            if (plannedSubQuery.resultIsDistributed()) {
+                // add local merge Node which aggregates the distributed results
+                AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
+                mergeNode = PlanNodeBuilder.localMerge(
+                        ImmutableList.<Projection>of(aggregationProjection),
+                        plannedSubQuery.resultNode(),
+                        context.plannerContext());
+            }
+            return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode);
         }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
     }
-
-    public static <C, R> void planInnerRelation(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement,
-                                                C context, AnalyzedRelationVisitor<C,R> visitor) {
-        if (insertFromSubQueryAnalyzedStatement.subQueryRelation() instanceof PlannedAnalyzedRelation) {
-            // inner relation is already Planned
-            return;
-        }
-        R innerRelation = visitor.process(insertFromSubQueryAnalyzedStatement.subQueryRelation(), context);
-        if (innerRelation != null && innerRelation instanceof PlannedAnalyzedRelation) {
-            insertFromSubQueryAnalyzedStatement.subQueryRelation((PlannedAnalyzedRelation)innerRelation);
-        }
-    }
-
-
 }

@@ -55,13 +55,8 @@ public class GlobalAggregateConsumer implements Consumer {
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = VISITOR.process(rootRelation, context);
-        if (analyzedRelation != null) {
-            context.rootRelation(analyzedRelation);
-            return true;
-        }
-        return false;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+        return VISITOR.process(rootRelation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
@@ -80,12 +75,6 @@ public class GlobalAggregateConsumer implements Consumer {
                 return null;
             }
             return globalAggregates(table, table.tableRelation(),  table.querySpec().where(), context);
-        }
-
-        @Override
-        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, ConsumerContext context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return null;
         }
 
         @Override

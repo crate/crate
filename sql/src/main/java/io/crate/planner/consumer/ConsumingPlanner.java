@@ -47,23 +47,26 @@ public class ConsumingPlanner {
         consumers.add(new GlobalAggregateConsumer());
         consumers.add(new ESGetConsumer());
         consumers.add(new QueryThenFetchConsumer());
-        consumers.add(new InsertFromSubQueryConsumer());
+        consumers.add(new InsertFromSubQueryConsumer(this));
         consumers.add(new QueryAndFetchConsumer());
     }
 
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         ConsumerContext consumerContext = new ConsumerContext(rootRelation, plannerContext);
-        for (int i = 0; i < consumers.size(); i++) {
-            Consumer consumer = consumers.get(i);
-            if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
-                if (consumerContext.rootRelation() instanceof PlannedAnalyzedRelation) {
-                    Plan plan = ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
-                    assert plan != null;
-                    return plan;
-                } else {
-                    i = 0;
-                }
+        PlannedAnalyzedRelation plannedAnalyzedRelation = plan(rootRelation, consumerContext);
+        if (plannedAnalyzedRelation != null) {
+            return plannedAnalyzedRelation.plan();
+        }
+        return null;
+    }
+
+    @Nullable
+    public PlannedAnalyzedRelation plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        for (Consumer consumer : consumers) {
+            PlannedAnalyzedRelation plannedAnalyzedRelation = consumer.consume(relation, consumerContext);
+            if (plannedAnalyzedRelation != null) {
+                return plannedAnalyzedRelation;
             }
         }
         ValidationException validationException = consumerContext.validationException();

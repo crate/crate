@@ -51,13 +51,8 @@ public class CountConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = VISITOR.process(rootRelation, context);
-        if (analyzedRelation != null) {
-            context.rootRelation(analyzedRelation);
-            return true;
-        }
-        return false;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+        return VISITOR.process(rootRelation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {

@@ -194,10 +194,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
         ConsumerContext consumerContext = new ConsumerContext(statement, context);
-        if (updateConsumer.consume(statement, consumerContext)) {
-            return ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
+        PlannedAnalyzedRelation plannedAnalyzedRelation = updateConsumer.consume(statement, consumerContext);
+        if (plannedAnalyzedRelation == null) {
+            throw new IllegalArgumentException("Couldn't plan Update statement");
         }
-        throw new IllegalArgumentException("Couldn't plan Update statement");
+        return plannedAnalyzedRelation.plan();
     }
 
     @Override

@@ -27,11 +27,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
@@ -58,34 +58,23 @@ public class DistributedGroupByConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return VISITOR.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
-
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
-        }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             List<Symbol> groupBy = table.querySpec().groupBy();
             if (groupBy == null) {
-                return table;
+                return null;
             }
 
             TableInfo tableInfo = table.tableRelation().tableInfo();
             if(table.querySpec().where().hasVersions()){
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
 
             Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
@@ -106,7 +95,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                     tableInfo,
-                    context.consumerContext.plannerContext(),
+                    context.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     Lists.newArrayList(routing.nodes()),
@@ -147,7 +136,7 @@ public class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            boolean isRootRelation = context.consumerContext.rootRelation() == table;
+            boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
                 reducerProjections.add(projectionBuilder.topNProjection(
                         collectOutputs,
@@ -159,13 +148,13 @@ public class DistributedGroupByConsumer implements Consumer {
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
                     collectNode,
-                    context.consumerContext.plannerContext(),
+                    context.plannerContext(),
                     reducerProjections
             );
             // end: Reducer
 
             MergeNode localMergeNode = null;
-            String localNodeId = context.consumerContext.plannerContext().clusterService().state().nodes().localNodeId();
+            String localNodeId = context.plannerContext().clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
                         table.querySpec().outputs(),
@@ -174,7 +163,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().limit(),
                         null);
                 localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
-                        mergeNode, context.consumerContext.plannerContext());
+                        mergeNode, context.plannerContext());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
 
                 mergeNode.downstreamNodes(localMergeNode.executionNodes());
@@ -183,7 +172,6 @@ public class DistributedGroupByConsumer implements Consumer {
                 mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
                 mergeNode.downstreamExecutionNodeId(mergeNode.executionNodeId() + 1);
             }
-            context.result = true;
 
             collectNode.downstreamExecutionNodeId(mergeNode.executionNodeId());
             return new DistributedGroupBy(
@@ -194,15 +182,8 @@ public class DistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
-
-        @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
-        }
-
     }
 }
