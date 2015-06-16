@@ -38,6 +38,7 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.Mockito.mock;
 
 public class NestedLoopPhaseTest extends CrateUnitTest {
 
