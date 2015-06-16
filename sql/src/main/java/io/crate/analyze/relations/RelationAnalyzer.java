@@ -74,16 +74,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    protected AnalyzedRelation visitUnion(Union node, RelationAnalysisContext context) {
+        throw new UnsupportedOperationException("UNION is not supported");
+    }
+
+    @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
         }
         for (Relation relation : node.getFrom()) {
             process(relation, context);
-        }
-        if (context.sources().size() != 1) {
-            throw new UnsupportedOperationException
-                    ("Only exactly one table is allowed in the FROM clause, got: " + context.sources().size());
         }
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
 

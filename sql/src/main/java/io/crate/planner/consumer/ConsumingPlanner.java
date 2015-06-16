@@ -21,11 +21,13 @@
 
 package io.crate.planner.consumer;
 
+import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ValidationException;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -39,7 +41,9 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     @Inject
-    public ConsumingPlanner(NonDistributedGroupByConsumer nonDistributedGroupByConsumer,
+    public ConsumingPlanner(ClusterService clusterService,
+                            AnalysisMetaData analysisMetaData,
+                            NonDistributedGroupByConsumer nonDistributedGroupByConsumer,
                             ReduceOnCollectorGroupByConsumer reduceOnCollectorGroupByConsumer,
                             DistributedGroupByConsumer distributedGroupByConsumer,
                             GlobalAggregateConsumer globalAggregateConsumer,
@@ -54,6 +58,7 @@ public class ConsumingPlanner {
         consumers.add(queryThenFetchConsumer);
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(queryAndFetchConsumer);
+        consumers.add(new CrossJoinConsumer(clusterService, analysisMetaData, this));
     }
 
     @Nullable
