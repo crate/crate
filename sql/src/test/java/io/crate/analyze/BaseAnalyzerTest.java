@@ -62,7 +62,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
     static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
-    static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, shardRouting)
+    public static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("other_id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
