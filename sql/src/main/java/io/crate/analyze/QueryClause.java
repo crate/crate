@@ -25,15 +25,18 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
-public class QueryClause {
+public abstract class QueryClause {
 
     protected Symbol query;
     protected boolean noMatch = false;
 
-    public QueryClause() {
+    protected QueryClause() {
     }
 
-    public QueryClause(Symbol normalizedQuery) {
+    protected QueryClause(@Nullable Symbol normalizedQuery) {
+        if (normalizedQuery == null) {
+            return;
+        }
         if (normalizedQuery.symbolType().isValueSymbol()) {
             noMatch = !canMatch(normalizedQuery);
         } else {

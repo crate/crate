@@ -23,9 +23,11 @@ package io.crate.analyze;
 
 import io.crate.planner.symbol.Symbol;
 
+import javax.annotation.Nullable;
+
 public class HavingClause extends QueryClause {
 
-    public HavingClause(Symbol query) {
+    public HavingClause(@Nullable Symbol query) {
         super(query);
     }
 
@@ -37,7 +39,6 @@ public class HavingClause extends QueryClause {
         if (normalizedQuery == query) {
             return this;
         }
-        HavingClause normalized = new HavingClause(normalizedQuery);
-        return normalized;
+        return new HavingClause(normalizedQuery);
     }
 }

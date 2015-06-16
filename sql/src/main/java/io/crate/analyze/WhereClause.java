@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.where.DocKeys;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbolVisitor;
@@ -42,8 +41,8 @@ import java.util.Set;
 
 public class WhereClause extends QueryClause implements Streamable {
 
-    public static final WhereClause MATCH_ALL = new WhereClause();
-    public static final WhereClause NO_MATCH = new WhereClause(null, true);
+    public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
+    public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
     private Optional<Set<Symbol>> clusteredBy = Optional.absent();
 
@@ -51,15 +50,12 @@ public class WhereClause extends QueryClause implements Streamable {
 
     private List<String> partitions = new ArrayList<>();
 
-    public WhereClause() {
-
-    }
 
     public WhereClause(StreamInput in) throws IOException {
         readFrom(in);
     }
 
-    public WhereClause(Symbol normalizedQuery,
+    public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable DocKeys docKeys,
                        @Nullable List<String> partitions) {
         super(normalizedQuery);
@@ -69,13 +65,8 @@ public class WhereClause extends QueryClause implements Streamable {
         }
     }
 
-    public WhereClause(Function query) {
-        this.query = query;
-    }
-
-    public WhereClause(Function query, boolean noMatch) {
-        this(query);
-        this.noMatch = noMatch;
+    public WhereClause(@Nullable Symbol query) {
+        super(query);
     }
 
     public WhereClause normalize(EvaluatingNormalizer normalizer) {
