@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -40,6 +41,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
+import java.security.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1869,17 +1871,30 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUnderRawColumn() throws Exception {
+    public void testESGetSourceColumns() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
         refresh();
 
-        //execute("select name from locations where id=2");
-        execute("select _raw, id from locations where id=2");
-        String _raw = (String) response.rows()[0][0];
-        System.out.println("Raw Data: "+ _raw);
-        assertNotNull(response.rows()[0][0]);
-        assertEquals(response.rows()[0][1], "2");
+        execute("select _doc, id from locations where id in (2,3) order by id");
+        assertEquals(TestingHelpers.printedTable(response.rows()), "{date=308534400000, race=null, kind=Galaxy, name=Outer Eastern Rim, description=The Outer Eastern Rim of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed civilisations., id=2, position=2}| 2\n" +
+                "{date=1367366400000, race=null, kind=Galaxy, name=Galactic Sector QQ7 Active J Gamma, description=Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains., id=3, position=4}| 3\n");
+
+        execute("select name, kind from locations where id in (2,3) order by id");
+        assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +
+                "Galactic Sector QQ7 Active J Gamma| Galaxy\n");
+
+        execute("select name, kind, _version from locations where id in (2,3) order by id");
+        assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy| 1\n" +
+                "Galactic Sector QQ7 Active J Gamma| Galaxy| 1\n");
+
+        execute("select name, kind, _id from locations where id in (2,3) order by id");
+        assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy| 2\n" +
+                "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
+
+        execute("select _raw, id from locations where id in (2,3) order by id");
+        assertEquals(TestingHelpers.printedTable(response.rows()), "{\"id\":\"2\",\"name\":\"Outer Eastern Rim\",\"date\":308534400000,\"kind\":\"Galaxy\",\"position\":2,\"description\":\"The Outer Eastern Rim of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed civilisations.\",\"race\":null}| 2\n" +
+                "{\"id\":\"3\",\"name\":\"Galactic Sector QQ7 Active J Gamma\",\"date\":1367366400000,\"kind\":\"Galaxy\",\"position\":4,\"description\":\"Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.\",\"race\":null}| 3\n");
     }
 }
 

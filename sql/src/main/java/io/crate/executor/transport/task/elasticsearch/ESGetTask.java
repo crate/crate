@@ -97,22 +97,28 @@ public class ESGetTask extends JobTask implements RowUpstream {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
 
-        FetchSourceContext fsc = null;
-        fsc = new FetchSourceContext(ctx.referenceNames());
+
+        boolean containsSysColumn = false;
         for (Reference ref : ctx.references()) {
             if (ref.ident().columnIdent().isSystemColumn()) {
                 if (ref.ident().columnIdent().name().equals("_raw")
-                        && ref.ident().columnIdent().name().equals("_doc")) {
-                    fsc = new FetchSourceContext(Strings.EMPTY_ARRAY);
+                        || ref.ident().columnIdent().name().equals("_doc")) {
+                    containsSysColumn = true;
                     break;
                 } else {
-                    fsc = new FetchSourceContext(ctx.referenceNames());
+                    containsSysColumn = false;
                     break;
                 }
             } else {
-                fsc = new FetchSourceContext(ctx.referenceNames());
-                break;
+                containsSysColumn = false;
             }
+        }
+
+        final FetchSourceContext fsc;
+        if (containsSysColumn) {
+            fsc = new FetchSourceContext(Strings.EMPTY_ARRAY);
+        } else {
+            fsc = new FetchSourceContext(ctx.referenceNames());
         }
 
         ActionListener listener;
