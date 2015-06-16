@@ -152,7 +152,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
             JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
             ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(),
-                    NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class)), builder);
+                    NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0), builder);
             assert future != null;
 
             JobExecutionContext context = contextService.createContext(builder);

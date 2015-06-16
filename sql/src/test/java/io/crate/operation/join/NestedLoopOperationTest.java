@@ -130,8 +130,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         final RowDownstreamHandle left = nestedLoopOperation.registerUpstream(dummyUpstream);
         final RowDownstreamHandle right = nestedLoopOperation.registerUpstream(dummyUpstream);
 
-        InputCollectExpression<Object> firstCol = new InputCollectExpression<>(0);
-        InputCollectExpression<Object> secondCol = new InputCollectExpression<>(1);
+        InputCollectExpression firstCol = new InputCollectExpression(0);
+        InputCollectExpression secondCol = new InputCollectExpression(1);
         SimpleTopNProjector topNProjector = new SimpleTopNProjector(
                 Arrays.<Input<?>>asList(firstCol, secondCol),
                 new CollectExpression[] { firstCol, secondCol },

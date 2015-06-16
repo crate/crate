@@ -24,6 +24,7 @@ package io.crate.planner.node;
 import io.crate.Streamer;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 
 /**
@@ -49,6 +50,11 @@ public class StreamerVisitor {
         @Override
         public Streamer<?>[] visitCollectNode(CollectPhase node, Void context) {
             return DataTypes.getStreamer(node.outputTypes());
+        }
+
+        @Override
+        public Streamer<?>[] visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
+            return DataTypes.getStreamer(phase.outputTypes());
         }
 
         @Override

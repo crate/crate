@@ -26,6 +26,7 @@ import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
+import io.crate.jobs.DownstreamExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
@@ -38,6 +39,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Locale;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -113,12 +115,22 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext;
+        DownstreamExecutionSubContext executionContext;
         try {
-            pageDownstreamContext = context.getSubContext(request.executionPhaseId());
+            executionContext = context.getSubContext(request.executionPhaseId());
+        } catch (ClassCastException e) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
+            return;
         } catch (Throwable t) {
-            // this is currently sometimes the case when upstreams send failures more than once
             listener.onFailure(t);
+            return;
+        }
+
+        PageDownstreamContext pageDownstreamContext = executionContext.pageDownstreamContext(request.executionPhaseInputId());
+        if (pageDownstreamContext == null) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Couldn't find pageDownstreamContext for input %d", request.executionPhaseInputId())));
             return;
         }
 
