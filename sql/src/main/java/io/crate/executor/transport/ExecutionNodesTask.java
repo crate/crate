@@ -150,6 +150,8 @@ public class ExecutionNodesTask extends JobTask {
             }
             if (!hasDirectResponse) {
                 createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, mergeNodes.get(i).executionNodeId());
+            } else {
+                pageDownstreamContext.start();
             }
             pageDownstreamContexts.add(pageDownstreamContext);
         }
@@ -177,12 +179,9 @@ public class ExecutionNodesTask extends JobTask {
                 pageDownstreamProjectorChain.v1(),
                 streamers,
                 ramAccountingContext,
-                executionNodes.get(executionNodes.size() - 1).executionNodes().size()
+                executionNodes.get(executionNodes.size() - 1).executionNodes().size(),
+                pageDownstreamProjectorChain.v2()
         );
-        FlatProjectorChain flatProjectorChain = pageDownstreamProjectorChain.v2();
-        if (flatProjectorChain != null) {
-            flatProjectorChain.startProjections(pageDownstreamContext);
-        }
         return pageDownstreamContext;
     }
 
@@ -223,16 +222,13 @@ public class ExecutionNodesTask extends JobTask {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
 
-        if (localExecutionNodes == null || localExecutionNodes.isEmpty()) {
-            // only the local merge happens locally so it is enough to just create that context.
-            jobContextService.createContext(builder);
-        } else {
+        if (localExecutionNodes != null) {
             for (ExecutionNode executionNode : localExecutionNodes) {
                 contextPreparer.prepare(jobId(), executionNode, builder);
             }
-            JobExecutionContext context = jobContextService.createContext(builder);
-            context.start();
         }
+        JobExecutionContext context = jobContextService.createContext(builder);
+        context.start();
     }
 
     private void addCloseContextCallback(TransportCloseContextNodeAction transportCloseContextNodeAction,

@@ -160,14 +160,10 @@ public class ContextPreparer {
                     pageDownstreamProjectorChain.v1(),
                     streamerContext.inputStreamers(),
                     ramAccountingContext,
-                    node.numUpstreams());
+                    node.numUpstreams(),
+                    pageDownstreamProjectorChain.v2());
 
             context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
-
-            FlatProjectorChain flatProjectorChain = pageDownstreamProjectorChain.v2();
-            if (flatProjectorChain != null) {
-                flatProjectorChain.startProjections(pageDownstreamContext);
-            }
             return null;
         }
 

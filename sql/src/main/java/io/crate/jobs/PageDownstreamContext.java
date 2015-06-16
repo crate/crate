@@ -29,6 +29,8 @@ import io.crate.core.collections.BucketPage;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
+import io.crate.operation.projectors.FlatProjectorChain;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -54,18 +56,22 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private volatile boolean isKilled = false;
+    @Nullable
+    private final FlatProjectorChain projectorChain;
 
 
     public PageDownstreamContext(String name,
                                  PageDownstream pageDownstream,
                                  Streamer<?>[] streamer,
                                  RamAccountingContext ramAccountingContext,
-                                 int numBuckets) {
+                                 int numBuckets,
+                                 @Nullable FlatProjectorChain projectorChain) {
         this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
+        this.projectorChain = projectorChain;
         bucketFutures = new ArrayList<>(numBuckets);
         allFuturesSet = new BitSet(numBuckets);
         exhausted = new BitSet(numBuckets);
@@ -184,7 +190,9 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
 
     @Override
     public void start() {
-        // no-op
+        if (projectorChain != null) {
+            projectorChain.startProjections(this);
+        }
     }
 
     @Override

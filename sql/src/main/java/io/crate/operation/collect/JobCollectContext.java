@@ -194,7 +194,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     }
 
     @Override
-        public void start() {
+    public void start() {
         startQueryPhase();
     }
 

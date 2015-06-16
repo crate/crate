@@ -22,6 +22,7 @@
 package io.crate.jobs;
 
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -44,21 +45,28 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
     private final List<? extends Future<TaskResult>> resultFutures;
     private final TransportAction transportAction;
     private volatile boolean iskilled = false;
+    @Nullable
+    private final FlatProjectorChain projectorChain;
 
     public ESJobContext(String operationName,
                         List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
                         List<? extends Future<TaskResult>> resultFutures,
-                        TransportAction transportAction) {
+                        TransportAction transportAction,
+                        @Nullable FlatProjectorChain projectorChain) {
         this.operationName = operationName;
         this.requests = requests;
         this.listeners = listeners;
         this.resultFutures = resultFutures;
         this.transportAction = transportAction;
+        this.projectorChain = projectorChain;
     }
 
     public void start() {
         if (!closed.get()) {
+            if (projectorChain != null) {
+                projectorChain.startProjections(this);
+            }
             for (int i = 0; i < requests.size(); i++) {
                 transportAction.execute(requests.get(i), new InternalActionListener(listeners.get(i), this));
             }

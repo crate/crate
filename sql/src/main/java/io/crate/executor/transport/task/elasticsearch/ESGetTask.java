@@ -147,12 +147,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
             results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
         }
         ESJobContext esJobContext = new ESJobContext("lookup by primary key",
-                ImmutableList.of(request), ImmutableList.of(listener), results, transportAction);
-
-        if (projectorChain != null) {
-            projectorChain.startProjections(esJobContext);
-        }
-
+                ImmutableList.of(request), ImmutableList.of(listener), results, transportAction, projectorChain);
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         contextBuilder.addSubContext(executionNodeId, esJobContext);
         context = jobContextService.createContext(contextBuilder);
