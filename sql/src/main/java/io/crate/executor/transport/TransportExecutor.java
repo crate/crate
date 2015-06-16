@@ -47,6 +47,7 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -401,7 +402,10 @@ public class TransportExecutor implements Executor, TaskExecutor {
             private final List<NodeOperation> nodeOperations = new ArrayList<>();
             private final Stack<ExecutionPhase> root = new Stack<>();
 
-            private Stack<ExecutionPhase> currentBranch = root;
+            Stack<ExecutionPhase> currentBranch = root;
+            Stack<ExecutionPhase> prevBranch;
+
+            byte nextInputId;
 
 
             /**
@@ -428,15 +432,33 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 if (executionPhase == null) {
                     return;
                 }
-                if (currentBranch.isEmpty()) {
+                if (prevBranch == null && currentBranch.isEmpty()) {
                     currentBranch.add(executionPhase);
                     return;
                 }
 
+                byte inputId;
                 ExecutionPhase previousPhase;
-                previousPhase = currentBranch.lastElement();
-                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, (byte) 0));
+                if (currentBranch.isEmpty()) {
+                    inputId = nextInputId;
+                    previousPhase = prevBranch.lastElement();
+                } else {
+                    inputId = 0;
+                    previousPhase = currentBranch.lastElement();
+                }
+                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId));
                 currentBranch.add(executionPhase);
+            }
+
+            public void branch(byte inputId) {
+                this.nextInputId = inputId;
+                prevBranch = currentBranch;
+                currentBranch = new Stack<>();
+            }
+
+            public void leaveBranch() {
+                nextInputId = 0;
+                currentBranch = prevBranch;
             }
 
             public Collection<NodeOperation> nodeOperations() {
@@ -483,6 +505,23 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
             context.addPhase(plan.localMerge());
             context.addCollectExecutionPhase(plan.collectPhase());
+
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
+            context.addPhase(plan.localMergePhase());
+            context.addPhase(plan.nestedLoopPhase());
+
+            context.branch((byte) 0);
+            process(plan.left().plan(), context);
+            context.leaveBranch();
+
+            context.branch((byte) 1);
+            process(plan.right().plan(), context);
+            context.leaveBranch();
+
             return null;
         }
 

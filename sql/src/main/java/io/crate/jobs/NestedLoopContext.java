@@ -186,12 +186,6 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
         return false;
     }
 
-    public void interruptIfKilled() {
-        if (killed.get()) {
-            throw new CancellationException();
-        }
-    }
-
     private PageDownstreamContext createPageDownstreamContext(MergePhase phase) {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                 pageDownstreamFactory.createMergeNodePageDownstream(

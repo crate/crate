@@ -73,7 +73,7 @@ public abstract class RowDownstreamAndHandle implements RowDownstream, RowUpstre
         }
     }
 
-    @Override
+
     public void repeat() {
         for (RowUpstream upstream : upstreams) {
             upstream.repeat();

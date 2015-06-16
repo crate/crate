@@ -23,10 +23,13 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.core.Is;
@@ -35,14 +38,24 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.Mockito.mock;
 
 public class NestedLoopPhaseTest extends CrateUnitTest {
 
     @Test
     public void testSerialization() throws Exception {
         TopNProjection topNProjection = new TopNProjection(10, 0);
-        NestedLoopPhase node = new NestedLoopPhase(UUID.randomUUID(), 1, "nestedLoop", ImmutableList.<Projection>of(topNProjection));
-        node.executionNodes(Sets.newHashSet("node1", "node2"));
+        UUID jobId = UUID.randomUUID();
+        NestedLoopPhase node = new NestedLoopPhase(jobId, 1, "nestedLoop", ImmutableList.<Projection>of(topNProjection),
+                new MergePhase(jobId, 2, "merge", 1,
+                        ImmutableList.<DataType>of(DataTypes.STRING),
+                        ImmutableList.<Projection>of(),
+                        DistributionType.BROADCAST),
+                new MergePhase(jobId, 3, "merge", 1,
+                        ImmutableList.<DataType>of(DataTypes.STRING),
+                        ImmutableList.<Projection>of(),
+                        DistributionType.BROADCAST),
+                Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
