@@ -5,20 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed an issue where _raw and _doc returned 0 for primary key queries
-
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
-
- - Updated crash to 0.13.0 which includes following changes:
-
-    - added `dynamic` as output format option
-
-    - display command help in case the command is not used correctly
-
-    - display NULL values in mixed mode correctly
-
- - Fix: return correct status for ``GET`` requests on ``/`` REST endpoint
-   when cluster is starting up
 
  - Updated crate-admin to 0.13.2 which includes following changes:
 
@@ -32,25 +19,10 @@ NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
     - added columns with partition values on "Partitions" table
       on table detail view
 
- - Fixed a race condition that could cause a `CREATE TABLE` statement
-   immediately after a `DROP TABLE` statement to fail.
-
- - Fixed a minor memory leak that occurred if custom schemas were deleted.
-
- - Fixed incorrect comparison in query by IP type
-
  - Added ``probe_timestamp`` child expressions for os, process, heap, mem, and
    network columns to sys.nodes table
 
  - Added ``process['cpu']`` column to sys.nodes table
-
- - Fix: make sure sys.nodes expressions that utilize os/process/network/jvm
-   services use the same stats probe per row; previously values derived from
-   these services could have been from different probes
-
- - Fix: Stats table log entry was missing for delete-by-query statements.
-
- - Fix: made it possible to filter on all types of table settings
 
  - Added ``ALTER TABLE ONLY`` statement support.
 
@@ -66,9 +38,23 @@ NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
  - Updated Elasticsearch to 1.5.2
 
- - Updated crash to version 0.12.0 which contains the following changes:
+ - Added the ``IF NOT EXISTS`` clause to the ``CREATE TABLE`` statement
 
-    - added ``--version`` to cli interface to show crash version and exit
+2015/06/16 0.49.3
+=================
+
+ - Fixed an issue where ``_raw`` and ``_doc`` in primary key queries
+   returned ``NULL``
+
+ - Updated crash to 0.13.0 which includes following changes:
+
+    - Added `dynamic` as output format option
+
+    - Added ``--version`` to cli interface to show crash version and exit
+
+    - Display command help in case the command is not used correctly
+
+    - Display NULL values in mixed mode correctly
 
     - Fixed broken 'mixed' output style due to overriding import
 
@@ -76,7 +62,19 @@ NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
     - Attempting to use unknown command now results in an error
 
- - Added the IF NOT EXISTS clause to the CREATE TABLE statement
+ - Fix: return correct status for ``GET`` requests on ``/`` REST endpoint
+   when cluster is starting up
+
+ - Fixed a race condition that could cause a `CREATE TABLE` statement
+   immediately after a `DROP TABLE` statement to fail.
+
+ - Fixed a minor memory leak that occurred if custom schemas were deleted.
+
+ - Fixed incorrect comparison in query by IP type
+
+ - Fix: make sure sys.nodes expressions that utilize os/process/network/jvm
+   services use the same stats probe per row; previously values derived from
+   these services could have been from different probes
 
 2015/06/03 0.49.2
 =================
