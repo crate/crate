@@ -25,6 +25,7 @@ import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
+import io.crate.jobs.DownstreamExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
@@ -99,7 +100,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                                final ActionListener<DistributedResultResponse> listener,
                                final int retry) {
         if (request.executionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE) {
-            listener.onFailure(new IllegalStateException("request must contain a valid executionPhaseId"));
+            listener.onFailure(new IllegalStateException("request must contain a valid executionNodeId"));
             return;
         }
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
@@ -108,11 +109,25 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionPhaseId());
-        if (pageDownstreamContext == null) {
+        DownstreamExecutionSubContext executionContext;
+        try {
+            executionContext = context.getSubContextOrNull(request.executionPhaseId());
+        } catch (ClassCastException e) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
+            return;
+        }
+        if (executionContext == null) {
             // this is currently sometimes the case when upstreams send failures more than once
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find pageDownstreamContext for %d", request.executionPhaseId())));
+                    "Couldn't find execution context for %d", request.executionPhaseId())));
+            return;
+        }
+
+        PageDownstreamContext pageDownstreamContext = executionContext.pageDownstreamContext(request.executionPhaseInputId());
+        if (pageDownstreamContext == null) {
+            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Couldn't find pageDownstreamContext for input %d", request.executionPhaseInputId())));
             return;
         }
 

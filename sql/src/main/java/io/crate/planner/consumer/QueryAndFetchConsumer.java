@@ -141,16 +141,17 @@ public class QueryAndFetchConsumer implements Consumer {
             MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
             if (context.rootRelation() != table) {
-                // insert directly from shards
-                assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
-                        "Analyzer should have thrown an exception already.";
-
                 ImmutableList<Projection> projections = ImmutableList.<Projection>of();
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
                         context.plannerContext(),
-                        whereClause, outputSymbols, projections);
+                        whereClause,
+                        outputSymbols,
+                        projections,
+                        querySpec.orderBy(),
+                        querySpec.limit()
+                );
             } else if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date

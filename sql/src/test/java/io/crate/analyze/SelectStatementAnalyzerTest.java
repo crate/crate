@@ -42,7 +42,6 @@ import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
@@ -696,9 +695,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test2From() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only exactly one table is allowed in the FROM clause, got: 2");
-        analyze("select name from users a, users b");
+        SelectAnalyzedStatement analysis = analyze("select a.name from users a, users b");
+        assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -722,9 +720,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("select id, name from parted where not date");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
     public void testJoin() throws Exception {
-        analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
+        SelectAnalyzedStatement analysis = analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
+        assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
     }
 
     @Test(expected = UnsupportedOperationException.class)

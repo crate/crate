@@ -49,7 +49,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         };
         UUID uuid = UUID.randomUUID();
 
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, 1, streamers, new ArrayBucket(rows), false);
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 0, 1, streamers, new ArrayBucket(rows), false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -61,6 +61,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         assertEquals(r1.rows().size(), r2.rows().size());
         assertThat(r1.isLast(), is(r2.isLast()));
+        assertThat(r1.executionPhaseInputId(), is(r2.executionPhaseInputId()));
 
         assertThat(r2.rows(), contains(isRow("ab"), isNullRow(), isRow("cd")));
     }

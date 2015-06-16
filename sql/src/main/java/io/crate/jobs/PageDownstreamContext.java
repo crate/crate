@@ -39,7 +39,7 @@ import java.util.BitSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PageDownstreamContext implements ExecutionSubContext, ExecutionState {
+public class PageDownstreamContext implements DownstreamExecutionSubContext, ExecutionState {
 
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
@@ -223,6 +223,13 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     @Override
     public boolean isKilled() {
         return isKilled;
+    }
+
+    @javax.annotation.Nullable
+    @Override
+    public PageDownstreamContext pageDownstreamContext(byte inputId) {
+        assert inputId == 0 : "This downstream context only support 1 input";
+        return this;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
