@@ -50,6 +50,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -120,19 +121,30 @@ public class QueryAndFetchConsumer implements Consumer {
                                                             ConsumerContext context){
             QuerySpec querySpec = table.querySpec();
             TableInfo tableInfo = tableRelation.tableInfo();
+            OrderBy orderBy = querySpec.orderBy();
+            List<Symbol> orderBySymbols;
+            if (orderBy == null) {
+                orderBySymbols = Collections.emptyList();
+            } else {
+                orderBySymbols = orderBy.orderBySymbols();
+            }
 
             List<Symbol> outputSymbols;
             if (tableInfo.schemaInfo().systemSchema()) {
                 outputSymbols = querySpec.outputs();
             } else {
                 outputSymbols = new ArrayList<>(querySpec.outputs().size());
+
                 for (Symbol symbol : querySpec.outputs()) {
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+                    if (!orderBySymbols.contains(symbol)) {
+                        outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
+                    } else {
+                        outputSymbols.add(symbol);
+                    }
                 }
             }
             CollectPhase collectNode;
             MergePhase mergeNode = null;
-            OrderBy orderBy = querySpec.orderBy();
             if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date
@@ -145,7 +157,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
                 if (orderBy != null){
-                    List<Symbol> orderBySymbols = orderBy.orderBySymbols();
                     toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
                     toCollect.addAll(outputSymbols);
                     // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
@@ -196,7 +207,7 @@ public class QueryAndFetchConsumer implements Consumer {
                             ImmutableList.<Projection>of(tnp), collectNode,
                             context.plannerContext());
                 } else {
-                    // no order by needed in TopN as we already sorted on collector
+                    // no order by needed in TopN as we already sort in topN of the CollectPhase
                     // and we merge sorted with SortedBucketMerger
                     mergeNode = PlanNodeBuilder.sortedLocalMerge(
                             context.plannerContext().jobId(),
