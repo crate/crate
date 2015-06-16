@@ -420,6 +420,45 @@ public class TestingHelpers {
         return isReference(expectedName, null);
     }
 
+    public static Matcher<Symbol> isInputColumn(int idx) {
+        return isInputColumn(idx, null);
+    }
+
+    public static Matcher<Symbol> isInputColumn(final int idx, @Nullable final DataType dataType) {
+        return new TypeSafeDiagnosingMatcher<Symbol>() {
+            @Override
+            protected boolean matchesSafely(Symbol item, Description desc) {
+                if (!(item instanceof InputColumn)) {
+                    desc.appendText("not an InputColumn: ").appendText(item.getClass().getSimpleName());
+                    return false;
+                }
+                InputColumn inputColumn = (InputColumn) item;
+                if (inputColumn.index() != idx) {
+                    desc.appendText("different index:  ").appendValue(inputColumn.index());
+                    return false;
+                }
+
+                if (dataType == null) {
+                    return true;
+                }
+
+                if (!inputColumn.valueType().equals(dataType)) {
+                    desc.appendText("different type: ").appendValue(dataType);
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("inputColumn ").appendValue(idx);
+                if (dataType != null) {
+                    description.appendText(" and type ").appendValue(dataType);
+                }
+            }
+        };
+    }
+
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
         return new TypeSafeDiagnosingMatcher<Symbol>() {
 

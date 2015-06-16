@@ -57,8 +57,8 @@ import java.util.UUID;
 public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
 
-    private final PlanAndPlannedAnalyzedRelation left;
-    private final PlanAndPlannedAnalyzedRelation right;
+    private final PlannedAnalyzedRelation left;
+    private final PlannedAnalyzedRelation right;
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
 
@@ -95,8 +95,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
      * b | 3
      */
     public NestedLoop(UUID jobId,
-                      PlanAndPlannedAnalyzedRelation left,
-                      PlanAndPlannedAnalyzedRelation right,
+                      PlannedAnalyzedRelation left,
+                      PlannedAnalyzedRelation right,
                       NestedLoopPhase nestedLoopPhase,
                       boolean leftOuterLoop,
                       @Nullable MergePhase localMergePhase) {
@@ -108,11 +108,11 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
         this.localMergePhase = localMergePhase;
     }
 
-    public PlanAndPlannedAnalyzedRelation left() {
+    public PlannedAnalyzedRelation left() {
         return left;
     }
 
-    public PlanAndPlannedAnalyzedRelation right() {
+    public PlannedAnalyzedRelation right() {
         return right;
     }
 
@@ -140,9 +140,9 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     @Override
     public void addProjection(Projection projection) {
         if (localMergePhase != null) {
-            localMergePhase.projections().add(projection);
+            localMergePhase.addProjection(projection);
         } else {
-            nestedLoopPhase.projections().add(projection);
+            nestedLoopPhase.addProjection(projection);
         }
     }
 

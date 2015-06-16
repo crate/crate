@@ -30,16 +30,16 @@ import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.projectors.FlatProjectorChain;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PageDownstreamContext implements ExecutionSubContext, ExecutionState {
+public class PageDownstreamContext implements DownstreamExecutionSubContext, ExecutionState {
 
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
@@ -57,6 +57,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private volatile boolean isKilled = false;
+
     @Nullable
     private final FlatProjectorChain projectorChain;
 
@@ -234,6 +235,13 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     @Override
     public boolean isKilled() {
         return isKilled;
+    }
+
+    @Nullable
+    @Override
+    public PageDownstreamContext pageDownstreamContext(byte inputId) {
+        assert inputId == 0 : "This downstream context only supports 1 input";
+        return this;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {

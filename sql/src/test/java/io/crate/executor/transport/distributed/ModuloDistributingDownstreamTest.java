@@ -117,6 +117,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
         downstream = new ModuloDistributingDownstream(
                 UUID.randomUUID(),
                 1,
+                (byte) 0,
                 0,
                 downstreamNodes,
                 useFailingTransport ? failingDistributedResultAction : distributedResultAction,
