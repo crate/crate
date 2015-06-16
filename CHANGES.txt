@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: return correct status for ``GET`` requests on ``/`` REST endpoint
+   when cluster is starting up
+
  - Fixed a race condition that could cause a `CREATE TABLE` statement
    immediately after a `DROP TABLE` statement to fail.
 
