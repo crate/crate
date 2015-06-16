@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue where _raw and _doc returned NULL for primary key queries
+
  - Updated crash to 0.13.0 which includes following changes:
 
     - Added `dynamic` as output format option
