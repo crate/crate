@@ -5,6 +5,22 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.13.0 which includes following changes:
+
+    - Added `dynamic` as output format option
+
+    - Added ``--version`` to cli interface to show crash version and exit
+
+    - Display command help in case the command is not used correctly
+
+    - Display NULL values in mixed mode correctly
+
+    - Fixed broken 'mixed' output style due to overriding import
+
+    - Improved readability of sql syntax highlighting
+
+    - Attempting to use unknown command now results in an error
+
  - Fix: return correct status for ``GET`` requests on ``/`` REST endpoint
    when cluster is starting up
 
