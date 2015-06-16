@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.planner.symbol.Field;
@@ -32,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class MultiSourceSelect implements AnalyzedRelation {
+public class MultiSourceSelect implements QueriedRelation {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final List<Field> fields;
@@ -42,6 +43,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
             Map<QualifiedName, AnalyzedRelation> sources,
             List<OutputName> outputNames,
             QuerySpec querySpec){
+        assert sources.size() > 1: "MultiSourceSelect requires at least 2 relations";
         this.querySpec = querySpec;
         this.sources = sources;
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";

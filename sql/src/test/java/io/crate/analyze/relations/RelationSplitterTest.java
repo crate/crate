@@ -79,7 +79,6 @@ public class RelationSplitterTest {
 
         Functions functions = injector.getInstance(Functions.class);
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
-
             @Override
             public ReferenceImplementation<?> getImplementation(ReferenceInfo refInfo) {
                 return null;
