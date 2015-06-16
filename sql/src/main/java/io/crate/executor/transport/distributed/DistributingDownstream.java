@@ -42,7 +42,6 @@ public class DistributingDownstream extends ResultProviderBase {
 
     private static final ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
-    private final UUID jobId;
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final MultiBucketBuilder bucketBuilder;
     private Downstream[] downstreams;
@@ -50,11 +49,11 @@ public class DistributingDownstream extends ResultProviderBase {
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
+                                  byte inputId,
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
                                   Streamer<?>[] streamers) {
-        this.jobId = jobId;
         this.transportDistributedResultAction = transportDistributedResultAction;
 
         downstreams = new Downstream[downstreamNodeIds.size()];
@@ -62,7 +61,7 @@ public class DistributingDownstream extends ResultProviderBase {
 
         int idx = 0;
         for (String downstreamNodeId : downstreamNodeIds) {
-            downstreams[idx] = new Downstream(downstreamNodeId, jobId, targetExecutionNodeId, bucketIdx, streamers);
+            downstreams[idx] = new Downstream(downstreamNodeId, jobId, targetExecutionNodeId, inputId, bucketIdx, streamers);
             idx++;
         }
     }
@@ -138,29 +137,34 @@ public class DistributingDownstream extends ResultProviderBase {
 
         final UUID jobId;
         final int targetExecutionNodeId;
+        private final byte inputId;
         final int bucketIdx;
         final Streamer<?>[] streamers;
 
         public Downstream(String node,
                           UUID jobId,
                           int targetExecutionNodeId,
+                          byte inputId,
                           int bucketIdx,
                           Streamer<?>[] streamers) {
             this.node = node;
             this.jobId = jobId;
             this.targetExecutionNodeId = targetExecutionNodeId;
+            this.inputId = inputId;
             this.bucketIdx = bucketIdx;
             this.streamers = streamers;
         }
 
         public void sendRequest(Throwable t) {
-            DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers, t);
+            DistributedResultRequest request = new DistributedResultRequest(
+                    jobId, targetExecutionNodeId, inputId, bucketIdx, streamers, t);
             sendRequest(request);
         }
 
         public void sendRequest(boolean isLast) {
             Bucket bucket = bucketQueue.poll();
-            DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx,
+            DistributedResultRequest request = new DistributedResultRequest(
+                    jobId, targetExecutionNodeId, inputId, bucketIdx,
                     streamers, bucket != null ? bucket : Bucket.EMPTY, isLast);
             synchronized(this.requestQueue) {
                 if (!requestPending.compareAndSet(false, true)) {
@@ -173,9 +177,12 @@ public class DistributingDownstream extends ResultProviderBase {
 
         private void sendRequest(final DistributedResultRequest request) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}] sending distributing collect request to {}, isLast? {} ...",
+                LOGGER.trace("[{}] sending distributing result request to {} {} input {}, isLast? {} ...",
                         jobId.toString(),
-                        node, request.isLast());
+                        targetExecutionNodeId,
+                        node,
+                        inputId,
+                        request.isLast());
             }
             try {
                 transportDistributedResultAction.pushResult(
@@ -192,9 +199,11 @@ public class DistributingDownstream extends ResultProviderBase {
         @Override
         public void onResponse(DistributedResultResponse response) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}] successfully sent distributing collect request to {}, needMore? {}",
+                LOGGER.trace("[{}] successfully sent distributing result request to {} {} input {}, needMore? {}",
                         jobId,
+                        targetExecutionNodeId,
                         node,
+                        inputId,
                         response.needMore());
             }
 
@@ -220,7 +229,7 @@ public class DistributingDownstream extends ResultProviderBase {
 
         @Override
         public void onFailure(Throwable exp) {
-            LOGGER.error("[{}] Exception sending distributing collect request to {}", exp, jobId, node);
+            LOGGER.error("[{}] Exception sending distributing result request to {}", exp, jobId, node);
             wantMore.set(false);
             bucketQueue.clear();
             finishedDownstreams.incrementAndGet();

@@ -43,12 +43,14 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
+import io.crate.planner.consumer.CrossJoinConsumer;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -58,10 +60,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.operation.NodeOperation.withDownstream;
@@ -358,9 +357,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         static class NodeOperationTreeContext {
             List<NodeOperation> nodeOperations = new ArrayList<>();
+
+            Stack<ExecutionPhase> leafs = new Stack<>();
+
             ExecutionPhase leaf;
+            ExecutionPhase downstreamForNextSubPlan;
 
             boolean isRootPlanNode = true;
+            byte inputId;
         }
 
         public NodeOperationTree fromPlan(Plan plan) {
@@ -373,6 +377,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public Void visitInsertByQuery(InsertFromSubQuery node, NodeOperationTreeContext context) {
             if (node.handlerMergeNode().isPresent()) {
                 context.leaf = node.handlerMergeNode().get();
+                context.downstreamForNextSubPlan = context.leaf;
             }
             context.isRootPlanNode = false;
             process(node.innerPlan(), context);
@@ -385,7 +390,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 assert node.localMergeNode() != null : "if DistributedGroupBy is the root plan node it requires a localMergeNode";
                 context.leaf = node.localMergeNode();
             }
-            context.nodeOperations.add(withDownstream(node.collectNode(), node.reducerMergeNode()));
+            context.nodeOperations.add(0, withDownstream(node.collectNode(), node.reducerMergeNode()));
             context.nodeOperations.add(withDownstream(node.reducerMergeNode(), context.leaf));
             return null;
         }
@@ -395,7 +400,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (context.isRootPlanNode || context.leaf == null) {
                 context.leaf = plan.mergeNode();
             }
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            context.nodeOperations.add(0, NodeOperation.withDownstream(plan.collectNode(), context.leaf));
             return null;
         }
 
@@ -404,37 +409,82 @@ public class TransportExecutor implements Executor, TaskExecutor {
             if (context.isRootPlanNode || context.leaf == null) {
                 context.leaf = node.localMergeNode();
             }
-            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            context.nodeOperations.add(0, NodeOperation.withDownstream(node.collectNode(), context.leaf));
             return null;
         }
 
         @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
             context.leaf = plan.mergeNode();
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.countNode(), plan.mergeNode()));
+            context.nodeOperations.add(0, NodeOperation.withDownstream(plan.countNode(), plan.mergeNode()));
             return null;
         }
 
         @Override
         public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
             context.leaf = plan.localMergeNode();
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), plan.localMergeNode()));
+            context.nodeOperations.add(0, NodeOperation.withDownstream(plan.collectNode(), plan.localMergeNode()));
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, NodeOperationTreeContext context) {
+
             if (context.isRootPlanNode) {
                 context.leaf = plan.localMergeNode();
+                context.nodeOperations.add(0,
+                        NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            } else {
+                MergePhase mergePhase = plan.localMergeNode();
+                if (mergePhase != null) {
+                    context.nodeOperations.add(0, NodeOperation.withDownstream(plan.collectNode(), mergePhase));
+                    context.nodeOperations.add(
+                            NodeOperation.withDownstream(mergePhase, context.downstreamForNextSubPlan, context.inputId));
+                } else {
+                    context.nodeOperations.add(0,
+                            NodeOperation.withDownstream(plan.collectNode(), context.downstreamForNextSubPlan, context.inputId));
+                }
             }
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
+            NodeOperation nodeOperation = null;
+            if (context.isRootPlanNode) {
+                MergePhase localMergePhase = plan.localMergePhase();
+                if (localMergePhase == null) {
+                    context.leaf = plan.nestedLoopPhase();
+                } else {
+                    nodeOperation = NodeOperation.withDownstream(plan.nestedLoopPhase(), localMergePhase);
+                    context.leaf = localMergePhase;
+                }
+
+                context.isRootPlanNode = false;
+            } else {
+                nodeOperation = NodeOperation.withDownstream(plan.nestedLoopPhase(), context.downstreamForNextSubPlan);
+            }
+
+            context.downstreamForNextSubPlan = plan.nestedLoopPhase();
+            context.inputId = 0;
+            process(plan.left().plan(), context);
+            context.inputId = 1;
+            process(plan.right().plan(), context);
+
+            if (nodeOperation != null) {
+                context.nodeOperations.add(nodeOperation);
+            }
             return null;
         }
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            context.leaf = firstNonNull(node.mergeNode(), context.leaf);
-            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            if (context.isRootPlanNode) {
+                context.downstreamForNextSubPlan = node.mergeNode();
+                context.leaf = node.mergeNode();
+            }
+            context.nodeOperations.add(0, NodeOperation.withDownstream(
+                    node.collectNode(), context.downstreamForNextSubPlan, context.inputId));
             return null;
         }
 
