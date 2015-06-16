@@ -33,6 +33,7 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowDownstreamFactory;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -118,12 +119,12 @@ public class ContextPreparer {
 
     private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, ExecutionSubContext> {
 
-        RowDownstream getDownstream(PreparerContext context, UpstreamPhase upstreamPhase, int pageSize) {
+        RowDownstream getDownstream(PreparerContext context, DistributionType distributionType, int pageSize) {
             if (context.rowDownstream == null) {
                 assert context.nodeOperation != null : "nodeOperation shouldn't be null if context.rowDownstream hasn't been set";
                 return rowDownstreamFactory.createDownstream(
                         context.nodeOperation,
-                        upstreamPhase.distributionType(),
+                        distributionType,
                         context.jobId,
                         pageSize);
             }
@@ -155,7 +156,7 @@ public class ContextPreparer {
         public ExecutionSubContext visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            RowDownstream downstream = getDownstream(context, phase,
+            RowDownstream downstream = getDownstream(context, phase.distributionType(),
                     Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size()));
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
@@ -190,7 +191,7 @@ public class ContextPreparer {
             LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
 
-            RowDownstream downstream = getDownstream(context, phase, pageSize);
+            RowDownstream downstream = getDownstream(context, phase.distributionType(), pageSize);
             return new JobCollectContext(
                     context.jobId,
                     phase,
@@ -204,7 +205,7 @@ public class ContextPreparer {
         public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            RowDownstream downstream = getDownstream(context, Paging.PAGE_SIZE);
+            RowDownstream downstream = getDownstream(context, DistributionType.BROADCAST, Paging.PAGE_SIZE);
             return new NestedLoopContext(
                     phase,
                     downstream,
