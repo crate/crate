@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
-- Fix: Allows queries on system columns _raw and _doc
+ - Fixed an issue where _raw and _doc returned 0 for primary key queries
 
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
