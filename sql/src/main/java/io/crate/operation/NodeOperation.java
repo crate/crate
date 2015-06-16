@@ -38,24 +38,34 @@ public class NodeOperation implements Streamable {
     private ExecutionPhase executionPhase;
     private Collection<String> downstreamNodes;
     private int downstreamExecutionPhaseId;
+    private byte downstreamExecutionPhaseInputId;
 
-    private NodeOperation(ExecutionPhase executionPhase, Collection<String> downstreamNodes, int downstreamExecutionPhaseId) {
+    private NodeOperation(ExecutionPhase executionPhase,
+                          Collection<String> downstreamNodes,
+                          int downstreamExecutionPhaseId,
+                          byte downstreamExecutionPhaseInputId) {
         this.executionPhase = executionPhase;
         this.downstreamNodes = downstreamNodes;
         this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
+        this.downstreamExecutionPhaseInputId = downstreamExecutionPhaseInputId;
     }
 
     public NodeOperation(StreamInput in) throws IOException {
         readFrom(in);
     }
 
-    public static NodeOperation withDownstream(ExecutionPhase executionPhase, ExecutionPhase downstreamExecutionPhase) {
+    public static NodeOperation withDownstream(ExecutionPhase executionPhase, ExecutionPhase downstreamExecutionPhase, byte inputId) {
         if (downstreamExecutionPhase.executionNodes().isEmpty()) {
-            return new NodeOperation(executionPhase, ImmutableList.of("_response"), downstreamExecutionPhase.executionPhaseId());
+            return new NodeOperation(
+                    executionPhase,
+                    ImmutableList.of("_response"),
+                    downstreamExecutionPhase.executionPhaseId(),
+                    inputId);
         } else {
             return new NodeOperation(executionPhase,
                     downstreamExecutionPhase.executionNodes(),
-                    downstreamExecutionPhase.executionPhaseId());
+                    downstreamExecutionPhase.executionPhaseId(),
+                    inputId);
         }
     }
 
@@ -75,6 +85,7 @@ public class NodeOperation implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         executionPhase = ExecutionPhases.fromStream(in);
         downstreamExecutionPhaseId = in.readVInt();
+        downstreamExecutionPhaseInputId = in.readByte();
         int numExecutionNodes = in.readVInt();
 
         List<String> executionNodes = new ArrayList<>();
@@ -88,10 +99,24 @@ public class NodeOperation implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         ExecutionPhases.toStream(out, executionPhase);
         out.writeVInt(downstreamExecutionPhaseId);
+        out.writeByte(downstreamExecutionPhaseInputId);
 
         out.writeVInt(downstreamNodes.size());
         for (String executionNode : downstreamNodes) {
             out.writeString(executionNode);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "NodeOp{ " + executionPhase.executionPhaseId() + " " + executionPhase.name() +
+                ", downstreamNodes=" + downstreamNodes +
+                ", downstreamPhase=" + downstreamExecutionPhaseId +
+                ", downstreamInputId=" + downstreamExecutionPhaseInputId +
+                '}';
+    }
+
+    public byte downstreamExecutionPhaseInputId() {
+        return downstreamExecutionPhaseInputId;
     }
 }
