@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue where _raw and _doc returned 0 for primary key queries
+
 NOTE: Upgrading from 0.49 or earlier versions requires a full cluster restart
 
  - Updated crash to 0.13.0 which includes following changes:

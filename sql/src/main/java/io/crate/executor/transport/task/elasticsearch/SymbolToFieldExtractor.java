@@ -75,6 +75,10 @@ public class SymbolToFieldExtractor<T> {
             return referenceNames;
         }
 
+        public List<Reference> references() {
+            return references;
+        }
+
         public abstract Object inputValueFor(InputColumn inputColumn);
     }
 
