@@ -210,7 +210,8 @@ public class ContextPreparer {
         public Void visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId());
+            ResultProvider downstream = resultProviderFactory.createDownstream(
+                    context.nodeOperation, phase.jobId(), Paging.PAGE_SIZE);
 
             NestedLoopContext nestedLoopContext = new NestedLoopContext(
                     phase,

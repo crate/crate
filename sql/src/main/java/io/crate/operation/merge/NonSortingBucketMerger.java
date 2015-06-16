@@ -116,7 +116,7 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
     @Override
     public void finish() {
         if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("NonSortingBucketMerger {} finished.", hashCode());
+            LOGGER.trace("NonSortingBucketMerger {} finished. Propagate finish on {}", hashCode(), downstream);
             downstream.finish();
         }
     }

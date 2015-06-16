@@ -76,6 +76,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                 return new BroadcastDistributingDownstream(
                         jobId,
                         nodeOperation.downstreamExecutionPhaseId(),
+                        nodeOperation.downstreamExecutionPhaseInputId(),
                         bucketIdx,
                         nodeOperation.downstreamNodes(),
                         transportDistributedResultAction,
@@ -88,6 +89,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
             return new ModuloDistributingDownstream(
                     jobId,
                     nodeOperation.downstreamExecutionPhaseId(),
+                    nodeOperation.downstreamExecutionPhaseInputId(),
                     bucketIdx,
                     nodeOperation.downstreamNodes(),
                     transportDistributedResultAction,

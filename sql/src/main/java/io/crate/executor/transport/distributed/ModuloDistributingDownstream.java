@@ -39,13 +39,14 @@ public class ModuloDistributingDownstream extends DistributingDownstream {
 
     public ModuloDistributingDownstream(UUID jobId,
                                         int targetExecutionNodeId,
+                                        byte inputId,
                                         int bucketIdx,
                                         Collection<String> downstreamNodeIds,
                                         TransportDistributedResultAction transportDistributedResultAction,
                                         Streamer<?>[] streamers,
                                         Settings settings,
                                         int pageSize) {
-        super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds,
+        super(jobId, targetExecutionNodeId, inputId, bucketIdx, downstreamNodeIds,
                 transportDistributedResultAction, streamers, settings, pageSize);
 
         bucketBuilder = new MultiBucketBuilder(streamers, downstreams.length);
