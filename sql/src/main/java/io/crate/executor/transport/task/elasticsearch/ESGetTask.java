@@ -349,34 +349,36 @@ public class ESGetTask extends JobTask implements RowUpstream {
         public FieldExtractor<GetResponse> build(final Reference reference, final GetResponseContext context) {
             final String field = reference.info().ident().columnIdent().fqn();
 
-            if (field.equals("_version")) {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        return response.getVersion();
-                    }
-                };
-            } else if (field.equals("_id")) {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        return response.getId();
-                    }
-                };
-            } else if (field.equals("_raw")) {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        return response.getSourceAsBytesRef().toBytesRef();
-                    }
-                };
-            } else if (field.equals("_doc")) {
-                return new FieldExtractor<GetResponse>() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        return response.getSource();
-                    }
-                };
+            if (field.startsWith("_")) {
+                if (field.equals("_version")) {
+                    return new FieldExtractor<GetResponse>() {
+                        @Override
+                        public Object extract(GetResponse response) {
+                            return response.getVersion();
+                        }
+                    };
+                } else if (field.equals("_id")) {
+                    return new FieldExtractor<GetResponse>() {
+                        @Override
+                        public Object extract(GetResponse response) {
+                            return response.getId();
+                        }
+                    };
+                } else if (field.equals("_raw")) {
+                    return new FieldExtractor<GetResponse>() {
+                        @Override
+                        public Object extract(GetResponse response) {
+                            return response.getSourceAsBytesRef().toBytesRef();
+                        }
+                    };
+                } else if (field.equals("_doc")) {
+                    return new FieldExtractor<GetResponse>() {
+                        @Override
+                        public Object extract(GetResponse response) {
+                            return response.getSource();
+                        }
+                    };
+                }
             } else if (context.node.tableInfo().isPartitioned()
                     && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
                 final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
