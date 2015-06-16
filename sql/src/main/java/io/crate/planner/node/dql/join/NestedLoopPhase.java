@@ -28,15 +28,11 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class NestedLoopPhase extends AbstractDQLPlanPhase {
 
@@ -48,16 +44,25 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
     };
 
     private Set<String> executionNodes;
-
-    @Nullable
     private MergePhase leftMergePhase;
-    @Nullable
     private MergePhase rightMergePhase;
 
     public NestedLoopPhase() {}
 
-    public NestedLoopPhase(UUID jobId, int executionNodeId, String name, List<Projection> projections) {
+    public NestedLoopPhase(UUID jobId,
+                           int executionNodeId,
+                           String name,
+                           List<Projection> projections,
+                           MergePhase leftMergePhase,
+                           MergePhase rightMergePhase,
+                           Set<String> executionNodes) {
         super(jobId, executionNodeId, name, projections);
+        this.leftMergePhase = leftMergePhase;
+        this.rightMergePhase = rightMergePhase;
+        this.executionNodes = executionNodes;
+        outputTypes = new ArrayList<>(leftMergePhase.outputTypes().size() + rightMergePhase.outputTypes().size());
+        outputTypes.addAll(leftMergePhase.outputTypes());
+        outputTypes.addAll(rightMergePhase.outputTypes());
     }
 
     @Override
@@ -74,33 +79,18 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
         }
     }
 
-    public void leftMergePhase(MergePhase mergePhase) {
-        this.leftMergePhase = mergePhase;
-    }
-
-    @Nullable
     public MergePhase leftMergePhase() {
         return leftMergePhase;
     }
 
-    public void rightMergePhase(MergePhase mergePhase) {
-        this.rightMergePhase = mergePhase;
-    }
-
-    @Nullable
     public MergePhase rightMergePhase() {
         return rightMergePhase;
-    }
-
-    public void executionNodes(Set<String> executionNodes) {
-        this.executionNodes = executionNodes;
     }
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitNestedLoopPhase(this, context);
     }
-
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {

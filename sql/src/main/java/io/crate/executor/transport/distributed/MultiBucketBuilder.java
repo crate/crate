@@ -73,9 +73,14 @@ public class MultiBucketBuilder {
      * get bucket number by doing modulo hashcode of first row-element
      */
     public int getBucket(Row row) {
-        int hash = hashCode(row.get(0));
-        if (hash == Integer.MIN_VALUE) {
-            hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+        int hash;
+        if (row.size() > 0) {
+            hash = hashCode(row.get(0));
+            if (hash == Integer.MIN_VALUE) {
+                hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+            }
+        } else {
+            hash = 0; // if the row is empty/null (is the case if e.g. toCollect is an empty list)
         }
         return Math.abs(hash) % bucketBuilders.size();
     }

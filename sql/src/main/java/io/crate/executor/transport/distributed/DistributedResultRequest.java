@@ -37,6 +37,7 @@ import java.util.UUID;
 
 public class DistributedResultRequest extends TransportRequest {
 
+    private byte inputId;
     private int executionPhaseId;
     private int bucketIdx;
 
@@ -50,22 +51,33 @@ public class DistributedResultRequest extends TransportRequest {
     public DistributedResultRequest() {
     }
 
-    private DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers) {
+    private DistributedResultRequest(UUID jobId, int executionPhaseId, byte inputId, int bucketIdx, Streamer<?>[] streamers) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.bucketIdx = bucketIdx;
         this.streamers = streamers;
+        this.inputId = inputId;
     }
 
-    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers, Bucket rows,
+    public DistributedResultRequest(UUID jobId,
+                                    int executionPhaseId,
+                                    byte inputId,
+                                    int bucketIdx,
+                                    Streamer<?>[] streamers,
+                                    Bucket rows,
                                     boolean isLast) {
-        this(jobId, executionPhaseId, bucketIdx, streamers);
+        this(jobId, executionPhaseId, inputId, bucketIdx, streamers);
         this.rows = rows;
         this.isLast = isLast;
     }
 
-    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers, Throwable throwable) {
-        this(jobId, executionPhaseId, bucketIdx, streamers);
+    public DistributedResultRequest(UUID jobId,
+                                    int executionPhaseId,
+                                    byte inputId,
+                                    int bucketIdx,
+                                    Streamer<?>[] streamers,
+                                    Throwable throwable) {
+        this(jobId, executionPhaseId, inputId, bucketIdx, streamers);
         this.throwable = throwable;
     }
 
@@ -75,6 +87,10 @@ public class DistributedResultRequest extends TransportRequest {
 
     public int executionPhaseId() {
         return executionPhaseId;
+    }
+
+    public byte executionPhaseInputId() {
+        return inputId;
     }
 
     public int bucketIdx() {
@@ -104,10 +120,6 @@ public class DistributedResultRequest extends TransportRequest {
         return isLast;
     }
 
-    public void isLast(boolean isLast) {
-        this.isLast = isLast;
-    }
-
     @Nullable
     public Throwable throwable() {
         return throwable;
@@ -120,6 +132,7 @@ public class DistributedResultRequest extends TransportRequest {
         executionPhaseId = in.readVInt();
         bucketIdx = in.readVInt();
         isLast = in.readBoolean();
+        inputId = in.readByte();
 
         boolean failure = in.readBoolean();
         if (failure) {
@@ -144,6 +157,7 @@ public class DistributedResultRequest extends TransportRequest {
         out.writeVInt(executionPhaseId);
         out.writeVInt(bucketIdx);
         out.writeBoolean(isLast);
+        out.writeByte(inputId);
 
         boolean failure = throwable != null;
         out.writeBoolean(failure);

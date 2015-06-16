@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,6 +72,10 @@ public class OrderBy implements Streamable {
 
     public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
         orderBy.writeTo(out);
+    }
+
+    public static boolean isSorted(@Nullable OrderBy orderBy) {
+        return orderBy != null && orderBy.isSorted();
     }
 
     public static OrderBy fromStream(StreamInput in) throws IOException {
