@@ -29,6 +29,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.RowGranularity;
@@ -78,10 +79,9 @@ public class RelationSplitterTest {
                 .createInjector();
 
         Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = new ReferenceResolver() {
-
+        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
-            public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+            public ReferenceImplementation<?> getImplementation(ReferenceInfo refInfo) {
                 return null;
             }
         };
