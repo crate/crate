@@ -98,7 +98,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
         }
 
         boolean fetchSource = false;
-        List<String> includes = new ArrayList<String>();
+        List<String> includes = new ArrayList<>(ctx.references().size());
 
         for (Reference ref : ctx.references()) {
             if (ref.ident().columnIdent().isSystemColumn()) {
@@ -112,13 +112,14 @@ public class ESGetTask extends JobTask implements RowUpstream {
             }
         }
 
-        String[] includeRefNames = new String[includes.size()];
         final FetchSourceContext fsc;
 
         if (fetchSource) {
             fsc = new FetchSourceContext(true);
+        } else if (includes.size() > 0) {
+            fsc = new FetchSourceContext(includes.toArray(new String[includes.size()]));
         } else {
-            fsc = new FetchSourceContext(includes.toArray(includeRefNames));
+            fsc = new FetchSourceContext(false);
         }
 
         ActionListener listener;
