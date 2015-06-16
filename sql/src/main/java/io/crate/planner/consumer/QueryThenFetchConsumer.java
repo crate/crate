@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
@@ -151,6 +150,12 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectProjections.add(mergeProjection);
             }
 
+            Integer limit = querySpec.limit();
+            // apply default limit if relation is root relation
+            if ( limit == null && context.rootRelation() == table) {
+                limit = Constants.DEFAULT_SELECT_LIMIT;
+            }
+
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableInfo,
                     context.plannerContext(),
@@ -158,7 +163,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     collectSymbols,
                     ImmutableList.<Projection>of(),
                     orderBy,
-                    MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset()
+                    limit == null ? null : limit + querySpec.offset()
             );
 
 
@@ -222,7 +227,6 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             // HANDLER/MERGE/FETCH related END
 
-            Integer limit = querySpec.limit();
             if (limit != null && limit + querySpec.offset() > Constants.PAGE_SIZE) {
                 collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
                 collectNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
