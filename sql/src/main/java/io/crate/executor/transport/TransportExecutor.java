@@ -45,6 +45,7 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -470,6 +471,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 currentBranch.phases.add(executionPhase);
             }
 
+            public void branch(byte inputId) {
+                branches.add(currentBranch);
+                currentBranch = new Branch(inputId);
+            }
+
+            public void leaveBranch() {
+                currentBranch = branches.pop();
+            }
+
+
             public Collection<NodeOperation> nodeOperations() {
                 return ImmutableList.<NodeOperation>builder()
                         // collectNodeOperations must be first so that they're started last
@@ -522,6 +533,21 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
             visitCollectAndMerge(node, context);
             context.addContextPhase(node.fetchPhase());
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
+            context.addPhase(plan.nestedLoopPhase());
+
+            context.branch((byte) 0);
+            process(plan.left().plan(), context);
+            context.leaveBranch();
+
+            context.branch((byte) 1);
+            process(plan.right().plan(), context);
+            context.leaveBranch();
+
             return null;
         }
 
