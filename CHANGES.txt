@@ -5,7 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed an issue where _raw and _doc returned NULL for primary key queries
+2015/06/16 0.49.3
+=================
+
+ - Fixed an issue where ``_raw`` and ``_doc`` in primary key queries
+   returned ``NULL``
 
  - Updated crash to 0.13.0 which includes following changes:
 
