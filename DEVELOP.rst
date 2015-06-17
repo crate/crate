@@ -274,7 +274,7 @@ Crate::
 The resulting tarball and zip will reside in the folder
 ``./app/build/distributions``.
 
-Toubleshooting
+Troubleshooting
 ==============
 
 If you just pulled some new commits using git and get strange compile errors in
