@@ -16,8 +16,4 @@ public abstract class DDLPlanNode implements PlanNode {
     public List<DataType> outputTypes() {
         return outputTypes;
     }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-    }
 }

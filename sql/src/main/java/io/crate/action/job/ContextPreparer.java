@@ -42,7 +42,6 @@ import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.CountNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -73,7 +72,6 @@ public class ContextPreparer {
     private final ThreadPool threadPool;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ResultProviderFactory resultProviderFactory;
-    private final StreamerVisitor streamerVisitor;
     private final InnerPreparer innerPreparer;
 
     @Inject
@@ -83,8 +81,7 @@ public class ContextPreparer {
                            ThreadPool threadPool,
                            CountOperation countOperation,
                            PageDownstreamFactory pageDownstreamFactory,
-                           ResultProviderFactory resultProviderFactory,
-                           StreamerVisitor streamerVisitor) {
+                           ResultProviderFactory resultProviderFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
@@ -92,7 +89,6 @@ public class ContextPreparer {
         this.threadPool = threadPool;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.resultProviderFactory = resultProviderFactory;
-        this.streamerVisitor = streamerVisitor;
         innerPreparer = new InnerPreparer();
     }
 
@@ -154,11 +150,11 @@ public class ContextPreparer {
                             downstream,
                             ramAccountingContext,
                             Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
-            StreamerVisitor.Context streamerContext = streamerVisitor.processPlanNode(node);
+
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                     node.name(),
                     pageDownstreamProjectorChain.v1(),
-                    streamerContext.inputStreamers(),
+                    DataTypes.getStreamer(node.inputTypes()),
                     ramAccountingContext,
                     node.numUpstreams(),
                     pageDownstreamProjectorChain.v2());

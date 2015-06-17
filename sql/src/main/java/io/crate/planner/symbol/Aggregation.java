@@ -60,11 +60,22 @@ public class Aggregation extends Symbol {
 
     private FunctionInfo functionInfo;
     private List<Symbol> inputs;
+    private DataType valueType;
     private Step fromStep;
     private Step toStep;
 
-    public Aggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep, Step toStep) {
+    public static Aggregation partialAggregation(FunctionInfo functionInfo, DataType partialType, List<Symbol> inputs) {
+        return new Aggregation(functionInfo, partialType, inputs, Step.ITER, Step.PARTIAL);
+    }
+
+    public static Aggregation finalAggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep) {
+        return new Aggregation(functionInfo, functionInfo.returnType(), inputs, fromStep, Step.FINAL);
+    }
+
+    private Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, Step fromStep, Step toStep) {
         Preconditions.checkNotNull(inputs, "inputs are null");
+        assert fromStep != Step.FINAL : "Can't start from FINAL";
+        this.valueType = valueType;
         this.functionInfo = functionInfo;
         this.inputs = inputs;
         this.fromStep = fromStep;
@@ -83,10 +94,7 @@ public class Aggregation extends Symbol {
 
     @Override
     public DataType valueType() {
-        if (toStep == Step.PARTIAL) {
-            return DataTypes.UNDEFINED;
-        }
-        return functionInfo.returnType();
+        return valueType;
     }
 
     public FunctionIdent functionIdent() {
@@ -114,6 +122,8 @@ public class Aggregation extends Symbol {
         fromStep = Step.readFrom(in);
         toStep = Step.readFrom(in);
 
+        valueType = DataTypes.fromStream(in);
+
         int numInputs = in.readVInt();
         inputs = new ArrayList<>(numInputs);
         for (int i = 0; i < numInputs; i++) {
@@ -127,6 +137,8 @@ public class Aggregation extends Symbol {
 
         Step.writeTo(fromStep, out);
         Step.writeTo(toStep, out);
+
+        DataTypes.toStream(valueType, out);
 
         out.writeVInt(inputs.size());
         for (Symbol input : inputs) {

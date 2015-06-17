@@ -53,7 +53,6 @@ import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
-import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
@@ -129,7 +128,6 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(SysNodeExpressionModule.class);
             modules.add(AggregationImplModule.class);
             modules.add(ScalarFunctionModule.class);
-            modules.add(PlanModule.class);
             modules.add(BulkModule.class);
         }
         return modules;

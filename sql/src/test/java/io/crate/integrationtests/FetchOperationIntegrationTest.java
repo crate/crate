@@ -130,16 +130,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Symbol docIdRef = new Reference(docIdRefInfo);
         List<Symbol> toCollect = ImmutableList.of(docIdRef);
 
-        List<DataType> outputTypes = new ArrayList<>(toCollect.size());
-        for (Symbol symbol : toCollect) {
-            outputTypes.add(symbol.valueType());
-        }
         CollectNode collectNode = new CollectNode(
                 plannerContext.nextExecutionNodeId(),
                 "collect",
-                tableInfo.getRouting(WhereClause.MATCH_ALL, null));
-        collectNode.toCollect(toCollect);
-        collectNode.outputTypes(outputTypes);
+                tableInfo.getRouting(WhereClause.MATCH_ALL, null),
+                toCollect,
+                ImmutableList.<Projection>of());
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(keepContextForFetcher);
         collectNode.jobId(UUID.randomUUID());
@@ -325,9 +321,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Plan plan = analyzeAndPlan("select position, name from locations order by position");
         assertThat(plan, instanceOf(QueryThenFetch.class));
 
-        rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
+        MergeNode mergeNode = rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
+        QueryThenFetch qtf = new QueryThenFetch(((QueryThenFetch) plan).collectNode(), mergeNode);
 
-        Job job = executor.newJob(plan);
+        Job job = executor.newJob(qtf);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
 
         final List<Object[]> resultingRows = new ArrayList<>();
@@ -355,7 +352,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) resultingRows.get(12)[0], is(6));
     }
 
-    private void rewriteFetchProjectionToBulkSize(int bulkSize, MergeNode mergeNode) {
+    private MergeNode rewriteFetchProjectionToBulkSize(int bulkSize, MergeNode mergeNode) {
         List<Projection> newProjections = new ArrayList<>(mergeNode.projections().size());
         for (Projection projection : mergeNode.projections()) {
             if (projection instanceof FetchProjection) {
@@ -375,6 +372,15 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 newProjections.add(projection);
             }
         }
-        mergeNode.projections(newProjections);
+        return MergeNode.sortedMergeNode(
+                mergeNode.inputTypes(),
+                newProjections,
+                mergeNode.executionNodeId(),
+                mergeNode.name(),
+                mergeNode.numUpstreams(),
+                mergeNode.orderByIndices(),
+                mergeNode.reverseFlags(),
+                mergeNode.nullsFirst()
+        );
     }
 }

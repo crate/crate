@@ -31,6 +31,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
+import io.crate.planner.projection.Projection;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
@@ -141,13 +142,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
-        CollectNode node = new CollectNode(0, "collect");
+        CollectNode node = new CollectNode(0, "collect", mock(Routing.class), toCollect, ImmutableList.<Projection>of());
         node.whereClause(whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
         UUID jobId = UUID.randomUUID();
         node.jobId(jobId);
-        node.toCollect(toCollect);
         node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
@@ -334,11 +334,10 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
 
-        CollectNode node = new CollectNode(0, "collect");
+        CollectNode node = new CollectNode(0, "collect", mock(Routing.class), orderBy.orderBySymbols(), ImmutableList.<Projection>of());
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.jobId(UUID.randomUUID());
-        node.toCollect(orderBy.orderBySymbols());
         node.maxRowGranularity(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());

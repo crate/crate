@@ -38,7 +38,6 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -58,15 +57,15 @@ public class PlanNodeBuilder {
         CollectNode node = new CollectNode(
                 plannerContext.nextExecutionNodeId(),
                 "distributing collect",
-                routing);
+                routing,
+                toCollect,
+                projections
+        );
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
         node.downstreamNodes(downstreamNodes);
-        node.toCollect(toCollect);
-        node.projections(projections);
 
         node.isPartitioned(tableInfo.isPartitioned());
-        setOutputTypes(node);
         return node;
     }
 
@@ -76,25 +75,26 @@ public class PlanNodeBuilder {
         MergeNode node = new MergeNode(
                 plannerContext.nextExecutionNodeId(),
                 "distributed merge",
-                collectNode.executionNodes().size());
-        node.projections(projections);
+                collectNode.executionNodes().size(),
+                collectNode.outputTypes(),
+                projections
+        );
 
         assert collectNode.hasDistributingDownstreams();
         node.executionNodes(ImmutableSet.copyOf(collectNode.downstreamNodes()));
-        connectTypes(collectNode, node);
         return node;
     }
 
     public static MergeNode localMerge(List<Projection> projections,
                                        DQLPlanNode previousNode,
                                        Planner.Context plannerContext) {
-        MergeNode node = new MergeNode(
+        return new MergeNode(
                 plannerContext.nextExecutionNodeId(),
                 "localMerge",
-                previousNode.executionNodes().size());
-        node.projections(projections);
-        connectTypes(previousNode, node);
-        return node;
+                previousNode.executionNodes().size(),
+                previousNode.outputTypes(),
+                projections
+        );
     }
 
     /**
@@ -119,7 +119,9 @@ public class PlanNodeBuilder {
                 MoreObjects.firstNonNull(orderBySymbols, orderBy.orderBySymbols()),
                 sourceSymbols
         );
-        MergeNode node = MergeNode.sortedMergeNode(
+        return MergeNode.sortedMergeNode(
+                previousNode.outputTypes(),
+                projections,
                 plannerContext.nextExecutionNodeId(),
                 "sortedLocalMerge",
                 previousNode.executionNodes().size(),
@@ -127,40 +129,13 @@ public class PlanNodeBuilder {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
-        node.projections(projections);
-        connectTypes(previousNode, node);
-        return node;
-    }
-
-    /**
-     * calculates the outputTypes using the projections and input types.
-     * must be called after projections have been set.
-     */
-    public static void setOutputTypes(CollectNode node) {
-        if (node.projections().isEmpty()) {
-            node.outputTypes(Symbols.extractTypes(node.toCollect()));
-        } else {
-            node.outputTypes(Planner.extractDataTypes(node.projections(), Symbols.extractTypes(node.toCollect())));
-        }
-    }
-
-    /**
-     * sets the inputTypes from the previousNode's outputTypes
-     * and calculates the outputTypes using the projections and input types.
-     * <p>
-     * must be called after projections have been set
-     * </p>
-     */
-    public static void connectTypes(DQLPlanNode previousNode, DQLPlanNode nextNode) {
-        nextNode.inputTypes(previousNode.outputTypes());
-        nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
     public static CollectNode collect(TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
-                                      ImmutableList<Projection> projections,
+                                      List<Projection> projections,
                                       @Nullable String partitionIdent,
                                       @Nullable String routingPreference,
                                       @Nullable OrderBy orderBy,
@@ -181,7 +156,6 @@ public class PlanNodeBuilder {
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
         node.isPartitioned(tableInfo.isPartitioned());
-        setOutputTypes(node);
         node.orderBy(orderBy);
         node.limit(limit);
         return node;
@@ -243,7 +217,7 @@ public class PlanNodeBuilder {
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
-                                      ImmutableList<Projection> projections,
+                                      List<Projection> projections,
                                       @Nullable OrderBy orderBy,
                                       @Nullable Integer limit) {
         return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null, orderBy, limit);

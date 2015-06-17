@@ -85,6 +85,9 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         public static final VarianceStateType INSTANCE = new VarianceStateType();
         public static final int ID = 2048;
 
+        private VarianceStateType() {
+            DataTypes.register(ID, this);
+        }
 
         @Override
         public int id() {

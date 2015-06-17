@@ -42,19 +42,16 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
-    private final StreamerVisitor streamerVisitor;
 
     @Inject
     public InternalResultProviderFactory(ClusterService clusterService,
-                                         TransportDistributedResultAction transportDistributedResultAction,
-                                         StreamerVisitor streamerVisitor) {
+                                         TransportDistributedResultAction transportDistributedResultAction) {
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
-        this.streamerVisitor = streamerVisitor;
     }
 
     public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
-        Streamer<?>[] streamers = getStreamers(node);
+        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(node);
 
         if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
             return new SingleBucketBuilder(streamers);
@@ -75,9 +72,5 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     streamers
             );
         }
-    }
-
-    protected Streamer<?>[] getStreamers(ExecutionNode node) {
-        return streamerVisitor.processExecutionNode(node).outputStreamers();
     }
 }

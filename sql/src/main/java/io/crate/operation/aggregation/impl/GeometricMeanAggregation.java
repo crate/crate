@@ -116,6 +116,10 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         public static final GeometricMeanStateType INSTANCE = new GeometricMeanStateType();
         public static final int ID = 4096;
 
+        private GeometricMeanStateType() {
+            DataTypes.register(ID, this);
+        }
+
         @Override
         public int id() {
             return ID;

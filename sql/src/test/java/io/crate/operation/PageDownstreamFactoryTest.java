@@ -22,6 +22,7 @@
 package io.crate.operation;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
@@ -35,7 +36,6 @@ import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
@@ -45,6 +45,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -107,9 +108,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER)));
         groupProjection.values(Arrays.asList(
-                new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)),
-                        Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
-        ));
+                Aggregation.finalAggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL)));
     }
 
     @Override
@@ -126,11 +125,9 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
-        MergeNode mergeNode = new MergeNode(0, "merge", 2); // no need for inputTypes here
-        mergeNode.projections(Arrays.asList(
-                groupProjection,
-                topNProjection
-        ));
+        MergeNode mergeNode = new MergeNode(0, "merge", 2,
+                ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
+                Arrays.asList(groupProjection, topNProjection));
 
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
@@ -181,10 +178,9 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeMultipleResults() throws Exception {
-        MergeNode mergeNode = new MergeNode(0, "merge", 2); // no need for inputTypes here
-        mergeNode.projections(Arrays.<Projection>asList(
-                groupProjection
-        ));
+        MergeNode mergeNode = new MergeNode(0, "merge", 2,
+                ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
+                Arrays.<Projection>asList(groupProjection));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 threadPool,

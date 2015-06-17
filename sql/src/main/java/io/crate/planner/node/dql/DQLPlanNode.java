@@ -13,8 +13,5 @@ public interface DQLPlanNode extends PlanNode {
     List<Projection> projections();
     void addProjection(Projection projection);
 
-    public Set<String> executionNodes();
-
-    void inputTypes(List<DataType> dataTypes);
-    List<DataType> inputTypes();
+    Set<String> executionNodes();
 }

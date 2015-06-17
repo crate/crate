@@ -36,6 +36,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -51,6 +52,7 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -148,11 +150,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevel() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing(TEST_TABLE_NAME));
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
+        List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
+        CollectNode collectNode = getCollectNode(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.jobId(UUID.randomUUID());
-        PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
                 isRow(2, "{\"id\":1,\"doc\":2}", "1"),
@@ -164,18 +164,27 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevelWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing(TEST_TABLE_NAME));
-        collectNode.jobId(UUID.randomUUID());
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
+        List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
+        CollectNode collectNode = getCollectNode(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
+    }
+
+    private CollectNode getCollectNode(List<Symbol> toCollect, Routing routing) {
+        CollectNode collectNode = new CollectNode(0, "docCollect", routing, toCollect,
+                ImmutableList.<Projection>of());
+        collectNode.jobId(UUID.randomUUID());
+        return collectNode;
+    }
+
+    private CollectNode getCollectNode(List<Symbol> toCollect) {
+        return getCollectNode(toCollect, routing(TEST_TABLE_NAME));
     }
 
 
@@ -183,19 +192,17 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Exception {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
         TableIdent tableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "id"),
-                        RowGranularity.DOC, DataTypes.INTEGER)),
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "date"),
-                        RowGranularity.SHARD, DataTypes.TIMESTAMP))
-        ));
+        CollectNode collectNode = getCollectNode(
+                Arrays.<Symbol>asList(
+                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "id"),
+                                RowGranularity.DOC,
+                                DataTypes.INTEGER)),
+                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "date"),
+                                RowGranularity.SHARD,
+                                DataTypes.TIMESTAMP))),
+                routing);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
-        collectNode.jobId(UUID.randomUUID());
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
         for (Row row : result) {

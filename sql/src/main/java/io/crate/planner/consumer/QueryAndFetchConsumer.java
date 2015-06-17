@@ -47,6 +47,8 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,16 +56,28 @@ import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+@Singleton
 public class QueryAndFetchConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
+    private final Visitor visitor;
+
+    @Inject
+    public QueryAndFetchConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
     public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
-        return VISITOR.process(relation, context);
+        return visitor.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
+        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
@@ -78,7 +92,8 @@ public class QueryAndFetchConsumer implements Consumer {
                 ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
             }
             if (table.querySpec().hasAggregates()) {
-                return GlobalAggregateConsumer.globalAggregates(table, tableRelation, table.querySpec().where(), context);
+                return GlobalAggregateConsumer.globalAggregates(
+                        functions, table, tableRelation, table.querySpec().where(), context);
             } else {
                return normalSelect(table, table.querySpec().where(), tableRelation, context);
             }

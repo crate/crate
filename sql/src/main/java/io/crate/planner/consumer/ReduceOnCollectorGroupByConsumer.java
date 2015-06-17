@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlanNodeBuilder;
@@ -47,22 +48,36 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+@Singleton
 public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
+    private final Visitor visitor;
+
+    @Inject
+    public ReduceOnCollectorGroupByConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
     public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
-        return VISITOR.process(relation, context);
+        return visitor.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
+        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
@@ -109,7 +124,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     && table.querySpec().limit() == null
                     && table.querySpec().offset() == TopN.NO_OFFSET;
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // mapper / collect

@@ -45,7 +45,6 @@ import io.crate.planner.*;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
@@ -85,7 +84,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final PageDownstreamFactory pageDownstreamFactory;
 
-    private final StreamerVisitor streamerVisitor;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -99,8 +97,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
-                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                             StreamerVisitor streamerVisitor) {
+                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
@@ -110,7 +107,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
-        this.streamerVisitor = streamerVisitor;
         this.nodeVisitor = new NodeVisitor();
         this.planVisitor = new TaskCollectingVisitor();
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
@@ -223,7 +219,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportCloseContextNodeAction(),
-                    streamerVisitor,
                     circuitBreaker,
                     localMergeNodes,
                     groupedExecutionNodes

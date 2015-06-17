@@ -53,7 +53,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
 
         FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataTypes.LONG);
         Aggregation countAggregation =
-                new Aggregation(countInfo, ImmutableList.<Symbol>of(), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
+                Aggregation.partialAggregation(countInfo, DataTypes.LONG, ImmutableList.<Symbol>of());
 
         Functions functions = new ModulesBuilder()
                 .add(new AggregationImplModule()).createInjector().getInstance(Functions.class);

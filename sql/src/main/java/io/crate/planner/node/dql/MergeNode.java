@@ -25,8 +25,12 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Symbols;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +52,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
     };
 
-    private List<DataType> inputTypes;
+    private Collection<? extends DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
 
@@ -66,12 +70,24 @@ public class MergeNode extends AbstractDQLPlanNode {
         numUpstreams = 0;
     }
 
-    public MergeNode(int executionNodeId, String name, int numUpstreams) {
-        super(executionNodeId, name);
+    public MergeNode(int executionNodeId,
+                     String name,
+                     int numUpstreams,
+                     Collection<? extends DataType> inputTypes,
+                     List<Projection> projections) {
+        super(executionNodeId, name, projections);
+        this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
+        if (projections.isEmpty()) {
+            outputTypes = Lists.newArrayList(inputTypes);
+        } else {
+            outputTypes = Symbols.extractTypes(Iterables.getLast(projections).outputs());
+        }
     }
 
-    public static MergeNode sortedMergeNode(int executionNodeId,
+    public static MergeNode sortedMergeNode(Collection<? extends DataType> inputTypes,
+                                            List<Projection> projections,
+                                            int executionNodeId,
                                             String name,
                                             int numUpstreams,
                                             int[] orderByIndices,
@@ -80,7 +96,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams);
+        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams, inputTypes, projections);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
@@ -124,12 +140,8 @@ public class MergeNode extends AbstractDQLPlanNode {
         return numUpstreams;
     }
 
-    public List<DataType> inputTypes() {
+    public Collection<? extends DataType> inputTypes() {
         return inputTypes;
-    }
-
-    public void inputTypes(List<DataType> inputTypes) {
-        this.inputTypes = inputTypes;
     }
 
     public boolean sortedInputOutput() {
@@ -176,10 +188,11 @@ public class MergeNode extends AbstractDQLPlanNode {
 
         int numCols = in.readVInt();
         if (numCols > 0) {
-            inputTypes = new ArrayList<>(numCols);
+            List<DataType> inputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
                 inputTypes.add(DataTypes.fromStream(in));
             }
+            this.inputTypes = inputTypes;
         }
         int numExecutionNodes = in.readVInt();
 

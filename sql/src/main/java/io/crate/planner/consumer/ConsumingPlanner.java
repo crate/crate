@@ -39,16 +39,21 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     @Inject
-    public ConsumingPlanner() {
-        consumers.add(new NonDistributedGroupByConsumer());
-        consumers.add(new ReduceOnCollectorGroupByConsumer());
-        consumers.add(new DistributedGroupByConsumer());
+    public ConsumingPlanner(NonDistributedGroupByConsumer nonDistributedGroupByConsumer,
+                            ReduceOnCollectorGroupByConsumer reduceOnCollectorGroupByConsumer,
+                            DistributedGroupByConsumer distributedGroupByConsumer,
+                            GlobalAggregateConsumer globalAggregateConsumer,
+                            QueryThenFetchConsumer queryThenFetchConsumer,
+                            QueryAndFetchConsumer queryAndFetchConsumer) {
+        consumers.add(nonDistributedGroupByConsumer);
+        consumers.add(reduceOnCollectorGroupByConsumer);
+        consumers.add(distributedGroupByConsumer);
         consumers.add(new CountConsumer());
-        consumers.add(new GlobalAggregateConsumer());
+        consumers.add(globalAggregateConsumer);
         consumers.add(new ESGetConsumer());
-        consumers.add(new QueryThenFetchConsumer());
+        consumers.add(queryThenFetchConsumer);
         consumers.add(new InsertFromSubQueryConsumer(this));
-        consumers.add(new QueryAndFetchConsumer());
+        consumers.add(queryAndFetchConsumer);
     }
 
     @Nullable

@@ -30,10 +30,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.ScoreReferenceDetector;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.FetchProjector;
@@ -51,26 +48,40 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Singleton
 public class QueryThenFetchConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
     private static final OutputOrderReferenceCollector OUTPUT_ORDER_REFERENCE_COLLECTOR = new OutputOrderReferenceCollector();
     private static final ReferencesCollector REFERENCES_COLLECTOR = new ReferencesCollector();
     private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
     private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
     private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
+    private final Visitor visitor;
+
+    @Inject
+    public QueryThenFetchConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
     public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
-        return VISITOR.process(relation, context);
+        return visitor.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
+        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
@@ -103,7 +114,7 @@ public class QueryThenFetchConsumer implements Consumer {
             List<Symbol> outputSymbols = new ArrayList<>();
             ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(querySpec);
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // MAP/COLLECT related
@@ -159,14 +170,12 @@ public class QueryThenFetchConsumer implements Consumer {
                     context.plannerContext(),
                     querySpec.where(),
                     collectSymbols,
-                    ImmutableList.<Projection>of(),
+                    collectProjections,
                     orderBy,
                     limit == null ? null : limit + querySpec.offset()
             );
-
-
             collectNode.keepContextForFetcher(needFetchProjection);
-            collectNode.projections(collectProjections);
+
             // MAP/COLLECT related END
 
             // HANDLER/MERGE/FETCH related

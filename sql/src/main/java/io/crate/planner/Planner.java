@@ -378,7 +378,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.settings().get("compression", null),
                 analysis.settings().getAsBoolean("shared", null)
         );
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
         return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context));
@@ -555,41 +554,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         return new Upsert(ImmutableList.<Plan>of(new IterablePlan(upsertByIdNode)));
     }
-
-    static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
-        if (projections.size() == 0) {
-            return inputTypes;
-        }
-        int projectionIdx = projections.size() - 1;
-        Projection lastProjection = projections.get(projectionIdx);
-        List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
-        List<DataType> dataTypes = firstNonNull(inputTypes, ImmutableList.<DataType>of());
-
-        for (int c = 0; c < lastProjection.outputs().size(); c++) {
-            types.add(resolveType(projections, projectionIdx, c, dataTypes));
-        }
-        return types;
-    }
-
-    private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
-        Projection projection = projections.get(projectionIdx);
-        Symbol symbol = projection.outputs().get(columnIdx);
-        DataType type = symbol.valueType();
-        if (type == null || (type.equals(DataTypes.UNDEFINED) && symbol instanceof InputColumn)) {
-            if (projectionIdx > 0) {
-                if (symbol instanceof InputColumn) {
-                    columnIdx = ((InputColumn) symbol).index();
-                }
-                return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
-            } else {
-                assert symbol instanceof InputColumn; // otherwise type shouldn't be null
-                return inputTypes.get(((InputColumn) symbol).index());
-            }
-        }
-
-        return type;
-    }
-
 
     /**
      * return the ES index names the query should go to

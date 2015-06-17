@@ -265,11 +265,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ctx,
                 WhereClause.MATCH_ALL,
                 collectSymbols,
-                ImmutableList.<Projection>of(),
+                ImmutableList.<Projection>of(mergeProjection),
                 orderBy,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.projections(ImmutableList.<Projection>of(mergeProjection));
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);

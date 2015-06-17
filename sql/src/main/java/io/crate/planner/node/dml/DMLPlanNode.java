@@ -36,7 +36,6 @@ public abstract class DMLPlanNode implements DQLPlanNode {
     // output just contains the affectedRows in most cases (at least until the RETURNING clause is supported)
     private static final List<DataType> OUTPUT_TYPES = ImmutableList.<DataType>of(LongType.INSTANCE);
 
-    protected List<DataType> inputTypes = ImmutableList.of();
 
     @Override
     public boolean hasProjections() {
@@ -54,23 +53,8 @@ public abstract class DMLPlanNode implements DQLPlanNode {
     }
 
     @Override
-    public List<DataType> inputTypes() {
-        return inputTypes;
-    }
-
-    @Override
-    public void inputTypes(List<DataType> dataTypes) {
-        inputTypes = dataTypes;
-    }
-
-    @Override
     public List<DataType> outputTypes() {
         return OUTPUT_TYPES;
-    }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-        throw new UnsupportedOperationException("outputTypes cannot be modified on DMLPlanNodes");
     }
 
     @Override

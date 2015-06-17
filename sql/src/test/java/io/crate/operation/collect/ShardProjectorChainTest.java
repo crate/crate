@@ -47,6 +47,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -69,6 +70,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -145,11 +147,10 @@ public class ShardProjectorChainTest extends CrateUnitTest {
     }
 
     private Aggregation countAggregation() {
-        return new Aggregation(
+        return Aggregation.partialAggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
-                Arrays.<Symbol>asList(new InputColumn(0)),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
+                DataTypes.LONG,
+                Collections.<Symbol>singletonList(new InputColumn(0)));
     }
 
     @Test

@@ -85,6 +85,10 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         public static final StdDevStateType INSTANCE = new StdDevStateType();
         public static final int ID = 8192;
 
+        private StdDevStateType() {
+            DataTypes.register(ID, this);
+        }
+
         @Override
         public int id() {
             return ID;

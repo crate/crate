@@ -33,13 +33,7 @@ public class QueryAndFetch extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        DQLPlanNode node = resultNode();
-        node.addProjection(projection);
-        if (node instanceof CollectNode) {
-            PlanNodeBuilder.setOutputTypes((CollectNode)node);
-        } else if (node instanceof MergeNode) {
-            PlanNodeBuilder.connectTypes(collectNode, node);
-        }
+        resultNode().addProjection(projection);
     }
 
     @Override

@@ -146,7 +146,6 @@ public class MapSideDataCollectOperationTest {
                 false
         );
         collectNode.jobId(UUID.randomUUID());
-        PlanNodeBuilder.setOutputTypes(collectNode);
         CollectingProjector cd = new CollectingProjector();
         cd.startProjection(mock(ExecutionState.class));
         collectOperation.collect(collectNode, cd, mock(JobCollectContext.class));

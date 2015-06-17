@@ -41,9 +41,13 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.planner.node.*;
+import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionNodeGrouper;
+import io.crate.planner.node.ExecutionNodeVisitor;
+import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -71,7 +75,6 @@ public class ExecutionNodesTask extends JobTask {
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ThreadPool threadPool;
     private TransportCloseContextNodeAction transportCloseContextNodeAction;
-    private final StreamerVisitor streamerVisitor;
     private final CircuitBreaker circuitBreaker;
     private List<MergeNode> mergeNodes;
     private boolean rowCountResult = false;
@@ -90,7 +93,6 @@ public class ExecutionNodesTask extends JobTask {
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
-                                 StreamerVisitor streamerVisitor,
                                  CircuitBreaker circuitBreaker,
                                  @Nullable List<MergeNode> mergeNodes,
                                  List<List<ExecutionNode>> groupedExecutionNodes) {
@@ -101,7 +103,6 @@ public class ExecutionNodesTask extends JobTask {
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
-        this.streamerVisitor = streamerVisitor;
         this.circuitBreaker = circuitBreaker;
         this.mergeNodes = mergeNodes;
         this.transportJobAction = transportJobAction;
@@ -135,7 +136,7 @@ public class ExecutionNodesTask extends JobTask {
         } else {
             rowDownstream = new QueryResultRowDownstream(results);
         }
-        Streamer<?>[] streamers = streamerVisitor.processExecutionNode(mergeNodes.get(0)).inputStreamers();
+        Streamer<?>[] streamers = DataTypes.getStreamer(mergeNodes.get(0).inputTypes());
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionNodes.size());
 
         for (int i = 0; i < groupedExecutionNodes.size(); i++) {

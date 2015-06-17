@@ -86,10 +86,10 @@ public class CountConsumer implements Consumer {
             MergeNode mergeNode = new MergeNode(
                     plannerContext.nextExecutionNodeId(),
                     "count-merge",
-                    countNode.executionNodes().size());
-            mergeNode.inputTypes(Collections.<DataType>singletonList(DataTypes.LONG));
-            mergeNode.projections(Collections.<Projection>singletonList(
-                    CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION));
+                    countNode.executionNodes().size(),
+                    Collections.singletonList(DataTypes.LONG),
+                    Collections.<Projection>singletonList(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION)
+            );
             return new CountPlan(countNode, mergeNode);
         }
 
