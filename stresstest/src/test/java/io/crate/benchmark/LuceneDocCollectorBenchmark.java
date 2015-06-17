@@ -53,7 +53,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -188,7 +187,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         node.whereClause(WhereClause.MATCH_ALL);
         UUID jobId = UUID.randomUUID();
         node.jobId(jobId);
-        node.toCollect(input);
         node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
