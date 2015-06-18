@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Fixed a bug where some searchers were not properly closed
+
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if
    the table was concurrently dropped.
 

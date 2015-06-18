@@ -261,7 +261,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         request.executionNodeId(executionNodeId);
         request.toFetchReferences(toFetchReferences);
         request.jobSearchContextDocIds(nodeBucket.docIds());
-        if (bulkSize > NO_BULK_REQUESTS) {
+        if (bulkSize > NO_BULK_REQUESTS && remainingUpstreams.get() > 0) {
             request.closeContext(false);
         }
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
