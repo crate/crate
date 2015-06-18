@@ -459,6 +459,14 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDropTableIfExistsRaceCondition() throws Exception {
+        execute("create table test (name string)");
+        execute("drop table test");
+        // could fail if the meta data update triggered by the previous drop table wasn't fully propagated in the cluster
+        execute("drop table if exists test");
+    }
+
+    @Test
     public void testDropUnknownTable() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table 'test' unknown");
