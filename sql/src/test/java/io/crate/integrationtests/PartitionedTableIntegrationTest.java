@@ -1785,7 +1785,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("insert into event (day, number) values ('2015-03-08', 84)");
         execute("refresh table event");
-        waitNoPendingTasksOnAll();
+        waitForMappingUpdateOnAll("event", "data.sessionid");
 
         execute("select data " +
                 "from event " +
