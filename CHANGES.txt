@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition in `ALTER TABLE <partitioned_table>` that could occur
+   if a `DELETE FROM <partitioned_table>` was invoked immediately before the
+    `ALTER TABLE` statement.
+
 2015/06/16 0.50.0
 =================
 
