@@ -22,6 +22,8 @@
 package io.crate.action.sql;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -60,10 +62,13 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -355,142 +360,137 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
 
     @Override
     public ListenableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Void context) {
-        final SettableFuture<Long> result = SettableFuture.create();
-        final String[] indices;
-        boolean updateTemplate = false;
-        boolean updateMapping = !analysis.tableParameter().mappings().isEmpty();
-        final TableParameter tableParameter = analysis.tableParameter();
-        TableParameter concreteTableParameter = tableParameter;
-        if (analysis.table().isPartitioned()) {
+        TableInfo table = analysis.table();
+        if (table.isAlias() && !table.isPartitioned()) {
+            return Futures.immediateFailedFuture(new AlterTableAliasException(table.ident().fqn()));
+        }
+
+        List<ListenableFuture<Long>> results = new ArrayList<>(3);
+        if (table.isPartitioned()) {
+            // create new filtered partition table settings
+            AlterPartitionedTableParameterInfo tableSettingsInfo =
+                    (AlterPartitionedTableParameterInfo) table.tableParameterInfo();
+            TableParameter parameterWithFilteredSettings = new TableParameter(
+                    analysis.tableParameter().settings(),
+                    tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
+
             if (analysis.partitionName().isPresent()) {
-                indices = new String[]{ analysis.partitionName().get().stringValue() };
+                String index = analysis.partitionName().get().stringValue();
+                results.add(updateMapping(analysis.tableParameter().mappings(), index));
+                results.add(updateSettings(parameterWithFilteredSettings, index));
             } else {
-                updateTemplate = true; // only update template when updating whole partitioned table
-                indices = analysis.table().concreteIndices();
-                AlterPartitionedTableParameterInfo tableSettingsInfo =
-                        (AlterPartitionedTableParameterInfo)analysis.table().tableParameterInfo();
-                // create new filtered partition table settings
-                concreteTableParameter = new TableParameter(
-                        analysis.tableParameter().settings(),
-                        tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
+                // template gets all changes unfiltered
+                results.add(updateTemplate(analysis.tableParameter(), table));
+
+                // resolve indices on master node to make sure it doesn't hit partitions that are being deleted
+                String index = table.ident().esName();
+                results.add(updateMapping(analysis.tableParameter().mappings(), index));
+                results.add(updateSettings(parameterWithFilteredSettings, index));
             }
         } else {
-           indices = new String[]{ analysis.table().ident().esName() };
+            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().esName()));
+            results.add(updateSettings(analysis.tableParameter(), table.ident().esName()));
         }
 
-        if (analysis.table().isAlias()) {
-            throw new AlterTableAliasException(analysis.table().ident().fqn());
-        }
+        ListenableFuture<List<Long>> allAsList = Futures.allAsList(Iterables.filter(results, Predicates.notNull()));
+        return Futures.transform(allAsList, Functions.<Long>constant(null));
+    }
 
-        final List<ListenableFuture<?>> results = new ArrayList<>(
-                indices.length + (updateTemplate ? 1 : 0) + (updateMapping ? 1 : 0)
-        );
-        if (updateTemplate) {
-            final SettableFuture<?> templateFuture = SettableFuture.create();
-            results.add(templateFuture);
+    private ListenableFuture<Long> updateTemplate(final TableParameter tableParameter,
+                                                  TableInfo table) {
+        final SettableFuture<Long> templateFuture = SettableFuture.create();
 
-            // update template
-            final String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
-            GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
+        // update template
+        final String templateName = PartitionName.templateName(table.ident().schema(), table.ident().name());
+        GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
 
-            transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
-                @Override
-                public void onResponse(GetIndexTemplatesResponse response) {
-                    Map<String, Object> mapping = new HashMap<>();
-                    IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-                    mapping = mergeMapping(template, analysis.tableParameter().mappings());
-
-                    ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
-                    settingsBuilder.put(template.settings());
-                    settingsBuilder.put(tableParameter.settings());
-
-                    PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-                            .create(false)
-                            .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
-                            .settings(settingsBuilder.build())
-                            .template(template.template());
-                    for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {
-                        Alias alias = new Alias(container.key);
-                        request.alias(alias);
-                    }
-                    transportActionProvider.transportPutIndexTemplateAction().execute(request, new ActionListener<PutIndexTemplateResponse>() {
-                        @Override
-                        public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
-                            templateFuture.set(null);
-                        }
-
-                        @Override
-                        public void onFailure(Throwable e) {
-                            templateFuture.setException(e);
-                        }
-                    });
-
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    templateFuture.setException(e);
-                }
-            });
-
-        }
-        if (!concreteTableParameter.settings().getAsMap().isEmpty() && indices.length > 0) {
-            // update every concrete index
-            UpdateSettingsRequest request = new UpdateSettingsRequest(
-                    concreteTableParameter.settings(),
-                    indices);
-            final SettableFuture<?> future = SettableFuture.create();
-            results.add(future);
-            transportActionProvider.transportUpdateSettingsAction().execute(request, new ActionListener<UpdateSettingsResponse>() {
-                @Override
-                public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                    future.set(null);
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
-        }
-        if (updateMapping) {
-            Map<String, Object> mapping = null;
-            try {
-                mapping = clusterService.state().metaData().index(indices[0]).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-            } catch (IOException e) {
-                result.setException(e);
-                return result;
-            }
-            XContentHelper.update(mapping, analysis.tableParameter().mappings(), false);
-            PutMappingRequest request = new PutMappingRequest(indices);
-            request.type(Constants.DEFAULT_MAPPING_TYPE);
-            request.source(mapping);
-            final SettableFuture<?> future = SettableFuture.create();
-            results.add(future);
-            transportActionProvider.transportPutMappingAction().execute(request, new ActionListener<PutMappingResponse>() {
-                @Override
-                public void onResponse(PutMappingResponse putMappingResponse) {
-                    future.set(null);
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
-        }
-        Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<?>>() {
+        transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
             @Override
-            public void onSuccess(@Nullable List<?> resultList) {
-                result.set(null);
+            public void onResponse(GetIndexTemplatesResponse response) {
+                IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+                Map<String, Object> mapping = mergeMapping(template, tableParameter.mappings());
+
+                ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+                settingsBuilder.put(template.settings());
+                settingsBuilder.put(tableParameter.settings());
+
+                PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
+                        .create(false)
+                        .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                        .order(template.order())
+                        .settings(settingsBuilder.build())
+                        .template(template.template());
+                for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {
+                    Alias alias = new Alias(container.key);
+                    request.alias(alias);
+                }
+
+                transportActionProvider.transportPutIndexTemplateAction().execute(request,
+                        new SettableFutureToNullActionListener<PutIndexTemplateResponse>(templateFuture));
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
-                result.setException(t);
+            public void onFailure(Throwable e) {
+                templateFuture.setException(e);
             }
         });
 
-        return result;
+        return templateFuture;
+    }
+
+    private ListenableFuture<Long> updateMapping(Map<String, Object> mappings, String indexOrAlias) {
+        if (mappings.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> mapping;
+        try {
+            MetaData metaData = clusterService.state().metaData();
+            String index = metaData.concreteSingleIndex(indexOrAlias, IndicesOptions.lenientExpandOpen());
+            mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
+        } catch (IOException e) {
+            return Futures.immediateFailedFuture(e);
+        }
+        XContentHelper.update(mapping, mappings, false);
+        PutMappingRequest request = new PutMappingRequest(indexOrAlias);
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.type(Constants.DEFAULT_MAPPING_TYPE);
+        request.source(mapping);
+
+        final SettableFuture<Long> future = SettableFuture.create();
+        transportActionProvider.transportPutMappingAction().execute(request,
+                new SettableFutureToNullActionListener<PutMappingResponse>(future));
+        return future;
+    }
+
+    private ListenableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
+        if (concreteTableParameter.settings().getAsMap().isEmpty() || indices.length == 0) {
+            return null;
+        }
+        UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+
+        final SettableFuture<Long> future = SettableFuture.create();
+        transportActionProvider.transportUpdateSettingsAction().execute(request,
+                new SettableFutureToNullActionListener<UpdateSettingsResponse>(future));
+        return future;
+    }
+
+    private static class SettableFutureToNullActionListener<T> implements ActionListener<T> {
+        private final SettableFuture<?> future;
+
+        public SettableFutureToNullActionListener(SettableFuture<?> future) {
+            this.future = future;
+        }
+
+        @Override
+        public void onResponse(T response) {
+            future.set(null);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            future.setException(e);
+        }
     }
 }

@@ -1813,6 +1813,25 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), CoreMatchers.is(0L));
     }
 
+    @Test
+    public void testAlterTableAfterDeleteDoesNotAttemptToAlterDeletedPartitions() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p)");
+        ensureYellow();
+
+        execute("insert into t (name, p) values (?, ?)", new Object[][]{
+                new Object[]{"Arthur", "1"},
+                new Object[]{"Arthur", "2"},
+                new Object[]{"Arthur", "3"},
+                new Object[]{"Arthur", "4"},
+                new Object[]{"Arthur", "5"},
+        });
+        execute("refresh table t");
+        execute("delete from t");
+        // used to throw IndexMissingException if the new cluster state after the delete wasn't propagated to all nodes
+        // (on about 2 runs in 100 iterations)
+        execute("alter table t set (number_of_replicas = 0)");
+    }
+
     @After
     @Override
     public void tearDown() throws Exception {
