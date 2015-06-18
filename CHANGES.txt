@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if
+   the table was concurrently dropped.
+
  - Fixed a race condition in `ALTER TABLE <partitioned_table>` that could occur
    if a `DELETE FROM <partitioned_table>` was invoked immediately before the
     `ALTER TABLE` statement.

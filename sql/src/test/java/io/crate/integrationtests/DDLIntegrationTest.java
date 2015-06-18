@@ -30,9 +30,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.suggest.CustomSuggesterPlugin;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -462,6 +460,14 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
+    }
+
+    @Test
+    public void testDropTableIfExistsRaceCondition() throws Exception {
+        execute("create table test (name string)");
+        execute("drop table test");
+        // could fail if the meta data update triggered by the previous drop table wasn't fully propagated in the cluster
+        execute("drop table if exists test");
     }
 
     @Test

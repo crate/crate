@@ -36,6 +36,7 @@ import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteInd
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.List;
@@ -51,12 +52,14 @@ public class DropTableTask extends AbstractChainedTask {
     private final TableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
+    private final boolean ifExists;
 
     public DropTableTask(UUID jobId,
                          TransportDeleteIndexTemplateAction deleteTemplateAction,
                          TransportDeleteIndexAction deleteIndexAction,
                          DropTableNode node) {
         super(jobId);
+        this.ifExists = node.ifExists();
         this.tableInfo = node.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
@@ -118,7 +121,9 @@ public class DropTableTask extends AbstractChainedTask {
                             "Some orphaned partitions might still exist, " +
                             "but are not accessible.", e, tableInfo.ident().fqn());
                 }
-                result.setException(e);
+                if (! (ifExists && e instanceof IndexMissingException)) {
+                    result.setException(e);
+                }
             }
         });
     }

@@ -415,7 +415,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.noop()) {
             return NoopPlan.INSTANCE;
         }
-        return new IterablePlan(new DropTableNode(analysis.table()));
+        return new IterablePlan(new DropTableNode(analysis.table(), analysis.dropIfExists()));
     }
 
     @Override
