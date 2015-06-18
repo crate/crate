@@ -27,10 +27,16 @@ import io.crate.planner.node.PlanNodeVisitor;
 public class DropTableNode extends DDLPlanNode {
 
     private final TableInfo table;
+    private final boolean ifExists;
 
 
-    public DropTableNode(TableInfo table) {
+    public DropTableNode(TableInfo table, boolean ifExists) {
         this.table = table;
+        this.ifExists = ifExists;
+    }
+
+    public boolean ifExists() {
+        return ifExists;
     }
 
     public TableInfo tableInfo() {
