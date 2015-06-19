@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused nodes fail to start if `node.client` was set to true.
+
  - Fix: Fixed a bug where some searchers were not properly closed
 
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if

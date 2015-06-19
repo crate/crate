@@ -85,9 +85,7 @@ public class CrateCorePlugin extends AbstractPlugin {
     @Override
     public Collection<Class<? extends Module>> modules() {
         Collection<Class<? extends Module>> modules = new ArrayList<>();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(CrateCoreModule.class);
-        }
+        modules.add(CrateCoreModule.class);
         return modules;
     }
 
