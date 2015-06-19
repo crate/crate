@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused `sys.shards` queries to omit unassigned shards
+   if the query was made against a node that has `node.data` set to false
+
  - Fix: Fixed a bug where some searchers were not properly closed
 
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if

@@ -40,12 +40,8 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -77,10 +73,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
         assertThat(response.rowCount(), is(2L));
-        assertEquals(new Boolean(false), response.rows()[0][0]);
+        assertEquals(false, response.rows()[0][0]);
         assertEquals("UNASSIGNED", response.rows()[0][1]);
         assertEquals(15L, response.rows()[0][2]);
-        assertEquals(new Boolean(true), response.rows()[1][0]);
+        assertEquals(true, response.rows()[1][0]);
         assertEquals("STARTED", response.rows()[1][1]);
         assertEquals(5L, response.rows()[1][2]);
     }
@@ -99,10 +95,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
         assertThat(response.rowCount(), is(2L));
-        assertEquals(new Boolean(false), response.rows()[0][0]);
+        assertEquals(false, response.rows()[0][0]);
         assertEquals("UNASSIGNED", response.rows()[0][1]);
         assertEquals(10L, response.rows()[0][2]);
-        assertEquals(new Boolean(true), response.rows()[1][0]);
+        assertEquals(true, response.rows()[1][0]);
         assertEquals("STARTED", response.rows()[1][1]);
         assertEquals(10L, response.rows()[1][2]);
     }

@@ -37,7 +37,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

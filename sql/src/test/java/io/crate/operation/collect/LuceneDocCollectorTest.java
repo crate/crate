@@ -31,16 +31,16 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.Projection;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -52,7 +52,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
@@ -76,7 +75,6 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private final static Integer PAGE_SIZE = 20;
     private final static String INDEX_NAME = "countries";
     private final static Integer NUMBER_OF_DOCS = 25;
-    private ShardId shardId = new ShardId(INDEX_NAME, 0);
     private OrderBy orderBy;
     private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
@@ -96,7 +94,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 ") clustered into 1 shards with (number_of_replicas=0)");
         refresh();
         generateData();
-        IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
+        IndicesService instanceFromNode = internalCluster().getDataNodeInstance(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
         shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
@@ -320,7 +318,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
         collectingProjector.rows.clear();
 
-        IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
+        IndicesService instanceFromNode = internalCluster().getDataNodeInstance(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe("test");
 
         ShardCollectService shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);

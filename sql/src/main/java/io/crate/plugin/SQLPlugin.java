@@ -110,26 +110,24 @@ public class SQLPlugin extends AbstractPlugin {
     @Override
     public Collection<Class<? extends Module>> modules() {
         Collection<Class<? extends Module>> modules = newArrayList();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(SQLModule.class);
+        modules.add(SQLModule.class);
 
-            modules.add(CircuitBreakerModule.class);
-            modules.add(TransportExecutorModule.class);
-            modules.add(CollectOperationModule.class);
-            modules.add(MergeOperationModule.class);
-            modules.add(MetaDataModule.class);
-            modules.add(MetaDataSysModule.class);
-            modules.add(MetaDataDocModule.class);
-            modules.add(MetaDataBlobModule.class);
-            modules.add(MetaDataInformationModule.class);
-            modules.add(OperatorModule.class);
-            modules.add(PredicateModule.class);
-            modules.add(SysClusterExpressionModule.class);
-            modules.add(SysNodeExpressionModule.class);
-            modules.add(AggregationImplModule.class);
-            modules.add(ScalarFunctionModule.class);
-            modules.add(BulkModule.class);
-        }
+        modules.add(CircuitBreakerModule.class);
+        modules.add(TransportExecutorModule.class);
+        modules.add(CollectOperationModule.class);
+        modules.add(MergeOperationModule.class);
+        modules.add(MetaDataModule.class);
+        modules.add(MetaDataSysModule.class);
+        modules.add(MetaDataDocModule.class);
+        modules.add(MetaDataBlobModule.class);
+        modules.add(MetaDataInformationModule.class);
+        modules.add(OperatorModule.class);
+        modules.add(PredicateModule.class);
+        modules.add(SysClusterExpressionModule.class);
+        modules.add(SysNodeExpressionModule.class);
+        modules.add(AggregationImplModule.class);
+        modules.add(ScalarFunctionModule.class);
+        modules.add(BulkModule.class);
         return modules;
     }
 

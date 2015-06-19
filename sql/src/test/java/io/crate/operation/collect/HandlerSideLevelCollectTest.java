@@ -65,9 +65,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        operation = internalCluster().getInstance(MapSideDataCollectOperation.class);
+        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
         functions = internalCluster().getInstance(Functions.class);
-        localNodeId = internalCluster().getInstance(ClusterService.class).state().nodes().localNodeId();
+        localNodeId = internalCluster().getDataNodeInstance(ClusterService.class).state().nodes().localNodeId();
     }
 
     private CollectNode collectNode(Routing routing, List<Symbol> toCollect) {

@@ -92,9 +92,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        operation = internalCluster().getInstance(MapSideDataCollectOperation.class);
-        functions = internalCluster().getInstance(Functions.class);
-        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
+        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
+        functions = internalCluster().getDataNodeInstance(Functions.class);
+        docSchemaInfo = internalCluster().getDataNodeInstance(DocSchemaInfo.class);
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                 "  id integer," +
@@ -216,8 +216,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(CollectNode collectNode) throws Exception {
-        ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class);
-        JobContextService contextService = internalCluster().getInstance(JobContextService.class);
+        ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
+        JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
         assert future != null;

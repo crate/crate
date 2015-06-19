@@ -33,7 +33,6 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.Job;
@@ -63,7 +62,6 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
-import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -77,7 +75,7 @@ import java.util.concurrent.CountDownLatch;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
