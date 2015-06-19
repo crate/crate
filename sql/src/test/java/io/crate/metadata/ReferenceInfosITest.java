@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     private ReferenceInfos referenceInfos;

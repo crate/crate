@@ -22,12 +22,14 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.dql.CollectNode;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ExecutionNodeGrouper extends ExecutionNodeVisitor<ExecutionNodeGrouper.Context,Void> {
 
@@ -65,25 +67,47 @@ public class ExecutionNodeGrouper extends ExecutionNodeVisitor<ExecutionNodeGrou
 
     @Override
     public Void visitCollectNode(CollectNode node, Context context) {
-        boolean hasNullNode = false;
-        boolean hasLocalNodeCollect = false;
-        for (String server : node.executionNodes()) {
-            if (TableInfo.NULL_NODE_ID.equals(server)) {
-                hasNullNode = true;
-                continue;
-            }
-            // handlerSide collect on local node
-            if (context.localNodeId.equals(server) && node.routing().nodes().contains(TableInfo.NULL_NODE_ID)) {
-                node.handlerSideCollect(context.localNodeId);
-                hasLocalNodeCollect = true;
-            }
-            context.put(server, node);
+        /**
+         * routing might contain a NULL_NODE_ID if there is no specific node which contains the indices or shards.
+         * This is the case in information_schema queries (each node has those tables...)
+         * Or sys.shards (for unassigned shards)
+         *
+         * So the routing will be either:
+         *
+         * {
+         *      "": { "information_schema.tables": null }
+         * }
+         *
+         * in this case the query will be executed on the localNodeId
+         *
+         * or for sys.shards:
+         *
+         * {
+         *      "": { "some_table": [0, 1] },
+         *      "n1": { "some_table": [2] },
+         *      "n2": { "some_table": [3] },
+         * }
+         *
+         * In this case, the "unassigned shard collect" will be executed on either n1 or n2
+         * depending on which entry appears first in the executionNodes set.
+         */
+
+        Set<String> executionNodes = node.executionNodes();
+        if (executionNodes.isEmpty()) {
+            return null;
         }
-        // if no localnode collect node is available, and we have a NULL node,
-        // include it at local node
-        if (hasNullNode && !hasLocalNodeCollect) {
+        if (node.routing().isNullRouting()) {
             node.handlerSideCollect(context.localNodeId);
             context.put(context.localNodeId, node);
+            return null;
+        }
+
+        for (String server : executionNodes) {
+            context.put(server, node);
+        }
+        Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
+        if (locations != null && locations.containsKey(TableInfo.NULL_NODE_ID)) {
+            node.handlerSideCollect(executionNodes.iterator().next());
         }
         return null;
     }

@@ -40,12 +40,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private Setup setup = new Setup(sqlExecutor);
 

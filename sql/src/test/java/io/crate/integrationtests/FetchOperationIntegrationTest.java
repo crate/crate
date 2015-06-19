@@ -77,7 +77,7 @@ import java.util.concurrent.CountDownLatch;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
