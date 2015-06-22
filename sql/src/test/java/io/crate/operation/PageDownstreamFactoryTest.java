@@ -67,6 +67,7 @@ import org.mockito.Answers;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -125,8 +126,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET,
                 Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
-
-        MergeNode mergeNode = new MergeNode(0, "merge", 2); // no need for inputTypes here
+        MergeNode mergeNode = new MergeNode(UUID.randomUUID(), 0, "merge", 2); // no need for inputTypes here
         mergeNode.projections(Arrays.asList(
                 groupProjection,
                 topNProjection
@@ -181,7 +181,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeMultipleResults() throws Exception {
-        MergeNode mergeNode = new MergeNode(0, "merge", 2); // no need for inputTypes here
+        MergeNode mergeNode = new MergeNode(UUID.randomUUID(), 0, "merge", 2); // no need for inputTypes here
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));

@@ -28,8 +28,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.IterablePlan;
-import io.crate.planner.Plan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
@@ -145,8 +143,4 @@ public abstract class ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelat
         throw new UnsupportedOperationException("resultNode is not supported on ESDQLPLanNode");
     }
 
-    @Override
-    public Plan plan() {
-        return new IterablePlan(this);
-    }
 }

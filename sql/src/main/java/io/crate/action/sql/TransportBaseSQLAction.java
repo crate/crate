@@ -67,7 +67,6 @@ import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -214,9 +213,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         Executor executor = executorProvider.get();
         Job job = executor.newJob(plan);
 
-        final UUID jobId = job.id();
-        assert jobId != null;
-        statsTables.jobStarted(jobId, request.stmt());
+        statsTables.jobStarted(plan.jobId(), request.stmt());
         List<? extends ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
         Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
                     @Override
@@ -228,7 +225,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             sendResponse(listener, buildSQLActionException(e));
                             return;
                         }
-                        statsTables.jobFinished(jobId, null);
+                        statsTables.jobFinished(plan.jobId(), null);
                         sendResponse(listener, response);
                     }
 
@@ -242,7 +239,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             message = Exceptions.messageOf(t);
                             logger.debug("Error processing SQLRequest", t);
                         }
-                        statsTables.jobFinished(jobId, message);
+                        statsTables.jobFinished(plan.jobId(), message);
                         sendResponse(listener, buildSQLActionException(t));
                     }
                 }

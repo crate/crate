@@ -72,8 +72,5 @@ public interface ExecutionNode extends Streamable {
 
     UUID jobId();
 
-    void jobId(UUID jobId);
-
-
     <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context);
 }

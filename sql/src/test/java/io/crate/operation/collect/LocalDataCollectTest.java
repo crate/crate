@@ -395,8 +395,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "collect", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "collect", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
@@ -412,7 +411,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("unsupported routing");
 
-        CollectNode collectNode = new CollectNode(0, "wrong", new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "wrong", new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("bla", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                 .put("my_index", Arrays.asList(1))
                 .put("my_index", Arrays.asList(1))
@@ -420,7 +419,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
             ).map()
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.jobId(UUID.randomUUID());
         operation.collect(collectNode, new CollectingProjector(), null);
     }
 
@@ -429,8 +427,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Unknown Reference some.table.some_column");
 
-        CollectNode collectNode = new CollectNode(0, "unknown", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "unknown", testRouting);
         Reference unknownReference = new Reference(
                 new ReferenceInfo(
                         new ReferenceIdent(
@@ -452,8 +449,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectFunction() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "function", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "function", testRouting);
         Function twoTimesTruthFunction = new Function(
                 TestFunction.info,
                 Arrays.<Symbol>asList(testNodeReference)
@@ -472,7 +468,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot find implementation for function unknown()");
 
-        CollectNode collectNode = new CollectNode(0, "unknownFunction", testRouting);
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "unknownFunction", testRouting);
         Function unknownFunction = new Function(
                 new FunctionInfo(
                         new FunctionIdent("unknown", ImmutableList.<DataType>of()),
@@ -481,7 +477,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 ImmutableList.<Symbol>of()
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownFunction));
-        collectNode.jobId(UUID.randomUUID());
         try {
             getBucket(collectNode);
         } catch (ExecutionException e) {
@@ -491,8 +486,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectLiterals() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "literals", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "literals", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(
                 Literal.newLiteral("foobar"),
                 Literal.newLiteral(true),
@@ -505,8 +499,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
@@ -518,13 +511,12 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectWithTrueWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting);
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true))
         )));
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Bucket result = getBucket(collectNode);
         assertThat(result, contains(isRow((short) 1)));
@@ -535,8 +527,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     public void testCollectWithNullWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
@@ -560,8 +551,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectShardExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1));
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
 
@@ -575,8 +565,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
 
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1));
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.whereClause(new WhereClause(
                 new Function(op.info(), Arrays.asList(testShardIdReference, Literal.newLiteral(0)))));
@@ -587,8 +576,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1));
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Bucket result = getBucket(collectNode);

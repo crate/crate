@@ -105,6 +105,7 @@ public class DistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
+                    context.consumerContext.plannerContext().jobId(),
                     tableInfo,
                     context.consumerContext.plannerContext(),
                     table.querySpec().where(),
@@ -138,7 +139,7 @@ public class DistributedGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.consumerContext.plannerContext().jobId());
                 } else if (havingClause.hasQuery()) {
                     reducerProjections.add(projectionBuilder.filterProjection(
                             collectOutputs,
@@ -158,6 +159,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()));
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
+                    context.consumerContext.plannerContext().jobId(),
                     collectNode,
                     context.consumerContext.plannerContext(),
                     reducerProjections
@@ -173,7 +175,8 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().offset(),
                         table.querySpec().limit(),
                         null);
-                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
+                localMergeNode = PlanNodeBuilder.localMerge(context.consumerContext.plannerContext().jobId(),
+                        ImmutableList.<Projection>of(topN),
                         mergeNode, context.consumerContext.plannerContext());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
 
@@ -189,7 +192,8 @@ public class DistributedGroupByConsumer implements Consumer {
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
-                    localMergeNode
+                    localMergeNode,
+                    context.consumerContext.plannerContext().jobId()
             );
         }
 

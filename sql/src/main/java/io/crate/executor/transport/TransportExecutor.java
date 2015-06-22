@@ -127,7 +127,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     @Override
     public Job newJob(Plan plan) {
-        final Job job = new Job();
+        final Job job = new Job(plan.jobId());
         List<Task> tasks = planVisitor.process(plan, job);
         job.addTasks(tasks);
         return job;
@@ -204,16 +204,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         private ExecutionNodesTask createExecutableNodesTask(Job job, List<List<ExecutionNode>> groupedExecutionNodes, @Nullable List<MergeNode> localMergeNodes) {
-            for (List<ExecutionNode> executionNodeGroup : groupedExecutionNodes) {
-                for (ExecutionNode executionNode : executionNodeGroup) {
-                    executionNode.jobId(job.id());
-                }
-            }
-            if (localMergeNodes != null) {
-                for (MergeNode localMergeNode : localMergeNodes) {
-                    localMergeNode.jobId(job.id());
-                }
-            }
             return new ExecutionNodesTask(
                     job.id(),
                     clusterService,
@@ -255,12 +245,9 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitDistributedGroupBy(DistributedGroupBy plan, Job job) {
-            plan.collectNode().jobId(job.id());
-            plan.reducerMergeNode().jobId(job.id());
             MergeNode localMergeNode = plan.localMergeNode();
             List<MergeNode> mergeNodes = null;
             if (localMergeNode != null) {
-                localMergeNode.jobId(job.id());
                 mergeNodes = ImmutableList.of(localMergeNode);
             }
             return ImmutableList.<Task>of(

@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public class FileUriCollectNode extends CollectNode {
 
@@ -51,7 +52,8 @@ public class FileUriCollectNode extends CollectNode {
         super();
     }
 
-    public FileUriCollectNode(int executionNodeId,
+    public FileUriCollectNode(UUID jobId,
+                              int executionNodeId,
                               String name,
                               Routing routing,
                               Symbol targetUri,
@@ -59,7 +61,7 @@ public class FileUriCollectNode extends CollectNode {
                               List<Projection> projections,
                               String compression,
                               Boolean sharedStorage) {
-        super(executionNodeId, name, routing, toCollect, projections);
+        super(jobId, executionNodeId, name, routing, toCollect, projections);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -91,6 +93,7 @@ public class FileUriCollectNode extends CollectNode {
             return this;
         }
         FileUriCollectNode result = new FileUriCollectNode(
+                jobId(),
                 executionNodeId(),
                 name(),
                 routing(),
@@ -101,7 +104,6 @@ public class FileUriCollectNode extends CollectNode {
                 sharedStorage());
         result.downstreamNodes(downstreamNodes());
         result.maxRowGranularity(maxRowGranularity());
-        result.jobId(jobId());
         result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
         return result;

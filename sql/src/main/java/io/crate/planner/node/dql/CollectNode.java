@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
@@ -76,16 +77,16 @@ public class CollectNode extends AbstractDQLPlanNode {
         super();
     }
 
-    public CollectNode(int executionNodeId, String name) {
-        super(executionNodeId, name);
+    public CollectNode(UUID jobId, int executionNodeId, String name) {
+        super(jobId, executionNodeId, name);
     }
 
-    public CollectNode(int executionNodeId, String name, Routing routing) {
-        this(executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing) {
+        this(jobId, executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
     }
 
-    public CollectNode(int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(executionNodeId, name);
+    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(jobId, executionNodeId, name);
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
@@ -326,10 +327,9 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(executionNodeId(), name(), routing, newToCollect, projections);
+            result = new CollectNode(jobId(), executionNodeId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
-            result.jobId(jobId());
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
             result.isPartitioned(isPartitioned);

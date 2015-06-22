@@ -90,12 +90,13 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     // add local merge Node which aggregates the distributed results
                     AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
                     mergeNode = PlanNodeBuilder.localMerge(
+                            context.consumerContext.plannerContext().jobId(),
                             ImmutableList.<Projection>of(aggregationProjection),
                             analyzedRelation.resultNode(),
                             context.consumerContext.plannerContext());
                 }
                 context.result = true;
-                return new InsertFromSubQuery(((PlannedAnalyzedRelation) innerRelation).plan(), mergeNode);
+                return new InsertFromSubQuery(((PlannedAnalyzedRelation) innerRelation).plan(), mergeNode, context.consumerContext.plannerContext().jobId());
             } else {
                 return insertFromSubQueryAnalyzedStatement;
             }

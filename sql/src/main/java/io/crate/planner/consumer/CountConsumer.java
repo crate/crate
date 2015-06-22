@@ -82,20 +82,22 @@ public class CountConsumer implements Consumer {
 
             if (firstNonNull(querySpec.limit(), 1) < 1 ||
                     querySpec.offset() > 0){
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
             Routing routing = tableInfo.getRouting(querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
-            CountNode countNode = new CountNode(plannerContext.nextExecutionNodeId(), routing, querySpec.where());
+            CountNode countNode = new CountNode(plannerContext.jobId(), plannerContext.nextExecutionNodeId(), routing, querySpec.where());
             MergeNode mergeNode = new MergeNode(
+                    plannerContext.jobId(),
                     plannerContext.nextExecutionNodeId(),
                     "count-merge",
                     countNode.executionNodes().size());
             mergeNode.inputTypes(Collections.<DataType>singletonList(DataTypes.LONG));
             mergeNode.projections(Collections.<Projection>singletonList(
                     CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION));
-            return new CountPlan(countNode, mergeNode);
+            return new CountPlan(countNode, mergeNode, plannerContext.jobId());
+
         }
 
         @Override

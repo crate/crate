@@ -44,10 +44,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 
 public class PlanNodeBuilder {
 
-    public static CollectNode distributingCollect(TableInfo tableInfo,
+    public static CollectNode distributingCollect(UUID jobId,
+                                                  TableInfo tableInfo,
                                                   Planner.Context plannerContext,
                                                   WhereClause whereClause,
                                                   List<Symbol> toCollect,
@@ -56,6 +58,7 @@ public class PlanNodeBuilder {
         Routing routing = tableInfo.getRouting(whereClause, null);
         plannerContext.allocateJobSearchContextIds(routing);
         CollectNode node = new CollectNode(
+                jobId,
                 plannerContext.nextExecutionNodeId(),
                 "distributing collect",
                 routing);
@@ -70,10 +73,12 @@ public class PlanNodeBuilder {
         return node;
     }
 
-    public static MergeNode distributedMerge(CollectNode collectNode,
+    public static MergeNode distributedMerge(UUID jobId,
+                                             CollectNode collectNode,
                                              Planner.Context plannerContext,
                                              List<Projection> projections) {
         MergeNode node = new MergeNode(
+                jobId,
                 plannerContext.nextExecutionNodeId(),
                 "distributed merge",
                 collectNode.executionNodes().size());
@@ -85,10 +90,12 @@ public class PlanNodeBuilder {
         return node;
     }
 
-    public static MergeNode localMerge(List<Projection> projections,
+    public static MergeNode localMerge(UUID jobId,
+                                       List<Projection> projections,
                                        DQLPlanNode previousNode,
                                        Planner.Context plannerContext) {
         MergeNode node = new MergeNode(
+                jobId,
                 plannerContext.nextExecutionNodeId(),
                 "localMerge",
                 previousNode.executionNodes().size());
@@ -109,7 +116,8 @@ public class PlanNodeBuilder {
      *                       will be used
      * @param previousNode the previous planNode to derive inputtypes from
      */
-    public static MergeNode sortedLocalMerge(List<Projection> projections,
+    public static MergeNode sortedLocalMerge(UUID jobId,
+                                             List<Projection> projections,
                                              OrderBy orderBy,
                                              List<Symbol> sourceSymbols,
                                              @Nullable List<Symbol> orderBySymbols,
@@ -120,6 +128,7 @@ public class PlanNodeBuilder {
                 sourceSymbols
         );
         MergeNode node = MergeNode.sortedMergeNode(
+                jobId,
                 plannerContext.nextExecutionNodeId(),
                 "sortedLocalMerge",
                 previousNode.executionNodes().size(),
@@ -156,7 +165,8 @@ public class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    public static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(UUID jobId,
+                                      TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
@@ -173,6 +183,7 @@ public class PlanNodeBuilder {
         }
         plannerContext.allocateJobSearchContextIds(routing);
         CollectNode node = new CollectNode(
+                jobId,
                 plannerContext.nextExecutionNodeId(),
                 "collect",
                 routing,
@@ -212,40 +223,44 @@ public class PlanNodeBuilder {
 
     }
 
-    public static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(UUID jobId,
+                                      TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
                                       ImmutableList<Projection> projections) {
-        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null, null, null);
+        return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, null, null, null, null);
     }
 
-    public static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(UUID jobId,
+                                      TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
                                       ImmutableList<Projection> projections,
                                       @Nullable String partitionIdent,
                                       @Nullable String routingPreference) {
-        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, routingPreference, null, null);
+        return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, routingPreference, null, null);
     }
 
-    public static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(UUID jobId,
+                                      TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
                                       ImmutableList<Projection> projections,
                                       @Nullable String partitionIdent) {
-        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, null);
+        return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, null);
     }
 
-    public static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(UUID jobId,
+                                      TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
                                       List<Symbol> toCollect,
                                       ImmutableList<Projection> projections,
                                       @Nullable OrderBy orderBy,
                                       @Nullable Integer limit) {
-        return collect(tableInfo, plannerContext, whereClause, toCollect, projections, null, null, orderBy, limit);
+        return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, null, null, orderBy, limit);
     }
 }

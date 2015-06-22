@@ -25,14 +25,18 @@ import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
+import java.util.UUID;
+
 public class CountPlan extends PlanAndPlannedAnalyzedRelation{
 
     private final CountNode countNode;
     private final MergeNode mergeNode;
+    private final UUID id;
 
-    public CountPlan(CountNode countNode, MergeNode mergeNode) {
+    public CountPlan(CountNode countNode, MergeNode mergeNode, UUID id) {
         this.countNode = countNode;
         this.mergeNode = mergeNode;
+        this.id = id;
     }
 
     public CountNode countNode() {
@@ -46,6 +50,11 @@ public class CountPlan extends PlanAndPlannedAnalyzedRelation{
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitCountPlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     @Override

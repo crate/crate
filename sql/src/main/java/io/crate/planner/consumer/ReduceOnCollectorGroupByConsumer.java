@@ -155,7 +155,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()) {
                     FilterProjection fp = projectionBuilder.filterProjection(
                             collectOutputs,
@@ -182,6 +182,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     table.querySpec().where(),
@@ -205,6 +206,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        context.plannerContext().jobId(),
                         handlerProjections, orderBy, table.querySpec().outputs(), null,
                         collectNode, context.plannerContext());
             } else {
@@ -218,10 +220,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 // fallback - unsorted local merge
-                localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode,
+                localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), handlerProjections, collectNode,
                         context.plannerContext());
             }
-            return new NonDistributedGroupBy(collectNode, localMergeNode);
+            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
         }
 
 

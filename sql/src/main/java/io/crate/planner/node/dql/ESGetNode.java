@@ -27,12 +27,16 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 
 public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
@@ -43,6 +47,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
     private final int executionNodeId;
+    private final UUID jobId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
@@ -50,7 +55,8 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public ESGetNode(int executionNodeId,
                      TableInfo tableInfo,
-                     QuerySpec querySpec) {
+                     QuerySpec querySpec,
+                     UUID jobId) {
 
         assert querySpec.where().docKeys().isPresent();
         this.tableInfo = tableInfo;
@@ -58,6 +64,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         this.outputs = querySpec.outputs();
         this.docKeys = querySpec.where().docKeys().get();
         this.executionNodeId = executionNodeId;
+        this.jobId = jobId;
 
 
         outputTypes(Symbols.extractTypes(outputs));
@@ -122,5 +129,14 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
                 .add("docKeys", docKeys)
                 .add("outputs", outputs)
                 .toString();
+    }
+
+    public UUID jobId() {
+        return jobId;
+    }
+
+    @Override
+    public Plan plan() {
+        return new IterablePlan(jobId, this);
     }
 }

@@ -72,8 +72,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
-        CollectNode collectNode = new CollectNode(0, "clusterCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "clusterCollect", routing);
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
@@ -95,8 +94,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.tables", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(0, "tablesCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "tablesCollect", routing);
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         List<Symbol> toCollect = new ArrayList<>();
@@ -125,8 +123,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.columns", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(0, "columnsCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "columnsCollect", routing);
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         List<Symbol> toCollect = new ArrayList<>();

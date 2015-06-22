@@ -135,6 +135,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
         CollectNode collectNode = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(),
                 "collect",
                 tableInfo.getRouting(WhereClause.MATCH_ALL, null));
@@ -142,7 +143,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         collectNode.outputTypes(outputTypes);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(keepContextForFetcher);
-        collectNode.jobId(UUID.randomUUID());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         return collectNode;
@@ -206,9 +206,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
 
         QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
-        UUID jobId = UUID.randomUUID();
-        plan.collectNode().jobId(jobId);
-
         List<Bucket> results = getBuckets(plan.collectNode());
 
 

@@ -21,7 +21,11 @@
 
 package io.crate.planner;
 
+import java.util.UUID;
+
 public interface Plan {
 
     <C, R> R accept(PlanVisitor<C, R> visitor, C context);
+
+    public UUID jobId();
 }
