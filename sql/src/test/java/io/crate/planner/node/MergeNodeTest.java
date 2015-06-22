@@ -66,8 +66,7 @@ public class MergeNodeTest extends CrateUnitTest {
         TopNProjection topNProjection = new TopNProjection(10, 0);
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
-        MergeNode node = new MergeNode(0, "merge", 2, Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING), projections);
-        node.jobId(UUID.randomUUID());
+        MergeNode node = new MergeNode(UUID.randomUUID(), 0, "merge", 2, Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING), projections);
         node.executionNodes(Sets.newHashSet("node1", "node2"));
         node.downstreamNodes(Sets.newHashSet("node3", "node4"));
 

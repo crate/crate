@@ -24,15 +24,23 @@ package io.crate.planner.node.management;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 
+import java.util.UUID;
+
 public class KillPlan implements Plan {
 
-    public static final KillPlan INSTANCE = new KillPlan();
+    private final UUID id;
 
-    private KillPlan() {
+    public KillPlan(UUID id) {
+        this.id = id;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitKillPlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 }

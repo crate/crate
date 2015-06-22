@@ -71,8 +71,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private CollectNode collectNode(Routing routing, List<Symbol> toCollect) {
-        CollectNode collectNode = new CollectNode(0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
         return collectNode;
     }
 

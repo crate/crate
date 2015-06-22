@@ -82,7 +82,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 return null;
             }
             if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
             if (table.querySpec().where().hasVersions()){
@@ -121,6 +121,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.PARTIAL);
 
         CollectNode collectNode = PlanNodeBuilder.collect(
+                context.plannerContext().jobId(),
                 tableRelation.tableInfo(),
                 context.plannerContext(),
                 whereClause,
@@ -139,7 +140,7 @@ public class GlobalAggregateConsumer implements Consumer {
         HavingClause havingClause = table.querySpec().having();
         if(havingClause != null){
             if (havingClause.noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             } else if (havingClause.hasQuery()){
                 projections.add(projectionBuilder.filterProjection(
                         splitPoints.aggregates(),
@@ -154,9 +155,9 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
                 context.plannerContext());
-        return new GlobalAggregate(collectNode, localMergeNode);
+        return new GlobalAggregate(collectNode, localMergeNode, context.plannerContext().jobId());
     }
 
     private static void validateAggregationOutputs(TableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

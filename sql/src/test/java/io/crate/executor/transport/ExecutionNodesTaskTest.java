@@ -52,12 +52,13 @@ public class ExecutionNodesTaskTest {
                 .put("node2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
                 .map());
 
-        CollectNode c1 = new CollectNode(1, "c1", twoNodeRouting, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+        UUID jobId = UUID.randomUUID();
+        CollectNode c1 = new CollectNode(jobId, 1, "c1", twoNodeRouting, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
 
-        MergeNode m1 = new MergeNode(2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
+        MergeNode m1 = new MergeNode(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergeNode m2 = new MergeNode(3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
+        MergeNode m2 = new MergeNode(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
         Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodeGrouper.groupByServer(
                 "node1", ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));

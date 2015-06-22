@@ -26,22 +26,30 @@ import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
     private final MergeNode reducerMergeNode;
     private MergeNode localMergeNode;
+    private final UUID id;
 
-    public DistributedGroupBy(CollectNode collectNode, MergeNode reducerMergeNode, @Nullable MergeNode localMergeNode) {
+    public DistributedGroupBy(CollectNode collectNode, MergeNode reducerMergeNode, @Nullable MergeNode localMergeNode, UUID id) {
         this.collectNode = collectNode;
         this.reducerMergeNode = reducerMergeNode;
         this.localMergeNode = localMergeNode;
+        this.id = id;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitDistributedGroupBy(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     public CollectNode collectNode() {

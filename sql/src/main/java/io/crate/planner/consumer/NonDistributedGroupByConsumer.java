@@ -125,6 +125,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     table.querySpec().where(),
@@ -156,7 +157,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()){
                     projections.add(projectionBuilder.filterProjection(
                             collectOutputs,
@@ -184,9 +185,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()
                 ));
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
                     context.plannerContext());
-            return new NonDistributedGroupBy(collectNode, localMergeNode);
+            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
         }
     }
 

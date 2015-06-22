@@ -33,7 +33,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.projection.Projection;
@@ -52,7 +51,6 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -177,9 +175,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private CollectNode getCollectNode(List<Symbol> toCollect, Routing routing) {
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing, toCollect,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "docCollect", routing, toCollect,
                 ImmutableList.<Projection>of());
-        collectNode.jobId(UUID.randomUUID());
         return collectNode;
     }
 

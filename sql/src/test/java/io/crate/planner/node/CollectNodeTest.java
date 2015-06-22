@@ -45,10 +45,10 @@ public class CollectNodeTest extends CrateUnitTest {
     @Test
     public void testStreaming() throws Exception {
         ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
-        CollectNode cn = new CollectNode(0, "cn", new Routing(), toCollect, ImmutableList.<Projection>of());
+        UUID jobId = UUID.randomUUID();
+        CollectNode cn = new CollectNode(jobId, 0, "cn", new Routing(), toCollect, ImmutableList.<Projection>of());
         cn.maxRowGranularity(RowGranularity.DOC);
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
-        cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);

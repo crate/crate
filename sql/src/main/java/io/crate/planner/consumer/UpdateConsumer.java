@@ -97,7 +97,7 @@ public class UpdateConsumer implements Consumer {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
                         upsertByIdNode = new SymbolBasedUpsertByIdNode(context.plannerContext().nextExecutionNodeId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
-                        childNodes.add(new IterablePlan(upsertByIdNode));
+                        childNodes.add(new IterablePlan(context.plannerContext().jobId(), upsertByIdNode));
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
                 } else {
@@ -108,9 +108,9 @@ public class UpdateConsumer implements Consumer {
                 }
             }
             if (childNodes.size() > 0){
-                return new Upsert(childNodes);
+                return new Upsert(childNodes, context.plannerContext().jobId());
             } else {
-                return new NoopPlannedAnalyzedRelation(statement);
+                return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
         }
 
@@ -147,6 +147,7 @@ public class UpdateConsumer implements Consumer {
                         version);
 
                 CollectNode collectNode = PlanNodeBuilder.collect(
+                        consumerContext.plannerContext().jobId(),
                         tableInfo,
                         consumerContext.plannerContext(),
                         whereClause,
@@ -156,9 +157,10 @@ public class UpdateConsumer implements Consumer {
                         Preference.PRIMARY.type()
                 );
                 MergeNode mergeNode = PlanNodeBuilder.localMerge(
+                        consumerContext.plannerContext().jobId(),
                         ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode,
                         consumerContext.plannerContext());
-                return new CollectAndMerge(collectNode, mergeNode);
+                return new CollectAndMerge(collectNode, mergeNode, consumerContext.plannerContext().jobId());
             } else {
                 return null;
             }

@@ -129,6 +129,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         List<Symbol> toCollect = ImmutableList.of(docIdRef);
 
         CollectNode collectNode = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(),
                 "collect",
                 tableInfo.getRouting(WhereClause.MATCH_ALL, null),
@@ -136,7 +137,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 ImmutableList.<Projection>of());
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(keepContextForFetcher);
-        collectNode.jobId(UUID.randomUUID());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         return collectNode;
@@ -198,9 +198,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Planner.Context plannerContext = new Planner.Context(clusterService());
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
         QueryThenFetch plan = (QueryThenFetch) queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext).plan();
-
-        UUID jobId = UUID.randomUUID();
-        plan.collectNode().jobId(jobId);
 
         List<Bucket> results = getBuckets(plan.collectNode());
 
@@ -320,7 +317,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(plan, instanceOf(QueryThenFetch.class));
 
         MergeNode mergeNode = rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
-        QueryThenFetch qtf = new QueryThenFetch(((QueryThenFetch) plan).collectNode(), mergeNode);
+        QueryThenFetch qtf = new QueryThenFetch(((QueryThenFetch) plan).collectNode(), mergeNode, plan.jobId());
 
         Job job = executor.newJob(qtf);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
@@ -371,6 +368,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             }
         }
         return MergeNode.sortedMergeNode(
+                mergeNode.jobId(),
                 mergeNode.inputTypes(),
                 newProjections,
                 mergeNode.executionNodeId(),

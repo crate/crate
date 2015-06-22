@@ -70,12 +70,13 @@ public class MergeNode extends AbstractDQLPlanNode {
         numUpstreams = 0;
     }
 
-    public MergeNode(int executionNodeId,
+    public MergeNode(UUID jobId,
+                     int executionNodeId,
                      String name,
                      int numUpstreams,
                      Collection<? extends DataType> inputTypes,
                      List<Projection> projections) {
-        super(executionNodeId, name, projections);
+        super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
         if (projections.isEmpty()) {
@@ -85,7 +86,8 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
     }
 
-    public static MergeNode sortedMergeNode(Collection<? extends DataType> inputTypes,
+    public static MergeNode sortedMergeNode(UUID jobId,
+                                            Collection<? extends DataType> inputTypes,
                                             List<Projection> projections,
                                             int executionNodeId,
                                             String name,
@@ -96,7 +98,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams, inputTypes, projections);
+        MergeNode mergeNode = new MergeNode(jobId, executionNodeId, name, numUpstreams, inputTypes, projections);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;

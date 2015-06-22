@@ -26,16 +26,15 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
-import io.crate.planner.PlanNodeBuilder;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -133,6 +132,7 @@ public class MapSideDataCollectOperationTest {
                 .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                UUID.randomUUID(),
                 0,
                 "test",
                 routing,
@@ -145,7 +145,6 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
-        collectNode.jobId(UUID.randomUUID());
         CollectingProjector cd = new CollectingProjector();
         cd.startProjection(mock(ExecutionState.class));
         collectOperation.collect(collectNode, cd, mock(JobCollectContext.class));

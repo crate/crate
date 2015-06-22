@@ -44,6 +44,7 @@ import org.elasticsearch.common.Nullable;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 
 public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
@@ -54,6 +55,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
     private final int executionNodeId;
+    private final UUID jobId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
@@ -63,7 +65,8 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
     public ESGetNode(int executionNodeId,
                      TableInfo tableInfo,
-                     QuerySpec querySpec) {
+                     QuerySpec querySpec,
+                     UUID jobId) {
 
         assert querySpec.where().docKeys().isPresent();
         this.tableInfo = tableInfo;
@@ -71,6 +74,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         this.outputs = querySpec.outputs();
         this.docKeys = querySpec.where().docKeys().get();
         this.executionNodeId = executionNodeId;
+        this.jobId = jobId;
 
 
         outputTypes = Symbols.extractTypes(outputs);
@@ -158,7 +162,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
     @Override
     public Plan plan() {
-        return new IterablePlan(this);
+        return new IterablePlan(jobId, this);
     }
 
     @Override

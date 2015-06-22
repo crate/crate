@@ -34,18 +34,21 @@ import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
 public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
 
     private final AnalyzedRelation relation;
+    private final UUID id;
 
-    public NoopPlannedAnalyzedRelation(AnalyzedRelation relation) {
+    public NoopPlannedAnalyzedRelation(AnalyzedRelation relation, UUID id) {
         this.relation = relation;
+        this.id = id;
     }
 
     @Override
     public Plan plan() {
-        return NoopPlan.INSTANCE;
+        return new NoopPlan(id);
     }
 
     @Override

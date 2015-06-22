@@ -103,12 +103,10 @@ public class ExecutionNodesTask extends JobTask {
      *                   Multiple merge nodes are only occurring on bulk operations.
      */
     public void addFinalMergeNode(MergeNode finalMergeNode) {
-        finalMergeNode.jobId(jobId());
         finalMergeNodes.add(finalMergeNode);
     }
 
     public void addExecutionNode(int group, ExecutionNode executionNode) {
-        executionNode.jobId(jobId());
         while (group >= groupedExecutionNodes.size()) {
             results.add(SettableFuture.<TaskResult>create());
             groupedExecutionNodes.add(new ArrayList<ExecutionNode>());

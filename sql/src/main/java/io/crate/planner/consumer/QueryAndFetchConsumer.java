@@ -23,7 +23,10 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -31,27 +34,23 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.*;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.LongType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -147,7 +146,9 @@ public class QueryAndFetchConsumer implements Consumer {
                         "Analyzer should have thrown an exception already.";
 
                 ImmutableList<Projection> projections = ImmutableList.<Projection>of();
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.plannerContext().jobId(),
+                        tableInfo,
                         context.plannerContext(),
                         whereClause, outputSymbols, projections);
             } else if (querySpec.isLimited() || orderBy != null) {
@@ -203,7 +204,9 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
                 tnp.outputs(allOutputs);
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.plannerContext().jobId(),
+                        tableInfo,
                         context.plannerContext(),
                         whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
@@ -212,12 +215,15 @@ public class QueryAndFetchConsumer implements Consumer {
                 tnp.outputs(finalOutputs);
                 if (orderBy == null) {
                     // no sorting needed
-                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode,
+                    mergeNode = PlanNodeBuilder.localMerge(
+                            context.plannerContext().jobId(),
+                            ImmutableList.<Projection>of(tnp), collectNode,
                             context.plannerContext());
                 } else {
                     // no order by needed in TopN as we already sorted on collector
                     // and we merge sorted with SortedBucketMerger
                     mergeNode = PlanNodeBuilder.sortedLocalMerge(
+                            context.plannerContext().jobId(),
                             ImmutableList.<Projection>of(tnp),
                             orderBy,
                             allOutputs,
@@ -227,14 +233,17 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
             } else {
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.plannerContext().jobId(),
+                        tableInfo,
                         context.plannerContext(),
                         whereClause, outputSymbols, ImmutableList.<Projection>of());
                 mergeNode = PlanNodeBuilder.localMerge(
+                        context.plannerContext().jobId(),
                         ImmutableList.<Projection>of(), collectNode,
                         context.plannerContext());
             }
-            return new QueryAndFetch(collectNode, mergeNode);
+            return new QueryAndFetch(collectNode, mergeNode, context.plannerContext().jobId());
         }
     }
 }

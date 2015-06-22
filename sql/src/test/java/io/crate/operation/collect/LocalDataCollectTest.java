@@ -399,10 +399,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "collect", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "collect", testRouting,
                 Collections.<Symbol>singletonList(testNodeReference),
                 EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
         Bucket result = getBucket(collectNode);
@@ -417,7 +416,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("unsupported routing");
 
-        CollectNode collectNode = new CollectNode(0, "wrong", new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "wrong", new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("bla", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                 .put("my_index", Arrays.asList(1))
                 .put("my_index", Arrays.asList(1))
@@ -426,7 +425,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 ImmutableList.<Symbol>of(),
                 EMPTY_PROJECTIONS);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.jobId(UUID.randomUUID());
         operation.collect(collectNode, new CollectingProjector(), null);
     }
 
@@ -445,9 +443,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
                         DataTypes.BOOLEAN
                 )
         );
-        CollectNode collectNode = new CollectNode(0, "unknown", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "unknown", testRouting,
                 Collections.<Symbol>singletonList(unknownReference), EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
         try {
             getBucket(collectNode);
@@ -462,9 +459,8 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 TestFunction.info,
                 TO_COLLECT_TEST_REF
         );
-        CollectNode collectNode = new CollectNode(0, "unknown", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "unknown", testRouting,
                 Arrays.asList(twoTimesTruthFunction, testNodeReference), EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), equalTo(1));
@@ -485,10 +481,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 ),
                 ImmutableList.<Symbol>of()
         );
-        CollectNode collectNode = new CollectNode(0, "unknownFunction", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "unknownFunction", testRouting,
                 Collections.singletonList(unknownFunction),
                 EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         try {
             getBucket(collectNode);
         } catch (ExecutionException e) {
@@ -504,17 +499,15 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 Literal.newLiteral(1),
                 Literal.newLiteral(4.2)
         );
-        CollectNode collectNode = new CollectNode(0, "literals", testRouting, toCollect, EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "literals", testRouting, toCollect, EMPTY_PROJECTIONS);
         Bucket result = getBucket(collectNode);
         assertThat(result, contains(isRow(new BytesRef("foobar"), true, 1, 4.2)));
     }
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting,
                 TO_COLLECT_TEST_REF, EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
@@ -525,13 +518,12 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectWithTrueWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting,
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting,
                 TO_COLLECT_TEST_REF, EMPTY_PROJECTIONS);
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true))
         )));
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Bucket result = getBucket(collectNode);
         assertThat(result, contains(isRow((short) 1)));
@@ -542,8 +534,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     public void testCollectWithNullWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode(0, "whereClause", testRouting, TO_COLLECT_TEST_REF, EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "whereClause", testRouting, TO_COLLECT_TEST_REF, EMPTY_PROJECTIONS);
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(Literal.NULL, Literal.NULL)
@@ -567,8 +558,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     @Test
     public void testCollectShardExpressions() throws Exception {
         List<Symbol> toCollect = ImmutableList.<Symbol>of(testShardIdReference);
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1), toCollect, EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1), toCollect, EMPTY_PROJECTIONS);
         collectNode.maxRowGranularity(RowGranularity.SHARD);
 
         Bucket result = getBucket(collectNode);
@@ -582,8 +572,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
 
         List<Symbol> toCollect = ImmutableList.<Symbol>of(testShardIdReference);
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1), toCollect, EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1), toCollect, EMPTY_PROJECTIONS);
         collectNode.whereClause(new WhereClause(
                 new Function(op.info(), Arrays.asList(testShardIdReference, Literal.newLiteral(0)))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
@@ -593,9 +582,9 @@ public class LocalDataCollectTest extends CrateUnitTest {
 
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "shardCollect", shardRouting(0, 1),
+        CollectNode collectNode = new CollectNode(
+                UUID.randomUUID(), 0, "shardCollect", shardRouting(0, 1),
                 Arrays.asList(testShardIdReference, Literal.newLiteral(true), testNodeReference), EMPTY_PROJECTIONS);
-        collectNode.jobId(UUID.randomUUID());
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Bucket result = getBucket(collectNode);
         assertThat(result.size(), is(2));

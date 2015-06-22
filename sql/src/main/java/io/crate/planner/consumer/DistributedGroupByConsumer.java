@@ -109,6 +109,7 @@ public class DistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     table.querySpec().where(),
@@ -142,7 +143,7 @@ public class DistributedGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()) {
                     reducerProjections.add(projectionBuilder.filterProjection(
                             collectOutputs,
@@ -162,6 +163,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()));
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
+                    context.plannerContext().jobId(),
                     collectNode,
                     context.plannerContext(),
                     reducerProjections
@@ -177,7 +179,8 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().offset(),
                         table.querySpec().limit(),
                         null);
-                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
+                localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(),
+                        ImmutableList.<Projection>of(topN),
                         mergeNode, context.plannerContext());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
 
@@ -192,7 +195,8 @@ public class DistributedGroupByConsumer implements Consumer {
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
-                    localMergeNode
+                    localMergeNode,
+                    context.plannerContext().jobId()
             );
         }
 

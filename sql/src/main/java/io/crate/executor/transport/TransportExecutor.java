@@ -120,7 +120,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     @Override
     public Job newJob(Plan plan) {
-        final Job job = new Job();
+        final Job job = new Job(plan.jobId());
         List<? extends Task> tasks = planVisitor.process(plan, job);
         job.addTasks(tasks);
         return job;

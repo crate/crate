@@ -50,7 +50,8 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
 
     }
 
-    protected AbstractDQLPlanNode(int executionNodeId, String name, List<Projection> projections) {
+    protected AbstractDQLPlanNode(UUID jobId, int executionNodeId, String name, List<Projection> projections) {
+        this.jobId = jobId;
         this.executionNodeId = executionNodeId;
         this.name = name;
         this.projections = projections;
@@ -63,11 +64,6 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public UUID jobId() {
         return jobId;
-    }
-
-    @Override
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
     }
 
     @Override

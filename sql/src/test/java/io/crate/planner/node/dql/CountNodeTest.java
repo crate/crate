@@ -45,9 +45,8 @@ public class CountNodeTest extends CrateUnitTest {
                                 .put("i2", Arrays.asList(1, 2)).map())
                         .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Collections.singletonList(3)).map()).map());
-        CountNode countNode = new CountNode(1, routing, WhereClause.MATCH_ALL);
         UUID jobId = UUID.randomUUID();
-        countNode.jobId(jobId);
+        CountNode countNode = new CountNode(jobId, 1, routing, WhereClause.MATCH_ALL);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countNode.writeTo(out);

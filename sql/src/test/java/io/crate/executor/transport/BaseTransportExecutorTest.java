@@ -45,6 +45,7 @@ import org.junit.Before;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
@@ -83,7 +84,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         }
         WhereClause whereClause = new WhereClause(null, new DocKeys(keys, false, -1, null), null);
         querySpec.where(whereClause);
-        return new ESGetNode(executionNodeId, tableInfo, querySpec);
+        return new ESGetNode(executionNodeId, tableInfo, querySpec, UUID.randomUUID());
     }
 
     @Before
