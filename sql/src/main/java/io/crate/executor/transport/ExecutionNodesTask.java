@@ -41,10 +41,7 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeGrouper;
-import io.crate.planner.node.ExecutionNodeVisitor;
-import io.crate.planner.node.ExecutionNodes;
+import io.crate.planner.node.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.types.DataTypes;
@@ -66,9 +63,6 @@ public class ExecutionNodesTask extends JobTask {
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionNodesTask.class);
 
     private final TransportJobAction transportJobAction;
-    private final List<List<ExecutionNode>> groupedExecutionNodes;
-    private final List<SettableFuture<TaskResult>> results;
-    private final boolean hasDirectResponse;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
@@ -76,15 +70,13 @@ public class ExecutionNodesTask extends JobTask {
     private final ThreadPool threadPool;
     private TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final CircuitBreaker circuitBreaker;
-    private List<MergeNode> mergeNodes;
+
+    private final List<List<ExecutionNode>> groupedExecutionNodes = new ArrayList<>();
+    private final List<MergeNode> finalMergeNodes = new ArrayList<>();
+    private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
+    private boolean hasDirectResponse;
     private boolean rowCountResult = false;
 
-    /**
-     * @param mergeNodes list of mergeNodes for the final merge operation on the handler.
-     *                  This may be null in the constructor but then it must be set using the
-     *                  {@link #mergeNodes(List)} setter before {@link #start()} is called.
-     *                   Multiple merge nodes are only occurring on bulk operations.
-     */
     protected ExecutionNodesTask(UUID jobId,
                                  ClusterService clusterService,
                                  ContextPreparer contextPreparer,
@@ -93,9 +85,7 @@ public class ExecutionNodesTask extends JobTask {
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
-                                 CircuitBreaker circuitBreaker,
-                                 @Nullable List<MergeNode> mergeNodes,
-                                 List<List<ExecutionNode>> groupedExecutionNodes) {
+                                 CircuitBreaker circuitBreaker) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -104,21 +94,31 @@ public class ExecutionNodesTask extends JobTask {
         this.threadPool = threadPool;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.circuitBreaker = circuitBreaker;
-        this.mergeNodes = mergeNodes;
         this.transportJobAction = transportJobAction;
-        this.groupedExecutionNodes = groupedExecutionNodes;
-        hasDirectResponse = hasDirectResponse(groupedExecutionNodes);
-
-        List<SettableFuture<TaskResult>> results = new ArrayList<>(groupedExecutionNodes.size());
-        for (int i = 0; i < groupedExecutionNodes.size(); i++) {
-            results.add(SettableFuture.<TaskResult>create());
-        }
-        this.results = results;
     }
 
-    public void mergeNodes(List<MergeNode> mergeNodes) {
-        assert this.mergeNodes == null : "can only overwrite mergeNodes if it was null";
-        this.mergeNodes = mergeNodes;
+
+    /**
+     * @param finalMergeNode a mergeNode for the final merge operation on the handler.
+     *                   Multiple merge nodes are only occurring on bulk operations.
+     */
+    public void addFinalMergeNode(MergeNode finalMergeNode) {
+        finalMergeNode.jobId(jobId());
+        finalMergeNodes.add(finalMergeNode);
+    }
+
+    public void addExecutionNode(int group, ExecutionNode executionNode) {
+        executionNode.jobId(jobId());
+        while (group >= groupedExecutionNodes.size()) {
+            results.add(SettableFuture.<TaskResult>create());
+            groupedExecutionNodes.add(new ArrayList<ExecutionNode>());
+        }
+        List<ExecutionNode> executionNodes = groupedExecutionNodes.get(group);
+
+        if (ExecutionNodes.hasDirectResponseDownstream(executionNode.downstreamNodes())) {
+            hasDirectResponse = true;
+        }
+        executionNodes.add(executionNode);
     }
 
     public void rowCountResult(boolean rowCountResult) {
@@ -127,7 +127,7 @@ public class ExecutionNodesTask extends JobTask {
 
     @Override
     public void start() {
-        assert mergeNodes != null : "mergeNodes must not be null";
+        assert finalMergeNodes.size() == groupedExecutionNodes.size() : "groupedExecutionNodes and finalMergeNodes sizes must match";
 
         Map<String, Collection<ExecutionNode>> nodesByServer = ExecutionNodeGrouper.groupByServer(clusterService.state().nodes().localNodeId(), groupedExecutionNodes);
         RowDownstream rowDownstream;
@@ -136,21 +136,21 @@ public class ExecutionNodesTask extends JobTask {
         } else {
             rowDownstream = new QueryResultRowDownstream(results);
         }
-        Streamer<?>[] streamers = DataTypes.getStreamer(mergeNodes.get(0).inputTypes());
+        Streamer<?>[] streamers = DataTypes.getStreamer(finalMergeNodes.get(0).inputTypes());
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionNodes.size());
 
         for (int i = 0; i < groupedExecutionNodes.size(); i++) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(
-                    circuitBreaker, mergeNodes.get(i));
+                    circuitBreaker, finalMergeNodes.get(i));
 
             PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers,
-                    mergeNodes.get(i), groupedExecutionNodes.get(i), rowDownstream);
+                    finalMergeNodes.get(i), groupedExecutionNodes.get(i), rowDownstream);
             if (nodesByServer.size() == 0) {
                 pageDownstreamContext.finish();
                 continue;
             }
             if (!hasDirectResponse) {
-                createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, mergeNodes.get(i).executionNodeId());
+                createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, finalMergeNodes.get(i).executionNodeId());
             } else {
                 pageDownstreamContext.start();
             }
@@ -175,7 +175,7 @@ public class ExecutionNodesTask extends JobTask {
                 ramAccountingContext,
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
         );
-        PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
+        return new PageDownstreamContext(
                 mergeNode.name(),
                 pageDownstreamProjectorChain.v1(),
                 streamers,
@@ -183,7 +183,6 @@ public class ExecutionNodesTask extends JobTask {
                 executionNodes.get(executionNodes.size() - 1).executionNodes().size(),
                 pageDownstreamProjectorChain.v2()
         );
-        return pageDownstreamContext;
     }
 
     private void sendJobRequests(Streamer<?>[] streamers,
@@ -259,6 +258,11 @@ public class ExecutionNodesTask extends JobTask {
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
+        if (results.size() != groupedExecutionNodes.size()) {
+            for (int i = 0; i < groupedExecutionNodes.size(); i++) {
+                results.add(SettableFuture.<TaskResult>create());
+            }
+        }
         return results;
     }
 
