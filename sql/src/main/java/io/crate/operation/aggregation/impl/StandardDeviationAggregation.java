@@ -44,6 +44,9 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
     public static final String NAME = "stddev";
 
+    static {
+        DataTypes.register(StdDevStateType.ID, StdDevStateType.INSTANCE);
+    }
 
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
@@ -84,10 +87,6 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         public static final StdDevStateType INSTANCE = new StdDevStateType();
         public static final int ID = 8192;
-
-        private StdDevStateType() {
-            DataTypes.register(ID, this);
-        }
 
         @Override
         public int id() {
