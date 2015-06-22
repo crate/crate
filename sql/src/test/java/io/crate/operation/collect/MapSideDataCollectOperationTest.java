@@ -27,9 +27,9 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
@@ -133,6 +133,7 @@ public class MapSideDataCollectOperationTest {
                 .map()
         );
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                UUID.randomUUID(),
                 0,
                 "test",
                 routing,
@@ -145,7 +146,6 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
-        collectNode.jobId(UUID.randomUUID());
         PlanNodeBuilder.setOutputTypes(collectNode);
         CollectingProjector cd = new CollectingProjector();
         cd.startProjection();

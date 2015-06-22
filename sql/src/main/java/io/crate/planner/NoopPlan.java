@@ -21,18 +21,26 @@
 
 package io.crate.planner;
 
+import java.util.UUID;
+
 /**
  * A plan with an empty result
  */
 public class NoopPlan implements Plan {
 
-    public static final NoopPlan INSTANCE = new NoopPlan();
+    private final UUID id;
 
-    private NoopPlan() {
+    public NoopPlan(UUID id) {
+        this.id = id;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitNoopPlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 }

@@ -402,11 +402,11 @@ public class ExecutionNodesTask extends JobTask {
                 return null;
             }
 
-            LOGGER.trace("closing job context {} on {} nodes", node.jobId().get(), nodeIds.size());
+            LOGGER.trace("closing job context {} on {} nodes", node.jobId(), nodeIds.size());
             for (final String nodeId : nodeIds) {
                 transportCloseContextNodeAction.execute(
                         nodeId,
-                        new NodeCloseContextRequest(node.jobId().get(), node.executionNodeId()),
+                        new NodeCloseContextRequest(node.jobId(), node.executionNodeId()),
                         new ActionListener<NodeCloseContextResponse>() {
 
                     @Override
@@ -415,7 +415,7 @@ public class ExecutionNodesTask extends JobTask {
 
                     @Override
                     public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", node.jobId().get(), nodeId, e.getMessage());
+                        LOGGER.warn("Closing job context {} failed on node {} with: {}", node.jobId(), nodeId, e.getMessage());
                     }
                 });
             }

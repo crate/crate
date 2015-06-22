@@ -196,7 +196,7 @@ public class ContextPreparer {
                     @Override
                     public void run() {
                         LOGGER.trace("Closing JobCollectContext {}/{} because result is ready",
-                                node.jobId().get(), node.executionNodeId());
+                                node.jobId(), node.executionNodeId());
 
                         jobCollectContext.close();
                     }

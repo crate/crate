@@ -31,10 +31,6 @@ public class Job {
     private final UUID id;
     private List<Task> tasks = new ArrayList<>();
 
-    public Job() {
-        this(UUID.randomUUID());
-    }
-
     public Job(UUID id) {
         this.id = id;
     }

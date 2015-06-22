@@ -31,6 +31,7 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 public class InsertFromSubQuery extends PlanAndPlannedAnalyzedRelation {
 
@@ -39,14 +40,22 @@ public class InsertFromSubQuery extends PlanAndPlannedAnalyzedRelation {
 
     private final Plan innerPlan;
 
-    public InsertFromSubQuery(Plan innerPlan, @Nullable MergeNode handlerMergeNode) {
+    private final UUID id;
+
+    public InsertFromSubQuery(Plan innerPlan, @Nullable MergeNode handlerMergeNode, UUID id) {
         this.innerPlan = innerPlan;
         this.handlerMergeNode = Optional.fromNullable(handlerMergeNode);
+        this.id = id;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitInsertByQuery(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     public Plan innerPlan() {

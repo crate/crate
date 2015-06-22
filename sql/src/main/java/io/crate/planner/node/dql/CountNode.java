@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class CountNode implements ExecutionNode {
 
@@ -44,10 +45,12 @@ public class CountNode implements ExecutionNode {
     private int executionNodeId;
     private Routing routing;
     private WhereClause whereClause;
+    private UUID jobId;
 
     CountNode() {}
 
-    public CountNode(int executionNodeId, Routing routing, WhereClause whereClause) {
+    public CountNode(UUID jobId, int executionNodeId, Routing routing, WhereClause whereClause) {
+        this.jobId = jobId;
         this.executionNodeId = executionNodeId;
         this.routing = routing;
         this.whereClause = whereClause;
@@ -61,6 +64,11 @@ public class CountNode implements ExecutionNode {
     @Override
     public String name() {
         return "count";
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
     }
 
     public Routing routing() {

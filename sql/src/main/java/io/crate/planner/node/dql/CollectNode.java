@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -55,7 +54,6 @@ public class CollectNode extends AbstractDQLPlanNode {
             return new CollectNode();
         }
     };
-    private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
@@ -76,16 +74,16 @@ public class CollectNode extends AbstractDQLPlanNode {
         super();
     }
 
-    public CollectNode(int executionNodeId, String name) {
-        super(executionNodeId, name);
+    public CollectNode(UUID jobId, int executionNodeId, String name) {
+        super(jobId, executionNodeId, name);
     }
 
-    public CollectNode(int executionNodeId, String name, Routing routing) {
-        this(executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing) {
+        this(jobId, executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
     }
 
-    public CollectNode(int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(executionNodeId, name);
+    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(jobId, executionNodeId, name);
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
@@ -206,14 +204,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
     }
 
-    public Optional<UUID> jobId() {
-        return jobId;
-    }
-
-    public void jobId(@Nullable UUID jobId) {
-        this.jobId = Optional.fromNullable(jobId);
-    }
-
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
@@ -254,7 +244,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             downstreamNodes.add(in.readString());
         }
         if (in.readBoolean()) {
-            jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
+            jobId = new UUID(in.readLong(), in.readLong());
         }
         keepContextForFetcher = in.readBoolean();
 
@@ -297,11 +287,10 @@ public class CollectNode extends AbstractDQLPlanNode {
         } else {
             out.writeVInt(0);
         }
-        out.writeBoolean(jobId.isPresent());
-        if (jobId.isPresent()) {
-            out.writeLong(jobId.get().getMostSignificantBits());
-            out.writeLong(jobId.get().getLeastSignificantBits());
-        }
+        out.writeBoolean(true); // Set to true to be backward compatible
+        out.writeLong(jobId().getMostSignificantBits());
+        out.writeLong(jobId().getLeastSignificantBits());
+
         out.writeBoolean(keepContextForFetcher);
         if (limit != null ) {
             out.writeBoolean(true);
@@ -333,10 +322,9 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(executionNodeId(), name(), routing, newToCollect, projections);
+            result = new CollectNode(jobId, executionNodeId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
-            result.jobId = jobId;
             result.keepContextForFetcher = keepContextForFetcher;
             result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);

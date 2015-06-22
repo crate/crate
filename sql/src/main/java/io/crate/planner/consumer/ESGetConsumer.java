@@ -72,7 +72,7 @@ public class ESGetConsumer implements Consumer {
             Integer limit = table.querySpec().limit();
             if (limit != null){
                 if (limit == 0){
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 }
             }
 
@@ -80,7 +80,7 @@ public class ESGetConsumer implements Consumer {
             if (orderBy != null){
                 table.tableRelation().validateOrderBy(orderBy);
             }
-            return new ESGetNode(context.plannerContext().nextExecutionNodeId(), tableInfo, table.querySpec());
+            return new ESGetNode(context.plannerContext().nextExecutionNodeId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
         }
 
         @Override

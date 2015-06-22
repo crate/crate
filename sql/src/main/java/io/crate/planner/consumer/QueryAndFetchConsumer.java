@@ -36,9 +36,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -151,7 +151,9 @@ public class QueryAndFetchConsumer implements Consumer {
                         "Analyzer should have thrown an exception already.";
 
                 ImmutableList<Projection> projections = ImmutableList.<Projection>of();
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.consumerContext.plannerContext().jobId(),
+                        tableInfo,
                         context.consumerContext.plannerContext(),
                         whereClause, outputSymbols, projections);
             } else if (querySpec.isLimited() || orderBy != null) {
@@ -207,7 +209,9 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
                 tnp.outputs(allOutputs);
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.consumerContext.plannerContext().jobId(),
+                        tableInfo,
                         context.consumerContext.plannerContext(),
                         whereClause, toCollect, ImmutableList.<Projection>of(tnp));
 
@@ -216,12 +220,15 @@ public class QueryAndFetchConsumer implements Consumer {
                 tnp.outputs(finalOutputs);
                 if (orderBy == null) {
                     // no sorting needed
-                    mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode,
+                    mergeNode = PlanNodeBuilder.localMerge(
+                            context.consumerContext.plannerContext().jobId(),
+                            ImmutableList.<Projection>of(tnp), collectNode,
                             context.consumerContext.plannerContext());
                 } else {
                     // no order by needed in TopN as we already sorted on collector
                     // and we merge sorted with SortedBucketMerger
                     mergeNode = PlanNodeBuilder.sortedLocalMerge(
+                            context.consumerContext.plannerContext().jobId(),
                             ImmutableList.<Projection>of(tnp),
                             orderBy,
                             allOutputs,
@@ -231,14 +238,17 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
             } else {
-                collectNode = PlanNodeBuilder.collect(tableInfo,
+                collectNode = PlanNodeBuilder.collect(
+                        context.consumerContext.plannerContext().jobId(),
+                        tableInfo,
                         context.consumerContext.plannerContext(),
                         whereClause, outputSymbols, ImmutableList.<Projection>of());
                 mergeNode = PlanNodeBuilder.localMerge(
+                        context.consumerContext.plannerContext().jobId(),
                         ImmutableList.<Projection>of(), collectNode,
                         context.consumerContext.plannerContext());
             }
-            return new QueryAndFetch(collectNode, mergeNode);
+            return new QueryAndFetch(collectNode, mergeNode, context.consumerContext.plannerContext().jobId());
         }
     }
 

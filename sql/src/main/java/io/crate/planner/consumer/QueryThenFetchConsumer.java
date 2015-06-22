@@ -94,7 +94,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             if (querySpec.where().noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
             boolean outputsAreAllOrdered = false;
@@ -145,6 +145,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     querySpec.where(),
@@ -201,6 +202,7 @@ public class QueryThenFetchConsumer implements Consumer {
             MergeNode localMergeNode;
             if (orderBy != null) {
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        context.plannerContext().jobId(),
                         mergeProjections,
                         orderBy,
                         collectSymbols,
@@ -209,6 +211,7 @@ public class QueryThenFetchConsumer implements Consumer {
                         context.plannerContext());
             } else {
                 localMergeNode = PlanNodeBuilder.localMerge(
+                        context.plannerContext().jobId(),
                         mergeProjections,
                         collectNode,
                         context.plannerContext());
@@ -220,7 +223,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
                 collectNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
             }
-            return new QueryThenFetch(collectNode, localMergeNode);
+            return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());
         }
 
         @Override

@@ -140,12 +140,11 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
-        CollectNode node = new CollectNode(0, "collect");
+        UUID jobId = UUID.randomUUID();
+        CollectNode node = new CollectNode(jobId, 0, "collect");
         node.whereClause(whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
-        UUID jobId = UUID.randomUUID();
-        node.jobId(jobId);
         node.toCollect(toCollect);
         node.maxRowGranularity(RowGranularity.DOC);
 
@@ -334,23 +333,22 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
 
-        CollectNode node = new CollectNode(0, "collect");
+        CollectNode node = new CollectNode(UUID.randomUUID(), 0, "collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
-        node.jobId(UUID.randomUUID());
         node.toCollect(orderBy.orderBySymbols());
         node.maxRowGranularity(RowGranularity.DOC);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId().get());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());
         builder.addSubContext(node.executionNodeId(),
-                new JobCollectContext(node.jobId().get(), RAM_ACCOUNTING_CONTEXT, collectingProjector));
+                new JobCollectContext(node.jobId(), RAM_ACCOUNTING_CONTEXT, collectingProjector));
         jobContextService.createOrMergeContext(builder);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         int jobSearchContextId = 0;
-        JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId().get()).getSubContext(node.executionNodeId());
+        JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionNodeId());
         ShardId shardId = new ShardId("test", 0);
         jobCollectContext.registerJobContextId(shardId, jobSearchContextId);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);

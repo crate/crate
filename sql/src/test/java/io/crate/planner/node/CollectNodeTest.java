@@ -42,7 +42,7 @@ public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        CollectNode cn = new CollectNode(0, "cn");
+        CollectNode cn = new CollectNode(UUID.randomUUID(), 0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
@@ -52,10 +52,11 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(1, "collect");
+        CollectNode cn2 = new CollectNode(UUID.randomUUID(), 1, "collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 
+        assertThat(cn.jobId(), is(cn2.jobId()));
         assertThat(cn.toCollect(), is(cn2.toCollect()));
         assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
         assertThat(cn.maxRowGranularity(), is(cn.maxRowGranularity()));
@@ -64,17 +65,17 @@ public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreamingWithJobId() throws Exception {
-        CollectNode cn = new CollectNode(0, "cn");
+        UUID jobId = UUID.randomUUID();
+        CollectNode cn = new CollectNode(jobId, 0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
-        cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(1, "collect");
+        CollectNode cn2 = new CollectNode(UUID.randomUUID(), 1, "collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 

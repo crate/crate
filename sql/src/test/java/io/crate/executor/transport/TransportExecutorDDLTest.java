@@ -55,6 +55,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
@@ -120,7 +121,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new IterablePlan(createTableNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -147,7 +148,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new IterablePlan(createTableNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -179,7 +180,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
-        Plan plan = new IterablePlan(createTableNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -214,7 +215,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).stringValue();
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
-        Plan plan = new IterablePlan(deleteIndexNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -245,7 +246,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
-        Plan plan = new IterablePlan(deleteIndexNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -276,7 +277,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(persistentSettings);
 
-        Plan plan = new IterablePlan(node);
+        Plan plan = new IterablePlan(UUID.randomUUID(), node);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -292,7 +293,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
 
-        plan = new IterablePlan(node);
+        plan = new IterablePlan(UUID.randomUUID(), node);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -311,7 +312,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
 
-        plan = new IterablePlan(node);
+        plan = new IterablePlan(UUID.randomUUID(), node);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -362,7 +363,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 indexSettings,
                 mapping,
                 alias);
-        Plan plan = new IterablePlan(planNode);
+        Plan plan = new IterablePlan(UUID.randomUUID(), planNode);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);

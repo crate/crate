@@ -147,7 +147,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
 
     public ResultProvider createDownstream(CollectNode collectNode) {
-        return resultProviderFactory.createDownstream(collectNode, collectNode.jobId().get());
+        return resultProviderFactory.createDownstream(collectNode, collectNode.jobId());
     }
 
     /**
@@ -167,7 +167,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                         RowDownstream downstream,
                         RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
-        assert collectNode.jobId().isPresent() : "no jobId present for collect operation";
+        assert collectNode.jobId() != null : "no jobId present for collect operation";
         String localNodeId = clusterService.state().nodes().localNodeId();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
@@ -276,9 +276,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             return;
         }
 
-        assert collectNode.jobId().isPresent() : "jobId must be set on CollectNode";
+        assert collectNode.jobId() != null : "jobId must be set on CollectNode";
         JobExecutionContext context;
-        context = jobContextService.getContext(collectNode.jobId().get());
+        context = jobContextService.getContext(collectNode.jobId());
         JobCollectContext jobCollectContext;
         try {
             jobCollectContext = context.getSubContext(collectNode.executionNodeId());

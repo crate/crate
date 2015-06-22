@@ -27,17 +27,20 @@ import io.crate.planner.node.PlanNode;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.UUID;
 
 public class CollectAndMerge implements Iterable<PlanNode>, Plan {
 
     private final CollectNode collectNode;
     private final MergeNode localMergeNode;
     private Iterable<PlanNode> nodes;
+    private final UUID id;
 
-    public CollectAndMerge(CollectNode collectNode, MergeNode localMergeNode) {
+    public CollectAndMerge(CollectNode collectNode, MergeNode localMergeNode, UUID id) {
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
         nodes = Arrays.<PlanNode>asList(collectNode, localMergeNode);
+        this.id = id;
     }
 
     public CollectNode collectNode() {
@@ -56,5 +59,10 @@ public class CollectAndMerge implements Iterable<PlanNode>, Plan {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollectAndMerge(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 }

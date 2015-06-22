@@ -51,7 +51,6 @@ public class MergeNode extends AbstractDQLPlanNode {
     private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
-    private UUID jobId;
 
     /**
      * expects sorted input and produces sorted output
@@ -67,12 +66,13 @@ public class MergeNode extends AbstractDQLPlanNode {
         numUpstreams = 0;
     }
 
-    public MergeNode(int executionNodeId, String name, int numUpstreams) {
-        super(executionNodeId, name);
+    public MergeNode(UUID jobId, int executionNodeId, String name, int numUpstreams) {
+        super(jobId, executionNodeId, name);
         this.numUpstreams = numUpstreams;
     }
 
-    public static MergeNode sortedMergeNode(int executionNodeId,
+    public static MergeNode sortedMergeNode(UUID jobId,
+                                            int executionNodeId,
                                             String name,
                                             int numUpstreams,
                                             int[] orderByIndices,
@@ -81,7 +81,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(executionNodeId, name, numUpstreams);
+        MergeNode mergeNode = new MergeNode(jobId, executionNodeId, name, numUpstreams);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
@@ -123,14 +123,6 @@ public class MergeNode extends AbstractDQLPlanNode {
 
     public int numUpstreams() {
         return numUpstreams;
-    }
-
-    public UUID jobId() {
-        return jobId;
-    }
-
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
     }
 
     public List<DataType> inputTypes() {

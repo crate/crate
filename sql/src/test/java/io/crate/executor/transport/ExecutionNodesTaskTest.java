@@ -46,12 +46,13 @@ public class ExecutionNodesTaskTest {
                 .put("node2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
                 .map());
 
-        CollectNode c1 = new CollectNode(1, "c1", twoNodeRouting);
+        UUID jobId = UUID.randomUUID();
+        CollectNode c1 = new CollectNode(jobId, 1, "c1", twoNodeRouting);
 
-        MergeNode m1 = new MergeNode(2, "merge1", 2);
+        MergeNode m1 = new MergeNode(jobId, 2, "merge1", 2);
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergeNode m2 = new MergeNode(3, "merge2", 2);
+        MergeNode m2 = new MergeNode(jobId, 3, "merge2", 2);
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
         Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(new ExecutionNode[]{c1, m1, m2});
@@ -71,12 +72,12 @@ public class ExecutionNodesTaskTest {
 
     @Test
     public void testDetectsHasDirectResponse() throws Exception {
-        CollectNode c1 = new CollectNode(1, "c1");
+        CollectNode c1 = new CollectNode(UUID.randomUUID(), 1, "c1");
         c1.downstreamNodes(Collections.singletonList("foo"));
 
         assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c1}), is(false));
 
-        CollectNode c2 = new CollectNode(1, "c1");
+        CollectNode c2 = new CollectNode(UUID.randomUUID(), 1, "c1");
         c2.downstreamNodes(Collections.singletonList(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
         assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c2}), is(true));
     }

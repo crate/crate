@@ -227,7 +227,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             sendResponse(listener, buildSQLActionException(e));
                             return;
                         }
-                        statsTables.jobFinished(jobId, null);
+                        statsTables.jobFinished(plan.jobId(), null);
                         sendResponse(listener, response);
                     }
 

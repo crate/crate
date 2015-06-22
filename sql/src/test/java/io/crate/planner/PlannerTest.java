@@ -1827,6 +1827,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testAllocatedJobSearchContextIds() throws Exception {
         Planner.Context plannerContext = new Planner.Context(clusterService);
         CollectNode collectNode = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
 
@@ -1861,8 +1862,10 @@ public class PlannerTest extends CrateUnitTest {
     public void testExecutionNodeIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(clusterService);
         CollectNode collectNode1 = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
         CollectNode collectNode2 = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
 
         assertThat(collectNode1.executionNodeId(), is(0));
