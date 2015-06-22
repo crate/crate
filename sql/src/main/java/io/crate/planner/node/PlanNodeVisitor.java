@@ -22,8 +22,12 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.Nullable;
 
 public class PlanNodeVisitor<C, R> {
@@ -60,16 +64,12 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    private R visitDDLPlanNode(DDLPlanNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitESDeletePartitionNode(ESDeletePartitionNode node, C context) {
         return visitPlanNode(node, context);
     }
 
     public R visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, C context) {
-        return visitDDLPlanNode(node, context);
+        return visitPlanNode(node, context);
     }
 
     public R visitESCreateTemplateNode(ESCreateTemplateNode node, C context) {
@@ -77,11 +77,11 @@ public class PlanNodeVisitor<C, R> {
     }
 
     public R visitDropTableNode(DropTableNode node, C context) {
-        return visitDDLPlanNode(node, context);
+        return visitPlanNode(node, context);
     }
 
     public R visitCreateTableNode(CreateTableNode node, C context) {
-        return visitDDLPlanNode(node, context);
+        return visitPlanNode(node, context);
     }
 
     public R visitGenericDDLNode(GenericDDLNode node, C context) {

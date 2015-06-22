@@ -30,7 +30,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SymbolBasedUpsertByIdNode extends DMLPlanNode {
+public class SymbolBasedUpsertByIdNode extends RowCountPlanNode {
 
     /**
      * A single update item.

@@ -27,7 +27,7 @@ import io.crate.planner.node.PlanNodeVisitor;
 
 import java.util.List;
 
-public class ESDeleteNode extends DMLPlanNode {
+public class ESDeleteNode extends RowCountPlanNode {
 
     private final int executionNodeId;
     private final TableInfo tableInfo;

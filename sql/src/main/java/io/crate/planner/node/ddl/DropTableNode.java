@@ -23,8 +23,9 @@ package io.crate.planner.node.ddl;
 
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dml.RowCountPlanNode;
 
-public class DropTableNode extends DDLPlanNode {
+public class DropTableNode extends RowCountPlanNode {
 
     private final TableInfo table;
     private final boolean ifExists;

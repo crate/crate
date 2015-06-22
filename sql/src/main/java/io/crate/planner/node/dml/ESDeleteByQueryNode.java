@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class ESDeleteByQueryNode extends DMLPlanNode {
+public class ESDeleteByQueryNode extends RowCountPlanNode {
 
     private static final char COMMA = ',';
 

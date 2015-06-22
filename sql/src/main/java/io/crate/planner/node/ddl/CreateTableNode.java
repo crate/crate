@@ -24,12 +24,13 @@ package io.crate.planner.node.ddl;
 import com.google.common.base.Optional;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dml.RowCountPlanNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class CreateTableNode extends DDLPlanNode {
+public class CreateTableNode extends RowCountPlanNode {
 
     private final TableIdent tableIdent;
     private boolean ifNotExists;

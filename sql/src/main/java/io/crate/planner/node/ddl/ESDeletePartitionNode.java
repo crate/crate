@@ -22,10 +22,11 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dml.RowCountPlanNode;
 
 import javax.annotation.Nonnull;
 
-public class ESDeletePartitionNode extends DDLPlanNode {
+public class ESDeletePartitionNode extends RowCountPlanNode {
 
     private final String[] indices;
 

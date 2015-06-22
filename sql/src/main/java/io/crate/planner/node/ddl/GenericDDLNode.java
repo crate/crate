@@ -23,8 +23,9 @@ package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.node.dml.RowCountPlanNode;
 
-public class GenericDDLNode extends DDLPlanNode {
+public class GenericDDLNode extends RowCountPlanNode {
 
     private AnalyzedStatement analyzedStatement;
 
