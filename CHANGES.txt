@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.13.3 which includes following changes:
+
+    - fix: automatically refresh load history chart on overview page
+
  - Fixed an issue that caused `sys.shards` queries to omit unassigned shards
    if the query was made against a node that has `node.data` set to false
 
