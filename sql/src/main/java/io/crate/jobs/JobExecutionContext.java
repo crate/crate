@@ -130,8 +130,8 @@ public class JobExecutionContext {
         }
         for (Integer id : reverseContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
-            if (subContext == null) {
-                continue; // got killed before start was called
+            if (subContext == null || closed.get()) {
+                break; // got killed before start was called
             }
             statsTables.operationStarted(id, jobId, subContext.name());
             subContext.start();
