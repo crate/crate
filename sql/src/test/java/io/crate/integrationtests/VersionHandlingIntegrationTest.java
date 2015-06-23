@@ -165,6 +165,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
+        ensureYellow();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
         execute("select _version from test where col2 = 'hello' and _version = 1");
@@ -173,6 +174,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectWhereVersionWithPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
+        ensureYellow();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select _version from test where col1 = 1 and _version = 50");
@@ -181,6 +183,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectGroupByVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
+        ensureYellow();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         execute("select col2 from test where col1 = 1 and _version = 50 group by col2");
