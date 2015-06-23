@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: load Crate plugins only once on node start
+
  - Fixed an issue that caused nodes fail to start if `node.client` was set to true.
 
  - Fix: Fixed a bug where some searchers were not properly closed
