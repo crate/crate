@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: load Crate plugins only once on node start
+
  - Updated crate-admin to 0.13.3 which includes following changes:
 
     - fix: automatically refresh load history chart on overview page

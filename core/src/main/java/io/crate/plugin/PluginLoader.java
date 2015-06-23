@@ -49,22 +49,12 @@ import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 public class PluginLoader {
 
     private static final String RESOURCE_PATH = "META-INF/services/";
-    private static Map<Settings, PluginLoader> INSTANCES = new HashMap<>();
 
     private final Settings settings;
     private final Environment environment;
     private final List<Plugin> plugins;
     private final ImmutableMap<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
-
-    public static synchronized PluginLoader getInstance(Settings settings) {
-        PluginLoader instance = INSTANCES.get(settings);
-        if (instance == null) {
-            instance = new PluginLoader(settings);
-            INSTANCES.put(settings, instance);
-        }
-        return instance;
-    }
 
     public PluginLoader(Settings settings) {
         this.settings = settings;
