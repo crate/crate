@@ -280,7 +280,7 @@ public class PlannerTest extends CrateUnitTest {
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)));
+                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     @Test
@@ -1827,11 +1827,10 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode = new CollectNode(
                 UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect", shardRouting);
-
         int shardNum = collectNode.routing().numShards();
 
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
@@ -1863,14 +1862,13 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionNodeIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode1 = new CollectNode(
                 UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
         CollectNode collectNode2 = new CollectNode(
                 UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
-
         assertThat(collectNode1.executionNodeId(), is(0));
         assertThat(collectNode2.executionNodeId(), is(1));
     }
