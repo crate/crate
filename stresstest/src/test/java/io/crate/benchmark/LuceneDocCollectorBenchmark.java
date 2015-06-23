@@ -180,13 +180,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
-        CollectNode node = new CollectNode(0, "collect", null, input, ImmutableList.<Projection>of());
+        UUID jobId = UUID.randomUUID();
+        CollectNode node = new CollectNode(jobId, 0, "collect", null, input, ImmutableList.<Projection>of());
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.limit(limit);
         node.whereClause(WhereClause.MATCH_ALL);
-        UUID jobId = UUID.randomUUID();
-        node.jobId(jobId);
         node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
