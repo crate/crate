@@ -436,11 +436,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                     jobSearchContextId
                             );
                             shardCollectors.add(collector);
-                        } catch (IndexShardMissingException e) {
-                            throw new UnhandledServerException(
-                                    String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
-                                            shardId, entry.getKey()), e);
-                        } catch (CancellationException e) {
+                        } catch (IndexShardMissingException | CancellationException e) {
                             throw e;
                         } catch (Exception e) {
                             LOGGER.error("Error while getting collector", e);

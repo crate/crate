@@ -281,7 +281,7 @@ public class PlannerTest extends CrateUnitTest {
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)));
+                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     @Test
@@ -1828,9 +1828,9 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode = new CollectNode(
-                UUID.randomUUID(),
+                plannerContext.jobId(),
                 plannerContext.nextExecutionNodeId(), "collect", shardRouting,
                 ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
         int shardNum = collectNode.routing().numShards();
@@ -1864,14 +1864,14 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionNodeIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode1 = new CollectNode(
-                UUID.randomUUID(),
+                plannerContext.jobId(),
                 plannerContext.nextExecutionNodeId(), "collect1", shardRouting,
                 ImmutableList.<Symbol>of(),
                 ImmutableList.<Projection>of());
         CollectNode collectNode2 = new CollectNode(
-                UUID.randomUUID(),
+                plannerContext.jobId(),
                 plannerContext.nextExecutionNodeId(), "collect2", shardRouting,
                 ImmutableList.<Symbol>of(),
                 ImmutableList.<Projection>of());

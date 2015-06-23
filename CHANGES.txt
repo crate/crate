@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: If a query would fail because a shard starts to relocate during
+   query time, the query is retried now
+
  - Updated crate-admin to 0.13.4 which includes following changes:
 
     - fix: approximate number of underreplicated and missing records per table was
