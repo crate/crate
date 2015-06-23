@@ -44,18 +44,19 @@ import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.inject.Modules.createModule;
 
-public class CrateCoreModule extends AbstractModule implements SpawnModules, PreProcessModule {
+public class CrateCoreModule extends AbstractModule implements PreProcessModule {
 
     private final ESLogger logger;
     private final CrateComponentLoader crateComponentLoader;
-    private final PluginLoader pluginLoader;
     private final Settings settings;
+    private final PluginLoader pluginLoader;
 
-    public CrateCoreModule(Settings settings) {
+
+    public CrateCoreModule(Settings settings, CrateComponentLoader crateComponentLoader, PluginLoader pluginLoader) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.settings = settings;
-        crateComponentLoader = CrateComponentLoader.getInstance(settings);
-        pluginLoader = PluginLoader.getInstance(settings);
+        this.crateComponentLoader = crateComponentLoader;
+        this.pluginLoader = pluginLoader;
     }
 
     @Override
@@ -64,7 +65,6 @@ public class CrateCoreModule extends AbstractModule implements SpawnModules, Pre
         logger.info("configuring crate. version: {}", version);
 
         bind(CrateComponentLoader.class).toInstance(crateComponentLoader);
-        bind(PluginLoader.class).toInstance(pluginLoader);
 
         /**
          * This is a rather hacky method to overwrite the handler for "/"
@@ -95,19 +95,6 @@ public class CrateCoreModule extends AbstractModule implements SpawnModules, Pre
     public void processModule(Module module) {
         crateComponentLoader.processModule(module);
         pluginLoader.processModule(module);
-    }
-
-    @Override
-    public Iterable<? extends Module> spawnModules() {
-        List<Module> modules = new ArrayList<>();
-        Collection<Class<? extends Module>> moduleClasses = crateComponentLoader.modules();
-        moduleClasses.addAll(pluginLoader.modules());
-        for (Class<? extends Module> moduleClass : moduleClasses) {
-            modules.add(createModule(moduleClass, settings));
-        }
-        modules.addAll(crateComponentLoader.modules(settings));
-        modules.addAll(pluginLoader.modules(settings));
-        return modules;
     }
 
     private class RestMainActionListener implements TypeListener {
