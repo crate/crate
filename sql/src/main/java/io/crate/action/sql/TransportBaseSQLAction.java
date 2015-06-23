@@ -52,6 +52,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -76,6 +77,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
+    private static final int MAX_SHARD_MISSING_RETRIES = 3;
 
 
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
@@ -175,6 +177,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     @Override
     protected void doExecute(TRequest request, ActionListener<TResponse> listener) {
         logger.debug("{}", request);
+        UUID jobId = UUID.randomUUID();
+        statsTables.jobStarted(jobId, request.stmt());
+        doExecute(request, listener, 1, jobId);
+    }
+
+    private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId) {
         statsTables.activeRequestsInc();
         if (disabled) {
             sendResponse(listener, new NodeDisconnectedException(clusterService.localNode(), actionName));
@@ -183,7 +191,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         try {
             Statement statement = statementCache.get(request.stmt());
             Analysis analysis = getAnalysis(statement, request);
-            processAnalysis(analysis, request, listener);
+            processAnalysis(analysis, request, listener, attempt, jobId);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             sendResponse(listener, buildSQLActionException(e));
@@ -200,22 +208,19 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         statsTables.activeRequestsDec();
     }
 
-    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener) {
-        final Plan plan = planner.plan(analysis);
+    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId) {
+        final Plan plan = planner.plan(analysis, jobId);
         tracePlan(plan);
-        executePlan(analysis, plan, listener, request);
+        executePlan(analysis, plan, listener, request, attempt);
     }
 
     private void executePlan(final Analysis analysis,
                              final Plan plan,
                              final ActionListener<TResponse> listener,
-                             final TRequest request) {
+                             final TRequest request,
+                             final int attempt) {
         Executor executor = executorProvider.get();
         Job job = executor.newJob(plan);
-
-        final UUID jobId = job.id();
-        assert jobId != null;
-        statsTables.jobStarted(jobId, request.stmt());
         List<ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
         Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
                     @Override
@@ -233,8 +238,16 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
                     @Override
                     public void onFailure(@Nonnull Throwable t) {
-                        logger.debug("Error processing SQLRequest", t);
-                        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+                        String message;
+                        if (Exceptions.unwrap(t) instanceof IndexShardMissingException && attempt <= MAX_SHARD_MISSING_RETRIES) {
+                            logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
+                            doExecute(request, listener, attempt + 1, plan.jobId());
+                            return;
+                        } else {
+                            message = Exceptions.messageOf(t);
+                            logger.debug("Error processing SQLRequest", t);
+                        }
+                        statsTables.jobFinished(plan.jobId(), message);
                         sendResponse(listener, buildSQLActionException(t));
                     }
                 }

@@ -125,7 +125,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     private Plan analyzeAndPlan(String stmt) {
         Analysis analysis = analyze(stmt);
         Planner planner = cluster().getInstance(Planner.class);
-        return planner.plan(analysis);
+        return planner.plan(analysis, UUID.randomUUID());
     }
 
     private Analysis analyze(String stmt) {
@@ -165,7 +165,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
-        Planner.Context plannerContext = new Planner.Context(clusterService());
+        Planner.Context plannerContext = new Planner.Context(clusterService(), UUID.randomUUID());
         CollectNode collectNode = createCollectNode(plannerContext, false);
 
         List<Bucket> results = new ArrayList<>();
@@ -210,7 +210,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         Analysis analysis = analyze("select id, name from characters");
         QueryThenFetchConsumer queryThenFetchConsumer = cluster().getInstance(QueryThenFetchConsumer.class);
-        Planner.Context plannerContext = new Planner.Context(clusterService());
+        Planner.Context plannerContext = new Planner.Context(clusterService(), UUID.randomUUID());
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
         queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
 

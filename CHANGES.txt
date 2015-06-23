@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: If a query would fail because a shard starts to relocate during
+   query time, the query is retried now
+
  - Fixed issue that could lead to deadlock and therefore freezing of a node
    when there where too many queries asking for routing information in parallel.
 

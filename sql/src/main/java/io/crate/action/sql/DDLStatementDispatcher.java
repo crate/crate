@@ -64,7 +64,6 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -79,10 +78,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -91,7 +87,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Its methods return a future returning a Long containing the response rowCount.
  * If the future returns <code>null</code>, no row count shall be created.
  */
-public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, ListenableFuture<Long>> {
+public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, ListenableFuture<Long>> {
 
     private final ClusterService clusterService;
     private final BlobIndices blobIndices;
@@ -113,13 +109,13 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     @Override
-    protected ListenableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Void context) {
+    protected ListenableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UUID jobId) {
         throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analyzedStatement));
     }
 
    @Override
     public ListenableFuture<Long> visitCreateBlobTableStatement(
-           CreateBlobTableAnalyzedStatement analysis, Void context) {
+           CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
@@ -130,10 +126,10 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     @Override
-    public ListenableFuture<Long> visitAddColumnStatement(final AddColumnAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAddColumnStatement(final AddColumnAnalyzedStatement analysis, UUID jobId) {
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys()) {
-            Plan plan = genCountStarPlan(analysis.table());
+            Plan plan = genCountStarPlan(analysis.table(), jobId);
             Job job = executorProvider.get().newJob(plan);
             ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executorProvider.get().execute(job));
             Futures.addCallback(resultFuture, new FutureCallback<List<TaskResult>>() {
@@ -161,7 +157,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         return result;
     }
 
-    private Plan genCountStarPlan(TableInfo table) {
+    private Plan genCountStarPlan(TableInfo table, UUID jobId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.where(WhereClause.MATCH_ALL);
         Function countFunction = new Function(
@@ -176,7 +172,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                 querySpec
                 );
         SelectAnalyzedStatement statement = new SelectAnalyzedStatement(queriedTable);
-        return planner.process(statement, new Planner.Context(clusterService));
+        return planner.process(statement, new Planner.Context(clusterService, jobId));
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
@@ -290,14 +286,14 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, UUID jobId) {
         return wrapRowCountFuture(
                 blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
     }
 
     @Override
-    public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }
 
@@ -318,7 +314,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     @Override
-    public ListenableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, UUID jobId) {
         String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
         if (analysis.table().schemaInfo().systemSchema() || indexNames.length == 0) {
             // shortcut when refreshing on system tables
@@ -359,7 +355,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, UUID jobId) {
         TableInfo table = analysis.table();
         if (table.isAlias() && !table.isPartitioned()) {
             return Futures.immediateFailedFuture(new AlterTableAliasException(table.ident().fqn()));

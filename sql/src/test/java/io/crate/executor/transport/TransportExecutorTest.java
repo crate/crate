@@ -88,9 +88,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
-        Plan plan = new IterablePlan(UUID.randomUUID(), node);
+        Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
@@ -103,9 +103,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionNodeId());
-        Plan plan = new IterablePlan(UUID.randomUUID(), node);
+        Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
@@ -116,9 +116,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testESMultiGet() throws Exception {
         setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionNodeId());
-        Plan plan = new IterablePlan(UUID.randomUUID(), node);
+        Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -135,11 +135,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
 
-        UUID jobId = UUID.randomUUID();
         CollectNode collectNode = PlanNodeBuilder.collect(
-                jobId,
+                ctx.jobId(),
                 characters,
                 ctx,
                 WhereClause.MATCH_ALL,
@@ -153,12 +152,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         FetchProjection fetchProjection = getFetchProjection((DocTableInfo) characters, (List<Symbol>) collectSymbols, (List<Symbol>) outputSymbols, (CollectNode) collectNode, ctx);
 
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(
-                jobId,
+                ctx.jobId(),
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -186,11 +185,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
-        Planner.Context ctx = new Planner.Context(clusterService());
-
-        UUID jobId = UUID.randomUUID();
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         CollectNode collectNode = PlanNodeBuilder.collect(
-                jobId,
+                ctx.jobId(),
                 characters,
                 ctx,
                 new WhereClause(whereClause),
@@ -204,12 +201,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
 
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(
-                jobId,
+                ctx.jobId(),
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -252,11 +249,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
 
-        UUID jobId = UUID.randomUUID();
         CollectNode collectNode = PlanNodeBuilder.collect(
-                jobId,
+                ctx.jobId(),
                 characters,
                 ctx,
                 WhereClause.MATCH_ALL,
@@ -271,7 +267,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
 
         MergeNode localMergeNode = PlanNodeBuilder.sortedLocalMerge(
-                jobId,
+                ctx.jobId(),
                 ImmutableList.<Projection>of(fetchProjection),
                 orderBy,
                 collectSymbols,
@@ -279,7 +275,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -328,11 +324,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
         ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
 
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         UUID jobId = UUID.randomUUID();
         CollectNode collectNode = PlanNodeBuilder.collect(
-                jobId,
+                ctx.jobId(),
                 searchf,
                 ctx,
                 new WhereClause(whereClause),
@@ -367,7 +363,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testQTFTaskPartitioned() throws Exception {
         setup.setUpPartitionedTableWithName();
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
 
         ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
@@ -375,7 +371,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         UUID jobId = UUID.randomUUID();
         CollectNode collectNode = PlanNodeBuilder.collect(
-                jobId,
+                ctx.jobId(),
                 parted,
                 ctx,
                 WhereClause.MATCH_ALL,
@@ -440,7 +436,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(),
                 false,
@@ -449,7 +445,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new Reference[]{idRef, nameRef});
         updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
 
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
+        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
@@ -461,7 +457,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "99", ctx.nextExecutionNodeId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = new IterablePlan(ctx.jobId(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -479,7 +475,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(),
                 true,
@@ -490,7 +486,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
         updateNode.add(partitionName.stringValue(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
+        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
@@ -527,7 +523,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(),
                 false,
@@ -538,7 +534,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
         updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
 
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
+        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
 
@@ -566,11 +562,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
+        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
@@ -582,7 +578,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionNodeId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = new IterablePlan(ctx.jobId(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -596,7 +592,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(),
                 false,
@@ -616,7 +612,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         ESGetNode getNode = newGetNode("characters", outputs, "5", ctx.nextExecutionNodeId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = new IterablePlan(ctx.jobId(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -630,7 +626,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
-        Planner.Context ctx = new Planner.Context(clusterService());
+        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
         SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
                 ctx.nextExecutionNodeId(),
                 false,
@@ -638,7 +634,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new String[]{femaleRef.ident().columnIdent().fqn()},
                 new Reference[]{idRef, nameRef, femaleRef});
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
+        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -649,7 +645,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionNodeId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = new IterablePlan(ctx.jobId(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
