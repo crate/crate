@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -30,26 +29,16 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -67,17 +56,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
-
-    private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -589,7 +573,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{1395874800123L});
+        execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{ 1395874800123L });
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
@@ -630,7 +614,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("update quotes set quote='now panic' where not timestamp = ? and quote=?",
-                new Object[]{1395874800000L, "Don't panic"});
+                new Object[]{ 1395874800000L, "Don't panic" });
         refresh();
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount(), is(1L));
@@ -696,8 +680,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "where table_name='parted' and schema_name='doc'" +
                 "order by partition_ident");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
-        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
+        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
+        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
@@ -728,8 +712,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "where table_name='quotes' and schema_name='doc'" +
                 "order by partition_ident");
         assertThat(response.rowCount(), is(3L));
-        assertThat((String) response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395874800000"))).ident()));
-        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
+        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395874800000"))).ident()));
+        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
         assertThat((String)response.rows()[2][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1396303200000"))).ident()));
 
         execute("delete from quotes where quote = 'Don''t panic'");
@@ -1770,8 +1754,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         executeWithRetryOnUnknownColumn("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL\n" +
-                        "ciao\n" +
-                        "hello\n"));
+                "ciao\n" +
+                "hello\n"));
 
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls last");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
@@ -1835,7 +1819,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         executeWithRetryOnUnknownColumn("select sessionid from event group by sessionid order by sessionid");
         assertThat(response.rows().length, Is.is(2));
-        assertThat((String) response.rows()[0][0], Is.is("hello"));
+        assertThat((String)response.rows()[0][0], Is.is("hello"));
         assertThat(response.rows()[1][0], Is.is(nullValue()));
     }
 
@@ -1892,107 +1876,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         // used to throw IndexMissingException if the new cluster state after the delete wasn't propagated to all nodes
         // (on about 2 runs in 100 iterations)
         execute("alter table t set (number_of_replicas = 0)");
-    }
-
-    @Test
-    @Repeat(iterations = 100)
-    public void testSelectWhileShardsAreRelocating() throws Throwable {
-        execute("create table t (name string, p string) " +
-                "clustered into 2 shards " +
-                "partitioned by (p) with (number_of_replicas = 0)");
-        ensureYellow();
-
-        execute("insert into t (name, p) values (?, ?)", new Object[][] {
-                new Object[] { "Marvin", "a" },
-                new Object[] { "Trillian", "a" },
-        });
-        execute("refresh table t");
-        execute("set global stats.enabled=true");
-
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
-        final CountDownLatch selects = new CountDownLatch(100);
-
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (selects.getCount() > 0) {
-                    try {
-                        execute("select * from t");
-                    } catch (Throwable t) {
-                        // The failed job should have three started operations
-                        SQLResponse res = execute("select id from sys.jobs_log where error is not null order by started desc limit 1");
-                        String id = (String) res.rows()[0][0];
-                        res = execute("select count(*) from sys.operations_log where name=? and job_id = ?", new Object[]{"collect", id});
-                        if ((long)res.rows()[0][0] < 3) {
-                            // set the error if there where less than three attempts
-                            lastThrowable.set(t);
-                        }
-                    }
-                    selects.countDown();
-                }
-            }
-        });
-        t.start();
-
-        PartitionName partitionName = new PartitionName("t", Collections.singletonList(new BytesRef("a")));
-        final String indexName = partitionName.stringValue();
-
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        List<String> nodeIds = new ArrayList<>(2);
-        for (DiscoveryNode node : nodes) {
-            if (node.dataNode()) {
-                nodeIds.add(node.id());
-            }
-        }
-        final Map<String, String> nodeSwap = new HashMap<>(2);
-        nodeSwap.put(nodeIds.get(0), nodeIds.get(1));
-        nodeSwap.put(nodeIds.get(1), nodeIds.get(0));
-
-        final CountDownLatch relocations = new CountDownLatch(10);
-        Thread relocatingThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (relocations.getCount() > 0) {
-                    ClusterStateResponse clusterStateResponse = admin().cluster().prepareState().setIndices(indexName).execute().actionGet();
-                    List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
-
-                    ClusterRerouteRequestBuilder clusterRerouteRequestBuilder = admin().cluster().prepareReroute();
-                    int numMoves = 0;
-                    for (ShardRouting shardRouting : shardRoutings) {
-                        if (shardRouting.currentNodeId() == null) {
-                            continue;
-                        }
-                        if (shardRouting.state() != ShardRoutingState.STARTED) {
-                            continue;
-                        }
-                        String toNode = nodeSwap.get(shardRouting.currentNodeId());
-                        clusterRerouteRequestBuilder.add(new MoveAllocationCommand(
-                                shardRouting.shardId(),
-                                shardRouting.currentNodeId(),
-                                toNode));
-                        numMoves++;
-                    }
-
-                    if (numMoves > 0) {
-                        clusterRerouteRequestBuilder.execute().actionGet();
-                        client().admin().cluster().prepareHealth()
-                                .setWaitForEvents(Priority.LANGUID)
-                                .setWaitForRelocatingShards(0)
-                                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
-                        relocations.countDown();
-                    }
-                }
-            }
-        });
-        relocatingThread.start();
-        relocations.await();
-        selects.await();
-
-        Throwable throwable = lastThrowable.get();
-        if (throwable != null) {
-            throw throwable;
-        }
     }
 
     @After
