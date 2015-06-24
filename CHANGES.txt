@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: selecting error from sys.jobs_log caused a NPE in some cases
+
  - Fix: If a query would fail because a shard starts to relocate during
    query time, the query is retried now
 
