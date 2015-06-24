@@ -949,8 +949,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (quote string, " +
                 "index quote_ft using fulltext(quote)) with (number_of_replicas = 0)");
         ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-                .actionGet().isExists());
 
         execute("insert into quotes values (?), (?)",
                 new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
@@ -960,6 +958,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 0.98");
+        assertEquals(1L, response.rowCount());
+        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
+
+        execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
+                "and \"_score\" >= 0.98 order by quote ");
         assertEquals(1L, response.rowCount());
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
     }
