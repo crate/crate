@@ -684,7 +684,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 ") clustered into 1 shards");
         ensureYellow();
         SQLRequest request = new SQLRequest("select race from characters where details_ignored['lol']='funky' group by race");
-        SQLResponse response = sqlExecutor.execute(request).actionGet(1000);
+        SQLResponse response = sqlExecutor.exec(request);
         assertEquals(0, response.rowCount());
     }
 
