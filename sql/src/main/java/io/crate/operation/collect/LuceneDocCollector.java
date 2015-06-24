@@ -210,9 +210,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         visitorEnabled = fieldsVisitor.required();
         shardContext.acquireContext();
         Query query = searchContext.query();
-        if (query == null) {
-            query = new MatchAllDocsQuery();
-        }
+        assert query != null : "query must not be null";
 
         // do the lucene search
         try {
