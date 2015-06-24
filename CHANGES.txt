@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE that was thrown if a SELECT statement contained `_score` in the
+   result columns and an ORDER BY clause.
+
  - Fix: selecting error from sys.jobs_log caused a NPE in some cases
 
  - Fix: load Crate plugins only once on node start
