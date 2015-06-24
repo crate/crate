@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: selecting error from sys.jobs_log caused a NPE in some cases
+
  - Updated crate-admin to 0.13.4 which includes following changes:
 
     - fix: approximate number of underreplicated and missing records per table was

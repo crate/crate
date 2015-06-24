@@ -64,10 +64,11 @@ public abstract class SysJobLogExpression<T> extends RowContextCollectorExpressi
             .add(new SysJobLogExpression<BytesRef>(ERROR) {
                 @Override
                 public BytesRef value() {
-                    if (row.errorMessage() == null) {
+                    String err = row.errorMessage();
+                    if (err == null) {
                         return null;
                     }
-                    return new BytesRef(row.errorMessage());
+                    return new BytesRef(err);
                 }
             })
             .build();
