@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: selecting error from sys.jobs_log caused a NPE in some cases
+
  - Fix: load Crate plugins only once on node start
 
  - Fixed an issue that caused nodes fail to start if `node.client` was set to true.
