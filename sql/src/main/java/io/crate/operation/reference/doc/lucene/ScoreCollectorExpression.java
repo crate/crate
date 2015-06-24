@@ -45,8 +45,15 @@ public class ScoreCollectorExpression extends
         return score;
     }
 
+    public void score(float score) {
+        this.score = score;
+    }
+
     @Override
     public void setNextDocId(int doc) {
+        if (scorer == null) {
+            return;
+        }
         try {
             score = scorer.score();
         } catch (IOException e) {
