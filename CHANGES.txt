@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Querying from information_schema while a table is created could
+   cause an error
+
  - only log amazon s3 client stuff on level ``WARN``
 
  - log failing uri on COPY FROM
