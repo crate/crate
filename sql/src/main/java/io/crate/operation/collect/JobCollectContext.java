@@ -58,7 +58,6 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     private final IntObjectOpenHashMap<JobQueryShardContext> queryContexts = new IntObjectOpenHashMap<>();
     private final IntObjectOpenHashMap<JobFetchShardContext> fetchContexts = new IntObjectOpenHashMap<>();
-    private final ConcurrentMap<ShardId, EngineSearcherDelegate> shardsSearcherMap = new ConcurrentHashMap<>();
     private final AtomicInteger activeQueryContexts = new AtomicInteger(0);
     private final AtomicInteger activeFetchContexts = new AtomicInteger(0);
     private final Object subContextLock = new Object();
@@ -239,18 +238,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
      * If none is found, create new one with new acquired {@link Engine.Searcher}.
      */
     protected EngineSearcherDelegate acquireSearcher(IndexShard indexShard) {
-        EngineSearcherDelegate engineSearcherDelegate;
-        for (;;) {
-            engineSearcherDelegate = shardsSearcherMap.get(indexShard.shardId());
-            if (engineSearcherDelegate == null) {
-                engineSearcherDelegate = new EngineSearcherDelegate(acquireNewSearcher(indexShard));
-                if (shardsSearcherMap.putIfAbsent(indexShard.shardId(), engineSearcherDelegate) == null) {
-                    return engineSearcherDelegate;
-                }
-            } else {
-                return engineSearcherDelegate;
-            }
-        }
+        return new EngineSearcherDelegate(acquireNewSearcher(indexShard));
     }
 
     /**
