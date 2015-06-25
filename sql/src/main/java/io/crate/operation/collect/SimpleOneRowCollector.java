@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
@@ -33,11 +32,11 @@ import java.util.Set;
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements CrateCollector {
+public class SimpleOneRowCollector implements CrateCollector {
 
     private final Set<CollectExpression<?>> collectExpressions;
     private final InputRow row;
-    private RowDownstreamHandle downstream;
+    private final RowDownstreamHandle downstream;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
                                  Set<CollectExpression<?>> collectExpressions,
@@ -48,29 +47,13 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     }
 
     @Override
-    public boolean startCollect(JobCollectContext jobCollectContext) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
-            collectExpression.startCollect();
-        }
-        return true;
-    }
-
-    @Override
-    public boolean processRow() {
-        downstream.setNextRow(row);
-        return false;
-    }
-
-    @Override
-    public Row finishCollect() {
-        downstream.finish();
-        return row;
-    }
-
-    @Override
     public void doCollect(JobCollectContext jobCollectContext) {
         try {
-            collect(jobCollectContext);
+            for (CollectExpression<?> collectExpression : collectExpressions) {
+                collectExpression.startCollect();
+            }
+            downstream.setNextRow(row);
+            downstream.finish();
         } catch (Throwable t) {
             downstream.fail(t);
         }
