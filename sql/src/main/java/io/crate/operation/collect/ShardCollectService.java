@@ -47,6 +47,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -120,7 +121,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(JobCollectContext)} )} to start
+     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
@@ -169,46 +170,34 @@ public class ShardCollectService {
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId) throws Exception {
-        final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
-        final IndexShard indexShard = indexService.shardSafe(shardId.id());
-
-        JobQueryShardContext context = new JobQueryShardContext(
-                indexShard,
-                jobSearchContextId,
-                collectNode.keepContextForFetcher(),
-                new Function<JobQueryShardContext, LuceneDocCollector>() {
-
-                    @Nullable
-                    @Override
-                    public LuceneDocCollector apply(JobQueryShardContext shardContext) {
-                        CrateSearchContext localContext = null;
-                        try {
-                            localContext = searchContextFactory.createContext(
-                                    jobSearchContextId,
-                                    indexShard,
-                                    shardContext.engineSearcher(),
-                                    collectNode.whereClause()
-                            );
-                            shardContext.searchContext(localContext);
-                            return new LuceneDocCollector(
-                                    docCtx.topLevelInputs(),
-                                    docCtx.docLevelExpressions(),
-                                    collectNode,
-                                    functions,
-                                    downstream,
-                                    shardContext);
-                        } catch (Throwable t) {
-                            if (localContext != null) {
-                                localContext.close();
-                            }
-                            throw Throwables.propagate(t);
-                        }
-                    }
-                }
-        );
-
-        jobCollectContext.addContext(jobSearchContextId, context);
-
-        return context.collector();
+        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
+        CrateSearchContext searchContext = null;
+        try {
+             searchContext = searchContextFactory.createContext(
+                    jobSearchContextId,
+                    indexShard,
+                    searcher,
+                    collectNode.whereClause()
+            );
+            jobCollectContext.addContext(jobSearchContextId, searchContext);
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
+            return new LuceneDocCollector(
+                    searchContext,
+                    docCtx.topLevelInputs(),
+                    docCtx.docLevelExpressions(),
+                    collectNode,
+                    functions,
+                    downstream,
+                    jobCollectContext.ramAccountingContext()
+            );
+        } catch (Throwable t) {
+            if (searchContext == null) {
+                searcher.close();
+            } else {
+                searchContext.close(); // will close searcher too
+            }
+            throw t;
+        }
     }
 }

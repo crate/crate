@@ -25,5 +25,6 @@ import io.crate.operation.RowUpstream;
 
 public interface CrateCollector extends RowUpstream {
 
-    void doCollect(JobCollectContext jobCollectContext);
+    void doCollect();
+    void kill();
 }

@@ -27,8 +27,6 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -55,7 +53,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;

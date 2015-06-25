@@ -28,11 +28,11 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 public class BlobDocCollector implements CrateCollector {
 
@@ -42,6 +42,7 @@ public class BlobDocCollector implements CrateCollector {
     private final Input<Boolean> condition;
 
     private RowDownstreamHandle downstream;
+    private volatile boolean killed;
 
     public BlobDocCollector(
             BlobShard blobShard,
@@ -57,8 +58,8 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
-        BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor(jobCollectContext);
+    public void doCollect() {
+        BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);
             downstream.finish();
@@ -67,18 +68,20 @@ public class BlobDocCollector implements CrateCollector {
         }
     }
 
+    @Override
+    public void kill() {
+        killed = true;
+    }
+
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
         private final InputRow row = new InputRow(inputs);
-        private JobCollectContext jobCollectContext;
-
-        public FileListingsFileVisitor(JobCollectContext jobCollectContext) {
-            this.jobCollectContext = jobCollectContext;
-        }
 
         @Override
         public boolean visit(File file) throws IOException {
-            jobCollectContext.interruptIfKilled();
+            if (killed) {
+                throw new CancellationException();
+            }
             for (BlobCollectorExpression expression : expressions) {
                 expression.setNextBlob(file);
             }

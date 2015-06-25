@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;

@@ -40,6 +40,7 @@ import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -95,6 +96,7 @@ public class SystemCollectService implements CollectService {
         private final RowDownstreamHandle downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
+        private volatile boolean killed = false;
 
         protected SystemTableCollector(List<Input<?>> inputs,
                                        List<RowContextCollectorExpression<R, ?>> collectorExpressions,
@@ -110,10 +112,13 @@ public class SystemCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(JobCollectContext jobCollectContext) {
+        public void doCollect() {
             try {
                 for (R row : rows) {
-                    jobCollectContext.interruptIfKilled();
+                    if (killed) {
+                        downstream.fail(new CancellationException());
+                        return;
+                    }
                     for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }
@@ -132,6 +137,11 @@ public class SystemCollectService implements CollectService {
             } catch (Throwable t) {
                 downstream.fail(t);
             }
+        }
+
+        @Override
+        public void kill() {
+            killed = true;
         }
     }
 }

@@ -28,6 +28,7 @@ import io.crate.operation.RowDownstreamHandle;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
@@ -37,6 +38,7 @@ public class SimpleOneRowCollector implements CrateCollector {
     private final Set<CollectExpression<?>> collectExpressions;
     private final InputRow row;
     private final RowDownstreamHandle downstream;
+    private volatile boolean killed = false;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
                                  Set<CollectExpression<?>> collectExpressions,
@@ -47,15 +49,24 @@ public class SimpleOneRowCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
+    public void doCollect() {
         try {
             for (CollectExpression<?> collectExpression : collectExpressions) {
                 collectExpression.startCollect();
             }
             downstream.setNextRow(row);
+            if (killed) {
+                downstream.fail(new CancellationException());
+                return;
+            }
             downstream.finish();
         } catch (Throwable t) {
             downstream.fail(t);
         }
+    }
+
+    @Override
+    public void kill() {
+        killed = true;
     }
 }
