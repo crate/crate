@@ -74,7 +74,7 @@ public class LuceneDocFetcher implements RowUpstream {
         }
     }
 
-    private void fetch(int position, int doc) throws Exception {
+    private boolean fetch(int position, int doc) throws Exception {
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop fetching because breaker limit was reached
             throw new UnexpectedFetchTerminatedException(
@@ -88,16 +88,11 @@ public class LuceneDocFetcher implements RowUpstream {
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
-        if (!downstream.setNextRow(new PositionalRowDelegate(inputRow, position))) {
-            // no more rows required, we can stop here
-            throw new FetchAbortedException();
-        }
-
+        return downstream.setNextRow(new PositionalRowDelegate(inputRow, position));
     }
 
     public void doFetch(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
-
         shardContext.acquireContext();
 
         CollectorContext collectorContext = new CollectorContext()
@@ -118,11 +113,11 @@ public class LuceneDocFetcher implements RowUpstream {
                 AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
                 int subDoc = docId - subReaderContext.docBase;
                 setNextReader(subReaderContext);
-                fetch(shardDocIdsBucket.position(index), subDoc);
+                boolean needMoreRows = fetch(shardDocIdsBucket.position(index), subDoc);
+                if (!needMoreRows) {
+                    break;
+                }
             }
-            downstream.finish();
-        } catch (FetchAbortedException e) {
-            // yeah, that's ok! :)
             downstream.finish();
         } catch (Exception e) {
             downstream.fail(e);
