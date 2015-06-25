@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.*;
@@ -66,7 +67,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final IntObjectOpenHashMap<String> jobSearchContextIdToNode;
     private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
     private final int bulkSize;
-    private final boolean closeContexts;
     private final RowDelegate collectRowDelegate = new RowDelegate();
     private final RowDelegate fetchRowDelegate = new RowDelegate();
     private final RowDelegate partitionRowDelegate = new RowDelegate();
@@ -80,9 +80,9 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
+    private final Set<String> nodesWithOpenContext;
 
     private int inputCursor = 0;
-    private boolean consumedRows = false;
     private boolean needInputRow = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
@@ -113,6 +113,12 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         this.closeContexts = closeContexts;
         numNodes = executionNodes.size();
         this.executionNodes = new ArrayList<>(executionNodes);
+
+
+        nodesWithOpenContext = new HashSet<>(jobSearchContextIdToNode.values().size());
+        for (ObjectCursor<String> cursor : jobSearchContextIdToNode.values()) {
+            nodesWithOpenContext.add(cursor.value);
+        }
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
@@ -164,7 +170,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (!consumingRows.get()) {
             return false;
         }
-        consumedRows = true;
         collectDocIdExpression.setNextRow(row);
 
         long docId = (Long)collectDocIdExpression.value();
@@ -211,15 +216,12 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 it.remove();
             }
 
+            closeContexts();
+
             // projector registered itself as an upstream to prevent downstream of
             // flushing rows before all requests finished.
             // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
             downstream.finish();
-
-            // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
-            if (!consumedRows) {
-                closeContexts();
-            }
         }
     }
 
@@ -263,6 +265,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         request.jobSearchContextDocIds(nodeBucket.docIds());
         if (bulkSize > NO_BULK_REQUESTS && remainingUpstreams.get() > 0) {
             request.closeContext(false);
+        } else {
+            nodesWithOpenContext.remove(nodeBucket.nodeId);
         }
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
             @Override
@@ -291,16 +295,15 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 if (!downstream.setNextBucket(rows, nodeBucket.nodeIdx)) {
                     consumingRows.set(false);
                 }
-                if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
-                    closeContexts();
-                }
+                remainingRequests.decrementAndGet();
                 downstream.finish();
             }
 
             @Override
             public void onFailure(Throwable e) {
-                consumingRows.set(false);
-                downstream.fail(e);
+                if (consumingRows.compareAndSet(true, false)) {
+                    downstream.fail(e);
+                }
             }
         });
 
@@ -310,22 +313,20 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
      * close job contexts on all affected nodes, just fire & forget, they will timeout anyway
      */
     private void closeContexts() {
-        if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
-            LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
-            for (final String nodeId : executionNodes) {
-                transportCloseContextNodeAction.execute(nodeId,
-                        new NodeCloseContextRequest(jobId, executionNodeId),
-                        new ActionListener<NodeCloseContextResponse>() {
-                    @Override
-                    public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                    }
+        LOGGER.trace("closing job context {} on {} nodes", jobId, nodesWithOpenContext.size());
+        for (final String nodeId : nodesWithOpenContext) {
+            transportCloseContextNodeAction.execute(nodeId,
+                    new NodeCloseContextRequest(jobId, executionNodeId),
+                    new ActionListener<NodeCloseContextResponse>() {
+                @Override
+                public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                    }
-                });
-            }
+                @Override
+                public void onFailure(Throwable e) {
+                    LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                }
+            });
         }
     }
 

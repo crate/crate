@@ -25,28 +25,29 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.*;
-import io.crate.operation.collect.JobFetchShardContext;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 public class LuceneDocFetcher implements RowUpstream {
 
+    private final JobCollectContext jobCollectContext;
     private RamAccountingContext ramAccountingContext;
 
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final RowDownstreamHandle downstream;
     private final NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket;
-    private final JobFetchShardContext shardContext;
     private final CrateSearchContext searchContext;
-    private final boolean closeContext;
     private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
@@ -55,15 +56,14 @@ public class LuceneDocFetcher implements RowUpstream {
                             List<LuceneCollectorExpression<?>> collectorExpressions,
                             RowDownstream downstream,
                             NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket,
-                            JobFetchShardContext shardContext,
-                            boolean closeContext) {
+                            CrateSearchContext searchContext,
+                            JobCollectContext jobCollectContext) {
+        this.searchContext = searchContext;
+        this.jobCollectContext = jobCollectContext;
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.downstream = downstream.registerUpstream(this);
         this.shardDocIdsBucket = shardDocIdsBucket;
-        this.shardContext = shardContext;
-        this.searchContext = shardContext.searchContext();
-        this.closeContext = closeContext;
         this.fieldsVisitor = new LuceneDocCollector.CollectorFieldsVisitor(collectorExpressions.size());
     }
 
@@ -93,8 +93,6 @@ public class LuceneDocFetcher implements RowUpstream {
 
     public long doFetch(RamAccountingContext ramAccountingContext) throws Exception {
         this.ramAccountingContext = ramAccountingContext;
-        shardContext.acquireContext();
-
         CollectorContext collectorContext = new CollectorContext()
                 .visitor(fieldsVisitor)
                 .searchContext(searchContext)
@@ -103,11 +101,14 @@ public class LuceneDocFetcher implements RowUpstream {
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
+        SearchContext.setCurrent(searchContext);
 
         try {
             long rowCount = 0;
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
-                shardContext.interruptIfKilled();
+                if (jobCollectContext.isKilled()) {
+                    throw new CancellationException();
+                }
 
                 int docId = shardDocIdsBucket.docId(index);
                 int readerIndex = ReaderUtil.subIndex(docId, searchContext.searcher().getIndexReader().leaves());
@@ -123,13 +124,13 @@ public class LuceneDocFetcher implements RowUpstream {
             downstream.finish();
             return rowCount;
         } catch (Exception e) {
+            searchContext.close();
             downstream.fail(e);
             throw e;
         } finally {
-            shardContext.releaseContext();
-            if (closeContext) {
-                shardContext.close();
-            }
+            assert SearchContext.current() == searchContext;
+            searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
+            SearchContext.removeCurrent();
         }
     }
 }

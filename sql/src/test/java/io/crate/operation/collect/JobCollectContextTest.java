@@ -62,6 +62,7 @@ import static org.powermock.api.mockito.PowerMockito.*;
 @PrepareForTest(CrateSearchContext.class)
 public class JobCollectContextTest extends CrateUnitTest {
 
+    /*
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
@@ -212,4 +213,5 @@ public class JobCollectContextTest extends CrateUnitTest {
         assertThat(((IntObjectOpenHashMap) queryContexts.get(jobCollectContext)).size(), is(0));
     }
 
+*/
 }

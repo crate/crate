@@ -26,7 +26,6 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.testing.CollectingProjector;

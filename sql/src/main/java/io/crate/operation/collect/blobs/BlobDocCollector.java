@@ -28,7 +28,6 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
 
 import java.io.File;
 import java.io.IOException;
