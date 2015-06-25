@@ -28,6 +28,9 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -46,11 +49,13 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -119,7 +124,7 @@ public class NodeFetchOperation implements RowUpstream {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
+        final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
 
@@ -144,9 +149,23 @@ public class NodeFetchOperation implements RowUpstream {
         }
 
         try {
-            runFetchThreaded(shardFetchers, ramAccountingContext);
+            ListenableFuture<Long> fetchFuture = runFetchThreaded(shardFetchers, ramAccountingContext);
+            Futures.addCallback(fetchFuture, new FutureCallback<Long>() {
+                @Override
+                public void onSuccess(Long result) {
+                    if (result == 0) {
+                        jobCollectContext.close();
+                    }
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    jobCollectContext.closeDueToFailure(t);
+                }
+            });
         } catch (RejectedExecutionException e) {
             rowDownstream.registerUpstream(this).fail(e);
+            jobCollectContext.close();
         }
 
         if (LOGGER.isTraceEnabled()) {
@@ -154,25 +173,27 @@ public class NodeFetchOperation implements RowUpstream {
         }
     }
 
-    private void runFetchThreaded(final List<LuceneDocFetcher> shardFetchers,
-                                  final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
+    private ListenableFuture<Long> runFetchThreaded(final List<LuceneDocFetcher> shardFetchers,
+                                                    final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
 
-        ThreadPools.runWithAvailableThreads(
+        ListenableFuture<List<Long>> threads = ThreadPools.runWithAvailableThreads(
                 executor,
                 poolSize,
-                Lists.transform(shardFetchers, new Function<LuceneDocFetcher, Runnable>() {
-
+                Lists.transform(shardFetchers, new Function<LuceneDocFetcher, Callable<Long>>() {
                     @Nullable
-                    public Runnable apply(final LuceneDocFetcher input) {
-                        return new Runnable() {
+                    @Override
+                    public Callable<Long> apply(final LuceneDocFetcher input) {
+                        return new Callable<Long>() {
                             @Override
-                            public void run() {
-                                input.doFetch(ramAccountingContext);
+                            public Long call() throws Exception {
+                                return input.doFetch(ramAccountingContext);
                             }
                         };
                     }
-                })
+                }),
+                ThreadPools.MERGE_PARTIAL_COUNT_FUNCTION
         );
+        return Futures.transform(threads, ThreadPools.MERGE_PARTIAL_COUNT_FUNCTION);
     }
 
 

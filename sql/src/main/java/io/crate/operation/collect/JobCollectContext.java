@@ -35,7 +35,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -43,8 +42,6 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -135,8 +132,16 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         }
     }
 
+    public void closeDueToFailure(Throwable throwable) {
+        close(throwable);
+    }
+
     @Override
     public void close() {
+        close(null);
+    }
+
+    private void close(@Nullable Throwable throwable) {
         if (closed.compareAndSet(false, true)) { // prevent double release
             synchronized (subContextLock) {
                 if (queryContexts.size() != 0 || fetchContexts.size() != 0) {
@@ -151,7 +156,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                         fetchIterator.next().value.close();
                     }
                 } else {
-                    callContextCallback();
+                    callContextCallback(throwable);
                 }
             }
             ramAccountingContext.close();
@@ -178,7 +183,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                         fetchIterator.next().value.kill();
                     }
                 } else {
-                    callContextCallback();
+                    callContextCallback(new CancellationException());
                 }
             }
             ramAccountingContext.close();
@@ -222,13 +227,13 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         return ramAccountingContext;
     }
 
-    private void callContextCallback() {
+    private void callContextCallback(@Nullable Throwable throwable) {
         if (contextCallbacks.isEmpty()) {
             return;
         }
         if (activeQueryContexts.get() == 0 && activeFetchContexts.get() == 0) {
             for (ContextCallback contextCallback : contextCallbacks) {
-                contextCallback.onClose(null, usedBytesOfQueryPhase);
+                contextCallback.onClose(throwable, usedBytesOfQueryPhase);
             }
         }
     }
@@ -293,7 +298,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
             if (remaining == 0) {
                 usedBytesOfQueryPhase = ramAccountingContext.totalBytes();
                 ramAccountingContext.close();
-                callContextCallback();
+                callContextCallback(error);
             }
         }
     }
@@ -325,9 +330,8 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                 remaining = activeFetchContexts.decrementAndGet();
             }
             if (remaining == 0) {
-                callContextCallback();
+                callContextCallback(error);
             }
         }
     }
-
 }

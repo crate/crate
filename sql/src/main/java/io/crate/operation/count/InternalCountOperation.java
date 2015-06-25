@@ -107,9 +107,9 @@ public class InternalCountOperation implements CountOperation {
             }
         }
         ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
-                executor, corePoolSize, callableList, new MergePartialCountFunction());
+                executor, corePoolSize, callableList, ThreadPools.MERGE_PARTIAL_COUNT_FUNCTION);
 
-        return Futures.transform(listListenableFuture, new MergePartialCountFunction());
+        return Futures.transform(listListenableFuture, ThreadPools.MERGE_PARTIAL_COUNT_FUNCTION);
     }
 
     @Override
@@ -145,18 +145,6 @@ public class InternalCountOperation implements CountOperation {
         } finally {
             context.close();
             SearchContext.removeCurrent();
-        }
-    }
-
-    private static class MergePartialCountFunction implements Function<List<Long>, Long> {
-        @Nullable
-        @Override
-        public Long apply(List<Long> partialResults) {
-            long result = 0L;
-            for (Long partialResult : partialResults) {
-                result += partialResult;
-            }
-            return result;
         }
     }
 }

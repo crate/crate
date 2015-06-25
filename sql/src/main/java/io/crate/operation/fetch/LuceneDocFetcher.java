@@ -91,7 +91,7 @@ public class LuceneDocFetcher implements RowUpstream {
         return downstream.setNextRow(new PositionalRowDelegate(inputRow, position));
     }
 
-    public void doFetch(RamAccountingContext ramAccountingContext) {
+    public long doFetch(RamAccountingContext ramAccountingContext) throws Exception {
         this.ramAccountingContext = ramAccountingContext;
         shardContext.acquireContext();
 
@@ -105,6 +105,7 @@ public class LuceneDocFetcher implements RowUpstream {
         visitorEnabled = fieldsVisitor.required();
 
         try {
+            long rowCount = 0;
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
                 shardContext.interruptIfKilled();
 
@@ -114,13 +115,16 @@ public class LuceneDocFetcher implements RowUpstream {
                 int subDoc = docId - subReaderContext.docBase;
                 setNextReader(subReaderContext);
                 boolean needMoreRows = fetch(shardDocIdsBucket.position(index), subDoc);
+                rowCount++;
                 if (!needMoreRows) {
                     break;
                 }
             }
             downstream.finish();
+            return rowCount;
         } catch (Exception e) {
             downstream.fail(e);
+            throw e;
         } finally {
             shardContext.releaseContext();
             if (closeContext) {
