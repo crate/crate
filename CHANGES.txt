@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - only log amazon s3 client stuff on level ``WARN``
+
+ - log failing uri on COPY FROM
+
  - Fixed a NPE that was thrown if a SELECT statement contained `_score` in the
    result columns and an ORDER BY clause.
 

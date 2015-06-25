@@ -32,6 +32,8 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -51,6 +53,7 @@ import java.util.zip.GZIPInputStream;
 
 public class FileReadingCollector implements CrateCollector {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final URI fileUri;
@@ -212,10 +215,16 @@ public class FileReadingCollector implements CrateCollector {
             }
         } catch (SocketTimeoutException e) {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
+                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
                 throw e;
             } else {
                 readLines(jobCollectContext, fileInput, collectorContext, uri, linesRead + 1, retry + 1);
             }
+        } catch (Exception e) {
+            // it's nice to know which exact file/uri threw an error
+            // when COPY FROM returns less rows than expected
+            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
+            throw e;
         }
     }
 

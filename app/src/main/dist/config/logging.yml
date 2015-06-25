@@ -23,6 +23,9 @@ logger:
 # index.search.slowlog: TRACE, table_search_slow_log_file
 # index.indexing.slowlog: TRACE, table_indexing_slow_log_file
 
+# mute amazon s3 client logging a bit
+  com.amazonaws: WARN
+
 # Define your appenders here.
 # Like mentioned above, use the log4j prefixes to configure for example the
 # type or layout.
