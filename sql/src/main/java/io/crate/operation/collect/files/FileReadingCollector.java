@@ -31,7 +31,6 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -47,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -74,6 +74,7 @@ public class FileReadingCollector implements CrateCollector {
             return true;
         }
     };
+    private volatile boolean killed;
 
     public enum FileFormat {
         JSON
@@ -152,7 +153,7 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
+    public void doCollect() {
         FileInput fileInput;
         try {
             fileInput = getFileInput();
@@ -177,7 +178,7 @@ public class FileReadingCollector implements CrateCollector {
         try {
             uris = getUris(fileInput, uriPredicate);
             for (URI uri : uris) {
-                readLines(jobCollectContext, fileInput, collectorContext, uri, 0, 0);
+                readLines(fileInput, collectorContext, uri, 0, 0);
             }
             downstream.finish();
         } catch (Throwable e) {
@@ -185,8 +186,12 @@ public class FileReadingCollector implements CrateCollector {
         }
     }
 
-    private void readLines(JobCollectContext jobCollectContext,
-                           FileInput fileInput,
+    @Override
+    public void kill() {
+        killed = true;
+    }
+
+    private void readLines(FileInput fileInput,
                            CollectorContext collectorContext,
                            URI uri,
                            long startLine,
@@ -200,7 +205,9 @@ public class FileReadingCollector implements CrateCollector {
         long linesRead = 0L;
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
-                jobCollectContext.interruptIfKilled();
+                if (killed) {
+                    throw new CancellationException();
+                }
                 linesRead++;
                 if (linesRead < startLine) {
                     continue;
@@ -218,7 +225,7 @@ public class FileReadingCollector implements CrateCollector {
                 LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
                 throw e;
             } else {
-                readLines(jobCollectContext, fileInput, collectorContext, uri, linesRead + 1, retry + 1);
+                readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
             }
         } catch (Exception e) {
             // it's nice to know which exact file/uri threw an error

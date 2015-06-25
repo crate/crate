@@ -120,7 +120,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(JobCollectContext)} )} to start
+     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
@@ -196,7 +196,8 @@ public class ShardCollectService {
                                     collectNode,
                                     functions,
                                     downstream,
-                                    shardContext);
+                                    shardContext,
+                                    jobCollectContext.ramAccountingContext());
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();
