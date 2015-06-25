@@ -40,6 +40,7 @@ import org.elasticsearch.common.inject.Inject;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 public class InformationSchemaCollectService implements CollectService {
 
@@ -154,6 +155,8 @@ public class InformationSchemaCollectService implements CollectService {
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
+        private volatile boolean killed = false;
+
         protected InformationSchemaCollector(List<Input<?>> inputs,
                                              List<RowCollectExpression<R, ?>> collectorExpressions,
                                              RowDownstream downstream,
@@ -167,10 +170,12 @@ public class InformationSchemaCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(JobCollectContext jobCollectContext) {
+        public void doCollect() {
             try {
                 for (R row : rows) {
-                    jobCollectContext.interruptIfKilled();
+                    if (killed) {
+                        throw new CancellationException();
+                    }
                     for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
                     }
@@ -190,6 +195,10 @@ public class InformationSchemaCollectService implements CollectService {
             }
         }
 
+        @Override
+        public void kill() {
+            killed = true;
+        }
     }
 
     @SuppressWarnings("unchecked")

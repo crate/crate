@@ -196,7 +196,8 @@ public class ShardCollectService {
                                     collectNode,
                                     functions,
                                     downstream,
-                                    shardContext);
+                                    shardContext,
+                                    jobCollectContext.ramAccountingContext());
                         } catch (Throwable t) {
                             if (localContext != null) {
                                 localContext.close();

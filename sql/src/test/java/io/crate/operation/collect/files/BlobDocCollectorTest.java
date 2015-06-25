@@ -111,7 +111,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         );
 
         projector.startProjection(mock(ExecutionState.class));
-        collector.doCollect(mock(JobCollectContext.class));
+        collector.doCollect();
         return projector;
     }
 

@@ -34,7 +34,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JobQueryShardContext implements ExecutionSubContext, ExecutionState {
+public class JobQueryShardContext implements ExecutionSubContext {
 
     private final IndexShard indexShard;
     private final int jobSearchContextId;
@@ -45,8 +45,6 @@ public class JobQueryShardContext implements ExecutionSubContext, ExecutionState
     private EngineSearcherDelegate engineSearcherDelegate;
     private Engine.Searcher engineSearcher;
     private CrateSearchContext searchContext;
-
-    private volatile boolean isKilled = false;
 
     public JobQueryShardContext(IndexShard indexShard,
                                 int jobSearchContextId,
@@ -99,13 +97,7 @@ public class JobQueryShardContext implements ExecutionSubContext, ExecutionState
 
     @Override
     public void kill() {
-        isKilled = true;
         close();
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
     @Override

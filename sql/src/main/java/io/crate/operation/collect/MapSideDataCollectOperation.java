@@ -296,7 +296,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                             localRowDownStream = projectorChain.firstProjector();
                         }
                         CrateCollector collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream()
-                        collector.doCollect(jobCollectContext);
+                        collector.doCollect();
                     }
                 } catch (Throwable t) {
                     LOGGER.error("error during collect", t);
@@ -478,7 +478,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         projectorChain.startProjections(jobCollectContext);
         try {
             LOGGER.trace("starting {} shardCollectors...", numShards);
-            return runCollectThreaded(collectNode, shardCollectors, jobCollectContext);
+            return runCollectThreaded(collectNode, shardCollectors);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
@@ -490,8 +490,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
     private ListenableFuture<List<Void>> runCollectThreaded(CollectNode collectNode,
-                                                            final List<CrateCollector> shardCollectors,
-                                                            final JobCollectContext jobCollectContext) throws RejectedExecutionException {
+                                                            final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -499,7 +498,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 @Override
                 public List<Void> call() throws Exception {
                     for (CrateCollector collector : shardCollectors) {
-                        collector.doCollect(jobCollectContext);
+                        collector.doCollect();
                     }
                     return ONE_LIST;
                 }
@@ -508,13 +507,12 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             return ThreadPools.runWithAvailableThreads(
                     executor,
                     poolSize,
-                    collectors2Callables(shardCollectors, jobCollectContext),
+                    collectors2Callables(shardCollectors),
                     new VoidFunction<List<Void>>());
         }
     }
 
-    private Collection<Callable<Void>> collectors2Callables(List<CrateCollector> collectors,
-                                                            final JobCollectContext jobCollectContext) {
+    private Collection<Callable<Void>> collectors2Callables(List<CrateCollector> collectors) {
         return Lists.transform(collectors, new Function<CrateCollector, Callable<Void>>() {
 
             @Override
@@ -522,7 +520,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 return new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        collector.doCollect(jobCollectContext);
+                        collector.doCollect();
                         return null;
                     }
                 };

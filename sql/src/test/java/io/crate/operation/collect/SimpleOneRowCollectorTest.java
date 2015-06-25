@@ -50,7 +50,7 @@ public class SimpleOneRowCollectorTest extends CrateUnitTest {
                 Collections.<CollectExpression<?>>emptySet(),
                 downstream
         );
-        collector.doCollect(mock(JobCollectContext.class));
+        collector.doCollect();
         verify(handle, times(1)).setNextRow(any(InputRow.class));
         verify(handle, times(1)).finish();
     }

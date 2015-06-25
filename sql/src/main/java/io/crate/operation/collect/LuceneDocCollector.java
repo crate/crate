@@ -21,8 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
@@ -54,6 +52,7 @@ import java.util.concurrent.CancellationException;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
+
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -97,10 +96,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
     private final Integer limit;
     private final OrderBy orderBy;
+    private final RamAccountingContext ramAccountingContext;
 
+    private volatile boolean killed = false;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
-    private RamAccountingContext ramAccountingContext;
     private boolean producedRows = false;
     private boolean failed = false;
     private int rowCount = 0;
@@ -111,8 +111,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               CollectNode collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
-                              JobQueryShardContext shardContext) throws Exception {
+                              JobQueryShardContext shardContext,
+                              RamAccountingContext ramAccountingContext) throws Exception {
         this.shardContext = shardContext;
+        this.ramAccountingContext = ramAccountingContext;
         this.limit = collectNode.limit();
         this.orderBy = collectNode.orderBy();
         this.downstream = downStreamProjector.registerUpstream(this);
@@ -138,7 +140,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
-        if (shardContext.isKilled()) {
+        if (killed) {
             throw new CancellationException();
         }
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
@@ -184,8 +186,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
-        this.ramAccountingContext = jobCollectContext.ramAccountingContext();
+    public void doCollect() {
         // start collect
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)
@@ -203,7 +204,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             assert query != null : "query must not be null";
 
             if(orderBy != null) {
-                searchWithOrderBy(jobCollectContext, query);
+                searchWithOrderBy(query);
             } else {
                 searchContext.searcher().search(query, this);
             }
@@ -212,7 +213,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             downstream.finish();
         } catch (Throwable e) {
             failed = true;
-            downstream.fail(shardContext.isKilled() ? new CancellationException() : e);
+            downstream.fail(e);
         } finally {
             searchContext().searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
             shardContext.releaseContext();
@@ -220,7 +221,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    private void searchWithOrderBy(JobCollectContext jobCollectContext, Query query) throws IOException {
+    @Override
+    public void kill() {
+        killed = true;
+    }
+
+    private void searchWithOrderBy(Query query) throws IOException {
         Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
         Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
         TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
@@ -229,7 +235,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         Collection<ScoreCollectorExpression> scoreExpressions = getScoreExpressions();
         ScoreDoc lastCollected = collectTopFields(topFieldDocs, scoreExpressions);
         while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
-            jobCollectContext.interruptIfKilled();
+            if (killed) {
+                throw new CancellationException();
+            }
 
             batchSize = limit == null ? pageSize : Math.min(pageSize, limit - collected);
             Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
