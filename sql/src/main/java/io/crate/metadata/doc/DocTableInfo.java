@@ -33,6 +33,7 @@ import io.crate.metadata.table.AbstractDynamicTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -52,7 +53,7 @@ import java.util.concurrent.*;
 
 public class DocTableInfo extends AbstractDynamicTableInfo {
 
-    private static final int MAX_ROUTING_RETRIES = 20;
+    private static final TimeValue ROUTING_FETCH_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
@@ -164,19 +165,6 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         shards.add(shardRouting.id());
     }
 
-    /**
-     * retrieves the routing
-     *
-     * In case some shards are still unassigned or initializing this method might block up to
-     * 1 second and wait for the shards to become ready.
-     */
-    @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        ClusterStateObserver observer = new ClusterStateObserver(
-                clusterService, new TimeValue(1, TimeUnit.SECONDS), logger);
-        return getRouting(observer, whereClause, preference, 0, true);
-    }
-
     private GroupShardsIterator getShardIterators(WhereClause whereClause,
                                                   @Nullable String preference,
                                                   ClusterState clusterState) throws IndexMissingException {
@@ -199,42 +187,69 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         );
     }
 
-    private Routing getRouting(final ClusterStateObserver observer,
-                               final WhereClause whereClause,
-                               @Nullable final String preference,
-                               final int currentRetry,
-                               final boolean retry) {
-        ClusterState clusterState = observer.observedState();
+    public Routing getRouting(ClusterState state, WhereClause whereClause, String preference, final List<ShardId> missingShards) {
         final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-
         GroupShardsIterator shardIterators;
         try {
-            shardIterators = getShardIterators(whereClause, preference, clusterState);
+            shardIterators = getShardIterators(whereClause, preference, state);
         } catch (IndexMissingException e) {
             return new Routing();
         }
 
-        final List<ShardId> missingShards = new ArrayList<>(0);
         fillLocationsFromShardIterators(locations, shardIterators, missingShards);
 
         if (missingShards.isEmpty()) {
             return new Routing(locations);
         } else {
-            if (!retry || currentRetry > MAX_ROUTING_RETRIES) {
-                throw new UnavailableShardsException(missingShards.get(0));
-            }
+            return null;
+        }
+    }
 
-            final SettableFuture<Routing> futureRouting = SettableFuture.create();
-            observer.waitForNextChange(
-                    new FetchRoutingListener(futureRouting, observer, whereClause, preference, currentRetry));
+    @Override
+    public Routing getRouting(final WhereClause whereClause, @Nullable final String preference) {
+        Routing routing = getRouting(clusterService.state(), whereClause, preference, new ArrayList<ShardId>(0));
+        if (routing != null) return routing;
 
-            try {
-                return futureRouting.get();
-            } catch (ExecutionException e) {
-                throw Throwables.propagate(e.getCause());
-            } catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
+        ClusterStateObserver observer = new ClusterStateObserver(clusterService, ROUTING_FETCH_TIMEOUT, logger);
+        final SettableFuture<Routing> routingSettableFuture = SettableFuture.create();
+        observer.waitForNextChange(
+                new FetchRoutingListener(routingSettableFuture, whereClause, preference),
+                new ClusterStateObserver.ChangePredicate() {
+
+                    @Override
+                    public boolean apply(ClusterState previousState, ClusterState.ClusterStateStatus previousStatus, ClusterState newState, ClusterState.ClusterStateStatus newStatus) {
+                        return validate(newState);
+                    }
+
+                    @Override
+                    public boolean apply(ClusterChangedEvent changedEvent) {
+                        return validate(changedEvent.state());
+                    }
+
+                    private boolean validate(ClusterState state) {
+                        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+
+                        GroupShardsIterator shardIterators;
+                        try {
+                            shardIterators = getShardIterators(whereClause, preference, state);
+                        } catch (IndexMissingException e) {
+                            return true;
+                        }
+
+                        final List<ShardId> missingShards = new ArrayList<>(0);
+                        fillLocationsFromShardIterators(locations, shardIterators, missingShards);
+
+                        return missingShards.isEmpty();
+                    }
+
+                });
+
+        try {
+            return routingSettableFuture.get();
+        } catch (ExecutionException e) {
+            throw Throwables.propagate(e.getCause());
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
         }
     }
 
@@ -353,58 +368,51 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
 
     private class FetchRoutingListener implements ClusterStateObserver.Listener {
 
-        private final SettableFuture<Routing> futureRouting;
-        private final ClusterStateObserver observer;
+        private final SettableFuture<Routing> routingFuture;
         private final WhereClause whereClause;
         private final String preference;
-        private final int currentRetry;
         Future<?> innerTaskFuture;
 
-        public FetchRoutingListener(SettableFuture<Routing> futureRouting,
-                                    ClusterStateObserver observer,
-                                    WhereClause whereClause,
-                                    String preference,
-                                    int currentRetry) {
-            this.futureRouting = futureRouting;
-            this.observer = observer;
+        public FetchRoutingListener(SettableFuture<Routing> routingFuture, WhereClause whereClause, String preference) {
+            this.routingFuture = routingFuture;
             this.whereClause = whereClause;
             this.preference = preference;
-            this.currentRetry = currentRetry;
         }
 
         @Override
-        public void onNewClusterState(ClusterState state) {
+        public void onNewClusterState(final ClusterState state) {
             try {
                 innerTaskFuture = executorService.submit(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            futureRouting.set(getRouting(observer, whereClause, preference, currentRetry + 1, true));
-                        } catch (Throwable e) {
-                            futureRouting.setException(e);
+                        final List<ShardId> missingShards = new ArrayList<>(0);
+                        Routing routing = getRouting(state, whereClause, preference, missingShards);
+                        if (routing == null) {
+                            routingFuture.setException(new UnavailableShardsException(missingShards.get(0)));
+                        } else {
+                            routingFuture.set(routing);
                         }
                     }
                 });
             } catch (RejectedExecutionException e) {
-                futureRouting.setException(e);
+                routingFuture.setException(e);
             }
         }
 
         @Override
         public void onClusterServiceClose() {
-            futureRouting.setException(new IllegalStateException("ClusterService closed"));
             if (innerTaskFuture != null) {
                 innerTaskFuture.cancel(true);
             }
+            routingFuture.setException(new IllegalStateException("ClusterService closed"));
         }
 
         @Override
         public void onTimeout(TimeValue timeout) {
-            // one last retry before giving up
-            futureRouting.set(getRouting(observer, whereClause, preference, currentRetry + 1, false));
             if (innerTaskFuture != null) {
                 innerTaskFuture.cancel(true);
             }
+            routingFuture.setException(new IllegalStateException("Fetching table info routing timed out."));
         }
     }
 }
