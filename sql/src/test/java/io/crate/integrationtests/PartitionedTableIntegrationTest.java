@@ -1919,11 +1919,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                     } catch (Throwable t) {
                         // The failed job should have three started operations
                         SQLResponse res = execute("select id from sys.jobs_log where error is not null order by started desc limit 1");
-                        String id = (String) res.rows()[0][0];
-                        res = execute("select count(*) from sys.operations_log where name=? and job_id = ?", new Object[]{"collect", id});
-                        if ((long)res.rows()[0][0] < 3) {
-                            // set the error if there where less than three attempts
-                            lastThrowable.set(t);
+                        if (res.rowCount() > 0) {
+                            String id = (String) res.rows()[0][0];
+                            res = execute("select count(*) from sys.operations_log where name=? and job_id = ?", new Object[]{"collect", id});
+                            if ((long) res.rows()[0][0] < 3) {
+                                // set the error if there where less than three attempts
+                                lastThrowable.set(t);
+                            }
                         }
                     } finally {
                         selects.countDown();

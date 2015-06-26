@@ -22,8 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Optional;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
@@ -41,8 +39,9 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.planner.node.*;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionNodeGrouper;
+import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -53,8 +52,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -68,7 +65,6 @@ public class ExecutionNodesTask extends JobTask {
     private final JobContextService jobContextService;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ThreadPool threadPool;
-    private TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final CircuitBreaker circuitBreaker;
 
     private final List<List<ExecutionNode>> groupedExecutionNodes = new ArrayList<>();
@@ -84,7 +80,6 @@ public class ExecutionNodesTask extends JobTask {
                                  PageDownstreamFactory pageDownstreamFactory,
                                  ThreadPool threadPool,
                                  TransportJobAction transportJobAction,
-                                 TransportCloseContextNodeAction transportCloseContextNodeAction,
                                  CircuitBreaker circuitBreaker) {
         super(jobId);
         this.clusterService = clusterService;
@@ -92,7 +87,6 @@ public class ExecutionNodesTask extends JobTask {
         this.jobContextService = jobContextService;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
-        this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.circuitBreaker = circuitBreaker;
         this.transportJobAction = transportJobAction;
     }
@@ -157,7 +151,6 @@ public class ExecutionNodesTask extends JobTask {
         if (nodesByServer.size() == 0) {
             return;
         }
-        addCloseContextCallback(transportCloseContextNodeAction, groupedExecutionNodes, nodesByServer.keySet());
         sendJobRequests(streamers, pageDownstreamContexts, nodesByServer);
     }
 
@@ -227,31 +220,6 @@ public class ExecutionNodesTask extends JobTask {
         }
         JobExecutionContext context = jobContextService.createContext(builder);
         context.start();
-    }
-
-    private void addCloseContextCallback(TransportCloseContextNodeAction transportCloseContextNodeAction,
-                                         final List<List<ExecutionNode>> groupedExecutionNodes,
-                                         final Set<String> server) {
-        if (server.isEmpty()) {
-            return;
-        }
-        final ContextCloser contextCloser = new ContextCloser(transportCloseContextNodeAction);
-        Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<TaskResult>>() {
-            @Override
-            public void onSuccess(@Nullable List<TaskResult> result) {
-                // do nothing, contexts will be closed through fetch projection
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                // if a failure happens, no fetch projection will be called, clean up contexts
-                for (List<ExecutionNode> executionNodeGroup : groupedExecutionNodes) {
-                    for (ExecutionNode executionNode : executionNodeGroup) {
-                        contextCloser.process(executionNode, server);
-                    }
-                }
-            }
-        });
     }
 
     @Override
@@ -344,41 +312,6 @@ public class ExecutionNodesTask extends JobTask {
         public void onFailure(Throwable e) {
             // in the non-direct-response case the failure is pushed to downStreams
             LOGGER.warn(e.getMessage(), e);
-        }
-    }
-
-    private static class ContextCloser extends ExecutionNodeVisitor<Set<String>, Void> {
-
-        private final TransportCloseContextNodeAction transportCloseContextNodeAction;
-
-        public ContextCloser(TransportCloseContextNodeAction transportCloseContextNodeAction) {
-            this.transportCloseContextNodeAction = transportCloseContextNodeAction;
-        }
-
-        @Override
-        public Void visitCollectNode(final CollectNode node, Set<String> nodeIds) {
-            if (!node.keepContextForFetcher()) {
-                return null;
-            }
-
-            LOGGER.trace("closing job context {} on {} nodes", node.jobId(), nodeIds.size());
-            for (final String nodeId : nodeIds) {
-                transportCloseContextNodeAction.execute(
-                        nodeId,
-                        new NodeCloseContextRequest(node.jobId(), node.executionNodeId()),
-                        new ActionListener<NodeCloseContextResponse>() {
-
-                    @Override
-                    public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                    }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", node.jobId(), nodeId, e.getMessage());
-                    }
-                });
-            }
-            return null;
         }
     }
 }

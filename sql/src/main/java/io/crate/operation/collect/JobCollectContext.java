@@ -177,9 +177,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
             });
             collectOperation.collect(collectNode, downstream, this);
         } catch (Throwable t) {
+            closeDueToFailure(t);
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
             rowDownstreamHandle.fail(t);
-            closeDueToFailure(t);
         }
     }
 

@@ -328,7 +328,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     pageDownstreamFactory,
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportCloseContextNodeAction(),
                     circuitBreaker);
             Context context = new Context(executionNodesTask);
             process(plan, context);
