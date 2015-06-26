@@ -103,7 +103,11 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
                     LOGGER.trace("Received CloseContextRequest, closing ExecutionSubContext {}/{}",
                             request.jobId(), request.executionNodeId());
                     subContext.close();
+                } else if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Couldn't find ExecutionSubContext for {}/{}", request.jobId(), request.executionNodeId());
                 }
+            } else if (LOGGER.isInfoEnabled()){
+                LOGGER.info("Couldn't find JobExecutionContext for jobId: {}", request.jobId());
             }
             statsTables.operationFinished(request.executionNodeId(), null, 0L);
             response.onResponse(new NodeCloseContextResponse());

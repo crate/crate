@@ -122,8 +122,8 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             newContext.contextCallback(new RemoveContextCallback(jobId));
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "context for job %s already exists", jobId));
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "context for job %s already exists:\n%s", jobId, existing));
             }
         } finally {
             readLock.unlock();

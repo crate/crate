@@ -24,13 +24,11 @@ package io.crate.action.sql.query;
 import com.google.common.base.Optional;
 import io.crate.Constants;
 import org.apache.lucene.util.Counter;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -46,8 +44,6 @@ import java.io.IOException;
 import java.util.Map;
 
 public class CrateSearchContext extends DefaultSearchContext {
-
-    private final Engine.Searcher engineSearcher;
 
     public CrateSearchContext(long id,
                               final long nowInMillis,
@@ -66,15 +62,10 @@ public class CrateSearchContext extends DefaultSearchContext {
                 shardTarget, engineSearcher, indexService,
                 indexShard, scriptService, cacheRecycler, pageCacheRecycler,
                 bigArrays, timeEstimateCounter);
-        this.engineSearcher = engineSearcher;
         if (scroll.isPresent()) {
             scroll(scroll.get());
         }
         keepAlive(keepAlive);
-    }
-
-    public Engine.Searcher engineSearcher() {
-        return engineSearcher;
     }
 
     public SearchLookup lookup(boolean shared) {
@@ -83,18 +74,6 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
         return new SearchLookup(mapperService(), fieldData(), new String[]{Constants.DEFAULT_MAPPING_TYPE});
     }
-
-    @Override
-    public void doClose() throws ElasticsearchException {
-        if (scanContext() != null) {
-            scanContext().clear();
-        }
-        // clear and scope phase we have
-        Releasables.close(searcher());
-
-        // Engine.Searcher will be closed through {@link EngineSearcherDelegate}
-    }
-
 
     private static class CrateSearchShardRequest implements ShardSearchRequest {
 

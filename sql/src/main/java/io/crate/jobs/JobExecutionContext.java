@@ -207,6 +207,16 @@ public class JobExecutionContext {
         }
     }
 
+    @Override
+    public String toString() {
+        return "JobExecutionContext{" +
+                "jobId=" + jobId +
+                ", subContexts=" + subContexts +
+                ", activeSubContexts=" + activeSubContexts +
+                ", closed=" + closed +
+                '}';
+    }
+
     private class RemoveContextCallback implements ContextCallback {
 
         private final int executionNodeId;

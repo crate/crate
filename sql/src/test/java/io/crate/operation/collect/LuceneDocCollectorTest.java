@@ -54,6 +54,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -103,6 +104,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         orderBy = new OrderBy(ImmutableList.of((Symbol)ref), new boolean[]{false}, new Boolean[]{false});
+    }
+
+    @After
+    public void closeContext() throws Exception {
+        if (jobCollectContext != null) {
+            jobCollectContext.close();
+        }
     }
 
     private byte[] generateRowSource(String continent, String countryName, Integer population) throws IOException {
@@ -300,7 +308,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Test
     public void testMultiOrdering() throws Exception {
         execute("create table test (x integer, y integer) clustered into 1 shards with (number_of_replicas=0)");
-        waitNoPendingTasksOnAll();
+        ensureYellow();
         SQLBulkRequest request = new SQLBulkRequest("insert into test values (?, ?)",
                 new Object[][]{
                     new Object[]{2, 3},
@@ -348,6 +356,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(1);
         collector.doCollect();
+        jobCollectContext.close();
         assertThat(collectingProjector.rows.size(), is(8));
 
         String expected = "1| 0\n" +
@@ -373,6 +382,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(1);
         collector.doCollect();
+        jobCollectContext.close();
 
         expected = "1| NULL\n" +
                    "1| NULL\n" +
@@ -401,6 +411,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(0));
+        jobCollectContext.close();
 
         // where _score = 1.0
         collectingProjector.rows.clear();

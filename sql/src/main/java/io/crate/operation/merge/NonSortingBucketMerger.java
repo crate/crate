@@ -36,7 +36,9 @@ import io.crate.operation.projectors.NoOpProjector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,27 +71,26 @@ public class NonSortingBucketMerger implements BucketMerger {
     @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
         final AtomicBoolean listenerNotified = new AtomicBoolean(false);
-        final AtomicInteger bucketsPending = new AtomicInteger(page.buckets().size());
-        FutureCallback<Bucket> callback = new FutureCallback<Bucket>() {
+        FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
             @Override
-            public void onSuccess(@Nullable Bucket result) {
+            public void onSuccess(@Nullable List<Bucket> result) {
                 LOGGER.trace("received bucket");
                 if (result != null && wantMore.get() && !listenerNotified.get()) {
-                    for (Row row : result) {
-                        try {
-                            if (!emitRow(row)) {
-                                wantMore.set(false);
-                                notifyListener();
-                                break;
+                    for (Bucket rows : result) {
+                        for (Row row : rows) {
+                            try {
+                                if (!emitRow(row)) {
+                                    wantMore.set(false);
+                                    notifyListener();
+                                    break;
+                                }
+                            } catch (Throwable t) {
+                                onFailure(t);
                             }
-                        } catch (Throwable t) {
-                            onFailure(t);
                         }
                     }
                 }
-                if (bucketsPending.decrementAndGet() == 0) {
-                    notifyListener();
-                }
+                notifyListener();
             }
 
             private void notifyListener() {
@@ -103,7 +104,7 @@ public class NonSortingBucketMerger implements BucketMerger {
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 LOGGER.trace("error in {}", t, NonSortingBucketMerger.this.getClass().getSimpleName());
                 wantMore.set(false);
                 fail(t);
@@ -112,9 +113,13 @@ public class NonSortingBucketMerger implements BucketMerger {
         };
 
         Executor executor = this.executor.or(MoreExecutors.directExecutor());
-        for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
-            Futures.addCallback(bucketFuture, callback, executor);
-        }
+        /**
+         * Wait for all buckets to arrive before doing any work to make sure that the job context is present on all nodes
+         * Otherwise there could be race condition.
+         * E.g. if a FetchProjector finishes early with data from one node and wants to close the remaining contexts it
+         * could be that one node doesn't even have a context to close yet and that context would remain open.
+         */
+        Futures.addCallback(Futures.allAsList(page.buckets()), callback, executor);
     }
 
     @Override

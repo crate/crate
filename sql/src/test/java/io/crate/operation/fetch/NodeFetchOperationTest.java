@@ -23,6 +23,7 @@ package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
@@ -31,10 +32,10 @@ import io.crate.metadata.Functions;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
-import io.crate.testing.CollectingProjector;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -114,7 +115,9 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No shard collect context found for job search context id '%s'", 0));
-        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "No SearchContext found for job search context id '%s'", 0));
+
+        SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[0]);
+        nodeFetchOperation.fetch(singleBucketBuilder);
     }
 }

@@ -287,7 +287,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                         if (!localCollectNode.projections().isEmpty()) {
                             FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
                                     projectorVisitor,
-                                    jobCollectContext.ramAccountingContext(),
+                                    jobCollectContext.queryPhaseRamAccountingContext(),
                                     localCollectNode.projections(),
                                     localRowDownStream,
                                     node.jobId()
@@ -405,7 +405,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 normalizedCollectNode.projections(),
                 downstream,
                 projectorVisitor,
-                jobCollectContext.ramAccountingContext()
+                jobCollectContext.queryPhaseRamAccountingContext()
         );
         TableUnknownException lastException = null;
         int jobSearchContextId = normalizedCollectNode.routing().jobSearchContextIdBase();
