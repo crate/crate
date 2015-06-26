@@ -41,7 +41,7 @@ public class CollectionColumnType extends ColumnType {
     }
 
     private CollectionColumnType(ColumnType innerType, Type type) {
-        super(type.name().toLowerCase(Locale.ENGLISH), type);
+        super(type.name().toUpperCase(Locale.ENGLISH), type);
         this.innerType = innerType;
     }
 

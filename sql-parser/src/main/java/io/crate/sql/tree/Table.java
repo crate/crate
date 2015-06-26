@@ -84,10 +84,10 @@ public class Table
         if (this == o) return true;
         if (!(o instanceof Table)) return false;
 
-        Table table = (Table) o;
+        Table that = (Table) o;
 
-        if (!name.equals(table.name)) return false;
-        if (!partitionProperties.equals(table.partitionProperties)) return false;
+        if (!name.equals(that.name)) return false;
+        if (!partitionProperties.equals(that.partitionProperties)) return false;
 
         return true;
     }

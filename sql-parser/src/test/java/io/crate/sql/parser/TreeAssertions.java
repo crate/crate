@@ -21,10 +21,7 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.Query;
-import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -45,7 +42,7 @@ public final class TreeAssertions
     public static void assertFormattedSql(Node expected)
     {
         // TODO: support formatting all statement types
-        if (!(expected instanceof Query)) {
+        if (!(expected instanceof Query || expected instanceof CreateTable)) {
             return;
         }
 
