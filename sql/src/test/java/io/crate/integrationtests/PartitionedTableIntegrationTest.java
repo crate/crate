@@ -1925,8 +1925,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                             // set the error if there where less than three attempts
                             lastThrowable.set(t);
                         }
+                    } finally {
+                        selects.countDown();
                     }
-                    selects.countDown();
                 }
             }
         });
