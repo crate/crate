@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that could lead to deadlock and therefore freezing of a node
+   when there where too many queries asking for routing information in parallel.
+
  - Fix: Querying from information_schema while a table is created could
    cause an error
 
