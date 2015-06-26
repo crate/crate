@@ -43,6 +43,7 @@ import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.CollectingProjector;
@@ -179,14 +180,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
-        CollectNode node = new CollectNode(0, "collect");
+        UUID jobId = UUID.randomUUID();
+        CollectNode node = new CollectNode(jobId, 0, "collect", null, input, ImmutableList.<Projection>of());
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.limit(limit);
         node.whereClause(WhereClause.MATCH_ALL);
-        UUID jobId = UUID.randomUUID();
-        node.jobId(jobId);
-        node.toCollect(input);
         node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
