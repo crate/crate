@@ -5,6 +5,17 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.14.0 which includes following changes:
+
+    - load plugins.json that can inject additional modules on app start
+      the "Get Started" tutorial is now implemented as a plugin
+
+    - fix: approximate number of underreplicated and missing records per table was
+      calculated incorrectly, which could have lead to different results
+      when viewing table info on admin ui of different nodes
+
+    - fix: automatically refresh load history chart on overview page
+
  - Fixed issue that could lead to deadlock and therefore freezing of a node
    when there where too many queries asking for routing information in parallel.
 
@@ -23,17 +34,7 @@ Unreleased
  - Fix: If a query would fail because a shard starts to relocate during
    query time, the query is retried now
 
- - Updated crate-admin to 0.13.4 which includes following changes:
-
-    - fix: approximate number of underreplicated and missing records per table was
-      calculated incorrectly, which could have lead to different results
-      when viewing table info on admin ui of different nodes
-
  - Fix: load Crate plugins only once on node start
-
- - Updated crate-admin to 0.13.3 which includes following changes:
-
-    - fix: automatically refresh load history chart on overview page
 
  - Fixed an issue that caused `sys.shards` queries to omit unassigned shards
    if the query was made against a node that has `node.data` set to false
