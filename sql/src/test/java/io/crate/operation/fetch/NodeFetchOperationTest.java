@@ -23,13 +23,16 @@ package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
+import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -94,7 +97,11 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     public void testFetchOperationNoLuceneDocCollector() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(1, new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+        builder.addSubContext(1, new JobCollectContext(jobId,
+                mock(CollectNode.class),
+                mock(CollectOperation.class),
+                RAM_ACCOUNTING_CONTEXT,
+                new CollectingProjector()));
         jobContextService.createOrMergeContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
@@ -109,7 +116,8 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", 0));
-        nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "No SearchContext found for job search context id '%s'", 0));
+        SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[0]);
+        nodeFetchOperation.fetch(singleBucketBuilder);
     }
 }

@@ -28,17 +28,19 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
-import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.symbol.Reference;
@@ -115,20 +117,27 @@ public class NodeFetchOperation implements RowUpstream {
         }
     }
 
-    public void fetch(RowDownstream rowDownstream) throws Exception {
+    public void fetch(ResultProvider resultProvider) throws Exception {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
+        final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
 
-        RowDownstream upstreamsRowMerger = new PositionalRowMerger(rowDownstream, toFetchReferences.size());
+        RowDownstream upstreamsRowMerger = new PositionalRowMerger(resultProvider, toFetchReferences.size());
+        if (closeContext) {
+            resultProvider.result().addListener(new Runnable() {
+                @Override
+                public void run() {
+                    jobCollectContext.close();
+                }
+            }, MoreExecutors.directExecutor());
+        }
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
-            LuceneDocCollector docCollector = jobCollectContext.findCollector(entry.key);
-            if (docCollector == null) {
-                String errorMsg = String.format(Locale.ENGLISH, "No lucene collector found for job search context id '%s'", entry.key);
-                LOGGER.error(errorMsg);
+            CrateSearchContext searchContext = jobCollectContext.getContext(entry.key);
+            if (searchContext == null) {
+                String errorMsg = String.format(Locale.ENGLISH, "No SearchContext found for job search context id '%s'", entry.key);
                 throw new IllegalArgumentException(errorMsg);
             }
             // create new collect expression for every shard (collect expressions are not thread-safe)
@@ -139,16 +148,13 @@ public class NodeFetchOperation implements RowUpstream {
                             docCtx.docLevelExpressions(),
                             upstreamsRowMerger,
                             entry.value,
-                            jobCollectContext,
-                            docCollector.searchContext(),
-                            entry.key,
-                            closeContext));
+                            closeContext,
+                            searchContext));
         }
-
         try {
             runFetchThreaded(shardFetchers, ramAccountingContext);
         } catch (RejectedExecutionException e) {
-            rowDownstream.registerUpstream(this).fail(e);
+            resultProvider.registerUpstream(this).fail(e);
         }
 
         if (LOGGER.isTraceEnabled()) {

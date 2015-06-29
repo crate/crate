@@ -65,6 +65,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -113,6 +114,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+    private JobCollectContext jobCollectContext;
 
     @Override
     public byte[] generateRowSource() throws IOException {
@@ -157,6 +159,13 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         orderBy = new OrderBy(ImmutableList.of((Symbol) reference), new boolean[]{false}, new Boolean[]{false});
     }
 
+    @After
+    public void closeContext() throws Exception {
+        if (jobCollectContext != null) {
+            jobCollectContext.close();
+        }
+    }
+
     @Override
     protected void createTable() {
         execute("create table \"" + INDEX_NAME + "\" (" +
@@ -197,12 +206,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
-        int jobSearchContextId = 0;
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        JobCollectContext collectContext = new JobCollectContext(jobId, RAM_ACCOUNTING_CONTEXT, collectingProjector);
-        builder.addSubContext(node.executionNodeId(), collectContext);
-        collectContext.registerJobContextId(shardId, jobSearchContextId);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, collectContext, 0);
+        jobCollectContext = new JobCollectContext(jobId, node,
+                cluster.getInstance(MapSideDataCollectOperation.class),
+                RAM_ACCOUNTING_CONTEXT, collectingProjector);
+        builder.addSubContext(node.executionNodeId(), jobCollectContext);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);
         return collector;
     }

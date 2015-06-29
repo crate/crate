@@ -92,6 +92,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private MapSideDataCollectOperation operation;
     private Functions functions;
     private DocSchemaInfo docSchemaInfo;
+    private JobExecutionContext jobExecutionContext;
 
     @Before
     public void prepare() {
@@ -129,6 +130,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         operation = null;
         functions = null;
         docSchemaInfo = null;
+        if (jobExecutionContext != null) {
+            jobExecutionContext.close();
+        }
     }
 
     private Routing routing(String table) {
@@ -216,7 +220,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         JobContextService contextService = cluster().getInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
-        contextService.createOrMergeContext(builder);
+        jobExecutionContext = contextService.createOrMergeContext(builder);
         operation.collect(collectNode, cd, RAM_ACCOUNTING_CONTEXT);
         return cd.result().get();
     }

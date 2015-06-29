@@ -21,17 +21,12 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.JobContextService;
-import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
@@ -46,39 +41,23 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
-import org.apache.lucene.search.Filter;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cache.recycler.CacheRecycler;
-import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
 
 public class ShardCollectService {
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
-    private final ThreadPool threadPool;
-    private final ClusterService clusterService;
-    private final LuceneQueryBuilder luceneQueryBuilder;
+    private final SearchContextFactory searchContextFactory;
     private final ShardId shardId;
     private final IndexService indexService;
-    private final ScriptService scriptService;
-    private final CacheRecycler cacheRecycler;
-    private final PageCacheRecycler pageCacheRecycler;
-    private final BigArrays bigArrays;
     private final Functions functions;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
@@ -87,32 +66,22 @@ public class ShardCollectService {
     private final BlobIndices blobIndices;
 
     @Inject
-    public ShardCollectService(ThreadPool threadPool,
+    public ShardCollectService(SearchContextFactory searchContextFactory,
+                               ThreadPool threadPool,
                                ClusterService clusterService,
-                               LuceneQueryBuilder luceneQueryBuilder,
                                Settings settings,
                                TransportActionProvider transportActionProvider,
                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                ShardId shardId,
                                IndexService indexService,
-                               ScriptService scriptService,
-                               CacheRecycler cacheRecycler,
-                               PageCacheRecycler pageCacheRecycler,
-                               BigArrays bigArrays,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
                                MapperService mapperService) {
-        this.threadPool = threadPool;
-        this.clusterService = clusterService;
-        this.luceneQueryBuilder = luceneQueryBuilder;
+        this.searchContextFactory = searchContextFactory;
         this.shardId = shardId;
         this.indexService = indexService;
-        this.scriptService = scriptService;
-        this.cacheRecycler = cacheRecycler;
-        this.pageCacheRecycler = pageCacheRecycler;
-        this.bigArrays = bigArrays;
         this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
@@ -149,7 +118,7 @@ public class ShardCollectService {
      *
      * @param collectNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(io.crate.breaker.RamAccountingContext)} to start
+     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(RamAccountingContext)})} to start
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode,
@@ -198,64 +167,34 @@ public class ShardCollectService {
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId) throws Exception {
-        final CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-        final SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.state().nodes().localNodeId(),
-                shardId.getIndex(),
-                shardId.id());
-        final IndexShard indexShard = indexService.shardSafe(shardId.id());
-
-        return jobCollectContext.createCollectorAndContext(
-                indexShard,
-                jobSearchContextId,
-                new Function<Engine.Searcher, LuceneDocCollector>() {
-
-                    @Nullable
-                    @Override
-                    public LuceneDocCollector apply(Engine.Searcher engineSearcher) {
-                        CrateSearchContext localContext = null;
-                        try {
-                            localContext = new CrateSearchContext(
-                                    jobSearchContextId,
-                                    System.currentTimeMillis(),
-                                    searchShardTarget,
-                                    engineSearcher,
-                                    indexService,
-                                    indexShard,
-                                    scriptService,
-                                    cacheRecycler,
-                                    pageCacheRecycler,
-                                    bigArrays,
-                                    threadPool.estimatedTimeInMillisCounter(),
-                                    Optional.<Scroll>absent(),
-                                    JobContextService.DEFAULT_KEEP_ALIVE
-                            );
-                            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(
-                                    collectNode.whereClause(), localContext, indexService.cache());
-                            localContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
-                            Float minScore = ctx.minScore();
-                            if (minScore != null) {
-                                localContext.minimumScore(minScore);
-                            }
-                            return new LuceneDocCollector(
-                                    docCtx.topLevelInputs(),
-                                    docCtx.docLevelExpressions(),
-                                    collectNode,
-                                    functions,
-                                    downstream,
-                                    jobCollectContext,
-                                    localContext,
-                                    jobSearchContextId,
-                                    collectNode.keepContextForFetcher());
-                        } catch (Throwable t) {
-                            if (localContext != null) {
-                                localContext.close();
-                            }
-                            throw Throwables.propagate(t);
-                        }
-                    }
-                }
-        );
-
+        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
+        CrateSearchContext searchContext = null;
+        try {
+             searchContext = searchContextFactory.createContext(
+                    jobSearchContextId,
+                    indexShard,
+                    searcher,
+                    collectNode.whereClause()
+            );
+            jobCollectContext.addContext(jobSearchContextId, searchContext);
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+            return new LuceneDocCollector(
+                    searchContext,
+                    docCtx.topLevelInputs(),
+                    docCtx.docLevelExpressions(),
+                    collectNode,
+                    functions,
+                    downstream,
+                    jobCollectContext.queryPhaseRamAccountingContext()
+            );
+        } catch (Throwable t) {
+            if (searchContext == null) {
+                searcher.close();
+            } else {
+                searchContext.close(); // will close searcher too
+            }
+            throw t;
+        }
     }
 }

@@ -29,5 +29,5 @@ import java.io.IOException;
  * will cause the IndexSearcher to stop collecting the current leaf (segment) but continuing with
  * the next leaf (segment).
  */
-public class CollectionAbortedException extends IOException {
+public class CollectionFinishedEarlyException extends IOException {
 }

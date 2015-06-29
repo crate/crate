@@ -221,7 +221,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
-                5,
                 false,
                 ctx.jobSearchContextIdToNode(),
                 ctx.jobSearchContextIdToShard()
@@ -345,11 +344,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         FetchProjection fetchProjection = getFetchProjection(searchf, collectSymbols, Arrays.asList(id_ref, function), collectNode, ctx);
 
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                jobId,
+                ctx.jobId(),
                 ImmutableList.of(topN, fetchProjection),
                 collectNode,
                 ctx);
-        Plan plan = new QueryThenFetch(collectNode, mergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, mergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -385,12 +384,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, collectNode, ctx);
 
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(
-                jobId,
+                ctx.jobId(),
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));

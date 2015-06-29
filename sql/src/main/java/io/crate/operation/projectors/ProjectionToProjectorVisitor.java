@@ -359,9 +359,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 projection.jobSearchContextIdToNode(),
                 projection.jobSearchContextIdToShard(),
                 projection.executionNodes(),
-                projection.bulkSize(),
-                projection.closeContexts()
-                );
+                projection.closeContexts());
     }
 
     public static class Context {

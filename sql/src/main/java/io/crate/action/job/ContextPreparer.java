@@ -187,21 +187,12 @@ public class ContextPreparer {
                     node.executionNodeId(), statsTables, context.ramAccountingContext));
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
+                    node,
+                    collectOperationHandler,
                     context.ramAccountingContext,
                     downstream
             );
             context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
-            if (!node.keepContextForFetcher()) {
-                downstream.result().addListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        LOGGER.trace("Closing JobCollectContext {}/{} because result is ready",
-                                node.jobId(), node.executionNodeId());
-
-                        jobCollectContext.close();
-                    }
-                }, MoreExecutors.directExecutor());
-            }
             return null;
         }
     }

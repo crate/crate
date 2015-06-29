@@ -22,9 +22,12 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.base.Throwables;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -35,15 +38,23 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.junit.After;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
@@ -60,6 +71,8 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
         }
     );
 
+    private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
+
     protected long responseDuration;
     protected SQLResponse response;
 
@@ -67,6 +80,48 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
     public Settings indexSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
         return ImmutableSettings.builder().put("number_of_replicas", 0).build();
+    }
+
+    @After
+    public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
+        final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
+        activeContexts.setAccessible(true);
+        try {
+            assertBusy(new Runnable() {
+                @Override
+                public void run() {
+                    for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
+                        try {
+                            //noinspection unchecked
+                            Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                            assertThat(contexts.size(), is(0));
+                        } catch (IllegalAccessException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                }
+            }, 10L, TimeUnit.SECONDS);
+        } catch (AssertionError e) {
+            StringBuilder errorMessageBuilder = new StringBuilder();
+            for (JobContextService jobContextService : cluster().getInstances(JobContextService.class)) {
+                try {
+                    //noinspection unchecked
+                    Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                    errorMessageBuilder.append(contexts.toString());
+                    errorMessageBuilder.append("\n");
+
+                    // prevent other tests from failing:
+                    for (JobExecutionContext jobExecutionContext : contexts.values()) {
+                        jobExecutionContext.close();
+                    }
+                    contexts.clear();
+                } catch (IllegalAccessException ex) {
+                    throw Throwables.propagate(e);
+                }
+            }
+            printStackDump(LOGGER);
+            throw new AssertionError(errorMessageBuilder.toString(), e);
+        }
     }
 
     /**

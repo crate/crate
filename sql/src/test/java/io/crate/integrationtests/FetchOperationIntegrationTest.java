@@ -59,7 +59,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
@@ -339,71 +338,5 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) resultingRows.get(1)[0], is(2));
         assertThat((BytesRef) resultingRows.get(1)[1], is(new BytesRef("Ford")));
         assertThat((BytesRef) resultingRows.get(1)[2], is(new BytesRef("ord")));
-    }
-
-    @Test
-    public void testFetchProjectionWithBulkSize() throws Exception {
-        /**
-         * Setup scenario where more docs per node exists than the configured bulkSize,
-         * so multiple request to one node must be done and merged together.
-         */
-        setup.setUpLocations();
-        sqlExecutor.refresh("locations");
-        int bulkSize = 2;
-
-        Plan plan = analyzeAndPlan("select position, name from locations order by position");
-        assertThat(plan, instanceOf(QueryThenFetch.class));
-
-        rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
-
-        Job job = executor.newJob(plan);
-        ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
-
-        final List<Object[]> resultingRows = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(1);
-        Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
-            @Override
-            public void onSuccess(List<TaskResult> resultList) {
-                for (Row row : resultList.get(0).rows()) {
-                    resultingRows.add(row.materialize());
-                }
-                latch.countDown();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                latch.countDown();
-                fail(t.getMessage());
-            }
-        });
-        latch.await();
-
-        assertThat(resultingRows.size(), is(13));
-        assertThat(resultingRows.get(0).length, is(2));
-        assertThat((Integer) resultingRows.get(0)[0], is(1));
-        assertThat((Integer) resultingRows.get(12)[0], is(6));
-    }
-
-    private void rewriteFetchProjectionToBulkSize(int bulkSize, MergeNode mergeNode) {
-        List<Projection> newProjections = new ArrayList<>(mergeNode.projections().size());
-        for (Projection projection : mergeNode.projections()) {
-            if (projection instanceof FetchProjection) {
-                FetchProjection fetchProjection = (FetchProjection) projection;
-                newProjections.add(new FetchProjection(
-                        fetchProjection.executionNodeId(),
-                        fetchProjection.docIdSymbol(),
-                        fetchProjection.inputSymbols(),
-                        fetchProjection.outputSymbols(),
-                        fetchProjection.partitionedBy(),
-                        fetchProjection.executionNodes(),
-                        bulkSize,
-                        fetchProjection.closeContexts(),
-                        fetchProjection.jobSearchContextIdToNode(),
-                        fetchProjection.jobSearchContextIdToShard()));
-            } else {
-                newProjections.add(projection);
-            }
-        }
-        mergeNode.projections(newProjections);
     }
 }

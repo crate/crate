@@ -64,7 +64,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final List<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<String> jobSearchContextIdToNode;
     private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
-    private final int bulkSize;
     private final boolean closeContexts;
     private final RowDelegate collectRowDelegate = new RowDelegate();
     private final RowDelegate fetchRowDelegate = new RowDelegate();
@@ -98,7 +97,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                           IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard,
                           Set<String> executionNodes,
-                          int bulkSize,
                           boolean closeContexts) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
@@ -108,7 +106,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         this.partitionedBy = partitionedBy;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
-        this.bulkSize = bulkSize;
         this.closeContexts = closeContexts;
         numNodes = executionNodes.size();
         this.executionNodes = new ArrayList<>(executionNodes);
@@ -181,10 +178,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         }
         Row partitionRow = partitionedByRow(index);
         nodeBucket.add(inputCursor++, docId, partitionRow, row);
-        if (bulkSize != NO_BULK_REQUESTS && nodeBucket.size() >= bulkSize) {
-            flushNodeBucket(nodeBucket);
-            nodeBuckets.remove(nodeIdIndex);
-        }
 
         return true;
     }
@@ -260,9 +253,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         request.executionNodeId(executionNodeId);
         request.toFetchReferences(toFetchReferences);
         request.jobSearchContextDocIds(nodeBucket.docIds());
-        if (bulkSize > NO_BULK_REQUESTS && remainingUpstreams.get() > 0) {
-            request.closeContext(false);
-        }
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
             @Override
             public void onResponse(NodeFetchResponse response) {
@@ -308,8 +298,14 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     /**
      * close job contexts on all affected nodes, just fire & forget, they will timeout anyway
      */
+    private void closeContextsIfRequired() {
+        if (closeContexts) {
+            closeContexts();
+        }
+    }
+
     private void closeContexts() {
-        if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
+        if (closeContexts) {
             LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
             for (final String nodeId : executionNodes) {
                 transportCloseContextNodeAction.execute(nodeId,

@@ -44,10 +44,10 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ExecutionNode;
@@ -540,7 +540,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectNode.jobId());
         builder.addSubContext(
                 collectNode.executionNodeId(),
-                new JobCollectContext(collectNode.jobId(), RAM_ACCOUNTING_CONTEXT, cd));
+                new JobCollectContext(collectNode.jobId(), collectNode, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, cd));
         jobContextService.createOrMergeContext(builder);
         cd.startProjection();
         operation.collect(collectNode, cd, null);

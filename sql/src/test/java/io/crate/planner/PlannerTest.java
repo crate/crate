@@ -599,7 +599,7 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(fetchProjection.bulkSize(), is(-1));
 
         // with offset
         plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
@@ -615,7 +615,7 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(fetchProjection.bulkSize(), is(-1));
     }
 
     @Test
