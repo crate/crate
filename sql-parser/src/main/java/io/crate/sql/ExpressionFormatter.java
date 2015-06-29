@@ -23,13 +23,10 @@ package io.crate.sql;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.*;
 import io.crate.sql.tree.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;
@@ -195,7 +192,12 @@ public final class ExpressionFormatter {
         public String visitObjectLiteral(ObjectLiteral node, Void context) {
             StringBuilder builder = new StringBuilder("{");
             boolean first = true;
-            for (Map.Entry<String, Expression> entry : node.values().entries()) {
+            TreeMultimap<String, Expression> sorted = TreeMultimap.create(
+                    Ordering.natural().nullsLast(),
+                    Ordering.usingToString().nullsLast()
+            );
+            sorted.putAll(node.values());
+            for (Map.Entry<String, Expression> entry : sorted.entries()) {
                 if (!first) {
                     builder.append(", ");
                 } else {

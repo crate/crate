@@ -241,6 +241,7 @@ public class TestStatementBuilder
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
         printStatement("kill all");
+        printStatement("show create table foo");
     }
 
     @Test
@@ -506,6 +507,15 @@ public class TestStatementBuilder
     public void testKill() throws Exception {
         Statement stmt = SqlParser.createStatement("KILL ALL");
         assertTrue("stmt not identical to singleton", stmt == KillStatement.INSTANCE);
+    }
+
+    @Test
+    public void testShowCreateTable() throws Exception {
+        Statement stmt = SqlParser.createStatement("SHOW CREATE TABLE foo");
+        assertTrue(stmt instanceof ShowCreateTable);
+        assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "foo");
+        stmt = SqlParser.createStatement("SHOW CREATE TABLE my_schema.foo");
+        assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "my_schema.foo");
     }
 
     private static void printStatement(String sql)

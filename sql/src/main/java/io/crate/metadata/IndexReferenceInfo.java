@@ -59,6 +59,11 @@ public class IndexReferenceInfo extends ReferenceInfo {
             return this;
         }
 
+        public Builder analyzer(String name) {
+            this.analyzer = name;
+            return this;
+        }
+
         public IndexReferenceInfo build() {
             Preconditions.checkNotNull(ident, "ident is null");
             return new IndexReferenceInfo(ident, indexType, columns, analyzer);
@@ -75,6 +80,14 @@ public class IndexReferenceInfo extends ReferenceInfo {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
         this.columns = MoreObjects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
+    }
+
+    public List<ReferenceInfo> columns() {
+        return columns;
+    }
+
+    public String analyzer() {
+        return analyzer;
     }
 
     @Override

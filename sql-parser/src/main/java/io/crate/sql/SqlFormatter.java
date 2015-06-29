@@ -273,9 +273,12 @@ public final class SqlFormatter {
                 @SuppressWarnings("unchecked")
                 TreeMap<String, Expression> sortedMap = new TreeMap(node.properties());
                 for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
-                    builder.append(indentString(indent+1));
-                    builder.append(propertyEntry.getKey())
-                            .append(" = ");
+                    builder.append(indentString(indent + 1));
+                    String key = propertyEntry.getKey();
+                    if (propertyEntry.getKey().contains(".")) {
+                        key = String.format("\"%s\"", key);
+                    }
+                    builder.append(key).append(" = ");
                     propertyEntry.getValue().accept(this, indent);
                     if (++count < max) builder.append(",");
                     builder.append("\n");
