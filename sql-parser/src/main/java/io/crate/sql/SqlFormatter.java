@@ -269,16 +269,20 @@ public final class SqlFormatter
         @Override
         public Void visitGenericProperties(GenericProperties node, Integer indent) {
             int count = 0, max = node.properties().size();
-            builder.append("WITH (\n");
-            for (Map.Entry<String, Expression> propertyEntry : node.properties().entrySet()) {
-                builder.append(indentString(indent+1));
-                builder.append(propertyEntry.getKey())
-                        .append(" = ");
-                propertyEntry.getValue().accept(this, indent);
-                if (++count < max) builder.append(",");
-                builder.append("\n");
+            if (max > 0) {
+                builder.append("WITH (\n");
+                @SuppressWarnings("unchecked")
+                TreeMap<String, Expression> sortedMap = new TreeMap(node.properties());
+                for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
+                    builder.append(indentString(indent+1));
+                    builder.append(propertyEntry.getKey())
+                            .append(" = ");
+                    propertyEntry.getValue().accept(this, indent);
+                    if (++count < max) builder.append(",");
+                    builder.append("\n");
+                }
+                append(indent, ")");
             }
-            append(indent, ")");
             return null;
         }
 
