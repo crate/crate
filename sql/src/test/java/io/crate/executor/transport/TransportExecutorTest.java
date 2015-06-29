@@ -324,9 +324,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
         ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
 
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
-        List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         UUID jobId = UUID.randomUUID();
+        Planner.Context ctx = new Planner.Context(clusterService(), jobId);
+        List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         CollectNode collectNode = PlanNodeBuilder.collect(
                 ctx.jobId(),
                 searchf,
@@ -363,13 +363,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testQTFTaskPartitioned() throws Exception {
         setup.setUpPartitionedTableWithName();
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        UUID jobId = UUID.randomUUID();
+        Planner.Context ctx = new Planner.Context(clusterService(), jobId);
 
         ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols =  Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef);
 
-        UUID jobId = UUID.randomUUID();
         CollectNode collectNode = PlanNodeBuilder.collect(
                 ctx.jobId(),
                 parted,
