@@ -185,13 +185,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
-        CollectNode node = new CollectNode(0, "collect");
+        UUID jobId = UUID.randomUUID();
+        CollectNode node = new CollectNode(jobId, 0, "collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.limit(limit);
         node.whereClause(WhereClause.MATCH_ALL);
-        UUID jobId = UUID.randomUUID();
-        node.jobId(jobId);
         node.toCollect(input);
         node.maxRowGranularity(RowGranularity.DOC);
 
