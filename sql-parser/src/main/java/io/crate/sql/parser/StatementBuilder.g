@@ -76,6 +76,7 @@ statement returns [Statement value]
     | showColumns               { $value = $showColumns.value; }
     | showPartitions            { $value = $showPartitions.value; }
     | showFunctions             { $value = $showFunctions.value; }
+    | showCreateTable           { $value = $showCreateTable.value; }
     | createTable               { $value = $createTable.value; }
     | alterTable                { $value = $alterTable.value; }
     | alterBlobTable            { $value = $alterBlobTable.value; }
@@ -625,6 +626,13 @@ showPartitions returns [Statement value]
 
 showFunctions returns [Statement value]
     : SHOW_FUNCTIONS { $value = new ShowFunctions(); }
+    ;
+
+showCreateTable returns [Statement value]
+    : ^(SHOW_CREATE_TABLE namedTable)
+        {
+            $value = new ShowCreateTable($namedTable.value);
+        }
     ;
 
 createMaterializedView returns [Statement value]
