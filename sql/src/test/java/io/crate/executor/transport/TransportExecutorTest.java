@@ -233,7 +233,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
-                5,
                 false,
                 ctx.jobSearchContextIdToNode(),
                 ctx.jobSearchContextIdToShard()

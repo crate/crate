@@ -347,7 +347,6 @@ public class ProjectionToProjectorVisitor
                 projection.jobSearchContextIdToNode(),
                 projection.jobSearchContextIdToShard(),
                 projection.executionNodes(),
-                projection.bulkSize(),
                 projection.closeContexts());
     }
 

@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -50,7 +51,7 @@ public class FetchProjection extends Projection {
     private List<Symbol> outputSymbols;
     private List<ReferenceInfo> partitionBy;
     private Set<String> executionNodes;
-    private int bulkSize;
+    private int bulkSize = FetchProjector.NO_BULK_REQUESTS;
     private boolean closeContexts;
     private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
     private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
@@ -64,7 +65,6 @@ public class FetchProjection extends Projection {
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
-                           int bulkSize,
                            boolean closeContexts,
                            IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                            IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
@@ -74,7 +74,6 @@ public class FetchProjection extends Projection {
         this.outputSymbols = outputSymbols;
         this.partitionBy = partitionBy;
         this.executionNodes = executionNodes;
-        this.bulkSize = bulkSize;
         this.closeContexts = closeContexts;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
@@ -104,6 +103,16 @@ public class FetchProjection extends Projection {
         return executionNodes;
     }
 
+    /**
+     * Removed paging support:
+     *  - As there is no client-paging yet the FetchProjector must always fetch all rows anyway.
+     *  - There was a race condition: Fetch requests could arrive out of order on the FetchNode
+     *    and this could lead to the JobExecutionContext being closed by the "last" request before a "previous"
+     *    request arrived.
+     *
+     * the field is still here for serialization compatibility
+     */
+    @Deprecated
     public int bulkSize() {
         return bulkSize;
     }
