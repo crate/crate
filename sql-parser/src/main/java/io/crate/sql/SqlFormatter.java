@@ -21,18 +21,15 @@
 
 package io.crate.sql;
 
+import com.google.common.base.*;
 import io.crate.sql.tree.*;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
+import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.ExpressionFormatter.expressionFormatterFunction;
 import static io.crate.sql.ExpressionFormatter.formatExpression;
-import static com.google.common.base.Preconditions.checkArgument;
 
 public final class SqlFormatter
 {
@@ -40,40 +37,32 @@ public final class SqlFormatter
 
     private SqlFormatter() {}
 
-    public static String formatSql(Node root)
-    {
+    public static String formatSql(Node root) {
         StringBuilder builder = new StringBuilder();
         new Formatter(builder).process(root, 0);
         return builder.toString();
     }
 
-    private static class Formatter
-            extends AstVisitor<Void, Integer>
-    {
+    private static class Formatter extends AstVisitor<Void, Integer> {
         private final StringBuilder builder;
 
-        public Formatter(StringBuilder builder)
-        {
+        public Formatter(StringBuilder builder) {
             this.builder = builder;
         }
 
         @Override
-        protected Void visitNode(Node node, Integer indent)
-        {
+        protected Void visitNode(Node node, Integer indent) {
             throw new UnsupportedOperationException("not yet implemented: " + node);
         }
 
         @Override
-        protected Void visitExpression(Expression node, Integer indent)
-        {
-            checkArgument(indent == 0, "visitExpression should only be called at root");
+        protected Void visitExpression(Expression node, Integer indent) {
             builder.append(formatExpression(node));
             return null;
         }
 
         @Override
-        protected Void visitQuery(Query node, Integer indent)
-        {
+        protected Void visitQuery(Query node, Integer indent) {
             if (node.getWith().isPresent()) {
                 With with = node.getWith().get();
                 append(indent, "WITH");
@@ -98,7 +87,7 @@ public final class SqlFormatter
             process(node.getQueryBody(), indent);
 
             if (!node.getOrderBy().isEmpty()) {
-                append(indent, "ORDER BY " + Joiner.on(", ").join(Iterables.transform(node.getOrderBy(), orderByFormatterFunction())))
+                append(indent, "ORDER BY " + Joiner.on(", ").join(transform(node.getOrderBy(), orderByFormatterFunction())))
                         .append('\n');
             }
 
@@ -116,8 +105,7 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitQuerySpecification(QuerySpecification node, Integer indent)
-        {
+        protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
             process(node.getSelect(), indent);
 
             if (node.getFrom() != null) {
@@ -148,7 +136,7 @@ public final class SqlFormatter
             }
 
             if (!node.getGroupBy().isEmpty()) {
-                append(indent, "GROUP BY " + Joiner.on(", ").join(Iterables.transform(node.getGroupBy(), expressionFormatterFunction())))
+                append(indent, "GROUP BY " + Joiner.on(", ").join(transform(node.getGroupBy(), expressionFormatterFunction())))
                         .append('\n');
             }
 
@@ -158,7 +146,7 @@ public final class SqlFormatter
             }
 
             if (!node.getOrderBy().isEmpty()) {
-                append(indent, "ORDER BY " + Joiner.on(", ").join(Iterables.transform(node.getOrderBy(), orderByFormatterFunction())))
+                append(indent, "ORDER BY " + Joiner.on(", ").join(transform(node.getOrderBy(), orderByFormatterFunction())))
                         .append('\n');
             }
 
@@ -175,8 +163,7 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitSelect(Select node, Integer indent)
-        {
+        protected Void visitSelect(Select node, Integer indent) {
             append(indent, "SELECT");
             if (node.isDistinct()) {
                 builder.append(" DISTINCT");
@@ -199,13 +186,11 @@ public final class SqlFormatter
             }
 
             builder.append('\n');
-
             return null;
         }
 
         @Override
-        protected Void visitSingleColumn(SingleColumn node, Integer indent)
-        {
+        protected Void visitSingleColumn(SingleColumn node, Integer indent) {
             builder.append(formatExpression(node.getExpression()));
             if (node.getAlias().isPresent()) {
                 builder.append(' ')
@@ -218,20 +203,17 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitAllColumns(AllColumns node, Integer context)
-        {
+        protected Void visitAllColumns(AllColumns node, Integer indent) {
             builder.append(node.toString());
-
             return null;
         }
 
         @Override
-        protected Void visitTable(Table node, Integer indent)
-        {
+        protected Void visitTable(Table node, Integer indent)  {
             if (node.excludePartitions()) {
-                builder.append(" ONLY ");
+                builder.append("ONLY ");
             }
-            builder.append(node.getName().toString());
+            builder.append(quoteIdentifierIfNeeded(node.getName().toString()));
             if (!node.partitionProperties().isEmpty()) {
                 builder.append("PARTITION (");
                 for (Assignment assignment : node.partitionProperties()) {
@@ -245,8 +227,165 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitJoin(Join node, Integer indent)
-        {
+        public Void visitCreateTable(CreateTable node, Integer indent) {
+            builder.append("CREATE TABLE ");
+            if (node.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+
+            node.name().accept(this, indent);
+
+            builder.append(" ");
+            appendNestedNodeList(node.tableElements(), indent);
+
+            if (!node.crateTableOptions().isEmpty()) {
+                builder.append("\n");
+                int count = 0, max = node.crateTableOptions().size();
+                for (CrateTableOption option : node.crateTableOptions()) {
+                    option.accept(this, indent);
+                    if (++count < max) builder.append("\n");
+                }
+            }
+
+            if (node.properties().isPresent()) {
+                builder.append("\n");
+                node.properties().get().accept(this, indent);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitClusteredBy(ClusteredBy node, Integer indent) {
+            append(indent, "CLUSTERED");
+            if (node.column().isPresent()) {
+                builder.append(String.format(" BY (%s)", node.column().get().toString()));
+            }
+            if (node.numberOfShards().isPresent()) {
+                builder.append(String.format(" INTO %s SHARDS", node.numberOfShards().get()));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitGenericProperties(GenericProperties node, Integer indent) {
+            int count = 0, max = node.properties().size();
+            builder.append("WITH (\n");
+            for (Map.Entry<String, Expression> propertyEntry : node.properties().entrySet()) {
+                builder.append(indentString(indent+1));
+                builder.append(propertyEntry.getKey())
+                        .append(" = ");
+                propertyEntry.getValue().accept(this, indent);
+                if (++count < max) builder.append(",");
+                builder.append("\n");
+            }
+            append(indent, ")");
+            return null;
+        }
+
+        @Override
+        protected Void visitLongLiteral(LongLiteral node, Integer indent) {
+            builder.append(String.format("%d", node.getValue()));
+            return null;
+        }
+
+        @Override
+        protected Void visitStringLiteral(StringLiteral node, Integer indent) {
+            builder.append(String.format("'%s'", node.getValue()));
+            return null;
+        }
+
+        @Override
+        public Void visitColumnDefinition(ColumnDefinition node, Integer indent) {
+            builder.append(quoteIdentifierIfNeeded(node.ident()))
+                    .append(" ");
+            node.type().accept(this, indent);
+
+            if (!node.constraints().isEmpty()) {
+                for (ColumnConstraint constraint : node.constraints()) {
+                    builder.append(" ");
+                    constraint.accept(this, indent);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitColumnType(ColumnType node, Integer indent) {
+            builder.append(node.name().toUpperCase(Locale.ENGLISH));
+            return null;
+        }
+
+        @Override
+        public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
+            builder.append("OBJECT");
+            if (node.objectType().isPresent()) {
+                builder.append(String.format(" (%s)", node.objectType().get()));
+            }
+            if (!node.nestedColumns().isEmpty()) {
+                builder.append(" AS ");
+                appendNestedNodeList(node.nestedColumns(), indent);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCollectionColumnType(CollectionColumnType node, Integer indent) {
+            builder.append(node.name().toUpperCase(Locale.ENGLISH))
+                    .append("(");
+            node.innerType().accept(this, indent);
+            builder.append(")");
+            return null;
+        }
+
+        @Override
+        public Void visitIndexColumnConstraint(IndexColumnConstraint node, Integer indent) {
+            builder.append("INDEX ");
+            if (node.equals(IndexColumnConstraint.OFF)) {
+                builder.append(node.indexMethod().toUpperCase(Locale.ENGLISH));
+            } else {
+                builder.append("USING ")
+                        .append(node.indexMethod().toUpperCase(Locale.ENGLISH));
+                if (!node.properties().isEmpty()) {
+                    builder.append(" ");
+                    node.properties().accept(this, indent);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, Integer indent) {
+            builder.append("PRIMARY KEY");
+            return null;
+        }
+
+        @Override
+        public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, Integer indent) {
+            builder.append("PRIMARY KEY ");
+            appendFlatNodeList(node.columns(), indent);
+            return null;
+        }
+
+        @Override
+        public Void visitIndexDefinition(IndexDefinition node, Integer indent) {
+            builder.append("INDEX ")
+                    .append(quoteIdentifierIfNeeded(node.ident()))
+                    .append(" USING ")
+                    .append(node.method().toUpperCase(Locale.ENGLISH))
+                    .append(" ");
+            appendFlatNodeList(node.columns(), indent);
+            return null;
+        }
+
+        @Override
+        public Void visitPartitionedBy(PartitionedBy node, Integer indent) {
+            append(indent, "PARTITIONED BY ");
+            appendFlatNodeList(node.columns(), indent);
+            return null;
+        }
+
+        @Override
+        protected Void visitJoin(Join node, Integer indent) {
             JoinCriteria criteria = node.getCriteria().orNull();
             String type = node.getType().toString();
             if (criteria instanceof NaturalJoin) {
@@ -283,8 +422,7 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitAliasedRelation(AliasedRelation node, Integer indent)
-        {
+        protected Void visitAliasedRelation(AliasedRelation node, Integer indent) {
             process(node.getRelation(), indent);
 
             builder.append(' ')
@@ -316,8 +454,7 @@ public final class SqlFormatter
         }
 
         @Override
-        protected Void visitTableSubquery(TableSubquery node, Integer indent)
-        {
+        protected Void visitTableSubquery(TableSubquery node, Integer indent) {
             builder.append('(')
                     .append('\n');
 
@@ -328,8 +465,39 @@ public final class SqlFormatter
             return null;
         }
 
-        private StringBuilder append(int indent, String value)
-        {
+        private String quoteIdentifierIfNeeded(String identifier) {
+            List<String> quoted = new ArrayList<>();
+            for (String part : Splitter.on(".").split(identifier)) {
+                quoted.add(String.format("\"%s\"", part));
+            }
+            return Joiner.on(".").join(quoted);
+        }
+
+        private Void appendFlatNodeList(List<? extends Node> nodes, Integer indent) {
+            int count = 0, max = nodes.size();
+            builder.append("(");
+            for (Node node : nodes) {
+                node.accept(this, indent);
+                if (++count < max) builder.append(", ");
+            }
+            builder.append(")");
+            return null;
+        }
+
+        private Void appendNestedNodeList(List<? extends Node> nodes, Integer indent) {
+            int count = 0, max = nodes.size();
+            builder.append("(\n");
+            for (Node node : nodes) {
+                builder.append(indentString(indent+1));
+                node.accept(this, indent+1);
+                if (++count < max) builder.append(",");
+                builder.append("\n");
+            }
+            append(indent, ")");
+            return null;
+        }
+
+        private StringBuilder append(int indent, String value) {
             return builder.append(indentString(indent))
                     .append(value);
         }
@@ -340,13 +508,10 @@ public final class SqlFormatter
         }
     }
 
-    static Function<SortItem, String> orderByFormatterFunction()
-    {
-        return new Function<SortItem, String>()
-        {
+    static Function<SortItem, String> orderByFormatterFunction() {
+        return new Function<SortItem, String>() {
             @Override
-            public String apply(SortItem input)
-            {
+            public String apply(SortItem input) {
                 StringBuilder builder = new StringBuilder();
 
                 builder.append(formatExpression(input.getSortKey()));
@@ -381,12 +546,12 @@ public final class SqlFormatter
         };
     }
 
-    private static void appendAliasColumns(StringBuilder builder, List<String> columns)
-    {
+    private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
         if ((columns != null) && (!columns.isEmpty())) {
             builder.append(" (");
             Joiner.on(", ").appendTo(builder, columns);
             builder.append(')');
         }
     }
+
 }

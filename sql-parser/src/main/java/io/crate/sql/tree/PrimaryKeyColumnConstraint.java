@@ -26,13 +26,16 @@ public class PrimaryKeyColumnConstraint extends ColumnConstraint {
     private static final String NAME = "PRIMARY_KEY";
 
     @Override
-    public int hashCode() {
-        return NAME.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        //noinspection RedundantIfStatement
+        if (o == null || getClass() != o.getClass()) return false;
+        return true;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return NAME.equals(obj);
+    public int hashCode() {
+        return NAME.hashCode();
     }
 
     @Override

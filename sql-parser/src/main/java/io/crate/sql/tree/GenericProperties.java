@@ -76,6 +76,10 @@ public class GenericProperties extends Node {
         properties.put(property.key(), property.value());
     }
 
+    public boolean isEmpty() {
+        return properties.isEmpty();
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(properties);

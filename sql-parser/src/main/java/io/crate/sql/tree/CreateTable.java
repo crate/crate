@@ -89,11 +89,11 @@ public class CreateTable extends Statement {
 
         CreateTable that = (CreateTable) o;
 
-        if (properties != that.properties) return false;
+        if (!name.equals(that.name)) return false;
         if (ifNotExists != that.ifNotExists) return false;
         if (!crateTableOptions.equals(that.crateTableOptions)) return false;
-        if (!name.equals(that.name)) return false;
         if (!tableElements.equals(that.tableElements)) return false;
+        if (!properties.equals(that.properties)) return false;
 
         return true;
     }
