@@ -32,6 +32,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.planner.projection.Projection;
 import io.crate.testing.CollectingProjector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -64,18 +65,21 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        operation = internalCluster().getInstance(MapSideDataCollectOperation.class);
+        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
         functions = internalCluster().getInstance(Functions.class);
-        localNodeId = internalCluster().getInstance(ClusterService.class).state().nodes().localNodeId();
+        localNodeId = internalCluster().getDataNodeInstance(ClusterService.class).state().nodes().localNodeId();
+    }
+
+    private CollectNode collectNode(Routing routing, List<Symbol> toCollect) {
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
+        return collectNode;
     }
 
     @Test
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
-        CollectNode collectNode = new CollectNode(0, "clusterCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
-        collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
+        CollectNode collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
@@ -95,8 +99,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.tables", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(0, "tablesCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         List<Symbol> toCollect = new ArrayList<>();
@@ -110,8 +112,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Function whereClause = new Function(eqImpl.info(),
                 Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
+        CollectNode collectNode = collectNode(routing, toCollect);
         collectNode.whereClause(new WhereClause(whereClause));
-        collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
@@ -125,15 +127,13 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.columns", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(0, "columnsCollect", routing);
-        collectNode.jobId(UUID.randomUUID());
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         List<Symbol> toCollect = new ArrayList<>();
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        collectNode.toCollect(toCollect);
+        CollectNode collectNode = collectNode(routing, toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);

@@ -31,10 +31,6 @@ public class Job {
     private final UUID id;
     private List<Task> tasks = new ArrayList<>();
 
-    public Job() {
-        this(UUID.randomUUID());
-    }
-
     public Job(UUID id) {
         this.id = id;
     }
@@ -43,7 +39,7 @@ public class Job {
         return id;
     }
 
-    public void addTasks(Collection<Task> tasks) {
+    public void addTasks(Collection<? extends Task> tasks) {
         this.tasks.addAll(tasks);
     }
 

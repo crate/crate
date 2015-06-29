@@ -29,6 +29,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -41,6 +42,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.*;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,22 +52,29 @@ import java.util.List;
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 
+@Singleton
 public class GlobalAggregateConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
+    private final Visitor visitor;
+
+    @Inject
+    public GlobalAggregateConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        AnalyzedRelation analyzedRelation = VISITOR.process(rootRelation, context);
-        if (analyzedRelation != null) {
-            context.rootRelation(analyzedRelation);
-            return true;
-        }
-        return false;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+        return visitor.process(rootRelation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
+        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
@@ -72,20 +82,14 @@ public class GlobalAggregateConsumer implements Consumer {
                 return null;
             }
             if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
             if (table.querySpec().where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(table, table.tableRelation(),  table.querySpec().where(), context);
-        }
-
-        @Override
-        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, ConsumerContext context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return null;
+            return globalAggregates(functions, table, table.tableRelation(),  table.querySpec().where(), context);
         }
 
         @Override
@@ -98,7 +102,8 @@ public class GlobalAggregateConsumer implements Consumer {
         return groupBy == null || groupBy.isEmpty();
     }
 
-    public static PlannedAnalyzedRelation globalAggregates(QueriedTable table,
+    public static PlannedAnalyzedRelation globalAggregates(Functions functions,
+                                                           QueriedTable table,
                                                            TableRelation tableRelation,
                                                            WhereClause whereClause,
                                                            ConsumerContext context) {
@@ -106,7 +111,7 @@ public class GlobalAggregateConsumer implements Consumer {
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
 
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
         SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
@@ -116,6 +121,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.PARTIAL);
 
         CollectNode collectNode = PlanNodeBuilder.collect(
+                context.plannerContext().jobId(),
                 tableRelation.tableInfo(),
                 context.plannerContext(),
                 whereClause,
@@ -134,7 +140,7 @@ public class GlobalAggregateConsumer implements Consumer {
         HavingClause havingClause = table.querySpec().having();
         if(havingClause != null){
             if (havingClause.noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             } else if (havingClause.hasQuery()){
                 projections.add(projectionBuilder.filterProjection(
                         splitPoints.aggregates(),
@@ -149,9 +155,9 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
                 context.plannerContext());
-        return new GlobalAggregate(collectNode, localMergeNode);
+        return new GlobalAggregate(collectNode, localMergeNode, context.plannerContext().jobId());
     }
 
     private static void validateAggregationOutputs(TableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

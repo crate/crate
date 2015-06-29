@@ -46,6 +46,10 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
     public static final String NAME = "geometric_mean";
 
+    static {
+        DataTypes.register(GeometricMeanStateType.ID, GeometricMeanStateType.INSTANCE);
+    }
+
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new GeometricMeanAggregation(new FunctionInfo(

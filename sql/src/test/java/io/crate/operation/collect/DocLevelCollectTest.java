@@ -33,9 +33,9 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -90,9 +90,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        operation = internalCluster().getInstance(MapSideDataCollectOperation.class);
-        functions = internalCluster().getInstance(Functions.class);
-        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
+        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
+        functions = internalCluster().getDataNodeInstance(Functions.class);
+        docSchemaInfo = internalCluster().getDataNodeInstance(DocSchemaInfo.class);
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                 "  id integer," +
@@ -148,11 +148,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevel() throws Exception {
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing(TEST_TABLE_NAME));
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
+        List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
+        CollectNode collectNode = getCollectNode(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.jobId(UUID.randomUUID());
-        PlanNodeBuilder.setOutputTypes(collectNode);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
                 isRow(2, "{\"id\":1,\"doc\":2}", "1"),
@@ -164,18 +162,26 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevelWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing(TEST_TABLE_NAME));
-        collectNode.jobId(UUID.randomUUID());
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
+        List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
+        CollectNode collectNode = getCollectNode(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
+    }
+
+    private CollectNode getCollectNode(List<Symbol> toCollect, Routing routing) {
+        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "docCollect", routing, toCollect,
+                ImmutableList.<Projection>of());
+        return collectNode;
+    }
+
+    private CollectNode getCollectNode(List<Symbol> toCollect) {
+        return getCollectNode(toCollect, routing(TEST_TABLE_NAME));
     }
 
 
@@ -183,19 +189,17 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Exception {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
         TableIdent tableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        CollectNode collectNode = new CollectNode(0, "docCollect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "id"),
-                        RowGranularity.DOC, DataTypes.INTEGER)),
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "date"),
-                        RowGranularity.SHARD, DataTypes.TIMESTAMP))
-        ));
+        CollectNode collectNode = getCollectNode(
+                Arrays.<Symbol>asList(
+                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "id"),
+                                RowGranularity.DOC,
+                                DataTypes.INTEGER)),
+                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "date"),
+                                RowGranularity.SHARD,
+                                DataTypes.TIMESTAMP))),
+                routing);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
-        collectNode.jobId(UUID.randomUUID());
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
         Bucket result = collect(collectNode);
         for (Row row : result) {
@@ -209,8 +213,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(CollectNode collectNode) throws Exception {
-        ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class);
-        JobContextService contextService = internalCluster().getInstance(JobContextService.class);
+        ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
+        JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
         assert future != null;

@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -61,11 +62,10 @@ public class AggregatorTest extends CrateUnitTest {
 
     @Test
     public void testAggregationFromPartial() {
-        Aggregation aggregation = new Aggregation(
+        Aggregation aggregation = Aggregation.finalAggregation(
                 countImpl.info(),
-                Arrays.<Symbol>asList(new InputColumn(0)),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL
+                Collections.<Symbol>singletonList(new InputColumn(0)),
+                Aggregation.Step.PARTIAL
         );
         Input dummyInput = new Input() {
             Long state = 10L;
@@ -88,11 +88,10 @@ public class AggregatorTest extends CrateUnitTest {
 
     @Test
     public void testAggregationFromIterToFinal() {
-        Aggregation aggregation = new Aggregation(
+        Aggregation aggregation = Aggregation.finalAggregation(
                 countImpl.info(),
-                Arrays.<Symbol>asList(new InputColumn(0)),
-                Aggregation.Step.ITER,
-                Aggregation.Step.FINAL
+                Collections.<Symbol>singletonList(new InputColumn(0)),
+                Aggregation.Step.ITER
         );
 
         Input dummyInput = new Input() {

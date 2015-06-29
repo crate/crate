@@ -251,13 +251,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
         @Override
         public void finish() {
-            if (downstream == null) {
-                return;
-            }
-            Throwable throwable = failure.get();
-            if (throwable != null) {
-                downstream.fail(throwable);
-            }
+            if (hasNoDownstreamOrHasFailure()) return;
 
             // TODO: check ram accounting
             // account the multi-dimension `rows` array
@@ -356,13 +350,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
         @Override
         public void finish() {
-            if (downstream == null){
-                return;
-            }
-            Throwable throwable = failure.get();
-            if (throwable != null) {
-                downstream.fail(throwable);
-            }
+            if (hasNoDownstreamOrHasFailure()) return;
             // account the multi-dimension `rows` array
             // 1st level
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
@@ -390,5 +378,17 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         public void prepare(ExecutionState executionState) {
             this.executionState = executionState;
         }
+    }
+
+    private boolean hasNoDownstreamOrHasFailure() {
+        if (downstream == null){
+            return true;
+        }
+        Throwable throwable = failure.get();
+        if (throwable != null) {
+            downstream.fail(throwable);
+            return true;
+        }
+        return false;
     }
 }

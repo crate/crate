@@ -25,19 +25,28 @@ import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
+import java.util.UUID;
+
 public class NonDistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
     private MergeNode localMergeNode;
+    private final UUID id;
 
-    public NonDistributedGroupBy(CollectNode collectNode, MergeNode localMergeNode){
+    public NonDistributedGroupBy(CollectNode collectNode, MergeNode localMergeNode, UUID id){
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
+        this.id = id;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitNonDistributedGroupBy(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     public MergeNode localMergeNode() {

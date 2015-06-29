@@ -51,7 +51,8 @@ public class CountNode implements ExecutionNode {
 
     CountNode() {}
 
-    public CountNode(int executionNodeId, Routing routing, WhereClause whereClause) {
+    public CountNode(UUID jobId, int executionNodeId, Routing routing, WhereClause whereClause) {
+        this.jobId = jobId;
         this.executionNodeId = executionNodeId;
         this.routing = routing;
         this.whereClause = whereClause;
@@ -70,11 +71,6 @@ public class CountNode implements ExecutionNode {
     @Override
     public UUID jobId() {
         return jobId;
-    }
-
-    @Override
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
     }
 
     public Routing routing() {

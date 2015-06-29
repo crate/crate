@@ -22,14 +22,12 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

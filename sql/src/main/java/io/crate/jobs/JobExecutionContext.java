@@ -21,8 +21,7 @@
 
 package io.crate.jobs;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.Lists;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
@@ -30,11 +29,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,7 +39,7 @@ public class JobExecutionContext {
 
     private final UUID jobId;
     private final long keepAlive;
-    private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
+    private final LinkedHashMap<Integer, ExecutionSubContext> subContexts;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
     private StatsTables statsTables;
@@ -61,7 +56,7 @@ public class JobExecutionContext {
         private final ThreadPool threadPool;
         private final StatsTables statsTables;
         private final long keepAlive = JobContextService.DEFAULT_KEEP_ALIVE;
-        private final IntObjectOpenHashMap<ExecutionSubContext> subContexts = new IntObjectOpenHashMap<>();
+        private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
 
         Builder(UUID jobId, ThreadPool threadPool, StatsTables statsTables) {
             this.jobId = jobId;
@@ -95,14 +90,15 @@ public class JobExecutionContext {
                                 long keepAlive,
                                 ThreadPool threadPool,
                                 StatsTables statsTables,
-                                IntObjectOpenHashMap<ExecutionSubContext> subContexts) {
+                                LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
+        this.subContexts = new LinkedHashMap<>(subContexts.size());
         this.jobId = jobId;
         this.keepAlive = keepAlive;
         this.threadPool = threadPool;
         this.statsTables = statsTables;
 
-        for (IntObjectCursor<ExecutionSubContext> cursor : subContexts) {
-            addContext(cursor.key, cursor.value);
+        for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
+            addContext(entry.getKey(), entry.getValue());
         }
     }
 
@@ -112,7 +108,7 @@ public class JobExecutionContext {
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
         int numActive = activeSubContexts.incrementAndGet();
-        ExecutionSubContext existing = subContexts.putIfAbsent(subContextId, subContext);
+        ExecutionSubContext existing = subContexts.put(subContextId, subContext);
         if (existing == null) {
             subContext.addCallback(new RemoveContextCallback(subContextId));
             LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, numActive);
@@ -128,9 +124,16 @@ public class JobExecutionContext {
     }
 
     public void start() {
-        for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
-            ExecutionSubContext subContext = entry.getValue();
-            statsTables.operationStarted(entry.getKey(), jobId, subContext.name());
+        List<Integer> reverseContextIds;
+        synchronized (subContexts) {
+             reverseContextIds = Lists.reverse(Lists.newArrayList(subContexts.keySet()));
+        }
+        for (Integer id : reverseContextIds) {
+            ExecutionSubContext subContext = subContexts.get(id);
+            if (subContext == null || closed.get()) {
+                break; // got killed before start was called
+            }
+            statsTables.operationStarted(id, jobId, subContext.name());
             subContext.start();
         }
     }
@@ -167,7 +170,11 @@ public class JobExecutionContext {
             if (activeSubContexts.get() == 0) {
                 callContextCallback();
             } else {
-                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                List<ExecutionSubContext> contexts;
+                synchronized (subContexts) {
+                    contexts = Lists.newArrayList(subContexts.values());
+                }
+                for (ExecutionSubContext executionSubContext : contexts) {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
                     executionSubContext.kill();
@@ -200,6 +207,16 @@ public class JobExecutionContext {
         }
     }
 
+    @Override
+    public String toString() {
+        return "JobExecutionContext{" +
+                "jobId=" + jobId +
+                ", subContexts=" + subContexts +
+                ", activeSubContexts=" + activeSubContexts +
+                ", closed=" + closed +
+                '}';
+    }
+
     private class RemoveContextCallback implements ContextCallback {
 
         private final int executionNodeId;
@@ -215,7 +232,11 @@ public class JobExecutionContext {
                         System.identityHashCode(subContexts), executionNodeId);
             }
 
-            Object remove = subContexts.remove(executionNodeId);
+
+            Object remove;
+            synchronized (subContexts) {
+                remove = subContexts.remove(executionNodeId);
+            }
             int remaining;
             if (remove == null) {
                 LOGGER.trace("Closed context {} which was already closed.", executionNodeId);

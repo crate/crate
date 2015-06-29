@@ -35,6 +35,7 @@ import org.elasticsearch.rest.RestModule;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 public class CrateCorePlugin extends AbstractPlugin {
 
@@ -45,7 +46,7 @@ public class CrateCorePlugin extends AbstractPlugin {
     public CrateCorePlugin(Settings settings) {
         this.settings = settings;
         crateComponentLoader = CrateComponentLoader.getInstance(settings);
-        pluginLoader = PluginLoader.getInstance(settings);
+        pluginLoader = new PluginLoader(settings);
     }
 
     @Override
@@ -83,11 +84,16 @@ public class CrateCorePlugin extends AbstractPlugin {
     }
 
     @Override
+    public Collection<Module> modules(Settings settings) {
+        CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
+        return Collections.<Module>singletonList(crateCoreModule);
+    }
+
+    @Override
     public Collection<Class<? extends Module>> modules() {
         Collection<Class<? extends Module>> modules = new ArrayList<>();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(CrateCoreModule.class);
-        }
+        modules.addAll(crateComponentLoader.modules());
+        modules.addAll(pluginLoader.modules());
         return modules;
     }
 

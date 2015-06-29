@@ -28,13 +28,16 @@ import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 
 import java.util.List;
+import java.util.UUID;
 
 public class Upsert extends PlanAndPlannedAnalyzedRelation {
 
     private final List<Plan> nodes;
+    private final UUID id;
 
-    public Upsert(List<Plan> nodes) {
+    public Upsert(List<Plan> nodes, UUID id) {
         this.nodes = nodes;
+        this.id = id;
     }
 
     public List<Plan> nodes() {
@@ -44,6 +47,11 @@ public class Upsert extends PlanAndPlannedAnalyzedRelation {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitUpsert(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     @Override

@@ -62,7 +62,7 @@ public class StaticInformationSchemaQueryTest extends ClassLifecycleIntegrationT
     }
 
     public SQLResponse execute(String stmt) {
-        response = executor.execute(stmt, new Object[0]).actionGet();
+        response = executor.exec(stmt);
         return response;
     }
 

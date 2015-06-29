@@ -47,12 +47,12 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
             ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
 
     public static final AggregationProjection PARTIAL_COUNT_AGGREGATION_PROJECTION =
-            new AggregationProjection(Collections.singletonList(new Aggregation(
-                    CountAggregation.COUNT_STAR_FUNCTION,
-                    Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
-                    Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL
-            )));
+            new AggregationProjection(Collections.singletonList(
+                    Aggregation.finalAggregation(
+                            CountAggregation.COUNT_STAR_FUNCTION,
+                            Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
+                            Aggregation.Step.PARTIAL
+                    )));
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());

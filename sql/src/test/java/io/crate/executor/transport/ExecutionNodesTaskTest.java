@@ -29,6 +29,9 @@ import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.node.ExecutionNodeGrouper;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -36,27 +39,29 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ExecutionNodesTaskTest {
 
 
     @Test
     public void testGroupByServer() throws Exception {
-
         Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
                 .put("node1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
                 .put("node2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
                 .map());
 
-        CollectNode c1 = new CollectNode(1, "c1", twoNodeRouting);
+        UUID jobId = UUID.randomUUID();
+        CollectNode c1 = new CollectNode(jobId, 1, "c1", twoNodeRouting, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
 
-        MergeNode m1 = new MergeNode(2, "merge1", 2);
+        MergeNode m1 = new MergeNode(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergeNode m2 = new MergeNode(3, "merge2", 2);
+        MergeNode m2 = new MergeNode(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
-
-        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodeGrouper.groupByServer("node1", ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));
+        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodeGrouper.groupByServer(
+                "node1", ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1, m1, m2)));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
         assertThat(groupByServer.get("node1"), Matchers.<ExecutionNode>containsInAnyOrder(c1, m2));
@@ -74,13 +79,12 @@ public class ExecutionNodesTaskTest {
 
     @Test
     public void testDetectsHasDirectResponse() throws Exception {
-        CollectNode c1 = new CollectNode(1, "c1");
-        c1.downstreamNodes(Collections.singletonList("foo"));
+        ExecutionNode c1 = mock(ExecutionNode.class);
+        when(c1.downstreamNodes()).thenReturn(Collections.singletonList("foo"));
 
-        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c1))), is(false));
+        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.of(c1))), is(false));
 
-        CollectNode c2 = new CollectNode(1, "c1");
-        c2.downstreamNodes(Collections.singletonList(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
-        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.<ExecutionNode>of(c2))), is(true));
+        when(c1.downstreamNodes()).thenReturn(Collections.singletonList(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
+        assertThat(ExecutionNodesTask.hasDirectResponse(ImmutableList.<List<ExecutionNode>>of(ImmutableList.of(c1))), is(true));
     }
 }

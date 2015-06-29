@@ -25,14 +25,18 @@ import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
+import java.util.UUID;
+
 public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
     private MergeNode mergeNode;
+    private final UUID id;
 
-    public QueryThenFetch(CollectNode collectNode, MergeNode mergeNode) {
+    public QueryThenFetch(CollectNode collectNode, MergeNode mergeNode, UUID id) {
         this.collectNode = collectNode;
         this.mergeNode = mergeNode;
+        this.id = id;
     }
 
     public CollectNode collectNode() {
@@ -46,6 +50,11 @@ public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitQueryThenFetch(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     @Override

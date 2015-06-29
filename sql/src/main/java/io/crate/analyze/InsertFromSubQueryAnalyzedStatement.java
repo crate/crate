@@ -38,6 +38,7 @@ import java.util.Map;
 public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement implements AnalyzedRelation {
 
     private AnalyzedRelation subQueryRelation;
+
     @Nullable
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
@@ -48,10 +49,6 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
 
     public AnalyzedRelation subQueryRelation() {
         return this.subQueryRelation;
-    }
-
-    public void subQueryRelation(AnalyzedRelation subQueryRelation) {
-        this.subQueryRelation = subQueryRelation;
     }
 
     @Override

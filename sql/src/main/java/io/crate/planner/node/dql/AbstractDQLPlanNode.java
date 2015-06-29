@@ -26,6 +26,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.ExecutionNode;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Symbols;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,15 +45,16 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     private String name;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
-    private List<DataType> inputTypes;
 
     public AbstractDQLPlanNode() {
 
     }
 
-    protected AbstractDQLPlanNode(int executionNodeId, String name) {
+    protected AbstractDQLPlanNode(UUID jobId, int executionNodeId, String name, List<Projection> projections) {
+        this.jobId = jobId;
         this.executionNodeId = executionNodeId;
         this.name = name;
+        this.projections = projections;
     }
 
     public String name() {
@@ -62,11 +64,6 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public UUID jobId() {
         return jobId;
-    }
-
-    @Override
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
     }
 
     @Override
@@ -83,15 +80,12 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
         return projections;
     }
 
-    public void projections(List<Projection> projections) {
-        this.projections = projections;
-    }
-
     @Override
     public void addProjection(Projection projection) {
         List<Projection> projections = new ArrayList<>(this.projections);
         projections.add(projection);
         this.projections = ImmutableList.copyOf(projections);
+        outputTypes = Symbols.extractTypes(projection.outputs());
     }
 
     public Optional<Projection> finalProjection() {
@@ -102,23 +96,8 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
         }
     }
 
-
-    public void outputTypes(List<DataType> outputTypes) {
-        this.outputTypes = outputTypes;
-    }
-
     public List<DataType> outputTypes() {
         return outputTypes;
-    }
-
-    @Override
-    public void inputTypes(List<DataType> dataTypes) {
-        this.inputTypes = dataTypes;
-    }
-
-    @Override
-    public List<DataType> inputTypes() {
-        return inputTypes;
     }
 
     @Override

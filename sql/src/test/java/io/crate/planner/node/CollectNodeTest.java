@@ -22,8 +22,10 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
@@ -42,17 +44,17 @@ public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        CollectNode cn = new CollectNode(0, "cn");
+        ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
+        UUID jobId = UUID.randomUUID();
+        CollectNode cn = new CollectNode(jobId, 0, "cn", new Routing(), toCollect, ImmutableList.<Projection>of());
         cn.maxRowGranularity(RowGranularity.DOC);
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
-        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
-        cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(1, "collect");
+        CollectNode cn2 = CollectNode.FACTORY.create();
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 

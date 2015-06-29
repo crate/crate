@@ -218,13 +218,14 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
             // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
             if (!consumedRows) {
-                closeContexts();
+                closeContextsIfRequired();
             }
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
+        closeContexts();
         downstream.fail(throwable);
     }
 
@@ -261,7 +262,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         request.executionNodeId(executionNodeId);
         request.toFetchReferences(toFetchReferences);
         request.jobSearchContextDocIds(nodeBucket.docIds());
-        if (bulkSize > NO_BULK_REQUESTS) {
+        if (bulkSize > NO_BULK_REQUESTS && remainingUpstreams.get() > 0) {
             request.closeContext(false);
         }
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
@@ -292,7 +293,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                     consumingRows.set(false);
                 }
                 if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
-                    closeContexts();
+                    closeContextsIfRequired();
                 }
                 downstream.finish();
             }
@@ -309,23 +310,27 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     /**
      * close job contexts on all affected nodes, just fire & forget, they will timeout anyway
      */
-    private void closeContexts() {
+    private void closeContextsIfRequired() {
         if (closeContexts || bulkSize > NO_BULK_REQUESTS) {
-            LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
-            for (final String nodeId : executionNodes) {
-                transportCloseContextNodeAction.execute(nodeId,
-                        new NodeCloseContextRequest(jobId, executionNodeId),
-                        new ActionListener<NodeCloseContextResponse>() {
-                    @Override
-                    public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                    }
+            closeContexts();
+        }
+    }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                    }
-                });
-            }
+    private void closeContexts() {
+        LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
+        for (final String nodeId : executionNodes) {
+            transportCloseContextNodeAction.execute(nodeId,
+                    new NodeCloseContextRequest(jobId, executionNodeId),
+                    new ActionListener<NodeCloseContextResponse>() {
+                @Override
+                public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                }
+            });
         }
     }
 

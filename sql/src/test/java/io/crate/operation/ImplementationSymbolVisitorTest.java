@@ -119,10 +119,8 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
                 new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
 
         List<Symbol> aggregations = Arrays.<Symbol>asList(
-                new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)),
-                        Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)),
-                        Aggregation.Step.ITER, Aggregation.Step.FINAL)
+                Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER),
+                Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
         );
 
         ImplementationSymbolVisitor.Context context = visitor.extractImplementations(aggregations);
@@ -174,11 +172,10 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
 
         // values: [ count(in(0)) ]
-        List<Aggregation> values = Arrays.asList(new Aggregation(
+        List<Aggregation> values = Arrays.asList(Aggregation.partialAggregation(
                 new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.LONG)), DataTypes.LONG),
-                Arrays.<Symbol>asList(new InputColumn(0)),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL
+                DataTypes.LONG,
+                Arrays.<Symbol>asList(new InputColumn(0))
         ));
 
         ImplementationSymbolVisitor.Context context = visitor.extractImplementations(keys);

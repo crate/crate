@@ -43,6 +43,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public static final String NAME = NAMES[0];
     private final FunctionInfo info;
 
+    static {
+        DataTypes.register(AverageStateType.ID, AverageStateType.INSTANCE);
+    }
+
     /**
      * register as "avg" and "mean"
      */
@@ -96,10 +100,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
         public static final int ID = 1024;
         private static final AverageStateType INSTANCE = new AverageStateType();
-
-        private AverageStateType() {
-            DataTypes.register(ID, this);
-        }
 
         @Override
         public int id() {

@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
@@ -30,10 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.ScoreReferenceDetector;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.FetchProjector;
@@ -51,34 +47,46 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Singleton
 public class QueryThenFetchConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
     private static final OutputOrderReferenceCollector OUTPUT_ORDER_REFERENCE_COLLECTOR = new OutputOrderReferenceCollector();
     private static final ReferencesCollector REFERENCES_COLLECTOR = new ReferencesCollector();
     private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
     private static final ColumnIdent DOC_ID_COLUMN_IDENT = new ColumnIdent(DocSysColumns.DOCID.name());
     private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
+    private final Visitor visitor;
+
+    @Inject
+    public QueryThenFetchConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation plannedAnalyzedRelation = VISITOR.process(rootRelation, context);
-        if (plannedAnalyzedRelation == null) {
-            return false;
-        }
-        context.rootRelation(plannedAnalyzedRelation);
-        return true;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
+        }
+
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (context.rootRelation() != table) {
+                return null;
+            }
             QuerySpec querySpec = table.querySpec();
             if (querySpec.hasAggregates() || querySpec.groupBy()!=null) {
                 return null;
@@ -94,7 +102,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             if (querySpec.where().noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table);
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
             boolean outputsAreAllOrdered = false;
@@ -105,7 +113,7 @@ public class QueryThenFetchConsumer implements Consumer {
             List<Symbol> outputSymbols = new ArrayList<>();
             ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(querySpec);
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // MAP/COLLECT related
@@ -157,18 +165,17 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     querySpec.where(),
                     collectSymbols,
-                    ImmutableList.<Projection>of(),
+                    collectProjections,
                     orderBy,
                     limit == null ? null : limit + querySpec.offset()
             );
-
-
             collectNode.keepContextForFetcher(needFetchProjection);
-            collectNode.projections(collectProjections);
+
             // MAP/COLLECT related END
 
             // HANDLER/MERGE/FETCH related
@@ -213,6 +220,7 @@ public class QueryThenFetchConsumer implements Consumer {
             MergeNode localMergeNode;
             if (orderBy != null) {
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        context.plannerContext().jobId(),
                         mergeProjections,
                         orderBy,
                         collectSymbols,
@@ -221,6 +229,7 @@ public class QueryThenFetchConsumer implements Consumer {
                         context.plannerContext());
             } else {
                 localMergeNode = PlanNodeBuilder.localMerge(
+                        context.plannerContext().jobId(),
                         mergeProjections,
                         collectNode,
                         context.plannerContext());
@@ -231,7 +240,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
                 collectNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
             }
-            return new QueryThenFetch(collectNode, localMergeNode);
+            return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());
         }
 
         @Override

@@ -55,8 +55,6 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -71,8 +69,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
@@ -85,15 +81,21 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
         private final ClusterService clusterService;
+        private final UUID jobId;
         private int jobSearchContextIdBaseSeq = 0;
         private int executionNodeId = 0;
 
-        public Context(ClusterService clusterService) {
+        public Context(ClusterService clusterService, UUID jobId) {
             this.clusterService = clusterService;
+            this.jobId = jobId;
         }
 
         public ClusterService clusterService() {
             return clusterService;
+        }
+
+        public UUID jobId() {
+            return jobId;
         }
 
         /**
@@ -165,9 +167,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      * @param analysis analysis to create plan from
      * @return plan
      */
-    public Plan plan(Analysis analysis) {
+    public Plan plan(Analysis analysis, UUID jobId) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService));
+        return process(analyzedStatement, new Context(clusterService, jobId));
     }
 
     @Override
@@ -194,15 +196,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
         ConsumerContext consumerContext = new ConsumerContext(statement, context);
-        if (updateConsumer.consume(statement, consumerContext)) {
-            return ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
+        PlannedAnalyzedRelation plannedAnalyzedRelation = updateConsumer.consume(statement, consumerContext);
+        if (plannedAnalyzedRelation == null) {
+            throw new IllegalArgumentException("Couldn't plan Update statement");
         }
-        throw new IllegalArgumentException("Couldn't plan Update statement");
+        return plannedAnalyzedRelation.plan();
     }
 
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
-        IterablePlan plan = new IterablePlan();
+        IterablePlan plan = new IterablePlan(context.jobId());
         TableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
@@ -223,7 +226,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         if (plan.isEmpty()) {
-            return NoopPlan.INSTANCE;
+            return new NoopPlan(context.jobId());
         }
         return plan;
     }
@@ -272,6 +275,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
+                context.jobId(),
                 tableInfo,
                 context,
                 WhereClause.MATCH_ALL,
@@ -280,9 +284,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.partitionIdent()
         );
 
-        MergeNode mergeNode = PlanNodeBuilder.localMerge(
+        MergeNode mergeNode = PlanNodeBuilder.localMerge(context.jobId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context);
-        return new CollectAndMerge(collectNode, mergeNode);
+        return new CollectAndMerge(collectNode, mergeNode, context.jobId());
     }
 
     private Plan copyFromPlan(CopyAnalyzedStatement analysis, Context context) {
@@ -368,6 +372,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(
+                context.jobId(),
                 context.nextExecutionNodeId(),
                 "copyFrom",
                 generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
@@ -377,10 +382,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.settings().get("compression", null),
                 analysis.settings().getAsBoolean("shared", null)
         );
-        PlanNodeBuilder.setOutputTypes(collectNode);
 
-        return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context));
+        return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(context.jobId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context), context.jobId());
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
@@ -399,13 +403,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
-        return new IterablePlan(new GenericDDLNode(statement));
+        return new IterablePlan(context.jobId(), new GenericDDLNode(statement));
     }
 
     @Override
     public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Context context) {
         if (analysis.noop()) {
-            return NoopPlan.INSTANCE;
+            return new NoopPlan(context.jobId());
         }
         return visitDDLAnalyzedStatement(analysis, context);
     }
@@ -413,15 +417,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, Context context) {
         if (analysis.noop()) {
-            return NoopPlan.INSTANCE;
+            return new NoopPlan(context.jobId());
         }
-        return new IterablePlan(new DropTableNode(analysis.table()));
+        return new IterablePlan(context.jobId(), new DropTableNode(analysis.table(), analysis.dropIfExists()));
     }
 
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
         if (analysis.noOp()) {
-            return NoopPlan.INSTANCE;
+            return new NoopPlan(context.jobId());
         }
         TableIdent tableIdent = analysis.tableIdent();
 
@@ -443,7 +447,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.mapping()
             );
         }
-        return new IterablePlan(createTableNode);
+        return new IterablePlan(context.jobId(), createTableNode);
     }
 
     @Override
@@ -456,7 +460,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
-        return new IterablePlan(node);
+        return new IterablePlan(context.jobId(), node);
     }
 
     @Override
@@ -476,12 +480,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 }
             }
         }
-        return node != null ? new IterablePlan(node) : NoopPlan.INSTANCE;
+        return node != null ? new IterablePlan(context.jobId(), node) : new NoopPlan(context.jobId());
     }
 
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
-        return KillPlan.INSTANCE;
+        return new KillPlan(context.jobId());
     }
 
     private void createESDeleteByQueryNode(TableInfo tableInfo,
@@ -552,43 +556,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        return new Upsert(ImmutableList.<Plan>of(new IterablePlan(upsertByIdNode)));
+        return new Upsert(ImmutableList.<Plan>of(new IterablePlan(context.jobId(), upsertByIdNode)), context.jobId());
     }
-
-    static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
-        if (projections.size() == 0) {
-            return inputTypes;
-        }
-        int projectionIdx = projections.size() - 1;
-        Projection lastProjection = projections.get(projectionIdx);
-        List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
-        List<DataType> dataTypes = firstNonNull(inputTypes, ImmutableList.<DataType>of());
-
-        for (int c = 0; c < lastProjection.outputs().size(); c++) {
-            types.add(resolveType(projections, projectionIdx, c, dataTypes));
-        }
-        return types;
-    }
-
-    private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
-        Projection projection = projections.get(projectionIdx);
-        Symbol symbol = projection.outputs().get(columnIdx);
-        DataType type = symbol.valueType();
-        if (type == null || (type.equals(DataTypes.UNDEFINED) && symbol instanceof InputColumn)) {
-            if (projectionIdx > 0) {
-                if (symbol instanceof InputColumn) {
-                    columnIdx = ((InputColumn) symbol).index();
-                }
-                return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
-            } else {
-                assert symbol instanceof InputColumn; // otherwise type shouldn't be null
-                return inputTypes.get(((InputColumn) symbol).index());
-            }
-        }
-
-        return type;
-    }
-
 
     /**
      * return the ES index names the query should go to

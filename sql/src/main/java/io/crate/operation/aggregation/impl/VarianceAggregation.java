@@ -45,6 +45,10 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
     public static final String NAME = "variance";
 
+    static {
+        DataTypes.register(VarianceStateType.ID, VarianceStateType.INSTANCE);
+    }
+
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new VarianceAggregation(new FunctionInfo(
@@ -84,7 +88,6 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
         public static final VarianceStateType INSTANCE = new VarianceStateType();
         public static final int ID = 2048;
-
 
         @Override
         public int id() {

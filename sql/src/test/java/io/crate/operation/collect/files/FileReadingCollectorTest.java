@@ -251,7 +251,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 0
         );
         projector.startProjection(mock(ExecutionState.class));
-        collector.doCollect(mock(JobCollectContext.class));
+        collector.doCollect();
         return projector;
     }
 

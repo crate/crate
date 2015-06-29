@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 public class UnassignedShardsCollectService implements CollectService {
 
@@ -191,6 +192,7 @@ public class UnassignedShardsCollectService implements CollectService {
         private final RowDownstreamHandle downstream;
         private final Iterable<UnassignedShard> rows;
         private final Input<Boolean> condition;
+        private volatile boolean killed = false;
 
         public UnassignedShardsCollector(List<Input<?>> inputs,
                                          List<UnassignedShardCollectorExpression<?>> collectorExpressions,
@@ -205,10 +207,13 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect(JobCollectContext jobCollectContext) {
+        public void doCollect() {
             try {
                 for (UnassignedShard row : rows) {
-                    jobCollectContext.interruptIfKilled();
+                    if (killed) {
+                        downstream.fail(new CancellationException());
+                        return;
+                    }
 
                     for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                         collectorExpression.setNextRow(row);
@@ -228,6 +233,11 @@ public class UnassignedShardsCollectService implements CollectService {
             } catch (Throwable t) {
                 downstream.fail(t);
             }
+        }
+
+        @Override
+        public void kill() {
+            killed = true;
         }
     }
 }

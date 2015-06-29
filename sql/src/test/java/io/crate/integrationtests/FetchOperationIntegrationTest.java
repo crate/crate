@@ -33,7 +33,6 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.Job;
@@ -63,7 +62,6 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
-import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -77,7 +75,7 @@ import java.util.concurrent.CountDownLatch;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
@@ -112,7 +110,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     private Plan analyzeAndPlan(String stmt) {
         Analysis analysis = analyze(stmt);
         Planner planner = internalCluster().getInstance(Planner.class);
-        return planner.plan(analysis);
+        return planner.plan(analysis, UUID.randomUUID());
     }
 
     private Analysis analyze(String stmt) {
@@ -130,19 +128,15 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Symbol docIdRef = new Reference(docIdRefInfo);
         List<Symbol> toCollect = ImmutableList.of(docIdRef);
 
-        List<DataType> outputTypes = new ArrayList<>(toCollect.size());
-        for (Symbol symbol : toCollect) {
-            outputTypes.add(symbol.valueType());
-        }
         CollectNode collectNode = new CollectNode(
+                UUID.randomUUID(),
                 plannerContext.nextExecutionNodeId(),
                 "collect",
-                tableInfo.getRouting(WhereClause.MATCH_ALL, null));
-        collectNode.toCollect(toCollect);
-        collectNode.outputTypes(outputTypes);
+                tableInfo.getRouting(WhereClause.MATCH_ALL, null),
+                toCollect,
+                ImmutableList.<Projection>of());
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.keepContextForFetcher(keepContextForFetcher);
-        collectNode.jobId(UUID.randomUUID());
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 
         return collectNode;
@@ -168,7 +162,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocId() throws Exception {
         setUpCharacters();
-        Planner.Context plannerContext = new Planner.Context(clusterService());
+        Planner.Context plannerContext = new Planner.Context(clusterService(), UUID.randomUUID());
         CollectNode collectNode = createCollectNode(plannerContext, false);
 
         List<Bucket> results = getBuckets(collectNode);
@@ -201,13 +195,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
         Analysis analysis = analyze("select id, name from characters");
         QueryThenFetchConsumer queryThenFetchConsumer = internalCluster().getInstance(QueryThenFetchConsumer.class);
-        Planner.Context plannerContext = new Planner.Context(clusterService());
+        Planner.Context plannerContext = new Planner.Context(clusterService(), UUID.randomUUID());
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
-        queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext);
-
-        QueryThenFetch plan = ((QueryThenFetch) ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan());
-        UUID jobId = UUID.randomUUID();
-        plan.collectNode().jobId(jobId);
+        QueryThenFetch plan = (QueryThenFetch) queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext).plan();
 
         List<Bucket> results = getBuckets(plan.collectNode());
 
@@ -326,9 +316,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Plan plan = analyzeAndPlan("select position, name from locations order by position");
         assertThat(plan, instanceOf(QueryThenFetch.class));
 
-        rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
+        MergeNode mergeNode = rewriteFetchProjectionToBulkSize(bulkSize, ((QueryThenFetch) plan).mergeNode());
+        QueryThenFetch qtf = new QueryThenFetch(((QueryThenFetch) plan).collectNode(), mergeNode, plan.jobId());
 
-        Job job = executor.newJob(plan);
+        Job job = executor.newJob(qtf);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
 
         final List<Object[]> resultingRows = new ArrayList<>();
@@ -356,7 +347,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) resultingRows.get(12)[0], is(6));
     }
 
-    private void rewriteFetchProjectionToBulkSize(int bulkSize, MergeNode mergeNode) {
+    private MergeNode rewriteFetchProjectionToBulkSize(int bulkSize, MergeNode mergeNode) {
         List<Projection> newProjections = new ArrayList<>(mergeNode.projections().size());
         for (Projection projection : mergeNode.projections()) {
             if (projection instanceof FetchProjection) {
@@ -376,6 +367,16 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 newProjections.add(projection);
             }
         }
-        mergeNode.projections(newProjections);
+        return MergeNode.sortedMergeNode(
+                mergeNode.jobId(),
+                mergeNode.inputTypes(),
+                newProjections,
+                mergeNode.executionNodeId(),
+                mergeNode.name(),
+                mergeNode.numUpstreams(),
+                mergeNode.orderByIndices(),
+                mergeNode.reverseFlags(),
+                mergeNode.nullsFirst()
+        );
     }
 }

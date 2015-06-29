@@ -44,6 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,7 +63,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final ExecutorService executorService;
 
-    private final Map<String, SchemaInfo> schemas = new HashMap<>();
+    private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
     @Inject

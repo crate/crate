@@ -37,7 +37,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -694,7 +694,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "  lashes short primary key" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        int bulkSize = randomIntBetween(1, 10000);
+        int bulkSize = randomIntBetween(1, 2000);
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
             bulkArgs[i] = new Object[] { System.currentTimeMillis() + i, new String[]{randomAsciiOfLength(5), randomAsciiOfLength(2)}, (short)i };

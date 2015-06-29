@@ -76,9 +76,9 @@ public class SymbolFormatterTest extends CrateUnitTest {
 
     @Test
     public void testFormatAggregation() throws Exception {
-        Aggregation a = new Aggregation(new FunctionInfo(
+        Aggregation a = Aggregation.partialAggregation(new FunctionInfo(
                 new FunctionIdent("agg", Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.LONG, FunctionInfo.Type.AGGREGATE
-        ), Arrays.<Symbol>asList(Literal.newLiteral(-127)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
+        ), DataTypes.LONG, Arrays.<Symbol>asList(Literal.newLiteral(-127)));
 
         assertFormat(a, "agg(integer)");
     }

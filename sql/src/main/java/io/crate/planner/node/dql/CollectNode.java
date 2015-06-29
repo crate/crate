@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
@@ -35,6 +36,7 @@ import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -43,6 +45,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
@@ -76,20 +79,17 @@ public class CollectNode extends AbstractDQLPlanNode {
         super();
     }
 
-    public CollectNode(int executionNodeId, String name) {
-        super(executionNodeId, name);
-    }
-
-    public CollectNode(int executionNodeId, String name, Routing routing) {
-        this(executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
-    }
-
-    public CollectNode(int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
-        super(executionNodeId, name);
+    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(jobId, executionNodeId, name, projections);
         this.routing = routing;
         this.toCollect = toCollect;
-        this.projections = projections;
         this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
+        Projection lastProjection = Iterables.getLast(projections, null);
+        if (lastProjection == null) {
+            outputTypes = Symbols.extractTypes(toCollect);
+        } else {
+            outputTypes = Symbols.extractTypes(lastProjection.outputs());
+        }
     }
 
     @Override
@@ -178,11 +178,6 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     public List<Symbol> toCollect() {
         return toCollect;
-    }
-
-    public void toCollect(List<Symbol> toCollect) {
-        assert toCollect != null;
-        this.toCollect = toCollect;
     }
 
     public boolean isRouted() {
@@ -326,10 +321,9 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(executionNodeId(), name(), routing, newToCollect, projections);
+            result = new CollectNode(jobId(), executionNodeId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
-            result.jobId(jobId());
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
             result.isPartitioned(isPartitioned);

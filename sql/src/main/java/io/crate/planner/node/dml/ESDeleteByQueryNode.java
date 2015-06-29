@@ -21,14 +21,20 @@
 
 package io.crate.planner.node.dml;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dql.ESDQLPlanNode;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbolVisitor;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public class ESDeleteByQueryNode extends DMLPlanNode {
+public class ESDeleteByQueryNode extends RowCountPlanNode {
+
+    private static final char COMMA = ',';
 
     private final int executionNodeId;
     private final List<String[]> indices;
@@ -44,7 +50,7 @@ public class ESDeleteByQueryNode extends DMLPlanNode {
         this.whereClauses = whereClauses;
         this.routings = new ArrayList<>(whereClauses.size());
         for (WhereClause whereClause : whereClauses) {
-            routings.add(ESDQLPlanNode.noCommaStringRouting(whereClause.clusteredBy()));
+            routings.add(noCommaStringRouting(whereClause.clusteredBy()));
         }
     }
 
@@ -67,5 +73,27 @@ public class ESDeleteByQueryNode extends DMLPlanNode {
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteByQueryNode(this, context);
+    }
+
+    @Nullable
+    private String noCommaStringRouting(Optional<Set<Symbol>> clusteredBy) {
+        if (clusteredBy.isPresent()){
+            StringBuilder sb = new StringBuilder();
+            boolean first = true;
+            for (Symbol symbol : clusteredBy.get()) {
+                String s = ValueSymbolVisitor.STRING.process(symbol);
+                if (s.indexOf(COMMA)>-1){
+                    return null;
+                }
+                if (!first){
+                    sb.append(COMMA);
+                } else {
+                    first = false;
+                }
+                sb.append(s);
+            }
+            return sb.toString();
+        }
+        return null;
     }
 }

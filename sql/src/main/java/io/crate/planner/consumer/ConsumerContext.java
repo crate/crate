@@ -29,29 +29,26 @@ import org.elasticsearch.common.Nullable;
 
 public class ConsumerContext {
 
-    private AnalyzedRelation rootRelation;
+    private final AnalyzedRelation rootRelation;
+    private final Planner.Context plannerContext;
+
     private ValidationException validationException;
-    private Planner.Context plannerContext;
 
     public ConsumerContext(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         this.rootRelation = rootRelation;
         this.plannerContext = plannerContext;
     }
 
-    public void rootRelation(AnalyzedRelation relation) {
-        this.rootRelation = relation;
-    }
-
     public AnalyzedRelation rootRelation() {
         return rootRelation;
     }
 
-    public void validationException(ValidationException validationException){
+    public void validationException(ValidationException validationException) {
         this.validationException = validationException;
     }
 
     @Nullable
-    public ValidationException validationException(){
+    public ValidationException validationException() {
         return validationException;
     }
 

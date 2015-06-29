@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
@@ -280,7 +281,7 @@ public class PlannerTest extends CrateUnitTest {
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)));
+                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     @Test
@@ -308,7 +309,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
-        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
+        assertEquals(DataTypes.LONG, collectNode.outputTypes().get(1));
 
         MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
 
@@ -446,14 +447,14 @@ public class PlannerTest extends CrateUnitTest {
         GlobalAggregate globalAggregate = (GlobalAggregate) plan("select count(name) from users");
         CollectNode collectNode = globalAggregate.collectNode();
 
-        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(0));
+        assertEquals(DataTypes.LONG, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
 
         MergeNode mergeNode = globalAggregate.mergeNode();
 
-        assertEquals(DataTypes.UNDEFINED, mergeNode.inputTypes().get(0));
+        assertEquals(DataTypes.LONG, Iterables.get(mergeNode.inputTypes(), 0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
     }
 
@@ -464,7 +465,7 @@ public class PlannerTest extends CrateUnitTest {
         CollectNode collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
-        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
+        assertEquals(DataTypes.LONG, collectNode.outputTypes().get(1));
 
         MergeNode mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.numUpstreams(), is(2));
@@ -498,7 +499,7 @@ public class PlannerTest extends CrateUnitTest {
         MergeNode mergeNode = planNode.localMergeNode();
 
         assertThat(mergeNode.inputTypes().size(), is(1));
-        assertEquals(DataTypes.INTEGER, mergeNode.inputTypes().get(0));
+        assertEquals(DataTypes.INTEGER, Iterables.get(mergeNode.inputTypes(), 0));
         assertThat(mergeNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.INTEGER, mergeNode.outputTypes().get(0));
 
@@ -1827,9 +1828,11 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode = new CollectNode(
-                plannerContext.nextExecutionNodeId(), "collect", shardRouting);
+                plannerContext.jobId(),
+                plannerContext.nextExecutionNodeId(), "collect", shardRouting,
+                ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
         int shardNum = collectNode.routing().numShards();
 
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
@@ -1861,11 +1864,17 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionNodeIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
         CollectNode collectNode1 = new CollectNode(
-                plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
+                plannerContext.jobId(),
+                plannerContext.nextExecutionNodeId(), "collect1", shardRouting,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.<Projection>of());
         CollectNode collectNode2 = new CollectNode(
-                plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
+                plannerContext.jobId(),
+                plannerContext.nextExecutionNodeId(), "collect2", shardRouting,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.<Projection>of());
 
         assertThat(collectNode1.executionNodeId(), is(0));
         assertThat(collectNode2.executionNodeId(), is(1));
@@ -1883,6 +1892,6 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testKillPlan() throws Exception {
         Plan killPlan = plan("kill all");
-        assertThat(killPlan, Matchers.<Plan>is(KillPlan.INSTANCE));
+        assertThat(killPlan, instanceOf(KillPlan.class));
     }
 }

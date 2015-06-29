@@ -70,11 +70,10 @@ public class GroupProjectionTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
-                new Aggregation(
+                Aggregation.finalAggregation(
                         new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
                         ImmutableList.<Symbol>of(),
-                        Aggregation.Step.PARTIAL,
-                        Aggregation.Step.FINAL
+                        Aggregation.Step.PARTIAL
                 )
         ));
 

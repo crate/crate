@@ -40,12 +40,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -688,7 +684,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 ") clustered into 1 shards");
         ensureYellow();
         SQLRequest request = new SQLRequest("select race from characters where details_ignored['lol']='funky' group by race");
-        SQLResponse response = sqlExecutor.execute(request).actionGet(1000);
+        SQLResponse response = sqlExecutor.exec(request);
         assertEquals(0, response.rowCount());
     }
 

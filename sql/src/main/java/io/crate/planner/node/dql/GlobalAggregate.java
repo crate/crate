@@ -25,14 +25,18 @@ import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.projection.Projection;
 
+import java.util.UUID;
+
 public class GlobalAggregate extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectNode collectNode;
     private MergeNode mergeNode;
+    private final UUID id;
 
-    public GlobalAggregate(CollectNode collectNode, MergeNode mergeNode) {
+    public GlobalAggregate(CollectNode collectNode, MergeNode mergeNode, UUID id) {
         this.collectNode = collectNode;
         this.mergeNode = mergeNode;
+        this.id = id;
     }
 
     public CollectNode collectNode() {
@@ -46,6 +50,11 @@ public class GlobalAggregate extends PlanAndPlannedAnalyzedRelation {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitGlobalAggregate(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 
     @Override

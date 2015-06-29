@@ -22,59 +22,19 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.projection.Projection;
+import io.crate.planner.node.PlanNode;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
 import java.util.List;
-import java.util.Set;
 
-public abstract class DMLPlanNode implements DQLPlanNode {
+public abstract class RowCountPlanNode implements PlanNode {
 
     // output just contains the affectedRows in most cases (at least until the RETURNING clause is supported)
     private static final List<DataType> OUTPUT_TYPES = ImmutableList.<DataType>of(LongType.INSTANCE);
 
-    protected List<DataType> inputTypes = ImmutableList.of();
-
-    @Override
-    public boolean hasProjections() {
-        return false;
-    }
-
-    @Override
-    public List<Projection> projections() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public Set<String> executionNodes() {
-        return ImmutableSet.of();
-    }
-
-    @Override
-    public List<DataType> inputTypes() {
-        return inputTypes;
-    }
-
-    @Override
-    public void inputTypes(List<DataType> dataTypes) {
-        inputTypes = dataTypes;
-    }
-
     @Override
     public List<DataType> outputTypes() {
         return OUTPUT_TYPES;
-    }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-        throw new UnsupportedOperationException("outputTypes cannot be modified on DMLPlanNodes");
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("addProjection is not supported on DMLPLanNodes");
     }
 }

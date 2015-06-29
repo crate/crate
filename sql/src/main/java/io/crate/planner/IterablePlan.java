@@ -26,6 +26,7 @@ import io.crate.planner.node.PlanNode;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * A plan which describes its nodes as an iteration.
@@ -33,8 +34,10 @@ import java.util.Iterator;
 public class IterablePlan implements Iterable<PlanNode>, Plan {
 
     private ArrayList<PlanNode> nodes;
+    private final UUID id;
 
-    public IterablePlan(PlanNode... nodes) {
+    public IterablePlan(UUID id, PlanNode... nodes) {
+        this.id = id;
         this.nodes = Lists.newArrayList(nodes);
     }
 
@@ -54,5 +57,10 @@ public class IterablePlan implements Iterable<PlanNode>, Plan {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitIterablePlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
     }
 }

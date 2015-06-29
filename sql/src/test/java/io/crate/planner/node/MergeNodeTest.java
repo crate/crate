@@ -28,6 +28,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
@@ -41,6 +42,8 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
@@ -50,26 +53,22 @@ public class MergeNodeTest extends CrateUnitTest {
 
     @Test
     public void testSerialization() throws Exception {
-        MergeNode node = new MergeNode(0, "merge", 2);
-        node.jobId(UUID.randomUUID());
-        node.executionNodes(Sets.newHashSet("node1", "node2"));
-        node.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
-        node.downstreamNodes(Sets.newHashSet("node3", "node4"));
 
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(nameRef));
-        groupProjection.values(Arrays.asList(
-                new Aggregation(
+        groupProjection.keys(Collections.<Symbol>singletonList(nameRef));
+        groupProjection.values(Collections.singletonList(
+                Aggregation.finalAggregation(
                         new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
                         ImmutableList.<Symbol>of(),
-                        Aggregation.Step.PARTIAL,
-                        Aggregation.Step.FINAL
-                )
+                        Aggregation.Step.PARTIAL)
         ));
         TopNProjection topNProjection = new TopNProjection(10, 0);
 
-        node.projections(Arrays.asList(groupProjection, topNProjection));
+        List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
+        MergeNode node = new MergeNode(UUID.randomUUID(), 0, "merge", 2, Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING), projections);
+        node.executionNodes(Sets.newHashSet("node1", "node2"));
+        node.downstreamNodes(Sets.newHashSet("node3", "node4"));
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
@@ -83,7 +82,7 @@ public class MergeNodeTest extends CrateUnitTest {
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));
         assertThat(node.executionNodes(), is(node2.executionNodes()));
         assertThat(node.jobId(), is(node2.jobId()));
-        assertThat(node.inputTypes(), is(node2.inputTypes()));
+        assertEquals(node.inputTypes(), node2.inputTypes());
         assertThat(node.executionNodeId(), is(node2.executionNodeId()));
     }
 }

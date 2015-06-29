@@ -26,7 +26,6 @@ import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.RowGranularity;

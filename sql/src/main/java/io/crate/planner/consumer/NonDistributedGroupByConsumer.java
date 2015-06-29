@@ -24,7 +24,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
@@ -39,64 +41,59 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Singleton
 public class NonDistributedGroupByConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
+    private final Visitor visitor;
+
+    @Inject
+    public NonDistributedGroupByConsumer(Functions functions) {
+        this.visitor = new Visitor(functions);
+    }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
         }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             if (table.querySpec().groupBy() == null) {
-                return table;
+                return null;
             }
             TableInfo tableInfo = table.tableRelation().tableInfo();
 
             if (table.querySpec().where().hasVersions()) {
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
 
             Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
 
             if (GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())) {
-                return table;
+                return null;
             }
 
-            context.result = true;
             return nonDistributedGroupBy(table, context);
         }
 
         @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
-
-        }
-
-        @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
 
         /**
@@ -110,13 +107,13 @@ public class NonDistributedGroupByConsumer implements Consumer {
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          *
          */
-        private AnalyzedRelation nonDistributedGroupBy(QueriedTable table, Context context) {
+        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTable table, ConsumerContext context) {
             TableInfo tableInfo = table.tableRelation().tableInfo();
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
             List<Symbol> groupBy = table.querySpec().groupBy();
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // mapper / collect
@@ -128,8 +125,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
-                    context.consumerContext.plannerContext(),
+                    context.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     ImmutableList.<Projection>of(groupProjection)
@@ -159,7 +157,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()){
                     projections.add(projectionBuilder.filterProjection(
                             collectOutputs,
@@ -178,7 +176,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
              */
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                                     collectOutputs.containsAll(table.querySpec().outputs());
-            if (context.consumerContext.rootRelation() == table || !outputsMatch){
+            if (context.rootRelation() == table || !outputsMatch){
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
                         orderBy,
@@ -187,9 +185,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()
                 ));
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(projections, collectNode,
-                    context.consumerContext.plannerContext());
-            return new NonDistributedGroupBy(collectNode, localMergeNode);
+            MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
+                    context.plannerContext());
+            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
         }
     }
 

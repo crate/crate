@@ -122,8 +122,8 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             newContext.contextCallback(new RemoveContextCallback(jobId));
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "context for job %s already exists", jobId));
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "context for job %s already exists:\n%s", jobId, existing));
             }
         } finally {
             readLock.unlock();
@@ -144,8 +144,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                  // don't use  numKilled = activeContext.size() because the content of activeContexts could change
                 numKilled++;
             }
-            assert activeContexts.size() == 0 :
-                    "after killing all contexts, they should have been removed from the map due to the callbacks";
         } finally {
             writeLock.unlock();
         }

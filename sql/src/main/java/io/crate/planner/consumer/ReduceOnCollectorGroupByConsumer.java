@@ -24,13 +24,14 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlanNodeBuilder;
@@ -47,62 +48,59 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+@Singleton
 public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
+    private final Visitor visitor;
+
+    @Inject
+    public ReduceOnCollectorGroupByConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
         }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             if (table.querySpec().groupBy() == null) {
-                return table;
+                return null;
             }
 
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                     table.tableRelation(), table.querySpec().where(), table.querySpec().groupBy())) {
-                return table;
+                return null;
             }
 
             if (table.querySpec().where().hasVersions()) {
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
-            context.result = true;
-            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context.consumerContext);
+            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context);
         }
 
-        @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
-        }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
 
         /**
@@ -115,7 +113,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
          */
-        private AnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
+        private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                     tableRelation, table.querySpec().where(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
             TableInfo tableInfo = tableRelation.tableInfo();
@@ -126,7 +124,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     && table.querySpec().limit() == null
                     && table.querySpec().offset() == TopN.NO_OFFSET;
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // mapper / collect
@@ -155,7 +153,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()) {
                     FilterProjection fp = projectionBuilder.filterProjection(
                             collectOutputs,
@@ -182,6 +180,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
 
             CollectNode collectNode = PlanNodeBuilder.collect(
+                    context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
                     table.querySpec().where(),
@@ -205,6 +204,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                        context.plannerContext().jobId(),
                         handlerProjections, orderBy, table.querySpec().outputs(), null,
                         collectNode, context.plannerContext());
             } else {
@@ -218,10 +218,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 // fallback - unsorted local merge
-                localMergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode,
+                localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), handlerProjections, collectNode,
                         context.plannerContext());
             }
-            return new NonDistributedGroupBy(collectNode, localMergeNode);
+            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
         }
 
 

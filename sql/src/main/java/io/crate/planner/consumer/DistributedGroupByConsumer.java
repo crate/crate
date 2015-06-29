@@ -27,12 +27,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
@@ -48,51 +49,54 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+@Singleton
 public class DistributedGroupByConsumer implements Consumer {
 
-    private static final Visitor VISITOR = new Visitor();
+    private final Visitor visitor;
+
+    @Inject
+    public DistributedGroupByConsumer(Functions functions) {
+        visitor = new Visitor(functions);
+    }
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        Context ctx = new Context(context);
-        context.rootRelation(VISITOR.process(context.rootRelation(), ctx));
-        return ctx.result;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
     }
 
-    private static class Context {
-        ConsumerContext consumerContext;
-        boolean result = false;
+    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        public Context(ConsumerContext context) {
-            this.consumerContext = context;
+        private final Functions functions;
+
+        public Visitor(Functions functions) {
+            this.functions = functions;
         }
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<Context, AnalyzedRelation> {
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             List<Symbol> groupBy = table.querySpec().groupBy();
             if (groupBy == null) {
-                return table;
+                return null;
             }
 
             TableInfo tableInfo = table.tableRelation().tableInfo();
             if(table.querySpec().where().hasVersions()){
-                context.consumerContext.validationException(new VersionInvalidException());
-                return table;
+                context.validationException(new VersionInvalidException());
+                return null;
             }
 
             Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
 
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
@@ -105,8 +109,9 @@ public class DistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
 
             CollectNode collectNode = PlanNodeBuilder.distributingCollect(
+                    context.plannerContext().jobId(),
                     tableInfo,
-                    context.consumerContext.plannerContext(),
+                    context.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
                     Lists.newArrayList(routing.nodes()),
@@ -138,7 +143,7 @@ public class DistributedGroupByConsumer implements Consumer {
             HavingClause havingClause = table.querySpec().having();
             if (havingClause != null) {
                 if (havingClause.noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.hasQuery()) {
                     reducerProjections.add(projectionBuilder.filterProjection(
                             collectOutputs,
@@ -147,7 +152,7 @@ public class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            boolean isRootRelation = context.consumerContext.rootRelation() == table;
+            boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
                 reducerProjections.add(projectionBuilder.topNProjection(
                         collectOutputs,
@@ -158,14 +163,15 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()));
             }
             MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
+                    context.plannerContext().jobId(),
                     collectNode,
-                    context.consumerContext.plannerContext(),
+                    context.plannerContext(),
                     reducerProjections
             );
             // end: Reducer
 
             MergeNode localMergeNode = null;
-            String localNodeId = context.consumerContext.plannerContext().clusterService().state().nodes().localNodeId();
+            String localNodeId = context.plannerContext().clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
                         table.querySpec().outputs(),
@@ -173,8 +179,9 @@ public class DistributedGroupByConsumer implements Consumer {
                         table.querySpec().offset(),
                         table.querySpec().limit(),
                         null);
-                localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN),
-                        mergeNode, context.consumerContext.plannerContext());
+                localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(),
+                        ImmutableList.<Projection>of(topN),
+                        mergeNode, context.plannerContext());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
 
                 mergeNode.downstreamNodes(localMergeNode.executionNodes());
@@ -183,26 +190,19 @@ public class DistributedGroupByConsumer implements Consumer {
                 mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
                 mergeNode.downstreamExecutionNodeId(mergeNode.executionNodeId() + 1);
             }
-            context.result = true;
 
             collectNode.downstreamExecutionNodeId(mergeNode.executionNodeId());
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,
-                    localMergeNode
+                    localMergeNode,
+                    context.plannerContext().jobId()
             );
         }
 
         @Override
-        public AnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, Context context) {
-            InsertFromSubQueryConsumer.planInnerRelation(insertFromSubQueryAnalyzedStatement, context, this);
-            return insertFromSubQueryAnalyzedStatement;
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+            return null;
         }
-
-        @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            return relation;
-        }
-
     }
 }

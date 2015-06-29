@@ -5,6 +5,48 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that could lead to deadlock and therefore freezing of a node
+   when there where too many queries asking for routing information in parallel.
+
+ - Fix: Querying from information_schema while a table is created could
+   cause an error
+
+ - only log amazon s3 client stuff on level ``WARN``
+
+ - log failing uri on COPY FROM
+
+ - Fixed a NPE that was thrown if a SELECT statement contained `_score` in the
+   result columns and an ORDER BY clause.
+
+ - Fix: selecting error from sys.jobs_log caused a NPE in some cases
+
+ - Fix: If a query would fail because a shard starts to relocate during
+   query time, the query is retried now
+
+ - Updated crate-admin to 0.13.4 which includes following changes:
+
+    - fix: approximate number of underreplicated and missing records per table was
+      calculated incorrectly, which could have lead to different results
+      when viewing table info on admin ui of different nodes
+
+ - Fix: load Crate plugins only once on node start
+
+ - Updated crate-admin to 0.13.3 which includes following changes:
+
+    - fix: automatically refresh load history chart on overview page
+
+ - Fixed an issue that caused `sys.shards` queries to omit unassigned shards
+   if the query was made against a node that has `node.data` set to false
+
+ - Fix: Fixed a bug where some searchers were not properly closed
+
+ - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if
+   the table was concurrently dropped.
+
+ - Fixed a race condition in `ALTER TABLE <partitioned_table>` that could occur
+   if a `DELETE FROM <partitioned_table>` was invoked immediately before the
+    `ALTER TABLE` statement.
+
 2015/06/16 0.50.0
 =================
 

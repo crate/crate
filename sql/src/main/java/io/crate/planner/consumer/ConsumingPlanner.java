@@ -39,31 +39,39 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     @Inject
-    public ConsumingPlanner() {
-        consumers.add(new NonDistributedGroupByConsumer());
-        consumers.add(new ReduceOnCollectorGroupByConsumer());
-        consumers.add(new DistributedGroupByConsumer());
+    public ConsumingPlanner(NonDistributedGroupByConsumer nonDistributedGroupByConsumer,
+                            ReduceOnCollectorGroupByConsumer reduceOnCollectorGroupByConsumer,
+                            DistributedGroupByConsumer distributedGroupByConsumer,
+                            GlobalAggregateConsumer globalAggregateConsumer,
+                            QueryThenFetchConsumer queryThenFetchConsumer,
+                            QueryAndFetchConsumer queryAndFetchConsumer) {
+        consumers.add(nonDistributedGroupByConsumer);
+        consumers.add(reduceOnCollectorGroupByConsumer);
+        consumers.add(distributedGroupByConsumer);
         consumers.add(new CountConsumer());
-        consumers.add(new GlobalAggregateConsumer());
+        consumers.add(globalAggregateConsumer);
         consumers.add(new ESGetConsumer());
-        consumers.add(new QueryThenFetchConsumer());
-        consumers.add(new InsertFromSubQueryConsumer());
-        consumers.add(new QueryAndFetchConsumer());
+        consumers.add(queryThenFetchConsumer);
+        consumers.add(new InsertFromSubQueryConsumer(this));
+        consumers.add(queryAndFetchConsumer);
     }
 
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         ConsumerContext consumerContext = new ConsumerContext(rootRelation, plannerContext);
-        for (int i = 0; i < consumers.size(); i++) {
-            Consumer consumer = consumers.get(i);
-            if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
-                if (consumerContext.rootRelation() instanceof PlannedAnalyzedRelation) {
-                    Plan plan = ((PlannedAnalyzedRelation) consumerContext.rootRelation()).plan();
-                    assert plan != null;
-                    return plan;
-                } else {
-                    i = 0;
-                }
+        PlannedAnalyzedRelation plannedAnalyzedRelation = plan(rootRelation, consumerContext);
+        if (plannedAnalyzedRelation != null) {
+            return plannedAnalyzedRelation.plan();
+        }
+        return null;
+    }
+
+    @Nullable
+    public PlannedAnalyzedRelation plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        for (Consumer consumer : consumers) {
+            PlannedAnalyzedRelation plannedAnalyzedRelation = consumer.consume(relation, consumerContext);
+            if (plannedAnalyzedRelation != null) {
+                return plannedAnalyzedRelation;
             }
         }
         ValidationException validationException = consumerContext.validationException();

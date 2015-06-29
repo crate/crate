@@ -49,7 +49,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
                 TestingHelpers.createReference("name", DataTypes.STRING),
                 Literal.newLiteral("Marvin"));
 
-        CountOperation countOperation = internalCluster().getInstance(CountOperation.class);
+        CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
         assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
         assertThat(countOperation.count("t", 0, whereClause), is(1L));
     }

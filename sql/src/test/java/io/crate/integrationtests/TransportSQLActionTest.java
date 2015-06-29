@@ -28,8 +28,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -41,7 +39,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
-import java.security.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -949,8 +946,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (quote string, " +
                 "index quote_ft using fulltext(quote)) with (number_of_replicas = 0)");
         ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-                .actionGet().isExists());
 
         execute("insert into quotes values (?), (?)",
                 new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
@@ -960,6 +955,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 0.98");
+        assertEquals(1L, response.rowCount());
+        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
+
+        execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
+                "and \"_score\" >= 0.98 order by quote ");
         assertEquals(1L, response.rowCount());
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
     }
@@ -1889,12 +1889,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertNotNull(response.rows()[0][1]);
 
         execute("select _doc, id from locations where id in (2,3) order by id");
-        assertEquals(TestingHelpers.printedTable(response.rows()), "{date=308534400000, race=null, kind=Galaxy, " +
-                "name=Outer Eastern Rim, description=The Outer Eastern Rim of the Galaxy where the Guide has " +
-                "supplanted the Encyclopedia Galactica among its more relaxed civilisations., id=2, position=2}| 2\n" +
-                "{date=1367366400000, race=null, kind=Galaxy, name=Galactic Sector QQ7 Active J Gamma, "+
-                "description=Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of " +
-                "the famed Sevorbeupstry and Quentulus Quazgar Mountains., id=3, position=4}| 3\n");
+        Map<String, Object> _doc1 = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> _doc2 = (Map<String, Object>) response.rows()[1][0];
+        assertEquals(_doc1.get("id"), "2");
+        assertEquals(_doc2.get("id"), "3");
 
         execute("select name, kind from locations where id in (2,3) order by id");
         assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +

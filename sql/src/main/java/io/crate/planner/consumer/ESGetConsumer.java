@@ -38,20 +38,19 @@ public class ESGetConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation relation = VISITOR.process(rootRelation, context);
-        if (relation == null) {
-            return false;
-        }
-        context.rootRelation(relation);
-        return true;
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return VISITOR.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (table.querySpec().hasAggregates() || table.querySpec().groupBy()!=null) {
+            if (context.rootRelation() != table) {
+                return null;
+            }
+
+            if (table.querySpec().hasAggregates() || table.querySpec().groupBy() != null) {
                 return null;
             }
             TableInfo tableInfo = table.tableRelation().tableInfo();
@@ -72,7 +71,7 @@ public class ESGetConsumer implements Consumer {
             Integer limit = table.querySpec().limit();
             if (limit != null){
                 if (limit == 0){
-                    return new NoopPlannedAnalyzedRelation(table);
+                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 }
             }
 
@@ -80,7 +79,7 @@ public class ESGetConsumer implements Consumer {
             if (orderBy != null){
                 table.tableRelation().validateOrderBy(orderBy);
             }
-            return new ESGetNode(context.plannerContext().nextExecutionNodeId(), tableInfo, table.querySpec());
+            return new ESGetNode(context.plannerContext().nextExecutionNodeId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
         }
 
         @Override

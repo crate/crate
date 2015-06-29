@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
@@ -29,15 +28,17 @@ import io.crate.operation.RowDownstreamHandle;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements CrateCollector {
+public class SimpleOneRowCollector implements CrateCollector {
 
     private final Set<CollectExpression<?>> collectExpressions;
     private final InputRow row;
-    private RowDownstreamHandle downstream;
+    private final RowDownstreamHandle downstream;
+    private volatile boolean killed = false;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
                                  Set<CollectExpression<?>> collectExpressions,
@@ -48,31 +49,24 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Row> implements 
     }
 
     @Override
-    public boolean startCollect(JobCollectContext jobCollectContext) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
-            collectExpression.startCollect();
-        }
-        return true;
-    }
-
-    @Override
-    public boolean processRow() {
-        downstream.setNextRow(row);
-        return false;
-    }
-
-    @Override
-    public Row finishCollect() {
-        downstream.finish();
-        return row;
-    }
-
-    @Override
-    public void doCollect(JobCollectContext jobCollectContext) {
+    public void doCollect() {
         try {
-            collect(jobCollectContext);
+            for (CollectExpression<?> collectExpression : collectExpressions) {
+                collectExpression.startCollect();
+            }
+            downstream.setNextRow(row);
+            if (killed) {
+                downstream.fail(new CancellationException());
+                return;
+            }
+            downstream.finish();
         } catch (Throwable t) {
             downstream.fail(t);
         }
+    }
+
+    @Override
+    public void kill() {
+        killed = true;
     }
 }

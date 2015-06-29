@@ -27,6 +27,8 @@ import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
@@ -42,9 +44,11 @@ public class ProjectionBuilder {
 
     private static final InputCreatingVisitor inputVisitor = InputCreatingVisitor.INSTANCE;
 
+    private final Functions functions;
     private final QuerySpec querySpec;
 
-    public ProjectionBuilder(QuerySpec querySpec) {
+    public ProjectionBuilder(Functions functions, QuerySpec querySpec) {
+        this.functions = functions;
         this.querySpec = querySpec;
     }
 
@@ -88,23 +92,25 @@ public class ProjectionBuilder {
         for (Function function : functions) {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE;
             Aggregation aggregation;
-            if (fromStep == Aggregation.Step.PARTIAL){
-                InputColumn ic = context.inputs.get(function);
-                assert ic != null;
-                aggregation = new Aggregation(
-                        function.info(),
-                        ImmutableList.<Symbol>of(ic),
-                        fromStep, toStep);
+            List<Symbol> aggregationInputs;
+            if (fromStep == Aggregation.Step.PARTIAL) {
+                aggregationInputs = ImmutableList.<Symbol>of(context.inputs.get(function));
             } else {
                 // ITER means that there is no aggregation part upfront, therefore the input
                 // symbols need to be in arguments
-                aggregation = new Aggregation(
+                aggregationInputs = inputVisitor.process(function.arguments(), context);
+            }
+
+            if (toStep == Aggregation.Step.PARTIAL) {
+                aggregation = Aggregation.partialAggregation(
                         function.info(),
-                        inputVisitor.process(function.arguments(), context),
-                        fromStep, toStep);
+                        ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
+                        aggregationInputs
+                );
+            } else {
+                aggregation = Aggregation.finalAggregation(function.info(), aggregationInputs, fromStep);
             }
             aggregations.add(aggregation);
-
         }
         return aggregations;
     }

@@ -25,6 +25,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -139,7 +140,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testJobExecutionContextIsSelfClosing() throws Exception {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1);
+                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
         builder1.addSubContext(1, pageDownstreamContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
 
@@ -183,7 +184,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1);
+                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
         builder1.addSubContext(1, pageDownstreamContext);
         return jobContextService.createContext(builder1);
     }

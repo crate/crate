@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,16 +21,13 @@
 
 package io.crate.operation.collect;
 
-public abstract class AbstractRowCollector<T> implements RowCollector<T> {
+import java.io.IOException;
 
-    public T collect(JobCollectContext jobCollectContext) {
-        if (startCollect(jobCollectContext)) {
-            boolean carryOn;
-            do {
-                carryOn = processRow();
-                jobCollectContext.interruptIfKilled();
-            } while(carryOn);
-        }
-        return finishCollect();
-    }
+/**
+ * Throw this exception inside a {@link org.apache.lucene.search.Collector#collect} in order to
+ * abort the collection. Throwing a {@link org.apache.lucene.search.CollectionTerminatedException}
+ * will cause the IndexSearcher to stop collecting the current leaf (segment) but continuing with
+ * the next leaf (segment).
+ */
+public class CollectionFinishedEarlyException extends IOException {
 }
