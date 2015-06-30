@@ -24,7 +24,7 @@ package io.crate.executor.transport.task;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.kill.KillAllRequest;
-import io.crate.executor.transport.kill.KillAllResponse;
+import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.*;
 public class KillTaskTest extends CrateUnitTest {
 
     @Captor
-    public ArgumentCaptor<ActionListener<KillAllResponse>> responseListener;
+    public ArgumentCaptor<ActionListener<KillResponse>> responseListener;
 
     private KillTask killTask;
 
@@ -65,8 +65,8 @@ public class KillTaskTest extends CrateUnitTest {
         TransportKillAllNodeAction killNodeAction = startKillTaskAndGetTransportKillAllNodeAction();
         verify(killNodeAction, times(3)).execute(anyString(), any(KillAllRequest.class), responseListener.capture());
 
-        for (ActionListener<KillAllResponse> killAllResponseActionListener : responseListener.getAllValues()) {
-            killAllResponseActionListener.onResponse(new KillAllResponse(3));
+        for (ActionListener<KillResponse> killAllResponseActionListener : responseListener.getAllValues()) {
+            killAllResponseActionListener.onResponse(new KillResponse(3));
         }
 
         Bucket rows = killTask.result().get(0).get().rows();

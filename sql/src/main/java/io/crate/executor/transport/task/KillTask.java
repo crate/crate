@@ -28,7 +28,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.KillAllRequest;
-import io.crate.executor.transport.kill.KillAllResponse;
+import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -67,10 +67,10 @@ public class KillTask extends JobTask {
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
         for (DiscoveryNode node : nodes) {
-            transportKillAllNodeAction.execute(node.id(), request, new ActionListener<KillAllResponse>() {
+            transportKillAllNodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
                 @Override
-                public void onResponse(KillAllResponse killAllResponse) {
-                    numKilled.addAndGet(killAllResponse.numKilled());
+                public void onResponse(KillResponse killResponse) {
+                    numKilled.addAndGet(killResponse.numKilled());
                     countdown();
                 }
 

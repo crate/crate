@@ -31,6 +31,7 @@ import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ResponseForwarder;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -62,9 +63,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             Provider<Executor> executor,
             TransportService transportService,
             StatsTables statsTables,
-            ActionFilters actionFilters) {
+            ActionFilters actionFilters,
+            TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
-                analyzer, planner, executor, statsTables, actionFilters);
+                analyzer, planner, executor, statsTables, actionFilters,
+                transportKillJobsNodeAction);
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 

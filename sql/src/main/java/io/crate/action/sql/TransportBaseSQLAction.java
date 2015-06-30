@@ -24,9 +24,11 @@ package io.crate.action.sql;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -34,6 +36,9 @@ import io.crate.exceptions.*;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.StatsTables;
@@ -49,6 +54,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
@@ -70,6 +77,9 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -93,6 +103,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             );
 
     private final ClusterService clusterService;
+    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     protected final Analyzer analyzer;
     protected final Planner planner;
     private final Provider<Executor> executorProvider;
@@ -107,13 +118,15 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Planner planner,
                                   Provider<Executor> executorProvider,
                                   StatsTables statsTables,
-                                  ActionFilters actionFilters) {
+                                  ActionFilters actionFilters,
+                                  TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(settings, actionName, threadPool, actionFilters);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.statsTables = statsTables;
+        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
     }
 
     public abstract Analysis getAnalysis(Statement statement, TRequest request);
@@ -240,14 +253,27 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     }
 
                     @Override
-                    public void onFailure(@Nonnull Throwable t) {
+                    public void onFailure(final @Nonnull Throwable t) {
                         String message;
                         if (t instanceof CancellationException) {
                             message = Constants.KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
                         } else if (Exceptions.unwrap(t) instanceof IndexShardMissingException && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
-                            doExecute(request, listener, attempt + 1, plan.jobId());
+                            killJobs(ImmutableList.of(plan.jobId()), new FutureCallback<Long>() {
+                                @Override
+                                public void onSuccess(@Nullable Long numJobsKilled) {
+                                    logger.debug("Killed {} jobs before Retry", numJobsKilled);
+                                    doExecute(request, listener, attempt + 1, plan.jobId());
+                                }
+
+                                @Override
+                                public void onFailure(Throwable throwable) {
+                                    logger.warn("Failed to kill job before Retry", throwable);
+                                    statsTables.jobFinished(plan.jobId(), Exceptions.messageOf(t));
+                                    sendResponse(listener, buildSQLActionException(t));
+                                }
+                            });
                             return;
                         } else {
                             message = Exceptions.messageOf(t);
@@ -259,6 +285,44 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 }
 
         );
+    }
+
+    private void killJobs(List<UUID> toKill, FutureCallback<Long> callback) {
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        KillJobsRequest request = new KillJobsRequest(toKill);
+        final AtomicInteger counter = new AtomicInteger(nodes.size());
+        final AtomicLong numKilled = new AtomicLong(0);
+        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
+        final SettableFuture<Long> resultFuture = SettableFuture.create();
+        Futures.addCallback(resultFuture, callback);
+        for (DiscoveryNode node : nodes) {
+            transportKillJobsNodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
+
+                @Override
+                public void onResponse(KillResponse killResponse) {
+                    numKilled.addAndGet(killResponse.numKilled());
+                    countdown();
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    lastThrowable.set(e);
+                    countdown();
+                }
+
+                private void countdown() {
+                    if (counter.decrementAndGet() == 0) {
+                        Throwable throwable = lastThrowable.get();
+                        if (throwable == null) {
+                            resultFuture.set(numKilled.get());
+                        } else {
+                            resultFuture.setException(throwable);
+                        }
+                    }
+
+                }
+            });
+        }
     }
 
     private void tracePlan(Plan plan) {

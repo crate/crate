@@ -33,35 +33,35 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, KillResponse> {
+public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, KillResponse> {
 
-    private static final String TRANSPORT_ACTION = "crate/sql/kill_all";
+    private static final String TRANSPORT_ACTION = "crate/sql/kill_jobs";
 
     private JobContextService jobContextService;
     private Transports transports;
 
     @Inject
-    public TransportKillAllNodeAction(JobContextService jobContextService,
-                                      Transports transports,
-                                      TransportService transportService) {
+    public TransportKillJobsNodeAction(JobContextService jobContextService,
+                                       Transports transports,
+                                       TransportService transportService) {
         this.jobContextService = jobContextService;
         this.transports = transports;
-        transportService.registerHandler(TRANSPORT_ACTION, new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) {
+        transportService.registerHandler(TRANSPORT_ACTION, new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {
             @Override
-            public KillAllRequest newInstance() {
-                return new KillAllRequest();
+            public KillJobsRequest newInstance() {
+                return new KillJobsRequest();
             }
         });
     }
 
-    public void execute(String targetNode, KillAllRequest request, ActionListener<KillResponse> listener) {
+    public void execute(String targetNode, KillJobsRequest request, ActionListener<KillResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
                 new DefaultTransportResponseHandler<KillResponse>(listener, executorName()) {
-            @Override
-            public KillResponse newInstance() {
-                return new KillResponse(0);
-            }
-        });
+                    @Override
+                    public KillResponse newInstance() {
+                        return new KillResponse(0);
+                    }
+                });
     }
 
     @Override
@@ -75,11 +75,7 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
     }
 
     @Override
-    public void nodeOperation(KillAllRequest request, ActionListener<KillResponse> listener) {
-        try {
-            listener.onResponse(new KillResponse(jobContextService.killAll()));
-        } catch (Throwable t) {
-            listener.onFailure(t);
-        }
+    public void nodeOperation(KillJobsRequest request, ActionListener<KillResponse> listener) {
+        listener.onResponse(new KillResponse(jobContextService.killJobs(request.toKill())));
     }
 }
