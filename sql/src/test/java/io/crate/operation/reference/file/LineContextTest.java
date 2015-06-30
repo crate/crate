@@ -23,9 +23,16 @@ package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.ElasticsearchParseException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class LineContextTest extends CrateUnitTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testGet() throws Exception {
         LineContext context = new LineContext();
@@ -36,5 +43,17 @@ public class LineContextTest extends CrateUnitTest {
         assertNull(context.get(new ColumnIdent("invalid", "column")));
         assertNull(context.get(new ColumnIdent("details", "invalid")));
         assertEquals(43, context.get(new ColumnIdent("details", "age")));
+    }
+
+    @Test
+    public void testInvalidJson() throws Exception {
+        LineContext context = new LineContext();
+
+        String source = "{|}";
+        context.rawSource(source.getBytes());
+
+        expectedException.expect(ElasticsearchParseException.class);
+        expectedException.expectMessage("Failed to parse content to map");
+        context.get(new ColumnIdent("invalid", "column"));
     }
 }
