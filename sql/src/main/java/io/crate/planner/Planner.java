@@ -83,13 +83,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
         private final ClusterService clusterService;
-        private final UUID jobId;
+        private final UUID jobId = UUID.randomUUID();
         private int jobSearchContextIdBaseSeq = 0;
         private int executionNodeId = 0;
 
-        public Context(ClusterService clusterService, UUID jobId) {
+        public Context(ClusterService clusterService) {
             this.clusterService = clusterService;
-            this.jobId = jobId;
         }
 
         public ClusterService clusterService() {
@@ -169,9 +168,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      * @param analysis analysis to create plan from
      * @return plan
      */
-    public Plan plan(Analysis analysis, UUID jobId) {
+    public Plan plan(Analysis analysis) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId));
+        return process(analyzedStatement, new Context(clusterService));
     }
 
     @Override

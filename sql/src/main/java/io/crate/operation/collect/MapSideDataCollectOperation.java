@@ -66,11 +66,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CancellationException;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -339,8 +335,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                     jobSearchContextId
                             );
                             shardCollectors.add(collector);
-                        } catch (IndexShardMissingException | CancellationException e) {
-                            throw e;
+                        } catch (IndexShardMissingException e) {
+                            throw new UnhandledServerException(
+                                    String.format(Locale.ENGLISH, "unknown shard id %d on index '%s'",
+                                            shardId, entry.getKey()), e);
                         } catch (Exception e) {
                             LOGGER.error("Error while getting collector", e);
                             throw new UnhandledServerException(e);
