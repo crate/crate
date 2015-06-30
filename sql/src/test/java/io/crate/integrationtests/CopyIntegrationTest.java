@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -41,7 +39,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -190,23 +187,6 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCopyFromInvalidJson() throws Exception {
-        execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        File newFile = folder.newFile();
-        BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
-        writer.write("{id:1}\n");
-        writer.write("{|}");
-        writer.write("{id:2}\n");
-        writer.flush();
-        writer.close();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to parse content to map");
-        execute("copy foo from ?", new Object[]{newFile.getPath()});
-    }
-
-    @Test
     public void testCopyFromFileWithPartition() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string) partitioned by (id)");
@@ -309,24 +289,6 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
-    }
-
-    @Test
-    public void testCopyToDirectoryPath() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
-        execute("create table characters (" +
-                " race string," +
-                " gender string," +
-                " age long," +
-                " birthdate timestamp," +
-                " name string," +
-                " details object" +
-                ") with (number_of_replicas=0)");
-        ensureYellow();
-
-        String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
-        execute("COPY characters TO ?", new Object[]{directoryUri});
     }
 
     @Test
