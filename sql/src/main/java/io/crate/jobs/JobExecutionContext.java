@@ -219,30 +219,30 @@ public class JobExecutionContext {
 
     private class RemoveContextCallback implements ContextCallback {
 
-        private final int executionNodeId;
+        private final int executionPhaseId;
 
-        public RemoveContextCallback(int executionNodeId) {
-            this.executionNodeId = executionNodeId;
+        public RemoveContextCallback(int executionPhaseId) {
+            this.executionPhaseId = executionPhaseId;
         }
 
         @Override
         public void onClose(@Nullable Throwable error, long bytesUsed) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}] Closing subContext {}",
-                        System.identityHashCode(subContexts), executionNodeId);
+                        System.identityHashCode(subContexts), executionPhaseId);
             }
 
 
             Object remove;
             synchronized (subContexts) {
-                remove = subContexts.remove(executionNodeId);
+                remove = subContexts.remove(executionPhaseId);
             }
             int remaining;
             if (remove == null) {
-                LOGGER.trace("Closed context {} which was already closed.", executionNodeId);
+                LOGGER.trace("Closed context {} which was already closed.", executionPhaseId);
                 remaining = activeSubContexts.get();
             } else {
-                statsTables.operationFinished(executionNodeId, Exceptions.messageOf(error), bytesUsed);
+                statsTables.operationFinished(executionPhaseId, Exceptions.messageOf(error), bytesUsed);
                 remaining = activeSubContexts.decrementAndGet();
             }
             if (remaining == 0) {

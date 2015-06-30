@@ -26,8 +26,8 @@ import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodes;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -50,10 +50,10 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
         this.transportDistributedResultAction = transportDistributedResultAction;
     }
 
-    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(node);
 
-        if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
+        if (ExecutionPhases.hasDirectResponseDownstream(node.downstreamNodes())) {
             return new SingleBucketBuilder(streamers);
         } else {
             assert node.downstreamNodes().size() > 0 : "must have at least one downstream";
@@ -65,7 +65,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
             return new DistributingDownstream(
                     jobId,
-                    node.downstreamExecutionNodeId(),
+                    node.downstreamExecutionPhaseId(),
                     bucketIdx,
                     node.downstreamNodes(),
                     transportDistributedResultAction,

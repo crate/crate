@@ -110,13 +110,13 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     @Override
     public void nodeOperation(final NodeFetchRequest request,
                                final ActionListener<NodeFetchResponse> fetchResponse) {
-        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "fetch");
-        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionNodeId());
+        statsTables.operationStarted(request.executionPhaseId(), request.jobId(), "fetch");
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionPhaseId());
         final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
                 request.jobId(),
-                request.executionNodeId(),
+                request.executionPhaseId(),
                 request.jobSearchContextDocIds(),
                 request.toFetchReferences(),
                 request.closeContext(),
@@ -135,14 +135,14 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                 response.rows(result);
 
                 fetchResponse.onResponse(response);
-                statsTables.operationFinished(request.executionNodeId(), null, ramAccountingContext.totalBytes());
+                statsTables.operationFinished(request.executionPhaseId(), null, ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 fetchResponse.onFailure(t);
-                statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
+                statsTables.operationFinished(request.executionPhaseId(), Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
                 ramAccountingContext.close();
             }
@@ -152,7 +152,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             fetchOperation.fetch(bucketBuilder);
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
-            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t),
+            statsTables.operationFinished(request.executionPhaseId(), Exceptions.messageOf(t),
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }

@@ -35,7 +35,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.projection.Projection;
 import io.crate.testing.CollectingProjector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -70,8 +70,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         localNodeId = internalCluster().getDataNodeInstance(ClusterService.class).state().nodes().localNodeId();
     }
 
-    private CollectNode collectNode(Routing routing, List<Symbol> toCollect) {
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
+    private CollectPhase collectNode(Routing routing, List<Symbol> toCollect) {
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
         return collectNode;
     }
 
@@ -79,7 +79,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
-        CollectNode collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef));
+        CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
@@ -87,7 +87,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
     }
 
-    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private Bucket collect(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector collectingProjector = new CollectingProjector();
         collectingProjector.startProjection(mock(ExecutionState.class));
         operation.collect(collectNode, collectingProjector, mock(JobCollectContext.class));
@@ -112,7 +112,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Function whereClause = new Function(eqImpl.info(),
                 Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
-        CollectNode collectNode = collectNode(routing, toCollect);
+        CollectPhase collectNode = collectNode(routing, toCollect);
         collectNode.whereClause(new WhereClause(whereClause));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.handlerSideCollect(localNodeId);
@@ -133,7 +133,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        CollectNode collectNode = collectNode(routing, toCollect);
+        CollectPhase collectNode = collectNode(routing, toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);

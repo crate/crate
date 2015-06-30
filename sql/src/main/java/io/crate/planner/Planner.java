@@ -45,9 +45,9 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
@@ -83,7 +83,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final ClusterService clusterService;
         private final UUID jobId;
         private int jobSearchContextIdBaseSeq = 0;
-        private int executionNodeId = 0;
+        private int executionPhaseId = 0;
 
         public Context(ClusterService clusterService, UUID jobId) {
             this.clusterService = clusterService;
@@ -149,8 +149,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return jobSearchContextIdToNode;
         }
 
-        public int nextExecutionNodeId() {
-            return executionNodeId++;
+        public int nextExecutionPhaseId() {
+            return executionPhaseId++;
         }
     }
 
@@ -220,7 +220,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
         if (!docKeys.isEmpty()) {
-            plan.add(new ESDeleteNode(context.nextExecutionNodeId(), tableRelation.tableInfo(), docKeys));
+            plan.add(new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
         } else if (!whereClauses.isEmpty()) {
             createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauses, plan, context);
         }
@@ -274,7 +274,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }
-        CollectNode collectNode = PlanNodeBuilder.collect(
+        CollectPhase collectNode = PlanNodeBuilder.collect(
                 context.jobId(),
                 tableInfo,
                 context,
@@ -284,7 +284,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.partitionIdent()
         );
 
-        MergeNode mergeNode = PlanNodeBuilder.localMerge(context.jobId(),
+        MergePhase mergeNode = PlanNodeBuilder.localMerge(context.jobId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context);
         return new CollectAndMerge(collectNode, mergeNode, context.jobId());
     }
@@ -371,9 +371,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
-        FileUriCollectNode collectNode = new FileUriCollectNode(
+        FileUriCollectPhase collectNode = new FileUriCollectPhase(
                 context.jobId(),
-                context.nextExecutionNodeId(),
+                context.nextExecutionPhaseId(),
                 "copyFrom",
                 generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
                 analysis.uri(),
@@ -508,7 +508,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         // forbidden through analysis, we must issue deleteByQuery request in addition
         // to above deleteIndex request(s)
         if (!indicesList.isEmpty()) {
-            plan.add(new ESDeleteByQueryNode(context.nextExecutionNodeId(), indicesList, whereClauses));
+            plan.add(new ESDeleteByQueryNode(context.nextExecutionPhaseId(), indicesList, whereClauses));
         }
     }
 
@@ -518,7 +518,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
         SymbolBasedUpsertByIdNode upsertByIdNode = new SymbolBasedUpsertByIdNode(
-                context.nextExecutionNodeId(),
+                context.nextExecutionPhaseId(),
                 analysis.tableInfo().isPartitioned(),
                 analysis.isBulkRequest(),
                 onDuplicateKeyAssignmentsColumns,

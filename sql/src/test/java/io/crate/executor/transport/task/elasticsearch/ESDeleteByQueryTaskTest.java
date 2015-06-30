@@ -68,7 +68,7 @@ public class ESDeleteByQueryTaskTest extends CrateUnitTest {
                 jobContextService);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionNodeId());
+        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionPhaseId());
         assertThat(subContext, notNullValue());
         assertThat(subContext, instanceOf(ESJobContext.class));
     }
@@ -83,11 +83,11 @@ public class ESDeleteByQueryTaskTest extends CrateUnitTest {
                 jobContextService);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionNodeId());
+        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionPhaseId());
         subContext.kill();
 
         assertThat(task.result().size(), is(1));
         assertThat(task.result().get(0).isCancelled(), is(true));
-        assertNull(jobExecutionContext.getSubContextOrNull(node.executionNodeId()));
+        assertNull(jobExecutionContext.getSubContextOrNull(node.executionPhaseId()));
     }
 }

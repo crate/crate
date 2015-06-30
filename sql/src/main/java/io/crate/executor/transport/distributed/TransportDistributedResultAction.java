@@ -29,7 +29,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageResultListener;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -98,8 +98,8 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     private void nodeOperation(final DistributedResultRequest request,
                                final ActionListener<DistributedResultResponse> listener,
                                final int retry) {
-        if (request.executionNodeId() == ExecutionNode.NO_EXECUTION_NODE) {
-            listener.onFailure(new IllegalStateException("request must contain a valid executionNodeId"));
+        if (request.executionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE) {
+            listener.onFailure(new IllegalStateException("request must contain a valid executionPhaseId"));
             return;
         }
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
@@ -108,11 +108,11 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionNodeId());
+        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionPhaseId());
         if (pageDownstreamContext == null) {
             // this is currently sometimes the case when upstreams send failures more than once
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find pageDownstreamContext for %d", request.executionNodeId())));
+                    "Couldn't find pageDownstreamContext for %d", request.executionPhaseId())));
             return;
         }
 

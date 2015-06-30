@@ -154,7 +154,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
     private void registerContext(ExecutionSubContext context) {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(node.executionNodeId(), context);
+        contextBuilder.addSubContext(node.executionPhaseId(), context);
         jobContextService.createContext(contextBuilder);
     }
 

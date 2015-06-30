@@ -54,7 +54,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
-    private final int executionNodeId;
+    private final int executionPhaseId;
     private final UUID jobId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
@@ -63,7 +63,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     private final List<Symbol> outputs;
     private final List<DataType> outputTypes;
 
-    public ESGetNode(int executionNodeId,
+    public ESGetNode(int executionPhaseId,
                      TableInfo tableInfo,
                      QuerySpec querySpec,
                      UUID jobId) {
@@ -73,7 +73,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         this.querySpec = querySpec;
         this.outputs = querySpec.outputs();
         this.docKeys = querySpec.where().docKeys().get();
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.jobId = jobId;
 
 
@@ -134,8 +134,8 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         return nullsFirst;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public List<Symbol> outputs() {

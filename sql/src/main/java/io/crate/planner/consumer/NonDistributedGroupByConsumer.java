@@ -31,9 +31,9 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -124,7 +124,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
 
-            CollectNode collectNode = PlanNodeBuilder.collect(
+            CollectPhase collectNode = PlanNodeBuilder.collect(
                     context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
@@ -185,7 +185,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                         table.querySpec().outputs()
                 ));
             }
-            MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
+            MergePhase localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
                     context.plannerContext());
             return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
         }

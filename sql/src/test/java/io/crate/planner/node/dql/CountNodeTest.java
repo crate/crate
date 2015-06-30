@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -46,19 +46,19 @@ public class CountNodeTest extends CrateUnitTest {
                         .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Collections.singletonList(3)).map()).map());
         UUID jobId = UUID.randomUUID();
-        CountNode countNode = new CountNode(jobId, 1, routing, WhereClause.MATCH_ALL);
+        CountPhase countNode = new CountPhase(jobId, 1, routing, WhereClause.MATCH_ALL);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countNode.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
 
-        CountNode streamedNode = CountNode.FACTORY.create();
+        CountPhase streamedNode = CountPhase.FACTORY.create();
         streamedNode.readFrom(in);
 
         assertThat(streamedNode.jobId(), is(jobId));
-        assertThat(streamedNode.executionNodeId(), is(1));
-        assertThat(streamedNode.downstreamNodes(), contains(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
+        assertThat(streamedNode.executionPhaseId(), is(1));
+        assertThat(streamedNode.downstreamNodes(), contains(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE));
         assertThat(streamedNode.executionNodes(), containsInAnyOrder("n1", "n2"));
         assertThat(streamedNode.routing(), equalTo(routing));
     }

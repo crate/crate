@@ -31,7 +31,7 @@ import io.crate.lucene.QueryBuilderHelper;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.*;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
@@ -107,7 +107,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     public LuceneDocCollector(CrateSearchContext searchContext,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              CollectNode collectNode,
+                              CollectPhase collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {

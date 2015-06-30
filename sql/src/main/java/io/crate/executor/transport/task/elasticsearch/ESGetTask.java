@@ -57,7 +57,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
@@ -86,7 +85,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
         assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
-        int executionNodeId = node.executionNodeId();
+        int executionNodeId = node.executionPhaseId();
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());

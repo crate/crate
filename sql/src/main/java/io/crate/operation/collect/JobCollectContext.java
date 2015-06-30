@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -35,14 +34,13 @@ import io.crate.jobs.ExecutionSubContext;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ResultProvider;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -51,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobCollectContext implements ExecutionSubContext, RowUpstream, ExecutionState {
 
     private final UUID id;
-    private final CollectNode collectNode;
+    private final CollectPhase collectNode;
     private final CollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final ResultProvider downstream;
@@ -67,7 +65,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     public JobCollectContext(UUID jobId,
-                             CollectNode collectNode,
+                             CollectPhase collectNode,
                              CollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              ResultProvider downstream) {

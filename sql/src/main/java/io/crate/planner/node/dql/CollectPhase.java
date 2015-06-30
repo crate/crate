@@ -31,8 +31,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeVisitor;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
@@ -50,12 +50,12 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends AbstractDQLPlanNode {
+public class CollectPhase extends AbstractDQLPlanPhase {
 
-    public static final ExecutionNodeFactory<CollectNode> FACTORY = new ExecutionNodeFactory<CollectNode>() {
+    public static final ExecutionPhaseFactory<CollectPhase> FACTORY = new ExecutionPhaseFactory<CollectPhase>() {
         @Override
-        public CollectNode create() {
-            return new CollectNode();
+        public CollectPhase create() {
+            return new CollectPhase();
         }
     };
     private Routing routing;
@@ -66,7 +66,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     @Nullable
     private List<String> downstreamNodes;
 
-    private int downstreamExecutionNodeId = ExecutionNode.NO_EXECUTION_NODE;
+    private int downstreamExecutionPhaseId = ExecutionPhase.NO_EXECUTION_PHASE;
 
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
@@ -75,15 +75,15 @@ public class CollectNode extends AbstractDQLPlanNode {
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
 
-    protected CollectNode() {
+    protected CollectPhase() {
         super();
     }
 
-    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+    public CollectPhase(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
         super(jobId, executionNodeId, name, projections);
         this.routing = routing;
         this.toCollect = toCollect;
-        this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
+        this.downstreamNodes = ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
             outputTypes = Symbols.extractTypes(toCollect);
@@ -137,13 +137,13 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     /**
      * This method returns true if downstreams other than
-     * {@link ExecutionNode#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
+     * {@link ExecutionPhase#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
      * of this collect operation should be sent to other nodes instead of being returned directly.
      */
     public boolean hasDistributingDownstreams() {
         if (downstreamNodes != null && downstreamNodes.size() > 0) {
             if (downstreamNodes.size() == 1
-                    && downstreamNodes.get(0).equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                    && downstreamNodes.get(0).equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
                 return false;
             }
             return true;
@@ -155,12 +155,12 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.downstreamNodes = downStreamNodes;
     }
 
-    public void downstreamExecutionNodeId(int executionNodeId) {
-        this.downstreamExecutionNodeId = executionNodeId;
+    public void downstreamExecutionPhaseId(int executionPhaseId) {
+        this.downstreamExecutionPhaseId = executionPhaseId;
     }
 
-    public int downstreamExecutionNodeId() {
-        return downstreamExecutionNodeId;
+    public int downstreamExecutionPhaseId() {
+        return downstreamExecutionPhaseId;
     }
 
     public WhereClause whereClause() {
@@ -214,14 +214,14 @@ public class CollectNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionNodeId = in.readVInt();
+        downstreamExecutionPhaseId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -263,7 +263,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionNodeId);
+        out.writeVInt(downstreamExecutionPhaseId);
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -311,9 +311,9 @@ public class CollectNode extends AbstractDQLPlanNode {
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public CollectNode normalize(EvaluatingNormalizer normalizer) {
+    public CollectPhase normalize(EvaluatingNormalizer normalizer) {
         assert whereClause() != null;
-        CollectNode result = this;
+        CollectPhase result = this;
         List<Symbol> newToCollect = normalizer.normalize(toCollect());
         boolean changed = newToCollect != toCollect();
         WhereClause newWhereClause = whereClause().normalize(normalizer);
@@ -321,7 +321,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(jobId(), executionNodeId(), name(), routing, newToCollect, projections);
+            result = new CollectPhase(jobId(), executionPhaseId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
             result.keepContextForFetcher = keepContextForFetcher;

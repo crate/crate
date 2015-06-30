@@ -339,7 +339,7 @@ public class ProjectionToProjectorVisitor
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
                 context.jobId,
-                projection.executionNodeId(),
+                projection.executionPhaseId(),
                 ctxDocId.collectExpressions().iterator().next(),
                 projection.inputSymbols(),
                 projection.outputSymbols(),

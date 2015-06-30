@@ -38,10 +38,10 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -108,7 +108,7 @@ public class DistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
 
-            CollectNode collectNode = PlanNodeBuilder.distributingCollect(
+            CollectPhase collectNode = PlanNodeBuilder.distributingCollect(
                     context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
@@ -162,7 +162,7 @@ public class DistributedGroupByConsumer implements Consumer {
                                 Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
                         table.querySpec().outputs()));
             }
-            MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
+            MergePhase mergeNode = PlanNodeBuilder.distributedMerge(
                     context.plannerContext().jobId(),
                     collectNode,
                     context.plannerContext(),
@@ -170,7 +170,7 @@ public class DistributedGroupByConsumer implements Consumer {
             );
             // end: Reducer
 
-            MergeNode localMergeNode = null;
+            MergePhase localMergeNode = null;
             String localNodeId = context.plannerContext().clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
@@ -185,13 +185,13 @@ public class DistributedGroupByConsumer implements Consumer {
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
 
                 mergeNode.downstreamNodes(localMergeNode.executionNodes());
-                mergeNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+                mergeNode.downstreamExecutionPhaseId(localMergeNode.executionPhaseId());
             } else {
                 mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
-                mergeNode.downstreamExecutionNodeId(mergeNode.executionNodeId() + 1);
+                mergeNode.downstreamExecutionPhaseId(mergeNode.executionPhaseId() + 1);
             }
 
-            collectNode.downstreamExecutionNodeId(mergeNode.executionNodeId());
+            collectNode.downstreamExecutionPhaseId(mergeNode.executionPhaseId());
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,

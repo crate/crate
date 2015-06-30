@@ -21,33 +21,29 @@
 
 package io.crate.planner.node;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.MergePhase;
 
-import java.io.IOException;
-import java.util.List;
+public class ExecutionPhaseVisitor<C, R> {
 
-public class ExecutionNodes {
-
-    public static ExecutionNode fromStream(StreamInput in) throws IOException {
-        ExecutionNode.Type type = ExecutionNode.Type.values()[in.readVInt()];
-        ExecutionNode node = type.factory().create();
-        node.readFrom(in);
-        return node;
+    public R process(ExecutionPhase node, C context) {
+        return node.accept(this, context);
     }
 
-    public static void toStream(StreamOutput out, ExecutionNode node) throws IOException {
-        out.writeVInt(node.type().ordinal());
-        node.writeTo(out);
+    protected R visitExecutionPhase(ExecutionPhase node, C context) {
+        return null;
     }
 
+    public R visitCollectNode(CollectPhase node, C context) {
+        return visitExecutionPhase(node, context);
+    }
 
-    public static boolean hasDirectResponseDownstream(List<String> downstreamNodes) {
-        for (String nodeId : downstreamNodes) {
-            if (nodeId.equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
-                return true;
-            }
-        }
-        return false;
+    public R visitMergeNode(MergePhase node, C context) {
+        return visitExecutionPhase(node, context);
+    }
+
+    public R visitCountNode(CountPhase countNode, C context) {
+        return visitExecutionPhase(countNode, context);
     }
 }

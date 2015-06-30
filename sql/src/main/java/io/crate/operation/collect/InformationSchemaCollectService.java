@@ -31,7 +31,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -202,7 +202,7 @@ public class InformationSchemaCollectService implements CollectService {
     }
 
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode collectNode, RowDownstream downstream) {
+    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
         if (collectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }

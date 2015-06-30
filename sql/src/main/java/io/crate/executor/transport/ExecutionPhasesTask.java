@@ -39,10 +39,10 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeGrouper;
-import io.crate.planner.node.ExecutionNodes;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhaseGrouper;
+import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,9 +55,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.*;
 
 
-public class ExecutionNodesTask extends JobTask {
+public class ExecutionPhasesTask extends JobTask {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ExecutionNodesTask.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
     private final ClusterService clusterService;
@@ -67,20 +67,20 @@ public class ExecutionNodesTask extends JobTask {
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
 
-    private final List<List<ExecutionNode>> groupedExecutionNodes = new ArrayList<>();
-    private final List<MergeNode> finalMergeNodes = new ArrayList<>();
+    private final List<List<ExecutionPhase>> groupedExecutionPhases = new ArrayList<>();
+    private final List<MergePhase> finalMergeNodes = new ArrayList<>();
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
     private boolean rowCountResult = false;
 
-    protected ExecutionNodesTask(UUID jobId,
-                                 ClusterService clusterService,
-                                 ContextPreparer contextPreparer,
-                                 JobContextService jobContextService,
-                                 PageDownstreamFactory pageDownstreamFactory,
-                                 ThreadPool threadPool,
-                                 TransportJobAction transportJobAction,
-                                 CircuitBreaker circuitBreaker) {
+    protected ExecutionPhasesTask(UUID jobId,
+                                  ClusterService clusterService,
+                                  ContextPreparer contextPreparer,
+                                  JobContextService jobContextService,
+                                  PageDownstreamFactory pageDownstreamFactory,
+                                  ThreadPool threadPool,
+                                  TransportJobAction transportJobAction,
+                                  CircuitBreaker circuitBreaker) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -96,21 +96,21 @@ public class ExecutionNodesTask extends JobTask {
      * @param finalMergeNode a mergeNode for the final merge operation on the handler.
      *                   Multiple merge nodes are only occurring on bulk operations.
      */
-    public void addFinalMergeNode(MergeNode finalMergeNode) {
+    public void addFinalMergeNode(MergePhase finalMergeNode) {
         finalMergeNodes.add(finalMergeNode);
     }
 
-    public void addExecutionNode(int group, ExecutionNode executionNode) {
-        while (group >= groupedExecutionNodes.size()) {
+    public void addExecutionPhase(int group, ExecutionPhase executionPhase) {
+        while (group >= groupedExecutionPhases.size()) {
             results.add(SettableFuture.<TaskResult>create());
-            groupedExecutionNodes.add(new ArrayList<ExecutionNode>());
+            groupedExecutionPhases.add(new ArrayList<ExecutionPhase>());
         }
-        List<ExecutionNode> executionNodes = groupedExecutionNodes.get(group);
+        List<ExecutionPhase> executionPhases = groupedExecutionPhases.get(group);
 
-        if (ExecutionNodes.hasDirectResponseDownstream(executionNode.downstreamNodes())) {
+        if (ExecutionPhases.hasDirectResponseDownstream(executionPhase.downstreamNodes())) {
             hasDirectResponse = true;
         }
-        executionNodes.add(executionNode);
+        executionPhases.add(executionPhase);
     }
 
     public void rowCountResult(boolean rowCountResult) {
@@ -119,9 +119,9 @@ public class ExecutionNodesTask extends JobTask {
 
     @Override
     public void start() {
-        assert finalMergeNodes.size() == groupedExecutionNodes.size() : "groupedExecutionNodes and finalMergeNodes sizes must match";
+        assert finalMergeNodes.size() == groupedExecutionPhases.size() : "groupedExecutionPhases and finalMergeNodes sizes must match";
 
-        Map<String, Collection<ExecutionNode>> nodesByServer = ExecutionNodeGrouper.groupByServer(clusterService.state().nodes().localNodeId(), groupedExecutionNodes);
+        Map<String, Collection<ExecutionPhase>> nodesByServer = ExecutionPhaseGrouper.groupByServer(clusterService.state().nodes().localNodeId(), groupedExecutionPhases);
         RowDownstream rowDownstream;
         if (rowCountResult) {
             rowDownstream = new RowCountResultRowDownstream(results);
@@ -129,20 +129,20 @@ public class ExecutionNodesTask extends JobTask {
             rowDownstream = new QueryResultRowDownstream(results);
         }
         Streamer<?>[] streamers = DataTypes.getStreamer(finalMergeNodes.get(0).inputTypes());
-        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionNodes.size());
+        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionPhases.size());
 
-        for (int i = 0; i < groupedExecutionNodes.size(); i++) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(
+        for (int i = 0; i < groupedExecutionPhases.size(); i++) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(
                     circuitBreaker, finalMergeNodes.get(i));
 
             PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers,
-                    finalMergeNodes.get(i), groupedExecutionNodes.get(i), rowDownstream);
+                    finalMergeNodes.get(i), groupedExecutionPhases.get(i), rowDownstream);
             if (nodesByServer.size() == 0) {
                 pageDownstreamContext.finish();
                 continue;
             }
             if (!hasDirectResponse) {
-                createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, finalMergeNodes.get(i).executionNodeId());
+                createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, finalMergeNodes.get(i).executionPhaseId());
             } else {
                 pageDownstreamContext.start();
             }
@@ -157,8 +157,8 @@ public class ExecutionNodesTask extends JobTask {
     private PageDownstreamContext createPageDownstreamContext(
             RamAccountingContext ramAccountingContext,
             Streamer<?>[] streamers,
-            MergeNode mergeNode,
-            List<ExecutionNode> executionNodes,
+            MergePhase mergeNode,
+            List<ExecutionPhase> executionPhases,
             RowDownstream rowDownstream) {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
@@ -171,23 +171,23 @@ public class ExecutionNodesTask extends JobTask {
                 pageDownstreamProjectorChain.v1(),
                 streamers,
                 ramAccountingContext,
-                executionNodes.get(executionNodes.size() - 1).executionNodes().size(),
+                executionPhases.get(executionPhases.size() - 1).executionNodes().size(),
                 pageDownstreamProjectorChain.v2()
         );
     }
 
     private void sendJobRequests(Streamer<?>[] streamers,
                                  List<PageDownstreamContext> pageDownstreamContexts,
-                                 Map<String, Collection<ExecutionNode>> nodesByServer) {
+                                 Map<String, Collection<ExecutionPhase>> nodesByServer) {
         int idx = 0;
-        for (Map.Entry<String, Collection<ExecutionNode>> entry : nodesByServer.entrySet()) {
+        for (Map.Entry<String, Collection<ExecutionPhase>> entry : nodesByServer.entrySet()) {
             String serverNodeId = entry.getKey();
             if (TableInfo.NULL_NODE_ID.equals(serverNodeId)) {
                 continue; // handled by local node
             }
-            Collection<ExecutionNode> executionNodes = entry.getValue();
+            Collection<ExecutionPhase> executionPhases = entry.getValue();
 
-            JobRequest request = new JobRequest(jobId(), executionNodes);
+            JobRequest request = new JobRequest(jobId(), executionPhases);
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                         new DirectResponseListener(idx, streamers, pageDownstreamContexts));
@@ -205,17 +205,17 @@ public class ExecutionNodesTask extends JobTask {
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
     private void createLocalContextAndStartOperation(PageDownstreamContext finalLocalMerge,
-                                                     Map<String, Collection<ExecutionNode>> nodesByServer,
+                                                     Map<String, Collection<ExecutionPhase>> nodesByServer,
                                                      int localMergeExecutionNodeId) {
         String localNodeId = clusterService.localNode().id();
-        Collection<ExecutionNode> localExecutionNodes = nodesByServer.remove(localNodeId);
+        Collection<ExecutionPhase> localExecutionPhases = nodesByServer.remove(localNodeId);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
 
-        if (localExecutionNodes != null) {
-            for (ExecutionNode executionNode : localExecutionNodes) {
-                contextPreparer.prepare(jobId(), executionNode, builder);
+        if (localExecutionPhases != null) {
+            for (ExecutionPhase executionPhase : localExecutionPhases) {
+                contextPreparer.prepare(jobId(), executionPhase, builder);
             }
         }
         JobExecutionContext context = jobContextService.createContext(builder);
@@ -224,8 +224,8 @@ public class ExecutionNodesTask extends JobTask {
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
-        if (results.size() != groupedExecutionNodes.size()) {
-            for (int i = 0; i < groupedExecutionNodes.size(); i++) {
+        if (results.size() != groupedExecutionPhases.size()) {
+            for (int i = 0; i < groupedExecutionPhases.size(); i++) {
                 results.add(SettableFuture.<TaskResult>create());
             }
         }
@@ -237,10 +237,10 @@ public class ExecutionNodesTask extends JobTask {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
     }
 
-    static boolean hasDirectResponse(List<List<ExecutionNode>> groupedExecutionNodes) {
-        for (List<ExecutionNode> executionNodeGroup : groupedExecutionNodes) {
-            for (ExecutionNode executionNode : executionNodeGroup) {
-                if (ExecutionNodes.hasDirectResponseDownstream(executionNode.downstreamNodes())) {
+    static boolean hasDirectResponse(List<List<ExecutionPhase>> groupedExecutionNodes) {
+        for (List<ExecutionPhase> executionPhaseGroup : groupedExecutionNodes) {
+            for (ExecutionPhase executionPhase : executionPhaseGroup) {
+                if (ExecutionPhases.hasDirectResponseDownstream(executionPhase.downstreamNodes())) {
                     return true;
                 }
             }

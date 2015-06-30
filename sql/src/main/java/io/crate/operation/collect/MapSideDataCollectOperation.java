@@ -45,8 +45,8 @@ import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.symbol.ValueSymbolVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -147,7 +147,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         ));
         this.nodeCollectService = new CollectService() {
             @Override
-            public CrateCollector getCollector(CollectNode node, RowDownstream downstream) {
+            public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
                 return getNodeLevelCollector(node, downstream);
             }
         };
@@ -174,7 +174,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
 
-    public ResultProvider createDownstream(CollectNode collectNode) {
+    public ResultProvider createDownstream(CollectPhase collectNode) {
         return resultProviderFactory.createDownstream(collectNode, collectNode.jobId());
     }
 
@@ -196,7 +196,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * </p>
      */
     @Override
-    public ListenableFuture<List<Void>> collect(CollectNode collectNode,
+    public ListenableFuture<List<Void>> collect(CollectPhase collectNode,
                                                 RowDownstream downstream,
                                                 final JobCollectContext jobCollectContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
@@ -210,7 +210,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             } else {
                 ListenableFuture<List<Void>> results;
 
-                if (collectNode instanceof FileUriCollectNode) {
+                if (collectNode instanceof FileUriCollectPhase) {
                     results = handleWithService(nodeCollectService, collectNode, downstream, jobCollectContext);
                 } else if (collectNode.isPartitioned() && collectNode.maxRowGranularity() == RowGranularity.DOC) {
                     // edge case: partitioned table without actual indices
@@ -241,7 +241,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         throw new UnhandledServerException("unsupported routing");
     }
 
-    private CollectService getCollectService(CollectNode collectNode, String localNodeId) {
+    private CollectService getCollectService(CollectPhase collectNode, String localNodeId) {
         switch (collectNode.maxRowGranularity()) {
             case CLUSTER:
                 // sys.cluster
@@ -266,7 +266,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
     private ListenableFuture<List<Void>> handleWithService(final CollectService collectService,
-                                                           final CollectNode node,
+                                                           final CollectPhase node,
                                                            final RowDownstream rowDownstream,
                                                            final JobCollectContext jobCollectContext) {
         return listeningExecutorService.submit(new Callable<List<Void>>() {
@@ -279,7 +279,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                 RowGranularity.NODE,
                                 new NodeSysReferenceResolver(nodeSysExpression));
                     }
-                    CollectNode localCollectNode = node.normalize(nodeNormalizer);
+                    CollectPhase localCollectNode = node.normalize(nodeNormalizer);
                     RowDownstream localRowDownStream = rowDownstream;
                     if (localCollectNode.whereClause().noMatch()) {
                         localRowDownStream.registerUpstream(MapSideDataCollectOperation.this).finish();
@@ -308,11 +308,11 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         });
     }
 
-    private CrateCollector getNodeLevelCollector(CollectNode collectNode,
+    private CrateCollector getNodeLevelCollector(CollectPhase collectNode,
                                                  RowDownstream downstream) {
-        if (collectNode instanceof FileUriCollectNode) {
+        if (collectNode instanceof FileUriCollectPhase) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectNode);
-            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) collectNode;
+            FileUriCollectPhase fileUriCollectNode = (FileUriCollectPhase) collectNode;
 
             String[] readers = fileUriCollectNode.executionNodes().toArray(
                     new String[fileUriCollectNode.executionNodes().size()]);
@@ -346,7 +346,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
     }
 
-    private int numShards(CollectNode collectNode, String localNodeId) {
+    private int numShards(CollectPhase collectNode, String localNodeId) {
         int numShards = collectNode.routing().numShards(localNodeId);
         if (localNodeId.equals(collectNode.handlerSideCollect()) && collectNode.routing().nodes().contains(TableInfo.NULL_NODE_ID)) {
             // add 1 for unassigned shards - treated as one shard
@@ -363,9 +363,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      * </p>
      *
-     * @param collectNode {@link CollectNode} containing routing information and symbols to collect
+     * @param collectNode {@link CollectPhase} containing routing information and symbols to collect
      */
-    protected ListenableFuture<List<Void>> handleShardCollect(CollectNode collectNode,
+    protected ListenableFuture<List<Void>> handleShardCollect(CollectPhase collectNode,
                                                               RowDownstream downstream,
                                                               JobCollectContext jobCollectContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
@@ -376,7 +376,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
                 RowGranularity.NODE,
                 referenceResolver);
-        CollectNode normalizedCollectNode = collectNode.normalize(nodeNormalizer);
+        CollectPhase normalizedCollectNode = collectNode.normalize(nodeNormalizer);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             downstream.registerUpstream(this).finish();
@@ -451,7 +451,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 EvaluatingNormalizer clusterNormalizer = new EvaluatingNormalizer(functions,
                         RowGranularity.CLUSTER,
                         referenceResolver);
-                CollectNode clusterNormalizedCollectNode = collectNode.normalize(clusterNormalizer);
+                CollectPhase clusterNormalizedCollectNode = collectNode.normalize(clusterNormalizer);
 
                 RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
                 CrateCollector collector = unassignedShardsCollectService.getCollector(
@@ -489,7 +489,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
     }
 
-    private ListenableFuture<List<Void>> runCollectThreaded(CollectNode collectNode,
+    private ListenableFuture<List<Void>> runCollectThreaded(CollectPhase collectNode,
                                                             final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
@@ -537,7 +537,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         @Override
-        public CrateCollector getCollector(CollectNode node, RowDownstream downstream) {
+        public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
             // resolve Implementations
             ImplementationSymbolVisitor.Context ctx = clusterImplementationSymbolVisitor.extractImplementations(node);
             List<Input<?>> inputs = ctx.topLevelInputs();

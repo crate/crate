@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.planner.node.ExecutionNodeVisitor;
+import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbols;
@@ -43,12 +43,12 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergeNode extends AbstractDQLPlanNode {
+public class MergePhase extends AbstractDQLPlanPhase {
 
-    public static final ExecutionNodeFactory<MergeNode> FACTORY = new ExecutionNodeFactory<MergeNode>() {
+    public static final ExecutionPhaseFactory<MergePhase> FACTORY = new ExecutionPhaseFactory<MergePhase>() {
         @Override
-        public MergeNode create() {
-            return new MergeNode();
+        public MergePhase create() {
+            return new MergePhase();
         }
     };
 
@@ -63,19 +63,19 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
-    private int downstreamExecutionNodeId = NO_EXECUTION_NODE;
+    private int downstreamExecutionPhaseId = NO_EXECUTION_PHASE;
     private List<String> downstreamNodes = ImmutableList.of();
 
-    public MergeNode() {
+    public MergePhase() {
         numUpstreams = 0;
     }
 
-    public MergeNode(UUID jobId,
-                     int executionNodeId,
-                     String name,
-                     int numUpstreams,
-                     Collection<? extends DataType> inputTypes,
-                     List<Projection> projections) {
+    public MergePhase(UUID jobId,
+                      int executionNodeId,
+                      String name,
+                      int numUpstreams,
+                      Collection<? extends DataType> inputTypes,
+                      List<Projection> projections) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
@@ -86,7 +86,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         }
     }
 
-    public static MergeNode sortedMergeNode(UUID jobId,
+    public static MergePhase sortedMergeNode(UUID jobId,
                                             Collection<? extends DataType> inputTypes,
                                             List<Projection> projections,
                                             int executionNodeId,
@@ -98,7 +98,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(jobId, executionNodeId, name, numUpstreams, inputTypes, projections);
+        MergePhase mergeNode = new MergePhase(jobId, executionNodeId, name, numUpstreams, inputTypes, projections);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
@@ -130,8 +130,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public int downstreamExecutionNodeId() {
-        return downstreamExecutionNodeId;
+    public int downstreamExecutionPhaseId() {
+        return downstreamExecutionPhaseId;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -171,14 +171,14 @@ public class MergeNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitMergeNode(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionNodeId = in.readVInt();
+        downstreamExecutionPhaseId = in.readVInt();
 
         int numDownstreamNodes = in.readVInt();
         downstreamNodes = new ArrayList<>(numDownstreamNodes);
@@ -222,7 +222,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionNodeId);
+        out.writeVInt(downstreamExecutionPhaseId);
 
         out.writeVInt(downstreamNodes.size());
         for (String downstreamNode : downstreamNodes) {
@@ -260,13 +260,13 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-                .add("executionNodeId", executionNodeId())
+                .add("executionPhaseId", executionPhaseId())
                 .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId())
                 .add("numUpstreams", numUpstreams)
-                .add("executionNodes", executionNodes)
+                .add("executionPhases", executionNodes)
                 .add("inputTypes", inputTypes)
                 .add("sortedInputOutput", sortedInputOutput);
         if (sortedInputOutput) {
@@ -277,7 +277,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         return helper.toString();
     }
 
-    public void downstreamExecutionNodeId(int downstreamExecutionNodeId) {
-        this.downstreamExecutionNodeId = downstreamExecutionNodeId;
+    public void downstreamExecutionPhaseId(int downstreamExecutionPhaseId) {
+        this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
     }
 }

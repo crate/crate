@@ -36,16 +36,16 @@ public class ESDeleteByQueryNode extends RowCountPlanNode {
 
     private static final char COMMA = ',';
 
-    private final int executionNodeId;
+    private final int executionPhaseId;
     private final List<String[]> indices;
     private final List<WhereClause> whereClauses;
     private final List<String> routings;
 
-    public ESDeleteByQueryNode(int executionNodeId,
+    public ESDeleteByQueryNode(int executionPhaseId,
                                List<String[]> indices,
                                List<WhereClause> whereClauses) {
         assert whereClauses.size() > 0;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.indices = indices;
         this.whereClauses = whereClauses;
         this.routings = new ArrayList<>(whereClauses.size());
@@ -54,8 +54,8 @@ public class ESDeleteByQueryNode extends RowCountPlanNode {
         }
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public List<String[]> indices() {

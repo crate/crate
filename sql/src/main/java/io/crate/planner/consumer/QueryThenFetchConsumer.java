@@ -35,8 +35,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
@@ -163,7 +163,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 limit = Constants.DEFAULT_SELECT_LIMIT;
             }
 
-            CollectNode collectNode = PlanNodeBuilder.collect(
+            CollectPhase collectNode = PlanNodeBuilder.collect(
                     context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
@@ -189,7 +189,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 mergeProjections.add(topNProjection);
 
                 FetchProjection fetchProjection = new FetchProjection(
-                        collectNode.executionNodeId(),
+                        collectNode.executionPhaseId(),
                         DEFAULT_DOC_ID_INPUT_COLUMN, collectSymbols, outputSymbols,
                         tableInfo.partitionedByColumns(),
                         collectNode.executionNodes(),
@@ -208,7 +208,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 mergeProjections.add(topNProjection);
             }
 
-            MergeNode localMergeNode;
+            MergePhase localMergeNode;
             if (orderBy != null) {
                 localMergeNode = PlanNodeBuilder.sortedLocalMerge(
                         context.plannerContext().jobId(),
@@ -229,7 +229,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
             if (limit != null && limit + querySpec.offset() > Constants.PAGE_SIZE) {
                 collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
-                collectNode.downstreamExecutionNodeId(localMergeNode.executionNodeId());
+                collectNode.downstreamExecutionPhaseId(localMergeNode.executionPhaseId());
             }
             return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());
         }
