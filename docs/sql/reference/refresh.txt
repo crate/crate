@@ -5,19 +5,19 @@
 REFRESH
 =======
 
-Refresh a table explicitly.
+Refresh one or more tables explicitly.
 
 Synopsis
 ========
 
 ::
 
-    REFRESH TABLE table_ident [ PARTITION (partition_column=value [ , ... ]) ]
+    REFRESH TABLE (table_ident [ PARTITION (partition_column=value [ , ... ])] [, ...] )
 
 Description
 ===========
 
-The REFRESH TABLE command refreshes a table and all its rows,
+The REFRESH TABLE command refreshes one or more tables and all its rows,
 making all changes made to that table available to all further commands.
 
 The ``PARTITION`` clause can be used to only refresh specific partitions of a

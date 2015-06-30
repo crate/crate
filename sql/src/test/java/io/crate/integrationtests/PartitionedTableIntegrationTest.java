@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -1491,6 +1493,33 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(2L));
     }
 
+    @Test
+    public void testRefreshMultipleTablesWithPartition() throws Exception {
+        execute("create table t1 (" +
+                "  id integer, " +
+                "  name string, " +
+                "  age integer, " +
+                "  date timestamp) partitioned by (date, age) " +
+                "  with (number_of_replicas=0, refresh_interval=-1)");
+        ensureYellow();
+
+        execute("insert into t1 (id, name, age, date) values " +
+                "(1, 'Trillian', 90, '1970-01-01')," +
+                "(2, 'Marvin', 50, '1970-01-07')," +
+                "(3, 'Arthur', 50, '1970-01-07')," +
+                "(4, 'Zaphod', 90, '1970-01-01')");
+        assertThat(response.rowCount(), is(4L));
+
+        execute("select * from t1 where age in (50, 90)");
+        assertThat(response.rowCount(), lessThanOrEqualTo(2L));
+
+        execute("refresh table t1 partition (age=50, date='1970-01-07'), " +
+                "              t1 partition (age=90, date='1970-01-01')");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from t1 where age in (50, 90) and date in ('1970-01-07', '1970-01-01')");
+        assertThat(response.rowCount(), lessThanOrEqualTo(4L));
+    }
 
     @Test
     public void testAlterPartitionedTableKeepsMetadata() throws Exception {

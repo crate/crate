@@ -1,6 +1,7 @@
-.. highlight: psql
+.. highlight:: psql
 .. _refresh_data:
 
+=======
 Refresh
 =======
 
@@ -8,8 +9,10 @@ Crate is `eventually consistent`_. Data written with a former statement is
 not guaranteed to be fetched with the next following select statement for
 the affected rows.
 
-If required a table can be refreshed explicitly in order to ensure
-that the latest state of the table gets fetched::
+If required one or more tables can be refreshed explicitly in order 
+to ensure that the latest state of the table gets fetched.
+
+::
 
     cr> refresh table locations;
     REFRESH OK (... sec)
@@ -20,4 +23,60 @@ of a table can be changed with the table parameter ``refresh_interval`` (see
 :ref:`sql_ref_refresh_interval`).
 
 
+Multiple Table Refresh
+======================
+
+.. Hidden: CREATE TABLE::
+
+    cr> CREATE TABLE IF NOT EXISTS parted_table (
+    ...   id long,
+    ...   title string,
+    ...   content string,
+    ...   width double,
+    ...   day timestamp
+    ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
+    CREATE OK (... sec)
+
+.. Hidden: INSERT INTO::
+
+    cr> INSERT INTO parted_table (id, title, width, day)
+    ... VALUES (1, 'Don''t Panic', 19.5, '2014-04-08');
+    INSERT OK, 1 row affected (... sec)
+
+If needed, multiple tables can be defined comma-separated in a single 
+SQL request. This ensures that they all get refreshed and so their datasets 
+get consistent. The result message is printed if the request on every given 
+table is completed.
+
+::
+
+    cr> REFRESH TABLE locations, parted_table
+    REFRESH OK (... sec)
+
+
+Partition Refresh
+=================
+
+Additionally it is possible to define a specific ``PARTITION`` of a partitioned 
+table which should be refreshed (see :ref:`partitioned_tables`).
+
+By using the ``PARTITION`` clause in the refresh statement a seperate request for 
+a given partion can be performed. That means that only specific partitions of 
+a partitioned table are refreshed. For further details on how to create a refresh 
+request on partitioned tables see the SQL syntax and its synopsis (see :ref:`sql_ref_refresh`).
+
+::
+
+    cr> REFRESH TABLE parted_table PARTITION (day='2014-04-08')
+    REFRESH OK (... sec)
+
+In case the ``PARTITION`` clause is omitted all partitions will be refreshed. If a 
+table has many partiones this should be avoided due to performance reasons.
+
+
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
+
+.. hide:
+
+  cr> DROP TABLE parted_table;
+  DROP OK (... sec)
