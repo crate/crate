@@ -1,0 +1,51 @@
+.. highlight:: psql
+.. _ref-show-create-table:
+
+=================
+SHOW CREATE TABLE
+=================
+
+Shows the ``CREATE TABLE`` statement that creates the named table.
+
+Synopsis
+========
+
+::
+  
+    SHOW CREATE TABLE table_ident
+
+Description
+===========
+
+``SHOW CREATE TABLE`` can be used to dump the schema of an existing table.
+
+Parameters
+==========
+
+:table_ident: The name (optionally schema-qualified) of the table which should be printed.
+
+Example
+=======
+
+Let's create a simple table ``my_table`` with three columns of type ``integer``, ``string`` and ``datetime``::
+
+    cr> create table my_table (
+    ...   first_column integer,
+    ...   second_column string,
+    ...   third_column datetime,
+    ... );
+    CREATE OK (... sec)
+
+Now we print the table DDL syntax using the ``SHOW CREATE TABLE`` statement::
+
+    cr> show create table my_table;
+    +------------------------------+
+    | show create table my_table   |
+    +------------------------------+
+    | create table my_table (      |
+    | ...   first_column integer,  |
+    | ...   second_column string,  |
+    | ...   third_column datetime, |
+    | ... );                       |
+    +------------------------------+
+    SELECT 1 row in set (... sec)  

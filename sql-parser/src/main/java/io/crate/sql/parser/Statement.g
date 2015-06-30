@@ -74,6 +74,7 @@ tokens {
     SHOW_COLUMNS;
     SHOW_PARTITIONS;
     SHOW_FUNCTIONS;
+    SHOW_CREATE_TABLE;
     ALTER_TABLE;
     ALTER_BLOB_TABLE;
     CREATE_TABLE;
@@ -193,6 +194,7 @@ statement
 //    | showColumnsStmt
 //    | showPartitionsStmt
 //    | showFunctionsStmt
+    | showCreateTableStmt
     | CREATE createStatement -> createStatement
 //    | createMaterializedViewStmt
     | ALTER alterStatement -> alterStatement
@@ -692,6 +694,10 @@ showPartitionsStmt
 
 showFunctionsStmt
     : SHOW FUNCTIONS -> SHOW_FUNCTIONS
+    ;
+
+showCreateTableStmt
+    : SHOW CREATE TABLE table -> ^(SHOW_CREATE_TABLE table)
     ;
 
 createMaterializedViewStmt

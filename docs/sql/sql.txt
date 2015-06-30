@@ -28,3 +28,4 @@ supported by Crate.
     reference/create_analyzer
     reference/set
     reference/kill
+    reference/show_create_table
