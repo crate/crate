@@ -25,9 +25,9 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.common.Nullable;
 
 public class PlanNodeVisitor<C, R> {
@@ -40,11 +40,11 @@ public class PlanNodeVisitor<C, R> {
         return null;
     }
 
-    public R visitMergeNode(MergeNode node, C context) {
+    public R visitMergeNode(MergePhase node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitCollectNode(CollectNode node, C context) {
+    public R visitCollectNode(CollectPhase node, C context) {
         return visitPlanNode(node, context);
     }
 

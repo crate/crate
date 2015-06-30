@@ -79,7 +79,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final PageDownstreamFactory pageDownstreamFactory;
 
-    private final ExecutionNodesPlanVisitor executionNodesPlanVisitor;
+    private final ExecutionPhasePlanVisitor executionPhasePlanVisitor;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -115,7 +115,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
                 globalImplementationSymbolVisitor);
-        executionNodesPlanVisitor = new ExecutionNodesPlanVisitor();
+        executionPhasePlanVisitor = new ExecutionPhasePlanVisitor();
     }
 
     @Override
@@ -172,7 +172,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionNodesTask task = executionNodesPlanVisitor.process(plan, job);
+            ExecutionPhasesTask task = executionPhasePlanVisitor.process(plan, job);
             return ImmutableList.of(task);
         }
 
@@ -182,14 +182,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 return process(plan.nodes().get(0), job);
             }
 
-            ExecutionNodesTask task = executionNodesPlanVisitor.process(plan, job);
+            ExecutionPhasesTask task = executionPhasePlanVisitor.process(plan, job);
             task.rowCountResult(true);
             return ImmutableList.<Task>of(task);
         }
 
         @Override
         public List<? extends Task> visitInsertByQuery(InsertFromSubQuery node, Job job) {
-            ExecutionNodesTask task = executionNodesPlanVisitor.process(node.innerPlan(), job);
+            ExecutionPhasesTask task = executionPhasePlanVisitor.process(node.innerPlan(), job);
             if (node.handlerMergeNode().isPresent()) {
                 task.addFinalMergeNode(node.handlerMergeNode().get());
             }
@@ -309,18 +309,18 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
     }
 
-    class ExecutionNodesPlanVisitor extends PlanVisitor<ExecutionNodesPlanVisitor.Context, Void> {
+    class ExecutionPhasePlanVisitor extends PlanVisitor<ExecutionPhasePlanVisitor.Context, Void> {
 
         class Context {
-            ExecutionNodesTask executionNodesTask;
+            ExecutionPhasesTask executionPhasesTask;
 
-            public Context(ExecutionNodesTask executionNodesTask) {
-                this.executionNodesTask = executionNodesTask;
+            public Context(ExecutionPhasesTask executionPhasesTask) {
+                this.executionPhasesTask = executionPhasesTask;
             }
         }
 
-        public ExecutionNodesTask process(Plan plan, Job job) {
-            ExecutionNodesTask executionNodesTask = new ExecutionNodesTask(
+        public ExecutionPhasesTask process(Plan plan, Job job) {
+            ExecutionPhasesTask executionPhasesTask = new ExecutionPhasesTask(
                     job.id(),
                     clusterService,
                     contextPreparer,
@@ -329,63 +329,63 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     threadPool,
                     transportActionProvider.transportJobInitAction(),
                     circuitBreaker);
-            Context context = new Context(executionNodesTask);
+            Context context = new Context(executionPhasesTask);
             process(plan, context);
-            return executionNodesTask;
+            return executionPhasesTask;
         }
 
-        private void addFinalIfNotNull(@Nullable MergeNode mergeNode, Context context) {
+        private void addFinalIfNotNull(@Nullable MergePhase mergeNode, Context context) {
             if (mergeNode != null) {
-                context.executionNodesTask.addFinalMergeNode(mergeNode);
+                context.executionPhasesTask.addFinalMergeNode(mergeNode);
             }
         }
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
             addFinalIfNotNull(plan.mergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
             addFinalIfNotNull(plan.localMergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
-            context.executionNodesTask.addExecutionNode(0, plan.reducerMergeNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.reducerMergeNode());
             addFinalIfNotNull(plan.localMergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
             addFinalIfNotNull(plan.localMergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
             addFinalIfNotNull(plan.mergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitCollectAndMerge(CollectAndMerge plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.collectNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
             addFinalIfNotNull(plan.localMergeNode(), context);
             return null;
         }
 
         @Override
         public Void visitCountPlan(CountPlan plan, Context context) {
-            context.executionNodesTask.addExecutionNode(0, plan.countNode());
+            context.executionPhasesTask.addExecutionPhase(0, plan.countNode());
             addFinalIfNotNull(plan.mergeNode(), context);
             return null;
         }
@@ -395,8 +395,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             for (int i = 0; i < plan.nodes().size(); i++) {
                 Plan subPlan = plan.nodes().get(i);
                 assert subPlan instanceof CollectAndMerge;
-                context.executionNodesTask.addExecutionNode(i, ((CollectAndMerge) subPlan).collectNode());
-                context.executionNodesTask.addFinalMergeNode(((CollectAndMerge) subPlan).localMergeNode());
+                context.executionPhasesTask.addExecutionPhase(i, ((CollectAndMerge) subPlan).collectNode());
+                context.executionPhasesTask.addFinalMergeNode(((CollectAndMerge) subPlan).localMergeNode());
             }
             return null;
         }

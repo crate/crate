@@ -45,7 +45,7 @@ public class FetchProjection extends Projection {
         }
     };
 
-    private int executionNodeId;
+    private int executionPhaseId;
     private Symbol docIdSymbol;
     private List<Symbol> inputSymbols;
     private List<Symbol> outputSymbols;
@@ -59,7 +59,7 @@ public class FetchProjection extends Projection {
     private FetchProjection() {
     }
 
-    public FetchProjection(int executionNodeId,
+    public FetchProjection(int executionPhaseId,
                            Symbol docIdSymbol,
                            List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
@@ -68,7 +68,7 @@ public class FetchProjection extends Projection {
                            boolean closeContexts,
                            IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                            IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
@@ -79,8 +79,8 @@ public class FetchProjection extends Projection {
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public Symbol docIdSymbol() {
@@ -152,7 +152,7 @@ public class FetchProjection extends Projection {
 
         FetchProjection that = (FetchProjection) o;
 
-        if (executionNodeId != that.executionNodeId) return false;
+        if (executionPhaseId != that.executionPhaseId) return false;
         if (closeContexts != that.closeContexts) return false;
         if (bulkSize != that.bulkSize) return false;
         if (executionNodes != that.executionNodes) return false;
@@ -166,7 +166,7 @@ public class FetchProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + executionNodeId;
+        result = 31 * result + executionPhaseId;
         result = 31 * result + docIdSymbol.hashCode();
         result = 31 * result + inputSymbols.hashCode();
         result = 31 * result + outputSymbols.hashCode();
@@ -179,7 +179,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        executionNodeId = in.readVInt();
+        executionPhaseId = in.readVInt();
         docIdSymbol = Symbol.fromStream(in);
         int inputSymbolsSize = in.readVInt();
         inputSymbols = new ArrayList<>(inputSymbolsSize);
@@ -220,7 +220,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(executionNodeId);
+        out.writeVInt(executionPhaseId);
         Symbol.toStream(docIdSymbol, out);
         out.writeVInt(inputSymbols.size());
         for (Symbol symbol : inputSymbols) {

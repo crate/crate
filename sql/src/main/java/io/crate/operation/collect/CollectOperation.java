@@ -23,9 +23,8 @@ package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,5 +41,5 @@ public interface CollectOperation {
      * @param downstream the final downstream to send the collected and processed rows to.
      * @return a list of futures, one for each started collect execution (e.g. 1 for each shard)
      */
-    ListenableFuture<List<Void>> collect(CollectNode collectNode, RowDownstream downstream, JobCollectContext jobCollectContext);
+    ListenableFuture<List<Void>> collect(CollectPhase collectNode, RowDownstream downstream, JobCollectContext jobCollectContext);
 }

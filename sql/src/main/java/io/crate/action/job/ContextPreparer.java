@@ -39,12 +39,12 @@ import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeVisitor;
-import io.crate.planner.node.ExecutionNodes;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -94,10 +94,10 @@ public class ContextPreparer {
 
     @Nullable
     public ListenableFuture<Bucket> prepare(UUID jobId,
-                                            ExecutionNode executionNode,
+                                            ExecutionPhase executionPhase,
                                             JobExecutionContext.Builder contextBuilder) {
         PreparerContext preparerContext = new PreparerContext(jobId, contextBuilder);
-        innerPreparer.process(executionNode, preparerContext);
+        innerPreparer.process(executionPhase, preparerContext);
         return preparerContext.directResultFuture;
     }
 
@@ -114,10 +114,10 @@ public class ContextPreparer {
         }
     }
 
-    private class InnerPreparer extends ExecutionNodeVisitor<PreparerContext, Void> {
+    private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, Void> {
 
         @Override
-        public Void visitCountNode(CountNode countNode, PreparerContext context) {
+        public Void visitCountNode(CountPhase countNode, PreparerContext context) {
             Map<String, Map<String, List<Integer>>> locations = countNode.routing().locations();
             if (locations == null) {
                 throw new IllegalArgumentException("locations are empty. Can't start count operation");
@@ -136,13 +136,13 @@ public class ContextPreparer {
                     countNode.whereClause()
             );
             context.directResultFuture = singleBucketBuilder.result();
-            context.contextBuilder.addSubContext(countNode.executionNodeId(), countContext);
+            context.contextBuilder.addSubContext(countNode.executionPhaseId(), countContext);
             return null;
         }
 
         @Override
-        public Void visitMergeNode(final MergeNode node, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
+        public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
@@ -159,16 +159,16 @@ public class ContextPreparer {
                     node.numUpstreams(),
                     pageDownstreamProjectorChain.v2());
 
-            context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
+            context.contextBuilder.addSubContext(node.executionPhaseId(), pageDownstreamContext);
             return null;
         }
 
         @Override
-        public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, node);
+        public Void visitCollectNode(final CollectPhase node, final PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
             ResultProvider downstream = collectOperation.createDownstream(node);
 
-            if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
+            if (ExecutionPhases.hasDirectResponseDownstream(node.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
             }
             final JobCollectContext jobCollectContext = new JobCollectContext(
@@ -178,7 +178,7 @@ public class ContextPreparer {
                     ramAccountingContext,
                     downstream
             );
-            context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
+            context.contextBuilder.addSubContext(node.executionPhaseId(), jobCollectContext);
             return null;
         }
     }

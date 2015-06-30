@@ -28,7 +28,7 @@ import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
@@ -71,7 +71,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
     }
 
     @Override
-    public Context extractImplementations(CollectNode node) {
+    public Context extractImplementations(CollectPhase node) {
         Context context = newContext();
         context.orderBy(node.orderBy());
         if (node.toCollect() != null) {

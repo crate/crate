@@ -40,8 +40,8 @@ import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.planner.symbol.InputColumn;
@@ -96,7 +96,7 @@ public class UpdateConsumer implements Consumer {
                 if (whereClause.docKeys().isPresent()) {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
-                        upsertByIdNode = new SymbolBasedUpsertByIdNode(context.plannerContext().nextExecutionNodeId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
+                        upsertByIdNode = new SymbolBasedUpsertByIdNode(context.plannerContext().nextExecutionPhaseId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
                         childNodes.add(new IterablePlan(context.plannerContext().jobId(), upsertByIdNode));
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
@@ -146,7 +146,7 @@ public class UpdateConsumer implements Consumer {
                         assignments.v2(),
                         version);
 
-                CollectNode collectNode = PlanNodeBuilder.collect(
+                CollectPhase collectNode = PlanNodeBuilder.collect(
                         consumerContext.plannerContext().jobId(),
                         tableInfo,
                         consumerContext.plannerContext(),
@@ -156,7 +156,7 @@ public class UpdateConsumer implements Consumer {
                         null,
                         Preference.PRIMARY.type()
                 );
-                MergeNode mergeNode = PlanNodeBuilder.localMerge(
+                MergePhase mergeNode = PlanNodeBuilder.localMerge(
                         consumerContext.plannerContext().jobId(),
                         ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode,
                         consumerContext.plannerContext());

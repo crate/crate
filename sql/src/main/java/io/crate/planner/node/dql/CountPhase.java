@@ -26,8 +26,8 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.ExecutionNodeVisitor;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhaseVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -36,24 +36,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class CountNode implements ExecutionNode {
+public class CountPhase implements ExecutionPhase {
 
-    public static final ExecutionNodeFactory<CountNode> FACTORY = new ExecutionNodeFactory<CountNode>() {
+    public static final ExecutionPhaseFactory<CountPhase> FACTORY = new ExecutionPhaseFactory<CountPhase>() {
         @Override
-        public CountNode create() {
-            return new CountNode();
+        public CountPhase create() {
+            return new CountPhase();
         }
     };
     private UUID jobId;
-    private int executionNodeId;
+    private int executionPhaseId;
     private Routing routing;
     private WhereClause whereClause;
 
-    CountNode() {}
+    CountPhase() {}
 
-    public CountNode(UUID jobId, int executionNodeId, Routing routing, WhereClause whereClause) {
+    public CountPhase(UUID jobId, int executionPhaseId, Routing routing, WhereClause whereClause) {
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.whereClause = whereClause;
     }
@@ -82,8 +82,8 @@ public class CountNode implements ExecutionNode {
     }
 
     @Override
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     @Override
@@ -97,23 +97,23 @@ public class CountNode implements ExecutionNode {
 
     @Override
     public List<String> downstreamNodes() {
-        return ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
+        return ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
     }
 
     @Override
-    public int downstreamExecutionNodeId() {
-        return ExecutionNode.NO_EXECUTION_NODE;
+    public int downstreamExecutionPhaseId() {
+        return ExecutionPhase.NO_EXECUTION_PHASE;
     }
 
     @Override
-    public <C, R> R accept(ExecutionNodeVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitCountNode(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         jobId = new UUID(in.readLong(), in.readLong());
-        executionNodeId = in.readVInt();
+        executionPhaseId = in.readVInt();
         routing = new Routing();
         routing.readFrom(in);
         whereClause = new WhereClause(in);
@@ -124,7 +124,7 @@ public class CountNode implements ExecutionNode {
         assert jobId != null : "jobId must not be null";
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
-        out.writeVInt(executionNodeId);
+        out.writeVInt(executionPhaseId);
         routing.writeTo(out);
         whereClause.writeTo(out);
     }

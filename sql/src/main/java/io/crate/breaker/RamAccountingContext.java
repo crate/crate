@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -41,9 +41,9 @@ public class RamAccountingContext {
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
-    public static RamAccountingContext forExecutionNode(CircuitBreaker breaker, ExecutionNode executionNode) {
+    public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
-                executionNode.name(), executionNode.executionNodeId());
+                executionPhase.name(), executionPhase.executionPhaseId());
         return new RamAccountingContext(ramAccountingContextId, breaker);
     }
 

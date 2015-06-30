@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -66,7 +66,7 @@ public class MergeNodeTest extends CrateUnitTest {
         TopNProjection topNProjection = new TopNProjection(10, 0);
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
-        MergeNode node = new MergeNode(UUID.randomUUID(), 0, "merge", 2, Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING), projections);
+        MergePhase node = new MergePhase(UUID.randomUUID(), 0, "merge", 2, Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING), projections);
         node.executionNodes(Sets.newHashSet("node1", "node2"));
         node.downstreamNodes(Sets.newHashSet("node3", "node4"));
 
@@ -75,7 +75,7 @@ public class MergeNodeTest extends CrateUnitTest {
 
 
         BytesStreamInput input = new BytesStreamInput(output.bytes());
-        MergeNode node2 = new MergeNode();
+        MergePhase node2 = new MergePhase();
         node2.readFrom(input);
 
         assertThat(node.downstreamNodes(), is(node2.downstreamNodes()));
@@ -83,6 +83,6 @@ public class MergeNodeTest extends CrateUnitTest {
         assertThat(node.executionNodes(), is(node2.executionNodes()));
         assertThat(node.jobId(), is(node2.jobId()));
         assertEquals(node.inputTypes(), node2.inputTypes());
-        assertThat(node.executionNodeId(), is(node2.executionNodeId()));
+        assertThat(node.executionPhaseId(), is(node2.executionPhaseId()));
     }
 }

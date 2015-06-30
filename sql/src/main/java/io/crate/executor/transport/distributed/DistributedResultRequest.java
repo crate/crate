@@ -37,7 +37,7 @@ import java.util.UUID;
 
 public class DistributedResultRequest extends TransportRequest {
 
-    private int executionNodeId;
+    private int executionPhaseId;
     private int bucketIdx;
 
     private Streamer<?>[] streamers;
@@ -50,9 +50,9 @@ public class DistributedResultRequest extends TransportRequest {
     public DistributedResultRequest() {
     }
 
-    public DistributedResultRequest(UUID jobId, int executionNodeId, int bucketIdx, Streamer<?>[] streamers) {
+    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers) {
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.bucketIdx = bucketIdx;
         this.streamers = streamers;
     }
@@ -61,8 +61,8 @@ public class DistributedResultRequest extends TransportRequest {
         return jobId;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public int bucketIdx() {
@@ -113,7 +113,7 @@ public class DistributedResultRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
-        executionNodeId = in.readVInt();
+        executionPhaseId = in.readVInt();
         bucketIdx = in.readVInt();
         isLast = in.readBoolean();
 
@@ -137,7 +137,7 @@ public class DistributedResultRequest extends TransportRequest {
         super.writeTo(out);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
-        out.writeVInt(executionNodeId);
+        out.writeVInt(executionPhaseId);
         out.writeVInt(bucketIdx);
         out.writeBoolean(isLast);
 

@@ -54,8 +54,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
@@ -121,16 +120,16 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         );
     }
 
-    private CollectNode createCollectNode(Planner.Context plannerContext, boolean keepContextForFetcher) {
+    private CollectPhase createCollectNode(Planner.Context plannerContext, boolean keepContextForFetcher) {
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
 
         ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
         Symbol docIdRef = new Reference(docIdRefInfo);
         List<Symbol> toCollect = ImmutableList.of(docIdRef);
 
-        CollectNode collectNode = new CollectNode(
+        CollectPhase collectNode = new CollectPhase(
                 UUID.randomUUID(),
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "collect",
                 tableInfo.getRouting(WhereClause.MATCH_ALL, null),
                 toCollect,
@@ -142,7 +141,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         return collectNode;
     }
 
-    private List<Bucket> getBuckets(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private List<Bucket> getBuckets(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         List<Bucket> results = new ArrayList<>();
         for (String nodeName : internalCluster().getNodeNames()) {
             ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class, nodeName);
@@ -163,7 +162,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     public void testCollectDocId() throws Exception {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService(), UUID.randomUUID());
-        CollectNode collectNode = createCollectNode(plannerContext, false);
+        CollectPhase collectNode = createCollectNode(plannerContext, false);
 
         List<Bucket> results = getBuckets(collectNode);
 
@@ -229,7 +228,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
             nodeFetchRequest.jobId(plan.collectNode().jobId());
-            nodeFetchRequest.executionNodeId(plan.collectNode().executionNodeId());
+            nodeFetchRequest.executionPhaseId(plan.collectNode().executionPhaseId());
             nodeFetchRequest.toFetchReferences(context.references());
             nodeFetchRequest.closeContext(true);
             nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());

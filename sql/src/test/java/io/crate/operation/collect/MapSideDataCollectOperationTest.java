@@ -29,8 +29,8 @@ import io.crate.metadata.*;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -112,7 +112,7 @@ public class MapSideDataCollectOperationTest {
                 ),
                 new ResultProviderFactory() {
                     @Override
-                    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+                    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
                         return new CollectingProjector();
                     }
                 },
@@ -131,7 +131,7 @@ public class MapSideDataCollectOperationTest {
                 .put("dummyNodeId", new TreeMap<String, List<Integer>>())
                 .map()
         );
-        FileUriCollectNode collectNode = new FileUriCollectNode(
+        FileUriCollectPhase collectNode = new FileUriCollectPhase(
                 UUID.randomUUID(),
                 0,
                 "test",

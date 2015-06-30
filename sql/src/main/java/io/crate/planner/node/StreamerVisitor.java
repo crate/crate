@@ -22,8 +22,8 @@
 package io.crate.planner.node;
 
 import io.crate.Streamer;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.types.DataTypes;
 
 /**
@@ -31,28 +31,28 @@ import io.crate.types.DataTypes;
  */
 public class StreamerVisitor {
 
-    private static final ExecutionNodeStreamerVisitor EXECUTION_NODE_STREAMER_VISITOR = new ExecutionNodeStreamerVisitor();
+    private static final ExecutionPhaseStreamerVisitor EXECUTION_PHASE_STREAMER_VISITOR = new ExecutionPhaseStreamerVisitor();
 
     private StreamerVisitor() {}
 
-    public static Streamer<?>[] streamerFromOutputs(ExecutionNode executionNode) {
-        return EXECUTION_NODE_STREAMER_VISITOR.process(executionNode, null);
+    public static Streamer<?>[] streamerFromOutputs(ExecutionPhase executionPhase) {
+        return EXECUTION_PHASE_STREAMER_VISITOR.process(executionPhase, null);
     }
 
-    private static class ExecutionNodeStreamerVisitor extends ExecutionNodeVisitor<Void, Streamer<?>[]> {
+    private static class ExecutionPhaseStreamerVisitor extends ExecutionPhaseVisitor<Void, Streamer<?>[]> {
 
         @Override
-        public Streamer<?>[] visitMergeNode(MergeNode node, Void context) {
+        public Streamer<?>[] visitMergeNode(MergePhase node, Void context) {
             return DataTypes.getStreamer(node.outputTypes());
         }
 
         @Override
-        public Streamer<?>[] visitCollectNode(CollectNode node, Void context) {
+        public Streamer<?>[] visitCollectNode(CollectPhase node, Void context) {
             return DataTypes.getStreamer(node.outputTypes());
         }
 
         @Override
-        protected Streamer<?>[] visitExecutionNode(ExecutionNode node, Void context) {
+        protected Streamer<?>[] visitExecutionPhase(ExecutionPhase node, Void context) {
             throw new UnsupportedOperationException(String.format("Got unsupported ExecutionNode %s", node.getClass().getName()));
         }
     }

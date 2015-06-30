@@ -94,25 +94,25 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
     @Override
     public void nodeOperation(final NodeCloseContextRequest request,
                               final ActionListener<NodeCloseContextResponse> response) {
-        statsTables.operationStarted(request.executionNodeId(), request.jobId(), "closeContext");
+        statsTables.operationStarted(request.executionPhaseId(), request.jobId(), "closeContext");
         try {
             JobExecutionContext jobExecutionContext = jobContextService.getContextOrNull(request.jobId());
             if (jobExecutionContext != null) {
-                ExecutionSubContext subContext = jobExecutionContext.getSubContextOrNull(request.executionNodeId());
+                ExecutionSubContext subContext = jobExecutionContext.getSubContextOrNull(request.executionPhaseId());
                 if (subContext != null) {
                     LOGGER.trace("Received CloseContextRequest, closing ExecutionSubContext {}/{}",
-                            request.jobId(), request.executionNodeId());
+                            request.jobId(), request.executionPhaseId());
                     subContext.close();
                 } else if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("Couldn't find ExecutionSubContext for {}/{}", request.jobId(), request.executionNodeId());
+                    LOGGER.info("Couldn't find ExecutionSubContext for {}/{}", request.jobId(), request.executionPhaseId());
                 }
             } else if (LOGGER.isInfoEnabled()){
                 LOGGER.info("Couldn't find JobExecutionContext for jobId: {}", request.jobId());
             }
-            statsTables.operationFinished(request.executionNodeId(), null, 0L);
+            statsTables.operationFinished(request.executionPhaseId(), null, 0L);
             response.onResponse(new NodeCloseContextResponse());
         } catch (Throwable t) {
-            statsTables.operationFinished(request.executionNodeId(), Exceptions.messageOf(t), 0L);
+            statsTables.operationFinished(request.executionPhaseId(), Exceptions.messageOf(t), 0L);
             response.onFailure(t);
         }
     }

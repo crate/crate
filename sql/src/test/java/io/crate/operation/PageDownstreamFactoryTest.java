@@ -37,7 +37,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -126,7 +126,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
-        MergeNode mergeNode = new MergeNode(UUID.randomUUID(), 0, "merge", 2,
+        MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
                 Arrays.asList(groupProjection, topNProjection));
 
@@ -169,7 +169,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
-    private PageDownstream getPageDownstream(MergeNode mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingProjector collectingProjector) {
+    private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingProjector collectingProjector) {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
                 pageDownstreamFactory.createMergeNodePageDownstream(
                         mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
@@ -179,7 +179,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeMultipleResults() throws Exception {
-        MergeNode mergeNode = new MergeNode(UUID.randomUUID(), 0, "merge", 2,
+        MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
                 Arrays.<Projection>asList(groupProjection));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(

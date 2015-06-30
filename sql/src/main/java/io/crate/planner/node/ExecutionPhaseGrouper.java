@@ -22,51 +22,50 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ExecutionNodeGrouper extends ExecutionNodeVisitor<ExecutionNodeGrouper.Context,Void> {
+public class ExecutionPhaseGrouper extends ExecutionPhaseVisitor<ExecutionPhaseGrouper.Context,Void> {
 
-    public static final ExecutionNodeGrouper INSTANCE = new ExecutionNodeGrouper();
+    public static final ExecutionPhaseGrouper INSTANCE = new ExecutionPhaseGrouper();
 
     public static class Context {
 
         private final String localNodeId;
-        private final ArrayListMultimap<String, ExecutionNode> byServer;
+        private final ArrayListMultimap<String, ExecutionPhase> byServer;
 
         public Context(String localNodeId) {
             this.localNodeId = localNodeId;
             this.byServer = ArrayListMultimap.create();
         }
 
-        protected void put(String server, ExecutionNode executionNode) {
-            byServer.put(server, executionNode);
+        protected void put(String server, ExecutionPhase executionPhase) {
+            byServer.put(server, executionPhase);
         }
 
-        public Map<String, Collection<ExecutionNode>> grouped() {
+        public Map<String, Collection<ExecutionPhase>> grouped() {
             return byServer.asMap();
         }
     }
 
-    public static Map<String, Collection<ExecutionNode>> groupByServer(String localNodeId,
-                                                                       List<List<ExecutionNode>> groupedExecutionNodes) {
+    public static Map<String, Collection<ExecutionPhase>> groupByServer(String localNodeId,
+                                                                       List<List<ExecutionPhase>> groupedExecutionNodes) {
         Context ctx = new Context(localNodeId);
-        for (List<ExecutionNode> group: groupedExecutionNodes) {
-            for (ExecutionNode executionNode : group) {
-                INSTANCE.process(executionNode, ctx);
+        for (List<ExecutionPhase> group: groupedExecutionNodes) {
+            for (ExecutionPhase executionPhase : group) {
+                INSTANCE.process(executionPhase, ctx);
             }
         }
         return ctx.grouped();
     }
 
     @Override
-    public Void visitCollectNode(CollectNode node, Context context) {
+    public Void visitCollectNode(CollectPhase node, Context context) {
         /**
          * routing might contain a NULL_NODE_ID if there is no specific node which contains the indices or shards.
          * This is the case in information_schema queries (each node has those tables...)
@@ -89,7 +88,7 @@ public class ExecutionNodeGrouper extends ExecutionNodeVisitor<ExecutionNodeGrou
          * }
          *
          * In this case, the "unassigned shard collect" will be executed on either n1 or n2
-         * depending on which entry appears first in the executionNodes set.
+         * depending on which entry appears first in the executionPhases set.
          */
 
         Set<String> executionNodes = node.executionNodes();
@@ -113,7 +112,7 @@ public class ExecutionNodeGrouper extends ExecutionNodeVisitor<ExecutionNodeGrou
     }
 
     @Override
-    protected Void visitExecutionNode(ExecutionNode node, Context context) {
+    protected Void visitExecutionPhase(ExecutionPhase node, Context context) {
         for (String server : node.executionNodes()) {
             context.put(server, node);
         }

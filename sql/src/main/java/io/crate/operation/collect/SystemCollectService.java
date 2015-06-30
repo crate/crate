@@ -33,7 +33,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
@@ -67,7 +67,7 @@ public class SystemCollectService implements CollectService {
     }
 
     @Override
-    public CrateCollector getCollector(CollectNode collectNode, RowDownstream downstream) {
+    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
         if (collectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }

@@ -21,29 +21,33 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class ExecutionNodeVisitor<C, R> {
+import java.io.IOException;
+import java.util.List;
 
-    public R process(ExecutionNode node, C context) {
-        return node.accept(this, context);
+public class ExecutionPhases {
+
+    public static ExecutionPhase fromStream(StreamInput in) throws IOException {
+        ExecutionPhase.Type type = ExecutionPhase.Type.values()[in.readVInt()];
+        ExecutionPhase node = type.factory().create();
+        node.readFrom(in);
+        return node;
     }
 
-    protected R visitExecutionNode(ExecutionNode node, C context) {
-        return null;
+    public static void toStream(StreamOutput out, ExecutionPhase node) throws IOException {
+        out.writeVInt(node.type().ordinal());
+        node.writeTo(out);
     }
 
-    public R visitCollectNode(CollectNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
 
-    public R visitMergeNode(MergeNode node, C context) {
-        return visitExecutionNode(node, context);
-    }
-
-    public R visitCountNode(CountNode countNode, C context) {
-        return visitExecutionNode(countNode, context);
+    public static boolean hasDirectResponseDownstream(List<String> downstreamNodes) {
+        for (String nodeId : downstreamNodes) {
+            if (nodeId.equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -32,9 +32,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -47,7 +47,7 @@ import java.util.UUID;
 
 public class PlanNodeBuilder {
 
-    public static CollectNode distributingCollect(UUID jobId,
+    public static CollectPhase distributingCollect(UUID jobId,
                                                   TableInfo tableInfo,
                                                   Planner.Context plannerContext,
                                                   WhereClause whereClause,
@@ -56,9 +56,9 @@ public class PlanNodeBuilder {
                                                   ImmutableList<Projection> projections) {
         Routing routing = tableInfo.getRouting(whereClause, null);
         plannerContext.allocateJobSearchContextIds(routing);
-        CollectNode node = new CollectNode(
+        CollectPhase node = new CollectPhase(
                 jobId,
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "distributing collect",
                 routing,
                 toCollect,
@@ -72,13 +72,13 @@ public class PlanNodeBuilder {
         return node;
     }
 
-    public static MergeNode distributedMerge(UUID jobId,
-                                             CollectNode collectNode,
+    public static MergePhase distributedMerge(UUID jobId,
+                                             CollectPhase collectNode,
                                              Planner.Context plannerContext,
                                              List<Projection> projections) {
-        MergeNode node = new MergeNode(
+        MergePhase node = new MergePhase(
                 jobId,
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "distributed merge",
                 collectNode.executionNodes().size(),
                 collectNode.outputTypes(),
@@ -90,13 +90,13 @@ public class PlanNodeBuilder {
         return node;
     }
 
-    public static MergeNode localMerge(UUID jobId,
+    public static MergePhase localMerge(UUID jobId,
                                        List<Projection> projections,
                                        DQLPlanNode previousNode,
                                        Planner.Context plannerContext) {
-        return new MergeNode(
+        return new MergePhase(
                 jobId,
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "localMerge",
                 previousNode.executionNodes().size(),
                 previousNode.outputTypes(),
@@ -116,7 +116,7 @@ public class PlanNodeBuilder {
      *                       will be used
      * @param previousNode the previous planNode to derive inputtypes from
      */
-    public static MergeNode sortedLocalMerge(UUID jobId,
+    public static MergePhase sortedLocalMerge(UUID jobId,
                                              List<Projection> projections,
                                              OrderBy orderBy,
                                              List<Symbol> sourceSymbols,
@@ -127,11 +127,11 @@ public class PlanNodeBuilder {
                 MoreObjects.firstNonNull(orderBySymbols, orderBy.orderBySymbols()),
                 sourceSymbols
         );
-        return MergeNode.sortedMergeNode(
+        return MergePhase.sortedMergeNode(
                 jobId,
                 previousNode.outputTypes(),
                 projections,
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "sortedLocalMerge",
                 previousNode.executionNodes().size(),
                 orderByIndices,
@@ -140,7 +140,7 @@ public class PlanNodeBuilder {
         );
     }
 
-    public static CollectNode collect(UUID jobId,
+    public static CollectPhase collect(UUID jobId,
                                       TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
@@ -157,9 +157,9 @@ public class PlanNodeBuilder {
                     tableInfo.ident().schema(), tableInfo.ident().name(), partitionIdent).stringValue());
         }
         plannerContext.allocateJobSearchContextIds(routing);
-        CollectNode node = new CollectNode(
+        CollectPhase node = new CollectPhase(
                 jobId,
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "collect",
                 routing,
                 toCollect,
@@ -197,7 +197,7 @@ public class PlanNodeBuilder {
 
     }
 
-    public static CollectNode collect(UUID jobId,
+    public static CollectPhase collect(UUID jobId,
                                       TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
@@ -206,7 +206,7 @@ public class PlanNodeBuilder {
         return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, null, null, null, null);
     }
 
-    public static CollectNode collect(UUID jobId,
+    public static CollectPhase collect(UUID jobId,
                                       TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
@@ -217,7 +217,7 @@ public class PlanNodeBuilder {
         return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, routingPreference, null, null);
     }
 
-    public static CollectNode collect(UUID jobId,
+    public static CollectPhase collect(UUID jobId,
                                       TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,
@@ -227,7 +227,7 @@ public class PlanNodeBuilder {
         return collect(jobId, tableInfo, plannerContext, whereClause, toCollect, projections, partitionIdent, null);
     }
 
-    public static CollectNode collect(UUID jobId,
+    public static CollectPhase collect(UUID jobId,
                                       TableInfo tableInfo,
                                       Planner.Context plannerContext,
                                       WhereClause whereClause,

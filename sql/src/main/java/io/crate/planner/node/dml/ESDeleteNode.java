@@ -29,20 +29,20 @@ import java.util.List;
 
 public class ESDeleteNode extends RowCountPlanNode {
 
-    private final int executionNodeId;
+    private final int executionPhaseId;
     private final TableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
 
-    public ESDeleteNode(int executionNodeId,
+    public ESDeleteNode(int executionPhaseId,
                         TableInfo tableInfo,
                         List<DocKeys.DocKey> docKeys) {
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
         this.docKeys = docKeys;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public TableInfo tableInfo() {
