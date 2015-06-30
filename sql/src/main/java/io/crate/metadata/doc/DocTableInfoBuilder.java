@@ -155,7 +155,6 @@ public class DocTableInfoBuilder {
                 }
             }
         }
-
         return new DocTableInfo(
                 docSchemaInfo,
                 ident,
