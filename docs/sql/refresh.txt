@@ -32,7 +32,7 @@ to ensure that the latest state of the table gets fetched.
 
     cr> INSERT INTO parted_table (id, title, width, day)
     ... VALUES (2, 'Time is an illusion, lunchtime doubly so', 0.7, '2015-09-24');
-
+    INSERT OK, 1 row affected (... sec)
 .. hide:
 
     cr> INSERT INTO parted_table (id, title, width, day)
