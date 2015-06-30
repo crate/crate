@@ -11,8 +11,7 @@ import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public abstract class AbstractTableInfo implements TableInfo {
 
@@ -61,6 +60,12 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Nullable
     @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Iterator<IndexReferenceInfo> indexColumns() {
         return null;
     }
 
