@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/06/30 0.49.4
+=================
+
  - Fixed an issue that could lead to unclosed contexts when issuing bulk requests
 
  - Fixed an issue that could lead to deadlock and therefore freezing of a node
