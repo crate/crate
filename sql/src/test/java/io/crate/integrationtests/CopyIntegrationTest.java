@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
@@ -41,7 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -195,9 +193,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         File newFile = folder.newFile();
         BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
-        writer.write("{id:1}\n");
         writer.write("{|}");
-        writer.write("{id:2}\n");
         writer.flush();
         writer.close();
 
