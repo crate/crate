@@ -107,21 +107,22 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         while (true) {
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing == null) {
-                newContext.contextCallback(new RemoveContextCallback(jobId));
+                synchronized (newContext.mergeLock) {
+                    newContext.contextCallback(new RemoveContextCallback(jobId));
+                }
                 return newContext;
             } else {
                 LOGGER.trace("context for job {} already existed. Merging them ", jobId);
-                ContextCallback callback = existing.contextCallback;
                 synchronized (existing.mergeLock) {
+                    ContextCallback callback = existing.contextCallback;
                     existing.contextCallback = null;
                     existing.merge(newContext);
-                }
-                JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
-                if (context == null || existing == context) {
-                    synchronized (existing.mergeLock) {
+
+                    JobExecutionContext context = activeContexts.putIfAbsent(jobId, existing);
+                    if (context == null || existing == context) {
                         existing.contextCallback = callback;
+                        return existing;
                     }
-                    return existing;
                 }
             }
         }
