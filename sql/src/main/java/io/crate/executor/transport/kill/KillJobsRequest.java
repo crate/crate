@@ -23,31 +23,56 @@ package io.crate.executor.transport.kill;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.UUID;
 
-public class KillAllResponse extends TransportResponse {
+public class KillJobsRequest extends TransportRequest {
 
-    private long numKilled;
+    private Collection<UUID> toKill;
 
-    public KillAllResponse(long numKilled) {
-        this.numKilled = numKilled;
+    public KillJobsRequest() {
+
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVLong(numKilled);
+    public KillJobsRequest(Collection<UUID> jobsToKill) {
+        toKill = jobsToKill;
+    }
+
+    public Collection<UUID> toKill() {
+        return toKill;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        numKilled = in.readVLong();
+        int numJobs = in.readVInt();
+        toKill = new ArrayList<>(numJobs);
+        for (int i = 0; i < numJobs; i++) {
+            UUID job = new UUID(in.readLong(), in.readLong());
+            toKill.add(job);
+        }
     }
 
-    public long numKilled() {
-        return numKilled;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        int numJobs = toKill.size();
+        out.writeVInt(numJobs);
+        for (UUID job : toKill) {
+            out.writeLong(job.getMostSignificantBits());
+            out.writeLong(job.getLeastSignificantBits());
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KillJobsRequest that = (KillJobsRequest)o;
+        return that.toKill().equals(this.toKill());
     }
 }

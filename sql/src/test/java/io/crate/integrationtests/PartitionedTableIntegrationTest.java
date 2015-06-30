@@ -1950,7 +1950,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         nodeSwap.put(nodeIds.get(0), nodeIds.get(1));
         nodeSwap.put(nodeIds.get(1), nodeIds.get(0));
 
-        final CountDownLatch relocations = new CountDownLatch(10);
+        final CountDownLatch relocations = new CountDownLatch(20);
         Thread relocatingThread = new Thread(new Runnable() {
             @Override
             public void run() {

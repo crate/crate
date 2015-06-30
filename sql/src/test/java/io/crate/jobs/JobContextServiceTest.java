@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.PageDownstream;
@@ -134,6 +135,47 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         assertThat(killCalled.get(), is(true));
         assertThat(activeContexts.size(), is(0));
+    }
+
+    @Test
+    public void testKillJobsCallsKillOnSubContext() throws Exception {
+        final AtomicBoolean killCalled = new AtomicBoolean(false);
+        final AtomicBoolean kill2Called = new AtomicBoolean(false);
+        ExecutionSubContext dummyContext = new DummySubContext() {
+
+            @Override
+            public void kill() {
+                super.kill();
+                killCalled.set(true);
+            }
+        };
+
+        UUID jobId = UUID.randomUUID();
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
+        builder.addSubContext(1, dummyContext);
+        jobContextService.createContext(builder);
+
+        builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, new DummySubContext() {
+            @Override
+            public void kill() {
+                super.kill();
+                kill2Called.set(true);
+            }
+        });
+        jobContextService.createContext(builder);
+
+        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
+        activeContextsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<UUID, JobExecutionContext> activeContexts = (Map<UUID, JobExecutionContext>) activeContextsField.get(jobContextService);
+        assertThat(activeContexts.size(), is(2));
+        assertThat(jobContextService.killJobs(ImmutableList.of(jobId)), is(1L));
+
+        assertThat(killCalled.get(), is(true));
+        assertThat(kill2Called.get(), is(false));
+        assertThat(activeContexts.size(), is(1)); //only one job is killed
+
     }
 
     @Test

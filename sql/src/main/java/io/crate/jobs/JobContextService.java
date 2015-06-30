@@ -150,6 +150,24 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return numKilled;
     }
 
+    public long killJobs(Collection<UUID> toKill) {
+        // TODO: when this is exposed some Actions should be stopped like it's done in killAll using the killAllListeners
+        long numKilled = 0L;
+        writeLock.lock();
+        try {
+            for (UUID jobId : toKill) {
+                JobExecutionContext ctx = activeContexts.get(jobId);
+                if (ctx != null) {
+                    ctx.kill();
+                    numKilled++;
+                }
+            }
+        } finally {
+            writeLock.unlock();
+        }
+        return numKilled;
+    }
+
     private class RemoveContextCallback implements ContextCallback {
         private final UUID jobId;
 
