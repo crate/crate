@@ -8,10 +8,37 @@ Crate is `eventually consistent`_. Data written with a former statement is
 not guaranteed to be fetched with the next following select statement for
 the affected rows.
 
-If required a table can be refreshed explicitly in order to ensure
-that the latest state of the table gets fetched::
+If required a table or multiple tables can be refreshed explicitly in order 
+to ensure that the latest state of the table gets fetched.
 
-    cr> refresh table locations;
+.. hide:
+
+    cr> CREATE TABLE IF NOT EXISTS parted_table (
+    ...   id long,
+    ...   title string,
+    ...   content string,
+    ...   width double,
+    ...   day timestamp
+    ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
+    CREATE OK (... sec)
+
+.. hide:
+
+    cr> INSERT INTO parted_table (id, title, width, day)
+    ... VALUES (1, 'Don''t Panic', 19.5, '2014-04-08');
+    INSERT OK, 1 row affected (... sec)
+
+In case the ``PARTITION`` clause is omitted all partitions will be refreshed. ::
+    
+    cr> REFRESH TABLE locations, parted_table;
+    REFRESH OK (... sec)
+
+
+In case of using the ``PARTITION`` clause only specific partitions of a partitioned 
+table are refreshed. ::
+
+    cr> REFRESH TABLE locations, 
+    ... parted_table PARTITION (day='2014-04-08');
     REFRESH OK (... sec)
 
 A table is refreshed periodically with a specified refresh interval. By
@@ -21,3 +48,8 @@ of a table can be changed with the table parameter ``refresh_interval`` (see
 
 
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
+
+.. hide:
+
+  cr> DROP TABLE parted_table;
+  DROP OK (... sec)
