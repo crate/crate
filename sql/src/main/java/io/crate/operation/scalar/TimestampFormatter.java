@@ -21,16 +21,13 @@
 
 package io.crate.operation.scalar;
 
-import com.carrotsearch.hppc.ByteObjectMap;
-import com.carrotsearch.hppc.ByteObjectOpenHashMap;
+import com.carrotsearch.hppc.CharObjectMap;
+import com.carrotsearch.hppc.CharObjectOpenHashMap;
 import com.google.common.base.Charsets;
-import com.google.common.base.Throwables;
 import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
@@ -42,7 +39,7 @@ import java.util.Locale;
 public class TimestampFormatter {
 
     private interface FormatTimestampPartFunction {
-        public byte[] format(DateTime timestamp);
+        public String format(DateTime timestamp);
     }
 
     private static final byte[] ST = "st".getBytes(Charsets.UTF_8);
@@ -54,63 +51,62 @@ public class TimestampFormatter {
 
 
     private final static Locale LOCALE = Locale.ENGLISH;
-    private final static ByteObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new ByteObjectOpenHashMap<>();
+    private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectOpenHashMap<>();
     private static void addFormatter(char character, FormatTimestampPartFunction fun) {
-        PART_FORMATTERS.put((byte) character, fun);
+        PART_FORMATTERS.put(character, fun);
     }
     static {
         // %a	Abbreviated weekday name (Sun..Sat)
         addFormatter('a', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.dayOfWeek().getAsShortText(LOCALE).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.dayOfWeek().getAsShortText(LOCALE);
             }
         });
         // %b	Abbreviated month name (Jan..Dec)
         addFormatter('b', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.monthOfYear().getAsShortText(LOCALE).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.monthOfYear().getAsShortText(LOCALE);
             }
         });
         // %c	Month, numeric (0..12)
         addFormatter('c', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return String.valueOf(timestamp.monthOfYear().get()).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return String.valueOf(timestamp.monthOfYear().get());
             }
         });
         // %D	Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
         addFormatter('D', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 int n = timestamp.dayOfMonth().get();
-                byte[] formatted = new byte[n>9 ? 4 : 3];
-                int i = n > 9 ? 2 : 1;
-                System.arraycopy(String.valueOf(n).getBytes(Charsets.UTF_8), 0, formatted, 0, i);
+                StringBuilder builder = new StringBuilder(n>9 ? 4 : 3);
+                builder.append(n);
                 if (n >= 11 && n <= 13) {
-                    System.arraycopy(TH, 0, formatted, i, 2);
+                    builder.append("th");
                 }
                 switch (n % 10) {
                     case 1:
-                        System.arraycopy(ST, 0, formatted, i, 2);
+                        builder.append("st");
                         break;
                     case 2:
-                        System.arraycopy(ND, 0, formatted, i, 2);
+                        builder.append("nd");
                         break;
                     case 3:
-                        System.arraycopy(RD, 0, formatted, i, 2);
+                        builder.append("rd");
                         break;
                     default:
-                        System.arraycopy(TH, 0, formatted, i, 2);
+                        builder.append("th");
                 }
-                return formatted;
+                return builder.toString();
             }
         });
         //  %d	Day of the month, numeric (00..31)
         addFormatter('d', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 String dayOfMonth = String.valueOf(timestamp.dayOfMonth().get());
                 return zeroPadded(2, dayOfMonth);
             }
@@ -118,21 +114,21 @@ public class TimestampFormatter {
         //  %e	Day of the month, numeric (0..31)
         addFormatter('e', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return String.valueOf(timestamp.dayOfMonth().get()).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return String.valueOf(timestamp.dayOfMonth().get());
             }
         });
         // %f	Microseconds (000000..999999)
         addFormatter('f', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 return zeroPadded(6, String.valueOf(timestamp.millisOfSecond().get() * 1000));
             }
         });
 
         final FormatTimestampPartFunction padded24HourFunction = new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 int hourOfDay = timestamp.getHourOfDay() % 24;
                 return zeroPadded(2, String.valueOf(hourOfDay));
             }
@@ -142,7 +138,7 @@ public class TimestampFormatter {
 
         final FormatTimestampPartFunction padded12HourFunction = new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 int hourOfDay = timestamp.getHourOfDay() % 12;
                 if (hourOfDay == 0) {
                     hourOfDay = 12;
@@ -158,7 +154,7 @@ public class TimestampFormatter {
         // %i	Minutes, numeric (00..59)
         addFormatter('i', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 return zeroPadded(2, timestamp.minuteOfHour().getAsShortText(LOCALE));
             }
         });
@@ -166,47 +162,47 @@ public class TimestampFormatter {
         // %j	Day of year (001..366)
         addFormatter('j', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 return zeroPadded(3, timestamp.dayOfYear().getAsShortText(LOCALE));
             }
         });
         // %k	Hour (0..23)
         addFormatter('k', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return String.valueOf(timestamp.getHourOfDay()).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.hourOfDay().getAsShortText(LOCALE);
             }
         });
         // %l	Hour (1..12)
         addFormatter('l', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 int hourOfDay = timestamp.getHourOfDay() % 12;
                 if (hourOfDay == 0) {
                     hourOfDay = 12;
                 }
-                return String.valueOf(hourOfDay).getBytes(Charsets.UTF_8);
+                return String.valueOf(hourOfDay);
             }
         });
         // %M	Month name (January..December)
         addFormatter('M', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.monthOfYear().getAsText(LOCALE).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.monthOfYear().getAsText(LOCALE);
             }
         });
         // %m	Month, numeric (00..12)
         addFormatter('m', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 return zeroPadded(2, String.valueOf(timestamp.monthOfYear().get()));
             }
         });
         final FormatTimestampPartFunction amPmFunc = new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 // TODO: verify correctness
-                return timestamp.getHourOfDay() < 12 ? AM : PM;
+                return timestamp.getHourOfDay() < 12 ? "AM" : "PM";
             }
         };
         // %p	AM or PM
@@ -215,30 +211,25 @@ public class TimestampFormatter {
 
         final FormatTimestampPartFunction paddedMinuteFunction = new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return zeroPadded(2, String.valueOf(timestamp.getMinuteOfHour()));
+            public String format(DateTime timestamp) {
+                return zeroPadded(2, timestamp.minuteOfHour().getAsShortText(LOCALE));
             }
         };
         final FormatTimestampPartFunction paddedSecondFunction = new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return zeroPadded(2, String.valueOf(timestamp.getSecondOfMinute()));
+            public String format(DateTime timestamp) {
+                return zeroPadded(2, timestamp.secondOfMinute().getAsShortText(LOCALE));
             }
         };
 
         // %r	Time, 12-hour (hh:mm:ss followed by AM or PM)
         addFormatter('r', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                byte[] timeBytes = new byte[11];
-                System.arraycopy(padded12HourFunction.format(timestamp), 0, timeBytes, 0, 2);
-                timeBytes[2] = ':';
-                System.arraycopy(paddedMinuteFunction.format(timestamp), 0, timeBytes, 3, 2);
-                timeBytes[5] = ':';
-                System.arraycopy(paddedSecondFunction.format(timestamp), 0, timeBytes, 6, 2);
-                timeBytes[8] = ' ';
-                System.arraycopy(amPmFunc.format(timestamp), 0, timeBytes, 9, 2);
-                return timeBytes;
+            public String format(DateTime timestamp) {
+                return    padded12HourFunction.format(timestamp) + ':'
+                        + paddedMinuteFunction.format(timestamp) + ':'
+                        + paddedSecondFunction.format(timestamp) + ' '
+                        + amPmFunc.format(timestamp);
             }
         });
 
@@ -250,14 +241,10 @@ public class TimestampFormatter {
         //  %T	Time, 24-hour (hh:mm:ss)
         addFormatter('T', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                byte[] timeBytes = new byte[8];
-                System.arraycopy(padded24HourFunction.format(timestamp), 0, timeBytes, 0, 2);
-                timeBytes[2] = ':';
-                System.arraycopy(paddedMinuteFunction.format(timestamp), 0, timeBytes, 3, 2);
-                timeBytes[5] = ':';
-                System.arraycopy(paddedSecondFunction.format(timestamp), 0, timeBytes, 6, 2);
-                return timeBytes;
+            public String format(DateTime timestamp) {
+                return    padded24HourFunction.format(timestamp) + ':'
+                        + paddedMinuteFunction.format(timestamp) + ':'
+                        + paddedSecondFunction.format(timestamp);
             }
         });
 
@@ -266,7 +253,7 @@ public class TimestampFormatter {
         // if first week
         addFormatter('U', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 // if week starts in last year, return 00
                 // range 00 - 53
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
@@ -288,7 +275,7 @@ public class TimestampFormatter {
         // weeks are numbered according to ISO 8601:1988
         addFormatter('u', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
                 c.setFirstDayOfWeek(Calendar.MONDAY);
                 c.setMinimalDaysInFirstWeek(4);
@@ -308,7 +295,7 @@ public class TimestampFormatter {
         // with respect to the year that contains the first day of the week for the given date
         addFormatter('V', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
                 c.setFirstDayOfWeek(Calendar.SUNDAY);
                 c.setMinimalDaysInFirstWeek(7);
@@ -329,7 +316,7 @@ public class TimestampFormatter {
         // weeks are numbered according to ISO 8601:1988
         addFormatter('v', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
                 c.setFirstDayOfWeek(Calendar.MONDAY);
                 c.setMinimalDaysInFirstWeek(4);
@@ -350,24 +337,24 @@ public class TimestampFormatter {
         // %W	Weekday name (Sunday..Saturday)
         addFormatter('W', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.dayOfWeek().getAsText(LOCALE).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.dayOfWeek().getAsText(LOCALE);
             }
         });
         // %w	Day of the week (0=Sunday..6=Saturday)
         addFormatter('w', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 // timestamp.dayOfWeek() returns 1=monday, 7=sunday
                 int dayOfWeek = timestamp.dayOfWeek().get() % 7;
-                return String.valueOf(dayOfWeek).getBytes(Charsets.UTF_8);
+                return String.valueOf(dayOfWeek);
             }
         });
 
         // %X	Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V
         addFormatter('X', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
                 c.setFirstDayOfWeek(Calendar.SUNDAY);
                 c.setMinimalDaysInFirstWeek(7);
@@ -379,7 +366,7 @@ public class TimestampFormatter {
         // %x	Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v
         addFormatter('x', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
+            public String format(DateTime timestamp) {
                 Calendar c = Calendar.getInstance(timestamp.getZone().toTimeZone(), LOCALE);
                 c.setFirstDayOfWeek(Calendar.MONDAY);
                 c.setMinimalDaysInFirstWeek(4);
@@ -391,70 +378,60 @@ public class TimestampFormatter {
         // %Y	Year, numeric, four digits
         addFormatter('Y', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.year().getAsShortText(Locale.ENGLISH).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.year().getAsShortText(Locale.ENGLISH);
             }
         });
         // %y	Year, numeric (two digits)
         addFormatter('y', new FormatTimestampPartFunction() {
             @Override
-            public byte[] format(DateTime timestamp) {
-                return timestamp.yearOfCentury().getAsShortText(Locale.ENGLISH).getBytes(Charsets.UTF_8);
+            public String format(DateTime timestamp) {
+                return timestamp.yearOfCentury().getAsShortText(Locale.ENGLISH);
             }
         });
     }
 
-    private static int weekDaySundayFirst(DateTime timestamp) {
-        int dayOfWeek = (timestamp.getDayOfWeek() +1) % 7;
-        return dayOfWeek == 0 ? 7 : dayOfWeek;
-    }
-
-    private static int weekDayMondayFirst(DateTime timestamp) {
-        return timestamp.getDayOfWeek();
-    }
-
-    private static byte[] zeroPadded(int to, String val) {
-        byte[] valBytes = val.getBytes(Charsets.UTF_8);
-        byte[] padded = new byte[Math.max(to, valBytes.length)];
-        int i = padded.length - valBytes.length;
-        if (i > 0) {
-            Arrays.fill(padded, (byte)'0');
+    private static String zeroPadded(int to, String val) {
+        int length = val.length();
+        if (length >= to) {
+            return val;
+        } else {
+            char[] padded = new char[to];
+            Arrays.fill(padded, '0');
+            val.getChars(0, length, padded, Math.max(0, to - length));
+            return new String(padded);
         }
-        System.arraycopy(valBytes, 0, padded, i, valBytes.length);
-        return padded;
     }
 
     public static BytesRef format(BytesRef formatString, DateTime timestamp) {
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream(formatString.length);
+        StringBuilder buffer = new StringBuilder(formatString.length);
+        String format = formatString.utf8ToString();
         boolean percentEscape = false;
-        int length = formatString.length;
+        int length = format.length();
         for (int i = 0; i < length; i++) {
-            byte current = formatString.bytes[i];
-            if (current == (byte)'%') {
+            char current = format.charAt(i);
+
+            if (current == '%') {
                 if (!percentEscape) {
                     percentEscape = true;
                 } else {
-                    outStream.write((byte)'%');
+                    buffer.append('%');
+                    percentEscape = false;
                 }
             } else {
                 if (percentEscape) {
-                    // TODO: handle unicode codepoints (can they interfere) ?
                     FormatTimestampPartFunction partFormatter = PART_FORMATTERS.get(current);
                     if (partFormatter == null) {
-                        outStream.write((int) current);
+                        buffer.append(current);
                     } else {
-                        try {
-                            outStream.write(partFormatter.format(timestamp));
-                        } catch (IOException e) {
-                            Throwables.propagate(e);
-                        }
+                        buffer.append(partFormatter.format(timestamp));
                     }
                 } else {
-                    outStream.write(current);
+                    buffer.append(current);
                 }
                 percentEscape = false;
             }
         }
-        return new BytesRef(outStream.toByteArray());
+        return new BytesRef(buffer.toString());
     }
 }
