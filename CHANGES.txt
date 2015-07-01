@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed hash collide in fetch requests to avoid collision of node identifiers
+
  - Updated crate-admin to 0.14.0 which includes following changes:
 
     - load plugins.json that can inject additional modules on app start
