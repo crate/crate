@@ -13,7 +13,7 @@ to ensure that the latest state of the table gets fetched.
 
 .. hide:
 
-    cr> CREATE TABLE parted_table (
+    cr> CREATE TABLE IF NOT EXISTS parted_table (
     ...   id long,
     ...   title string,
     ...   content string,
@@ -26,17 +26,6 @@ to ensure that the latest state of the table gets fetched.
 
     cr> INSERT INTO parted_table (id, title, width, day)
     ... VALUES (1, 'Don''t Panic', 19.5, '2014-04-08');
-    INSERT OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> INSERT INTO parted_table (id, title, width, day)
-    ... VALUES (2, 'Time is an illusion, lunchtime doubly so', 0.7, '2015-09-24');
-    INSERT OK, 1 row affected (... sec)
-.. hide:
-
-    cr> INSERT INTO parted_table (id, title, width, day)
-    ... VALUES (2, 'All Good', 3.1415, '2014-04-08');
     INSERT OK, 1 row affected (... sec)
 
 In case the ``PARTITION`` clause is omitted all partitions will be refreshed. ::

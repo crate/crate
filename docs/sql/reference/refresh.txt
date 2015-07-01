@@ -5,14 +5,14 @@
 REFRESH
 =======
 
-Refresh a table or multiple tables explicitly.
+Refresh one or multiple tables explicitly.
 
 Synopsis
 ========
 
 ::
 
-    REFRESH TABLE [ table_ident PARTITION (partition_column=value [ , ... ]) ] [ , ...]
+    REFRESH TABLE table_ident PARTITION (partition_column=value [ , ... ]) [ , ...]
 
 Description
 ===========
