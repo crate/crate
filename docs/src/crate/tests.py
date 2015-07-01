@@ -18,7 +18,7 @@ class CrateTestCmd(CrateCmd):
     def __init__(self, **kwargs):
         super(CrateTestCmd, self).__init__(**kwargs)
         doctest_print = PrintWrapper()
-        self.logger = ColorPrinter(False, stream=doctest_print, line_end='')
+        self.logger = ColorPrinter(False, stream=doctest_print, line_end='\n')
 
     def stmt(self, stmt):
         stmt = stmt.replace('\n', ' ')
@@ -121,11 +121,13 @@ def setUpLocations(test):
     cmd.stmt("""copy locations from '{0}'""".format(locations_file))
     cmd.stmt("""refresh table locations""")
 
+def tearDownLocations(test):
+    cmd.stmt("""drop table locations""")
 
 def setUpUserVisits(test):
     test.globs['cmd'] = cmd
     cmd.stmt("""
-        create table uservisits(
+        create table uservisits (
           id integer primary key,
           name string,
           visits integer,
@@ -136,6 +138,8 @@ def setUpUserVisits(test):
     cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
     cmd.stmt("""refresh table uservisits""")
 
+def tearDownUserVisits(test):
+    cmd.stmt("""drop table uservisits""")
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
@@ -151,16 +155,24 @@ def setUpQuotes(test):
     shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
                 os.path.join(import_dir, "quotes.json"))
 
+def tearDownQuotes(test):
+    cmd.stmt("""drop table quotes""")
 
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
 
+def tearDownLocationsAndQuotes(test):
+    tearDownLocations(test)
+    tearDownQuotes(test)
 
 def setUpLocationsQuotesAndUserVisits(test):
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
 
+def tearDownLocationsQuotesAndUserVisits(test):
+    tearDownLocationsAndQuotes(test)
+    tearDownUserVisits(test)
 
 def setUpTutorials(test):
     setUp(test)
@@ -175,14 +187,9 @@ def setUpTutorials(test):
     shutil.copy(project_path(source_dir, 'data_import_1408312800.json'),
                 os.path.join(import_dir, "users_1408312800.json"))
 
-
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
-
-
-def tearDownDropQuotes(test):
-    cmd.stmt("drop table quotes")
 
 
 def test_suite():
@@ -192,7 +199,6 @@ def test_suite():
     s = doctest.DocFileSuite('../../blob.txt',
                              parser=bash_parser,
                              setUp=setUp,
-                             tearDown=tearDownDropQuotes,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS)
     s.layer = empty_layer
@@ -201,6 +207,7 @@ def test_suite():
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
                                  setUp=setUpLocations,
+                                 tearDown=tearDownLocations,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
@@ -221,6 +228,7 @@ def test_suite():
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
+                                 tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
@@ -228,6 +236,7 @@ def test_suite():
     for fn in ('sql/dml.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsQuotesAndUserVisits,
+                                 tearDown=tearDownLocationsQuotesAndUserVisits,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer

@@ -26,9 +26,8 @@ task buildout (type:Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/buildout", '-N'
 }
 
-task itest (type:Exec){
-
-    executable = "$projectDir/bin/test"
+task itest (type:Exec) {
+  commandLine "$projectDir/bin/test", '-1'
 }
 
 task lessLogging (dependsOn: unpackDistTar) << {
