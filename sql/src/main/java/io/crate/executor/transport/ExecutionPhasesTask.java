@@ -21,7 +21,9 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
@@ -40,8 +42,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhaseGrouper;
 import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.NodeOperationGrouper;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -52,6 +54,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -60,6 +63,7 @@ public class ExecutionPhasesTask extends JobTask {
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final List<NodeOperationTree> nodeOperationTrees;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
@@ -67,11 +71,8 @@ public class ExecutionPhasesTask extends JobTask {
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
 
-    private final List<List<ExecutionPhase>> groupedExecutionPhases = new ArrayList<>();
-    private final List<MergePhase> finalMergeNodes = new ArrayList<>();
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
-    private boolean rowCountResult = false;
 
     protected ExecutionPhasesTask(UUID jobId,
                                   ClusterService clusterService,
@@ -80,7 +81,8 @@ public class ExecutionPhasesTask extends JobTask {
                                   PageDownstreamFactory pageDownstreamFactory,
                                   ThreadPool threadPool,
                                   TransportJobAction transportJobAction,
-                                  CircuitBreaker circuitBreaker) {
+                                  CircuitBreaker circuitBreaker,
+                                  List<NodeOperationTree> nodeOperationTrees) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -89,76 +91,76 @@ public class ExecutionPhasesTask extends JobTask {
         this.threadPool = threadPool;
         this.circuitBreaker = circuitBreaker;
         this.transportJobAction = transportJobAction;
-    }
+        this.nodeOperationTrees = nodeOperationTrees;
 
-
-    /**
-     * @param finalMergeNode a mergeNode for the final merge operation on the handler.
-     *                   Multiple merge nodes are only occurring on bulk operations.
-     */
-    public void addFinalMergeNode(MergePhase finalMergeNode) {
-        finalMergeNodes.add(finalMergeNode);
-    }
-
-    public void addExecutionPhase(int group, ExecutionPhase executionPhase) {
-        while (group >= groupedExecutionPhases.size()) {
+        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             results.add(SettableFuture.<TaskResult>create());
-            groupedExecutionPhases.add(new ArrayList<ExecutionPhase>());
+            for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
+                if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
+                    hasDirectResponse = true;
+                }
+            }
         }
-        List<ExecutionPhase> executionPhases = groupedExecutionPhases.get(group);
-
-        if (ExecutionPhases.hasDirectResponseDownstream(executionPhase.downstreamNodes())) {
-            hasDirectResponse = true;
-        }
-        executionPhases.add(executionPhase);
-    }
-
-    public void rowCountResult(boolean rowCountResult) {
-        this.rowCountResult = rowCountResult;
     }
 
     @Override
     public void start() {
-        assert finalMergeNodes.size() == groupedExecutionPhases.size() : "groupedExecutionPhases and finalMergeNodes sizes must match";
+        FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
+                .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
+                    @Nullable
+                    @Override
+                    public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
+                        return input.nodeOperations();
+                    }
+                });
 
-        Map<String, Collection<ExecutionPhase>> nodesByServer = ExecutionPhaseGrouper.groupByServer(clusterService.state().nodes().localNodeId(), groupedExecutionPhases);
+        Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(
+                clusterService.state().nodes().localNodeId(), nodeOperations);
+
         RowDownstream rowDownstream;
-        if (rowCountResult) {
+        if (nodeOperationTrees.size() > 1) {
+            // bulk Operation with rowCountResult
             rowDownstream = new RowCountResultRowDownstream(results);
         } else {
             rowDownstream = new QueryResultRowDownstream(results);
         }
-        Streamer<?>[] streamers = DataTypes.getStreamer(finalMergeNodes.get(0).inputTypes());
-        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(groupedExecutionPhases.size());
 
-        for (int i = 0; i < groupedExecutionPhases.size(); i++) {
+        ExecutionPhase leaf = nodeOperationTrees.get(0).leaf();
+        // TODO: remove MergePhase casts
+        Streamer<?>[] streamers = DataTypes.getStreamer(((MergePhase) leaf).inputTypes());
+        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
+
+        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(
-                    circuitBreaker, finalMergeNodes.get(i));
+                    circuitBreaker, nodeOperationTree.leaf());
 
-            PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers,
-                    finalMergeNodes.get(i), groupedExecutionPhases.get(i), rowDownstream);
-            if (nodesByServer.size() == 0) {
+            PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(
+                    ramAccountingContext, streamers, (MergePhase) nodeOperationTree.leaf(), nodeOperationTree.numLeafUpstreams(), rowDownstream);
+            if (operationByServer.isEmpty()) {
                 pageDownstreamContext.finish();
                 continue;
             }
             if (!hasDirectResponse) {
-                createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer, finalMergeNodes.get(i).executionPhaseId());
+                createLocalContextAndStartOperation(
+                        pageDownstreamContext,
+                        operationByServer,
+                        nodeOperationTree.leaf().executionPhaseId());
             } else {
                 pageDownstreamContext.start();
             }
             pageDownstreamContexts.add(pageDownstreamContext);
         }
-        if (nodesByServer.size() == 0) {
+        if (operationByServer.isEmpty()) {
             return;
         }
-        sendJobRequests(streamers, pageDownstreamContexts, nodesByServer);
+        sendJobRequests(streamers, pageDownstreamContexts, operationByServer);
     }
 
     private PageDownstreamContext createPageDownstreamContext(
             RamAccountingContext ramAccountingContext,
             Streamer<?>[] streamers,
             MergePhase mergeNode,
-            List<ExecutionPhase> executionPhases,
+            int numUpstreams,
             RowDownstream rowDownstream) {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
@@ -171,23 +173,23 @@ public class ExecutionPhasesTask extends JobTask {
                 pageDownstreamProjectorChain.v1(),
                 streamers,
                 ramAccountingContext,
-                executionPhases.get(executionPhases.size() - 1).executionNodes().size(),
+                numUpstreams, // = numBuckets
                 pageDownstreamProjectorChain.v2()
         );
     }
 
     private void sendJobRequests(Streamer<?>[] streamers,
                                  List<PageDownstreamContext> pageDownstreamContexts,
-                                 Map<String, Collection<ExecutionPhase>> nodesByServer) {
+                                 Map<String, Collection<NodeOperation>> operationsByServer) {
         int idx = 0;
-        for (Map.Entry<String, Collection<ExecutionPhase>> entry : nodesByServer.entrySet()) {
+        for (Map.Entry<String, Collection<NodeOperation>> entry : operationsByServer.entrySet()) {
             String serverNodeId = entry.getKey();
             if (TableInfo.NULL_NODE_ID.equals(serverNodeId)) {
                 continue; // handled by local node
             }
-            Collection<ExecutionPhase> executionPhases = entry.getValue();
+            Collection<NodeOperation> nodeOperations = entry.getValue();
 
-            JobRequest request = new JobRequest(jobId(), executionPhases);
+            JobRequest request = new JobRequest(jobId(), nodeOperations);
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                         new DirectResponseListener(idx, streamers, pageDownstreamContexts));
@@ -205,47 +207,29 @@ public class ExecutionPhasesTask extends JobTask {
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
     private void createLocalContextAndStartOperation(PageDownstreamContext finalLocalMerge,
-                                                     Map<String, Collection<ExecutionPhase>> nodesByServer,
+                                                     Map<String, Collection<NodeOperation>> operationsByServer,
                                                      int localMergeExecutionNodeId) {
         String localNodeId = clusterService.localNode().id();
-        Collection<ExecutionPhase> localExecutionPhases = nodesByServer.remove(localNodeId);
-
+        Collection<NodeOperation> localNodeOperations = operationsByServer.remove(localNodeId);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
-
-        if (localExecutionPhases != null) {
-            for (ExecutionPhase executionPhase : localExecutionPhases) {
-                contextPreparer.prepare(jobId(), executionPhase, builder);
+        if (localNodeOperations != null) {
+            for (NodeOperation nodeOperation : localNodeOperations) {
+                contextPreparer.prepare(jobId(), nodeOperation, builder);
             }
         }
+        builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
         JobExecutionContext context = jobContextService.createContext(builder);
         context.start();
     }
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
-        if (results.size() != groupedExecutionPhases.size()) {
-            for (int i = 0; i < groupedExecutionPhases.size(); i++) {
-                results.add(SettableFuture.<TaskResult>create());
-            }
-        }
         return results;
     }
 
     @Override
     public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
-    }
-
-    static boolean hasDirectResponse(List<List<ExecutionPhase>> groupedExecutionNodes) {
-        for (List<ExecutionPhase> executionPhaseGroup : groupedExecutionNodes) {
-            for (ExecutionPhase executionPhase : executionPhaseGroup) {
-                if (ExecutionPhases.hasDirectResponseDownstream(executionPhase.downstreamNodes())) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private static class DirectResponseListener implements ActionListener<JobResponse> {

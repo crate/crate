@@ -91,9 +91,7 @@ public class DistributedGroupByConsumer implements Consumer {
             }
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
-
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
-
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // start: Map/Collect side
@@ -178,15 +176,8 @@ public class DistributedGroupByConsumer implements Consumer {
                         ImmutableList.<Projection>of(topN),
                         mergeNode, context.plannerContext());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
-
-                mergeNode.downstreamNodes(localMergeNode.executionNodes());
-                mergeNode.downstreamExecutionPhaseId(localMergeNode.executionPhaseId());
-            } else {
-                mergeNode.downstreamNodes(Sets.newHashSet(localNodeId));
-                mergeNode.downstreamExecutionPhaseId(mergeNode.executionPhaseId() + 1);
             }
 
-            collectNode.downstreamExecutionPhaseId(mergeNode.executionPhaseId());
             return new DistributedGroupBy(
                     collectNode,
                     mergeNode,

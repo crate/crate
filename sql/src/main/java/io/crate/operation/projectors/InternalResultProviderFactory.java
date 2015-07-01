@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
+import io.crate.operation.NodeOperation;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
@@ -50,24 +51,25 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
         this.transportDistributedResultAction = transportDistributedResultAction;
     }
 
-    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
-        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(node);
+    public ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId) {
+        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
 
-        if (ExecutionPhases.hasDirectResponseDownstream(node.downstreamNodes())) {
+        if (nodeOperation.downstreamExecutionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE ||
+                ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
             return new SingleBucketBuilder(streamers);
         } else {
-            assert node.downstreamNodes().size() > 0 : "must have at least one downstream";
+            assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
             // TODO: set bucketIdx properly
-            ArrayList<String> server = Lists.newArrayList(node.executionNodes());
+            ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().executionNodes());
             Collections.sort(server);
-            int bucketIdx = server.indexOf(clusterService.localNode().id());
+            int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
 
             return new DistributingDownstream(
                     jobId,
-                    node.downstreamExecutionPhaseId(),
+                    nodeOperation.downstreamExecutionPhaseId(),
                     bucketIdx,
-                    node.downstreamNodes(),
+                    nodeOperation.downstreamNodes(),
                     transportDistributedResultAction,
                     streamers
             );

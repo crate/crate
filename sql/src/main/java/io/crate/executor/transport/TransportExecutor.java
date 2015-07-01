@@ -38,9 +38,12 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.NodeOperation;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
@@ -55,8 +58,13 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.crate.operation.NodeOperation.withDownstream;
 
 public class TransportExecutor implements Executor, TaskExecutor {
 
@@ -79,7 +87,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final PageDownstreamFactory pageDownstreamFactory;
 
-    private final ExecutionPhasePlanVisitor executionPhasePlanVisitor;
+    private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
+
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -115,7 +124,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
                 globalImplementationSymbolVisitor);
-        executionPhasePlanVisitor = new ExecutionPhasePlanVisitor();
     }
 
     @Override
@@ -171,29 +179,41 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
+        public List<? extends Task> visitUpsert(Upsert node, Job context) {
+            List<Plan> nonIterablePlans = new ArrayList<>();
+            List<Task> tasks = new ArrayList<>();
+            for (Plan plan : node.nodes()) {
+                if (plan instanceof IterablePlan) {
+                    tasks.addAll(process(plan, context));
+                } else {
+                    nonIterablePlans.add(plan);
+                }
+            }
+            if (!nonIterablePlans.isEmpty()) {
+                tasks.add(executionPhasesTask(new Upsert(nonIterablePlans, context.id()), context));
+            }
+            return tasks;
+        }
+
+        @Override
         protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionPhasesTask task = executionPhasePlanVisitor.process(plan, job);
+            ExecutionPhasesTask task = executionPhasesTask(plan, job);
             return ImmutableList.of(task);
         }
 
-        @Override
-        public List<? extends Task> visitUpsert(Upsert plan, Job job) {
-            if (plan.nodes().size() == 1 && plan.nodes().get(0) instanceof IterablePlan) {
-                return process(plan.nodes().get(0), job);
-            }
-
-            ExecutionPhasesTask task = executionPhasePlanVisitor.process(plan, job);
-            task.rowCountResult(true);
-            return ImmutableList.<Task>of(task);
-        }
-
-        @Override
-        public List<? extends Task> visitInsertByQuery(InsertFromSubQuery node, Job job) {
-            ExecutionPhasesTask task = executionPhasePlanVisitor.process(node.innerPlan(), job);
-            if (node.handlerMergeNode().isPresent()) {
-                task.addFinalMergeNode(node.handlerMergeNode().get());
-            }
-            return ImmutableList.<Task>of(task);
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job) {
+            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(plan);
+            return new ExecutionPhasesTask(
+                    job.id(),
+                    clusterService,
+                    contextPreparer,
+                    jobContextService,
+                    pageDownstreamFactory,
+                    threadPool,
+                    transportActionProvider.transportJobInitAction(),
+                    circuitBreaker,
+                    nodeOperationTrees
+            );
         }
 
         @Override
@@ -309,102 +329,130 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
     }
 
-    class ExecutionPhasePlanVisitor extends PlanVisitor<ExecutionPhasePlanVisitor.Context, Void> {
+    static class BulkNodeOperationTreeGenerator extends PlanVisitor<List<NodeOperationTree>, Void> {
 
-        class Context {
-            ExecutionPhasesTask executionPhasesTask;
+        NodeOperationTreeGenerator nodeOperationTreeGenerator = new NodeOperationTreeGenerator();
 
-            public Context(ExecutionPhasesTask executionPhasesTask) {
-                this.executionPhasesTask = executionPhasesTask;
-            }
-        }
-
-        public ExecutionPhasesTask process(Plan plan, Job job) {
-            ExecutionPhasesTask executionPhasesTask = new ExecutionPhasesTask(
-                    job.id(),
-                    clusterService,
-                    contextPreparer,
-                    jobContextService,
-                    pageDownstreamFactory,
-                    threadPool,
-                    transportActionProvider.transportJobInitAction(),
-                    circuitBreaker);
-            Context context = new Context(executionPhasesTask);
-            process(plan, context);
-            return executionPhasesTask;
-        }
-
-        private void addFinalIfNotNull(@Nullable MergePhase mergeNode, Context context) {
-            if (mergeNode != null) {
-                context.executionPhasesTask.addFinalMergeNode(mergeNode);
-            }
+        public List<NodeOperationTree> createNodeOperationTrees(Plan plan) {
+            ArrayList<NodeOperationTree> nodeOperationTrees = new ArrayList<>();
+            process(plan, nodeOperationTrees);
+            return nodeOperationTrees;
         }
 
         @Override
-        public Void visitQueryThenFetch(QueryThenFetch plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            addFinalIfNotNull(plan.mergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitQueryAndFetch(QueryAndFetch plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            addFinalIfNotNull(plan.localMergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitDistributedGroupBy(DistributedGroupBy plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            context.executionPhasesTask.addExecutionPhase(0, plan.reducerMergeNode());
-            addFinalIfNotNull(plan.localMergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitNonDistributedGroupBy(NonDistributedGroupBy plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            addFinalIfNotNull(plan.localMergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitGlobalAggregate(GlobalAggregate plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            addFinalIfNotNull(plan.mergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitCollectAndMerge(CollectAndMerge plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.collectNode());
-            addFinalIfNotNull(plan.localMergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitCountPlan(CountPlan plan, Context context) {
-            context.executionPhasesTask.addExecutionPhase(0, plan.countNode());
-            addFinalIfNotNull(plan.mergeNode(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitUpsert(Upsert plan, Context context) {
-            for (int i = 0; i < plan.nodes().size(); i++) {
-                Plan subPlan = plan.nodes().get(i);
-                assert subPlan instanceof CollectAndMerge;
-                context.executionPhasesTask.addExecutionPhase(i, ((CollectAndMerge) subPlan).collectNode());
-                context.executionPhasesTask.addFinalMergeNode(((CollectAndMerge) subPlan).localMergeNode());
+        public Void visitUpsert(Upsert node, List<NodeOperationTree> context) {
+            for (Plan plan : node.nodes()) {
+                context.add(nodeOperationTreeGenerator.fromPlan(plan));
             }
             return null;
         }
 
         @Override
-        protected Void visitPlan(Plan plan, Context context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Plan %s not supported", plan.getClass().getCanonicalName()));
+        protected Void visitPlan(Plan plan, List<NodeOperationTree> context) {
+            context.add(nodeOperationTreeGenerator.fromPlan(plan));
+            return null;
+        }
+    }
+
+    static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
+
+        static class NodeOperationTreeContext {
+            List<NodeOperation> nodeOperations = new ArrayList<>();
+            ExecutionPhase leaf;
+            int numLeafUpstream = 0;
+
+            boolean isRootPlanNode = true;
+        }
+
+        public NodeOperationTree fromPlan(Plan plan) {
+            NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext();
+            process(plan, nodeOperationTreeContext);
+            return new NodeOperationTree(
+                    nodeOperationTreeContext.nodeOperations,
+                    nodeOperationTreeContext.leaf,
+                    nodeOperationTreeContext.numLeafUpstream);
+        }
+
+        @Override
+        public Void visitInsertByQuery(InsertFromSubQuery node, NodeOperationTreeContext context) {
+            if (node.handlerMergeNode().isPresent()) {
+                context.leaf = node.handlerMergeNode().get();
+            }
+            context.isRootPlanNode = false;
+            process(node.innerPlan(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
+            context.numLeafUpstream = node.reducerMergeNode().executionNodes().size();
+
+            if (context.isRootPlanNode) {
+                assert node.localMergeNode() != null : "if DistributedGroupBy is the root plan node it requires a localMergeNode";
+                context.leaf = node.localMergeNode();
+            }
+            context.nodeOperations.add(withDownstream(node.collectNode(), node.reducerMergeNode()));
+            context.nodeOperations.add(withDownstream(node.reducerMergeNode(), context.leaf));
+            return null;
+        }
+
+        @Override
+        public Void visitGlobalAggregate(GlobalAggregate plan, NodeOperationTreeContext context) {
+            context.numLeafUpstream = plan.collectNode().executionNodes().size();
+            if (context.isRootPlanNode || context.leaf == null) {
+                context.leaf = plan.mergeNode();
+            }
+            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            return null;
+        }
+
+        @Override
+        public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, NodeOperationTreeContext context) {
+            context.numLeafUpstream = node.collectNode().executionNodes().size();
+            if (context.isRootPlanNode || context.leaf == null) {
+                context.leaf = node.localMergeNode();
+            }
+            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            return null;
+        }
+
+        @Override
+        public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
+            context.leaf = plan.mergeNode();
+            context.numLeafUpstream  = plan.countNode().executionNodes().size();
+            context.nodeOperations.add(NodeOperation.withDownstream(plan.countNode(), plan.mergeNode()));
+            return null;
+        }
+
+        @Override
+        public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
+            context.leaf = plan.localMergeNode();
+            context.numLeafUpstream = plan.collectNode().executionNodes().size();
+            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), plan.localMergeNode()));
+            return null;
+        }
+
+        @Override
+        public Void visitQueryAndFetch(QueryAndFetch plan, NodeOperationTreeContext context) {
+            if (context.isRootPlanNode) {
+                context.leaf = plan.localMergeNode();
+            }
+            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            context.numLeafUpstream = plan.collectNode().executionNodes().size();
+            return null;
+        }
+
+        @Override
+        public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
+            context.numLeafUpstream = node.collectNode().executionNodes().size();
+            context.leaf = firstNonNull(node.mergeNode(), context.leaf);
+            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            return null;
+        }
+
+        @Override
+        protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
+            throw new UnsupportedOperationException(String.format("Can't create NodeOperationTree from plan %s", plan));
         }
     }
 }

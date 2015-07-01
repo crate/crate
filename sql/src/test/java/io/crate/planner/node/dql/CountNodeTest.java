@@ -58,7 +58,6 @@ public class CountNodeTest extends CrateUnitTest {
 
         assertThat(streamedNode.jobId(), is(jobId));
         assertThat(streamedNode.executionPhaseId(), is(1));
-        assertThat(streamedNode.downstreamNodes(), contains(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE));
         assertThat(streamedNode.executionNodes(), containsInAnyOrder("n1", "n2"));
         assertThat(streamedNode.routing(), equalTo(routing));
     }

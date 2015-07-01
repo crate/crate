@@ -32,8 +32,10 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
@@ -54,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.Mockito.mock;
 
 
 @ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
@@ -216,7 +219,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
-        ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), collectNode, builder);
+        ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), NodeOperation.withDownstream(collectNode,
+                mock(ExecutionPhase.class)), builder);
         assert future != null;
         JobExecutionContext context = contextService.createContext(builder);
         context.start();

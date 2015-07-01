@@ -23,6 +23,7 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ArrayListMultimap;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.NodeOperation;
 import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.Collection;
@@ -30,36 +31,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ExecutionPhaseGrouper extends ExecutionPhaseVisitor<ExecutionPhaseGrouper.Context,Void> {
+public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGrouper.Context,Void> {
 
-    public static final ExecutionPhaseGrouper INSTANCE = new ExecutionPhaseGrouper();
+    public static final NodeOperationGrouper INSTANCE = new NodeOperationGrouper();
 
     public static class Context {
 
         private final String localNodeId;
-        private final ArrayListMultimap<String, ExecutionPhase> byServer;
+        private final ArrayListMultimap<String, NodeOperation> byServer;
+        public NodeOperation currentOperation;
 
         public Context(String localNodeId) {
             this.localNodeId = localNodeId;
             this.byServer = ArrayListMultimap.create();
         }
 
-        protected void put(String server, ExecutionPhase executionPhase) {
-            byServer.put(server, executionPhase);
+        protected void add(String server) {
+            byServer.put(server, currentOperation);
         }
 
-        public Map<String, Collection<ExecutionPhase>> grouped() {
+        public Map<String, Collection<NodeOperation>> grouped() {
             return byServer.asMap();
         }
     }
 
-    public static Map<String, Collection<ExecutionPhase>> groupByServer(String localNodeId,
-                                                                       List<List<ExecutionPhase>> groupedExecutionNodes) {
+    public static Map<String, Collection<NodeOperation>> groupByServer(String localNodeId,
+                                                                       Iterable<NodeOperation> nodeOperations) {
         Context ctx = new Context(localNodeId);
-        for (List<ExecutionPhase> group: groupedExecutionNodes) {
-            for (ExecutionPhase executionPhase : group) {
-                INSTANCE.process(executionPhase, ctx);
-            }
+        for (NodeOperation nodeOperation : nodeOperations) {
+            ctx.currentOperation = nodeOperation;
+            INSTANCE.process(nodeOperation.executionPhase(), ctx);
         }
         return ctx.grouped();
     }
@@ -97,12 +98,12 @@ public class ExecutionPhaseGrouper extends ExecutionPhaseVisitor<ExecutionPhaseG
         }
         if (node.routing().isNullRouting()) {
             node.handlerSideCollect(context.localNodeId);
-            context.put(context.localNodeId, node);
+            context.add(context.localNodeId);
             return null;
         }
 
         for (String server : executionNodes) {
-            context.put(server, node);
+            context.add(server);
         }
         Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
         if (locations != null && locations.containsKey(TableInfo.NULL_NODE_ID)) {
@@ -114,7 +115,7 @@ public class ExecutionPhaseGrouper extends ExecutionPhaseVisitor<ExecutionPhaseG
     @Override
     protected Void visitExecutionPhase(ExecutionPhase node, Context context) {
         for (String server : node.executionNodes()) {
-            context.put(server, node);
+            context.add(server);
         }
         return null;
     }

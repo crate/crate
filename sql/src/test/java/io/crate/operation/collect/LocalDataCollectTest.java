@@ -45,19 +45,16 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
-import io.crate.planner.projection.Projection;
-import io.crate.testing.CollectingProjector;
-import io.crate.operation.projectors.ResultProvider;
-import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -371,12 +368,6 @@ public class LocalDataCollectTest extends CrateUnitTest {
                                 functions,
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 ),
-                new ResultProviderFactory() {
-                    @Override
-                    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
-                        return new CollectingProjector();
-                    }
-                },
                 mock(InformationSchemaCollectService.class),
                 mock(UnassignedShardsCollectService.class)
         );

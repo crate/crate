@@ -25,8 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
+import io.crate.operation.NodeOperation;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhaseGrouper;
+import io.crate.planner.node.NodeOperationGrouper;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -40,7 +41,6 @@ import java.util.*;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ExecutionPhasesTaskTest {
 
@@ -60,31 +60,25 @@ public class ExecutionPhasesTaskTest {
 
         MergePhase m2 = new MergePhase(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
-        Map<String, Collection<ExecutionPhase>> groupByServer = ExecutionPhaseGrouper.groupByServer(
-                "node1", ImmutableList.<List<ExecutionPhase>>of(ImmutableList.<ExecutionPhase>of(c1, m1, m2)));
+
+
+        NodeOperation n1 = NodeOperation.withDownstream(c1, m1);
+        NodeOperation n2 = NodeOperation.withDownstream(m1, m2);
+        NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class));
+
+        Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(
+                "node1", ImmutableList.of(n1, n2, n3));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
-        assertThat(groupByServer.get("node1"), Matchers.<ExecutionPhase>containsInAnyOrder(c1, m2));
+        assertThat(groupByServer.get("node1"), Matchers.containsInAnyOrder(n1, n3));
 
         assertThat(groupByServer.containsKey("node2"), is(true));
-        assertThat(groupByServer.get("node2"), Matchers.<ExecutionPhase>containsInAnyOrder(c1));
+        assertThat(groupByServer.get("node2"), Matchers.containsInAnyOrder(n1));
 
         assertThat(groupByServer.containsKey("node3"), is(true));
-        assertThat(groupByServer.get("node3"), Matchers.<ExecutionPhase>containsInAnyOrder(m1, m2));
+        assertThat(groupByServer.get("node3"), Matchers.containsInAnyOrder(n2, n3));
 
         assertThat(groupByServer.containsKey("node4"), is(true));
-        assertThat(groupByServer.get("node4"), Matchers.<ExecutionPhase>containsInAnyOrder(m1));
-    }
-
-
-    @Test
-    public void testDetectsHasDirectResponse() throws Exception {
-        ExecutionPhase c1 = mock(ExecutionPhase.class);
-        when(c1.downstreamNodes()).thenReturn(Collections.singletonList("foo"));
-
-        assertThat(ExecutionPhasesTask.hasDirectResponse(ImmutableList.<List<ExecutionPhase>>of(ImmutableList.of(c1))), is(false));
-
-        when(c1.downstreamNodes()).thenReturn(Collections.singletonList(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE));
-        assertThat(ExecutionPhasesTask.hasDirectResponse(ImmutableList.<List<ExecutionPhase>>of(ImmutableList.of(c1))), is(true));
+        assertThat(groupByServer.get("node4"), Matchers.containsInAnyOrder(n2));
     }
 }

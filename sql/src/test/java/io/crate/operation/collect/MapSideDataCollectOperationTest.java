@@ -110,12 +110,6 @@ public class MapSideDataCollectOperationTest {
                                 new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
                         )
                 ),
-                new ResultProviderFactory() {
-                    @Override
-                    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
-                        return new CollectingProjector();
-                    }
-                },
                 mock(InformationSchemaCollectService.class),
                 mock(UnassignedShardsCollectService.class)
         );

@@ -23,7 +23,6 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -63,8 +62,6 @@ public class MergePhase extends AbstractDQLPlanPhase {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
-    private int downstreamExecutionPhaseId = NO_EXECUTION_PHASE;
-    private List<String> downstreamNodes = ImmutableList.of();
 
     public MergePhase() {
         numUpstreams = 0;
@@ -120,20 +117,6 @@ public class MergePhase extends AbstractDQLPlanPhase {
         }
     }
 
-    @Override
-    public List<String> downstreamNodes() {
-        return downstreamNodes;
-    }
-
-    public void downstreamNodes(Set<String> nodes) {
-        downstreamNodes = ImmutableList.copyOf(nodes);
-    }
-
-    @Override
-    public int downstreamExecutionPhaseId() {
-        return downstreamExecutionPhaseId;
-    }
-
     public void executionNodes(Set<String> executionNodes) {
         this.executionNodes = executionNodes;
     }
@@ -178,14 +161,6 @@ public class MergePhase extends AbstractDQLPlanPhase {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionPhaseId = in.readVInt();
-
-        int numDownstreamNodes = in.readVInt();
-        downstreamNodes = new ArrayList<>(numDownstreamNodes);
-        for (int i = 0; i < numDownstreamNodes; i++) {
-            downstreamNodes.add(in.readString());
-        }
-
         numUpstreams = in.readVInt();
 
         int numCols = in.readVInt();
@@ -222,13 +197,6 @@ public class MergePhase extends AbstractDQLPlanPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionPhaseId);
-
-        out.writeVInt(downstreamNodes.size());
-        for (String downstreamNode : downstreamNodes) {
-            out.writeString(downstreamNode);
-        }
-
         out.writeVInt(numUpstreams);
 
         int numCols = inputTypes.size();
@@ -266,7 +234,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId())
                 .add("numUpstreams", numUpstreams)
-                .add("executionPhases", executionNodes)
+                .add("nodeOperations", executionNodes)
                 .add("inputTypes", inputTypes)
                 .add("sortedInputOutput", sortedInputOutput);
         if (sortedInputOutput) {
@@ -275,9 +243,5 @@ public class MergePhase extends AbstractDQLPlanPhase {
                   .add("nullsFirst", Arrays.toString(nullsFirst));
         }
         return helper.toString();
-    }
-
-    public void downstreamExecutionPhaseId(int downstreamExecutionPhaseId) {
-        this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
     }
 }

@@ -21,8 +21,7 @@
 
 package io.crate.action.job;
 
-import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhases;
+import io.crate.operation.NodeOperation;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -35,23 +34,22 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
-    private Collection<? extends ExecutionPhase> executionPhases;
+    private Collection<? extends NodeOperation> nodeOperations;
 
     protected JobRequest() {
     }
 
-    public JobRequest(UUID jobId, Collection<? extends ExecutionPhase> executionPhases) {
-        // TODO: assert that only 1 DIRECT_RETURN_DOWNSTREAM_NODE on all execution nodes is set
+    public JobRequest(UUID jobId, Collection<? extends NodeOperation> nodeOperations) {
         this.jobId = jobId;
-        this.executionPhases = executionPhases;
+        this.nodeOperations = nodeOperations;
     }
 
     public UUID jobId() {
         return jobId;
     }
 
-    public Collection<? extends ExecutionPhase> executionPhases() {
-        return this.executionPhases;
+    public Collection<? extends NodeOperation> nodeOperations() {
+        return nodeOperations;
     }
 
     @Override
@@ -60,13 +58,12 @@ public class JobRequest extends TransportRequest {
 
         jobId = new UUID(in.readLong(), in.readLong());
 
-        int numExecutionNodes = in.readVInt();
-        ArrayList<ExecutionPhase> executionPhases = new ArrayList<>(numExecutionNodes);
-        for (int i = 0; i < numExecutionNodes; i++) {
-            ExecutionPhase node = ExecutionPhases.fromStream(in);
-            executionPhases.add(node);
+        int numNodeOperations = in.readVInt();
+        ArrayList<NodeOperation> nodeOperations = new ArrayList<>(numNodeOperations);
+        for (int i = 0; i < numNodeOperations; i++) {
+            nodeOperations.add(new NodeOperation(in));
         }
-        this.executionPhases = executionPhases;
+        this.nodeOperations = nodeOperations;
     }
 
     @Override
@@ -76,9 +73,9 @@ public class JobRequest extends TransportRequest {
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
 
-        out.writeVInt(executionPhases.size());
-        for (ExecutionPhase executionPhase : executionPhases) {
-            ExecutionPhases.toStream(out, executionPhase);
+        out.writeVInt(nodeOperations.size());
+        for (NodeOperation nodeOperation : nodeOperations) {
+            nodeOperation.writeTo(out);
         }
     }
 }

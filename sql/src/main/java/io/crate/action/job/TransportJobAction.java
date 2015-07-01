@@ -31,6 +31,7 @@ import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.NodeOperation;
 import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
@@ -84,8 +85,8 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
 
         List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
-        for (ExecutionPhase executionPhase : request.executionPhases()) {
-            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(request.jobId(), executionPhase, contextBuilder);
+        for (NodeOperation nodeOperation : request.nodeOperations()) {
+            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder);
             if (responseFuture != null) {
                 directResponseFutures.add(responseFuture);
             }

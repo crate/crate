@@ -34,7 +34,6 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -48,7 +47,6 @@ public class CollectNodeTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         CollectPhase cn = new CollectPhase(jobId, 0, "cn", new Routing(), toCollect, ImmutableList.<Projection>of());
         cn.maxRowGranularity(RowGranularity.DOC);
-        cn.downstreamNodes(Arrays.asList("n1", "n2"));
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
@@ -59,7 +57,6 @@ public class CollectNodeTest extends CrateUnitTest {
         assertThat(cn, equalTo(cn2));
 
         assertThat(cn.toCollect(), is(cn2.toCollect()));
-        assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
         assertThat(cn.executionNodes(), is(cn2.executionNodes()));
         assertThat(cn.jobId(), is(cn2.jobId()));
         assertThat(cn.executionPhaseId(), is(cn2.executionPhaseId()));

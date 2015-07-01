@@ -25,6 +25,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public class ExecutionPhases {
@@ -41,8 +42,7 @@ public class ExecutionPhases {
         node.writeTo(out);
     }
 
-
-    public static boolean hasDirectResponseDownstream(List<String> downstreamNodes) {
+    public static boolean hasDirectResponseDownstream(Collection<String> downstreamNodes) {
         for (String nodeId : downstreamNodes) {
             if (nodeId.equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
                 return true;

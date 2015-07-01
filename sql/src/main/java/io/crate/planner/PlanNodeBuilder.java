@@ -26,7 +26,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
@@ -66,8 +65,6 @@ public class PlanNodeBuilder {
         );
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.downstreamNodes(Lists.newArrayList(routing.nodes()));
-
         node.isPartitioned(tableInfo.isPartitioned());
         return node;
     }
@@ -85,8 +82,7 @@ public class PlanNodeBuilder {
                 projections
         );
 
-        assert collectNode.hasDistributingDownstreams();
-        node.executionNodes(ImmutableSet.copyOf(collectNode.downstreamNodes()));
+        node.executionNodes(ImmutableSet.copyOf(collectNode.executionNodes()));
         return node;
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
@@ -228,8 +229,7 @@ public class QueryThenFetchConsumer implements Consumer {
             // HANDLER/MERGE/FETCH related END
 
             if (limit != null && limit + querySpec.offset() > Constants.PAGE_SIZE) {
-                collectNode.downstreamNodes(Collections.singletonList(context.plannerContext().clusterService().localNode().id()));
-                collectNode.downstreamExecutionPhaseId(localMergeNode.executionPhaseId());
+                localMergeNode.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
             }
             return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());
         }

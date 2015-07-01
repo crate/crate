@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
@@ -32,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -93,16 +91,6 @@ public class CountPhase implements ExecutionPhase {
         } else {
             return Sets.filter(routing.nodes(), TableInfo.IS_NOT_NULL_NODE_ID);
         }
-    }
-
-    @Override
-    public List<String> downstreamNodes() {
-        return ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
-    }
-
-    @Override
-    public int downstreamExecutionPhaseId() {
-        return ExecutionPhase.NO_EXECUTION_PHASE;
     }
 
     @Override

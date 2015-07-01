@@ -39,8 +39,6 @@ import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.ResultProvider;
-import io.crate.operation.projectors.ResultProviderFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
@@ -94,7 +92,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     private final ThreadPoolExecutor executor;
     private final ListeningExecutorService listeningExecutorService;
     private final int poolSize;
-    private final ResultProviderFactory resultProviderFactory;
 
     private final InformationSchemaCollectService informationSchemaCollectService;
     private final UnassignedShardsCollectService unassignedShardsCollectService;
@@ -120,10 +117,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver,
-                                       ResultProviderFactory resultProviderFactory,
                                        InformationSchemaCollectService informationSchemaCollectService,
                                        UnassignedShardsCollectService unassignedShardsCollectService) {
-        this.resultProviderFactory = resultProviderFactory;
         this.informationSchemaCollectService = informationSchemaCollectService;
         this.unassignedShardsCollectService = unassignedShardsCollectService;
         this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
@@ -171,11 +166,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 bulkRetryCoordinatorPool,
                 nodeImplementationSymbolVisitor
         );
-    }
-
-
-    public ResultProvider createDownstream(CollectPhase collectNode) {
-        return resultProviderFactory.createDownstream(collectNode, collectNode.jobId());
     }
 
     /**

@@ -31,7 +31,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
@@ -63,11 +62,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
 
-    @Nullable
-    private List<String> downstreamNodes;
-
-    private int downstreamExecutionPhaseId = ExecutionPhase.NO_EXECUTION_PHASE;
-
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
     private @Nullable String handlerSideCollect = null;
@@ -83,7 +77,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         super(jobId, executionNodeId, name, projections);
         this.routing = routing;
         this.toCollect = toCollect;
-        this.downstreamNodes = ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
             outputTypes = Symbols.extractTypes(toCollect);
@@ -128,39 +121,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
 
     public void orderBy(@Nullable OrderBy orderBy) {
         this.orderBy = orderBy;
-    }
-
-    @Nullable
-    public List<String> downstreamNodes() {
-        return downstreamNodes;
-    }
-
-    /**
-     * This method returns true if downstreams other than
-     * {@link ExecutionPhase#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
-     * of this collect operation should be sent to other nodes instead of being returned directly.
-     */
-    public boolean hasDistributingDownstreams() {
-        if (downstreamNodes != null && downstreamNodes.size() > 0) {
-            if (downstreamNodes.size() == 1
-                    && downstreamNodes.get(0).equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
-                return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    public void downstreamNodes(List<String> downStreamNodes) {
-        this.downstreamNodes = downStreamNodes;
-    }
-
-    public void downstreamExecutionPhaseId(int executionPhaseId) {
-        this.downstreamExecutionPhaseId = executionPhaseId;
-    }
-
-    public int downstreamExecutionPhaseId() {
-        return downstreamExecutionPhaseId;
     }
 
     public WhereClause whereClause() {
@@ -221,7 +181,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionPhaseId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -241,12 +200,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         }
 
         whereClause = new WhereClause(in);
-
-        int numDownStreams = in.readVInt();
-        downstreamNodes = new ArrayList<>(numDownStreams);
-        for (int i = 0; i < numDownStreams; i++) {
-            downstreamNodes.add(in.readString());
-        }
         keepContextForFetcher = in.readBoolean();
 
         if( in.readBoolean()) {
@@ -263,7 +216,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionPhaseId);
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -281,14 +233,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         }
         whereClause.writeTo(out);
 
-        if (downstreamNodes != null) {
-            out.writeVInt(downstreamNodes.size());
-            for (String downstreamNode : downstreamNodes) {
-                out.writeString(downstreamNode);
-            }
-        } else {
-            out.writeVInt(0);
-        }
         out.writeBoolean(keepContextForFetcher);
         if (limit != null ) {
             out.writeBoolean(true);
@@ -322,7 +266,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         }
         if (changed) {
             result = new CollectPhase(jobId(), executionPhaseId(), name(), routing, newToCollect, projections);
-            result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;

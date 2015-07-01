@@ -31,6 +31,7 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
+import io.crate.operation.NodeOperation;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.collect.JobCollectContext;
@@ -39,7 +40,6 @@ import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.CollectPhase;
@@ -94,21 +94,24 @@ public class ContextPreparer {
 
     @Nullable
     public ListenableFuture<Bucket> prepare(UUID jobId,
-                                            ExecutionPhase executionPhase,
+                                            NodeOperation nodeOperation,
                                             JobExecutionContext.Builder contextBuilder) {
-        PreparerContext preparerContext = new PreparerContext(jobId, contextBuilder);
-        innerPreparer.process(executionPhase, preparerContext);
+        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, contextBuilder);
+        innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
         return preparerContext.directResultFuture;
     }
 
     private static class PreparerContext {
 
         private final UUID jobId;
+        private final NodeOperation nodeOperation;
         private final JobExecutionContext.Builder contextBuilder;
         private ListenableFuture<Bucket> directResultFuture;
 
         private PreparerContext(UUID jobId,
+                                NodeOperation nodeOperation,
                                 JobExecutionContext.Builder contextBuilder) {
+            this.nodeOperation = nodeOperation;
             this.contextBuilder = contextBuilder;
             this.jobId = jobId;
         }
@@ -143,7 +146,7 @@ public class ContextPreparer {
         @Override
         public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
-            ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
+            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId());
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             node,
@@ -166,9 +169,9 @@ public class ContextPreparer {
         @Override
         public Void visitCollectNode(final CollectPhase node, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
-            ResultProvider downstream = collectOperation.createDownstream(node);
+            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId());
 
-            if (ExecutionPhases.hasDirectResponseDownstream(node.downstreamNodes())) {
+            if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
             }
             final JobCollectContext jobCollectContext = new JobCollectContext(

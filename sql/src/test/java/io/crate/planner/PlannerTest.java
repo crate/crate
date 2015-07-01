@@ -311,8 +311,6 @@ public class PlannerTest extends CrateUnitTest {
 
         // distributed collect
         CollectPhase collectNode = distributedGroupBy.collectNode();
-        assertThat(collectNode.hasDistributingDownstreams(), is(true));
-        assertThat(collectNode.downstreamNodes().size(), is(2));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.executionNodes().size(), is(2));
         assertThat(collectNode.toCollect().size(), is(1));
@@ -352,7 +350,6 @@ public class PlannerTest extends CrateUnitTest {
 
         assertEquals(DataTypes.LONG, localMerge.outputTypes().get(0));
         assertEquals(DataTypes.STRING, localMerge.outputTypes().get(1));
-
     }
 
     @Test
@@ -488,7 +485,6 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), name from sys.nodes group by name");
         CollectPhase collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDistributingDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.LONG, collectNode.outputTypes().get(1));
 
@@ -789,7 +785,6 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id limit 20");
         CollectPhase collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -802,7 +797,6 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         CollectPhase collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
@@ -824,7 +818,6 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         CollectPhase collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
@@ -846,7 +839,6 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");
         CollectPhase collectNode = planNode.collectNode();
-        assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -1905,13 +1897,15 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode2.executionPhaseId(), is(1));
     }
 
+
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
         QueryThenFetch plan = (QueryThenFetch) plan("select * from users limit 2147483647 ");
-        assertThat(plan.collectNode().downstreamNodes().size(), is(1));
-        assertThat(plan.collectNode().downstreamNodes().get(0), is(LOCAL_NODE_ID));
-        assertThat(plan.collectNode().hasDistributingDownstreams(), is(true));
+        assertThat(plan.mergeNode().executionNodes().size(), is(1));
+
+        plan = (QueryThenFetch) plan("select * from users limit 2");
+        assertThat(plan.mergeNode().executionNodes().size(), is(0));
     }
 
     @Test
