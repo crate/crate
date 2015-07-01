@@ -71,7 +71,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final RowDelegate partitionRowDelegate = new RowDelegate();
     private final Object rowDelegateLock = new Object();
     private final Row outputRow;
-    private final Map<Integer, NodeBucket> nodeBuckets = new HashMap<>();
+    private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
     private final List<String> executionNodes;
@@ -169,13 +169,11 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
         String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
-        int nodeIdIndex = Objects.hash(nodeId);
 
-        NodeBucket nodeBucket = nodeBuckets.get(nodeIdIndex);
+        NodeBucket nodeBucket = nodeBuckets.get(nodeId);
         if (nodeBucket == null) {
             nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
-            nodeBuckets.put(nodeIdIndex, nodeBucket);
-
+            nodeBuckets.put(nodeId, nodeBucket);
         }
         Row partitionRow = partitionedByRow(index);
         nodeBucket.add(inputCursor++, docId, partitionRow, row);
