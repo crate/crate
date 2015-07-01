@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed hash collide in fetch requests to avoid collision of node identifiers
+
 2015/06/30 0.49.4
 =================
 
