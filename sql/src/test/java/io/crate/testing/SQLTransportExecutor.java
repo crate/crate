@@ -21,6 +21,7 @@
 
 package io.crate.testing;
 
+import com.google.common.base.MoreObjects;
 import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
@@ -44,9 +45,12 @@ import static org.junit.Assert.assertThat;
 
 public class SQLTransportExecutor {
 
+    private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
+
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
-    private static final TimeValue REQUEST_TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
+    private static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
     public static SQLTransportExecutor create(final TestCluster testCluster) {
         return new SQLTransportExecutor(new ClientProvider() {
