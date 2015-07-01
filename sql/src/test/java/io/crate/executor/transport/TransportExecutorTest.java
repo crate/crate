@@ -467,7 +467,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(ctx.jobId(), getNode);
+        plan = new IterablePlan(UUID.randomUUID(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
