@@ -32,9 +32,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CountNode;
+import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
@@ -87,10 +87,10 @@ public class CountConsumer implements Consumer {
 
             Routing routing = tableInfo.getRouting(querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
-            CountNode countNode = new CountNode(plannerContext.jobId(), plannerContext.nextExecutionNodeId(), routing, querySpec.where());
-            MergeNode mergeNode = new MergeNode(
+            CountPhase countNode = new CountPhase(plannerContext.jobId(), plannerContext.nextExecutionPhaseId(), routing, querySpec.where());
+            MergePhase mergeNode = new MergePhase(
                     plannerContext.jobId(),
-                    plannerContext.nextExecutionNodeId(),
+                    plannerContext.nextExecutionPhaseId(),
                     "count-merge",
                     countNode.executionNodes().size());
             mergeNode.inputTypes(Collections.<DataType>singletonList(DataTypes.LONG));

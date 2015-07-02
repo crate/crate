@@ -165,7 +165,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     class PlanNodePrinter extends PlanNodeVisitor<PlanPrinter.PrintContext, Void> {
 
         @Override
-        public Void visitMergeNode(MergeNode node, PrintContext context) {
+        public Void visitMergeNode(MergePhase node, PrintContext context) {
             context.print("Merge");
             context.indent();
             context.print("executionNodes: %s", node.executionNodes());
@@ -187,7 +187,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
 
         @Override
-        public Void visitCollectNode(CollectNode node, PrintContext context) {
+        public Void visitCollectNode(CollectPhase node, PrintContext context) {
             context.print("Collect");
             context.indent();
             context.print("routing: %s", node.routing());

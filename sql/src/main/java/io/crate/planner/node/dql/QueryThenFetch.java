@@ -29,21 +29,21 @@ import java.util.UUID;
 
 public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
 
-    private final CollectNode collectNode;
-    private MergeNode mergeNode;
+    private final CollectPhase collectNode;
+    private MergePhase mergeNode;
     private final UUID id;
 
-    public QueryThenFetch(CollectNode collectNode, MergeNode mergeNode, UUID id) {
+    public QueryThenFetch(CollectPhase collectNode, MergePhase mergeNode, UUID id) {
         this.collectNode = collectNode;
         this.mergeNode = mergeNode;
         this.id = id;
     }
 
-    public CollectNode collectNode() {
+    public CollectPhase collectNode() {
         return collectNode;
     }
 
-    public MergeNode mergeNode() {
+    public MergePhase mergeNode() {
         return mergeNode;
     }
 

@@ -35,7 +35,6 @@ import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 
@@ -46,14 +45,14 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
-    private final int executionNodeId;
+    private final int executionPhaseId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
     private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
     private final DocKeys docKeys;
     private final UUID jobId;
 
-    public ESGetNode(int executionNodeId,
+    public ESGetNode(int executionPhaseId,
                      TableInfo tableInfo,
                      QuerySpec querySpec,
                      UUID jobId) {
@@ -63,7 +62,7 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         this.querySpec = querySpec;
         this.outputs = querySpec.outputs();
         this.docKeys = querySpec.where().docKeys().get();
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.jobId = jobId;
 
 
@@ -119,8 +118,8 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         return nullsFirst;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     @Override

@@ -284,7 +284,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
-        CollectNode collectNode = ((DistributedGroupBy) plan("select count('foo'), name from users group by name")).collectNode();
+        CollectPhase collectNode = ((DistributedGroupBy) plan("select count('foo'), name from users group by name")).collectNode();
         // TODO: optimize to not collect literal
         //assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
@@ -297,7 +297,7 @@ public class PlannerTest extends CrateUnitTest {
                 "select count(*), name from users group by name");
 
         // distributed collect
-        CollectNode collectNode = distributedGroupBy.collectNode();
+        CollectPhase collectNode = distributedGroupBy.collectNode();
         assertThat(collectNode.hasDistributingDownstreams(), is(true));
         assertThat(collectNode.downstreamNodes().size(), is(2));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
@@ -309,7 +309,7 @@ public class PlannerTest extends CrateUnitTest {
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
-        MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
+        MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
 
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.executionNodes().size(), is(2));
@@ -326,7 +326,7 @@ public class PlannerTest extends CrateUnitTest {
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
         assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
 
-        MergeNode localMerge = distributedGroupBy.localMergeNode();
+        MergePhase localMerge = distributedGroupBy.localMergeNode();
 
         assertThat(localMerge.numUpstreams(), is(2));
         assertThat(localMerge.executionNodes().size(), is(1));
@@ -417,7 +417,7 @@ public class PlannerTest extends CrateUnitTest {
                 "select count(*), name from users group by name limit 1 offset 1");
 
         // distributed merge
-        MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
+        MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
 
@@ -442,14 +442,14 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testGlobalAggregationPlan() throws Exception {
         GlobalAggregate globalAggregate = (GlobalAggregate) plan("select count(name) from users");
-        CollectNode collectNode = globalAggregate.collectNode();
+        CollectPhase collectNode = globalAggregate.collectNode();
 
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
 
-        MergeNode mergeNode = globalAggregate.mergeNode();
+        MergePhase mergeNode = globalAggregate.mergeNode();
 
         assertEquals(DataTypes.UNDEFINED, mergeNode.inputTypes().get(0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
@@ -459,12 +459,12 @@ public class PlannerTest extends CrateUnitTest {
     public void testGroupByOnNodeLevel() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), name from sys.nodes group by name");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.projections().size(), is(2));
 
@@ -488,12 +488,12 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testShardPlan() throws Exception {
         QueryAndFetch planNode = (QueryAndFetch) plan("select id from sys.shards order by id limit 10");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
 
         assertEquals(DataTypes.INTEGER, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
 
         assertThat(mergeNode.inputTypes().size(), is(1));
         assertEquals(DataTypes.INTEGER, mergeNode.inputTypes().get(0));
@@ -507,7 +507,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testQueryThenFetchPlan() throws Exception {
         Plan plan = plan("select name from users where name = 'x' order by id limit 10");
         assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
 
@@ -515,8 +515,8 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(resultNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) resultNode;
+        assertThat(resultNode, instanceOf(MergePhase.class));
+        MergePhase mergeNode = (MergePhase) resultNode;
         assertTrue(mergeNode.finalProjection().isPresent());
 
         Projection lastProjection = mergeNode.finalProjection().get();
@@ -532,7 +532,7 @@ public class PlannerTest extends CrateUnitTest {
         // at the orderBy symbols
         Plan plan = plan("select name from users where name = 'x' order by name limit 10");
         assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
 
@@ -540,8 +540,8 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(resultNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) resultNode;
+        assertThat(resultNode, instanceOf(MergePhase.class));
+        MergePhase mergeNode = (MergePhase) resultNode;
         assertTrue(mergeNode.finalProjection().isPresent());
 
         Projection lastProjection = mergeNode.finalProjection().get();
@@ -553,10 +553,10 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testQueryThenFetchPlanDefaultLimit() throws Exception {
         QueryThenFetch plan = (QueryThenFetch)plan("select name from users");
-        CollectNode collectNode = plan.collectNode();
+        CollectPhase collectNode = plan.collectNode();
         assertThat(collectNode.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
 
-        MergeNode mergeNode = plan.mergeNode();
+        MergePhase mergeNode = plan.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
         TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
@@ -587,10 +587,10 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testQueryThenFetchPlanHighLimit() throws Exception {
         QueryThenFetch plan = (QueryThenFetch)plan("select name from users limit 100000");
-        CollectNode collectNode = plan.collectNode();
+        CollectPhase collectNode = plan.collectNode();
         assertThat(collectNode.limit(), is(100_000));
 
-        MergeNode mergeNode = plan.mergeNode();
+        MergePhase mergeNode = plan.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
         TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
@@ -622,7 +622,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testQueryThenFetchPlanPartitioned() throws Exception {
         Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
 
         List<String> indices = new ArrayList<>();
         Map<String, Map<String, List<Integer>>> locations = collectNode.routing().locations();
@@ -643,7 +643,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testQueryThenFetchPlanFunction() throws Exception {
         Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
 
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
@@ -653,8 +653,8 @@ public class PlannerTest extends CrateUnitTest {
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(1));
 
-        assertThat(resultNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) resultNode;
+        assertThat(resultNode, instanceOf(MergePhase.class));
+        MergePhase mergeNode = (MergePhase) resultNode;
         assertTrue(mergeNode.finalProjection().isPresent());
 
         Projection lastProjection = mergeNode.finalProjection().get();
@@ -734,7 +734,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testCountDistinctPlan() throws Exception {
         GlobalAggregate globalAggregate = (GlobalAggregate) plan("select count(distinct name) from users");
 
-        CollectNode collectNode = globalAggregate.collectNode();
+        CollectPhase collectNode = globalAggregate.collectNode();
         Projection projection = collectNode.projections().get(0);
         assertThat(projection, instanceOf(AggregationProjection.class));
         AggregationProjection aggregationProjection = (AggregationProjection)projection;
@@ -748,7 +748,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
         assertThat(((Reference) collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
 
-        MergeNode mergeNode = globalAggregate.mergeNode();
+        MergePhase mergeNode = globalAggregate.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         Projection projection1 = mergeNode.projections().get(1);
         assertThat(projection1, instanceOf(TopNProjection.class));
@@ -760,12 +760,12 @@ public class PlannerTest extends CrateUnitTest {
     public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id limit 20");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
     }
 
@@ -773,14 +773,14 @@ public class PlannerTest extends CrateUnitTest {
     public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id from users group by id order by 1 desc nulls last limit 20");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
 
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
         assertThat(projection.orderBy(), is(nullValue()));
@@ -795,14 +795,14 @@ public class PlannerTest extends CrateUnitTest {
     public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)collectNode.projections().get(1)).orderBy().size(), is(1));
 
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         TopNProjection projection = (TopNProjection)mergeNode.projections().get(0);
         assertThat(projection.orderBy(), is(nullValue()));
@@ -817,13 +817,13 @@ public class PlannerTest extends CrateUnitTest {
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertFalse(collectNode.hasDistributingDownstreams());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
     }
@@ -832,7 +832,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
         DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select (count(*) + 1), id from empty_parted group by id");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
 
@@ -840,7 +840,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topNProjection.offset(), is(0));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
     }
@@ -852,7 +852,7 @@ public class PlannerTest extends CrateUnitTest {
 
         // sort is on handler because there is no limit/offset
         // handler
-        MergeNode mergeNode = distributedGroupBy.localMergeNode();
+        MergePhase mergeNode = distributedGroupBy.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
 
         TopNProjection topNProjection = (TopNProjection)mergeNode.projections().get(0);
@@ -873,11 +873,11 @@ public class PlannerTest extends CrateUnitTest {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectNode.toCollect().size(), is(1));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
@@ -887,7 +887,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testCountDistinctWithGroupBy() throws Exception {
         DistributedGroupBy distributedGroupBy = (DistributedGroupBy) plan(
                 "select count(distinct id), name from users group by name order by count(distinct id)");
-        CollectNode collectNode = distributedGroupBy.collectNode();
+        CollectPhase collectNode = distributedGroupBy.collectNode();
 
         // collect
         assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
@@ -910,7 +910,7 @@ public class PlannerTest extends CrateUnitTest {
 
 
         // reducer
-        MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
+        MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         Projection groupProjection1 = mergeNode.projections().get(0);
         assertThat(groupProjection1, instanceOf(GroupProjection.class));
@@ -928,7 +928,7 @@ public class PlannerTest extends CrateUnitTest {
 
 
         // handler
-        MergeNode localMergeNode = distributedGroupBy.localMergeNode();
+        MergePhase localMergeNode = distributedGroupBy.localMergeNode();
         assertThat(localMergeNode.projections().size(), is(1));
         Projection localTopN = localMergeNode.projections().get(0);
         assertThat(localTopN, instanceOf(TopNProjection.class));
@@ -941,7 +941,7 @@ public class PlannerTest extends CrateUnitTest {
 
         CollectAndMerge planNode = (CollectAndMerge) plan.nodes().get(0);
 
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertThat(collectNode.routing(), is(shardRouting));
         assertFalse(collectNode.whereClause().noMatch());
         assertFalse(collectNode.whereClause().hasQuery());
@@ -958,7 +958,7 @@ public class PlannerTest extends CrateUnitTest {
         Symbol symbol = updateProjection.assignments()[0];
         assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
 
-        MergeNode mergeNode = planNode.localMergeNode();
+        MergePhase mergeNode = planNode.localMergeNode();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(AggregationProjection.class));
 
@@ -1033,9 +1033,9 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testCopyFromPlan() throws Exception {
         CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension'");
-        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectPhase.class));
 
-        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
+        FileUriCollectPhase collectNode = (FileUriCollectPhase)plan.collectNode();
         assertThat((BytesRef) ((Literal) collectNode.targetUri()).value(),
                 is(new BytesRef("/path/to/file.extension")));
     }
@@ -1043,16 +1043,16 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
         CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.extension' with (num_readers=1)");
-        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode) plan.collectNode();
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectPhase.class));
+        FileUriCollectPhase collectNode = (FileUriCollectPhase) plan.collectNode();
         assertThat(collectNode.executionNodes().size(), is(1));
     }
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
         CollectAndMerge plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
-        assertThat(plan.collectNode(), instanceOf(FileUriCollectNode.class));
-        FileUriCollectNode collectNode = (FileUriCollectNode)plan.collectNode();
+        assertThat(plan.collectNode(), instanceOf(FileUriCollectPhase.class));
+        FileUriCollectPhase collectNode = (FileUriCollectPhase)plan.collectNode();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
@@ -1060,7 +1060,7 @@ public class PlannerTest extends CrateUnitTest {
 
         // verify defaults:
         plan = (CollectAndMerge) plan("copy users from '/path/to/file.ext'");
-        collectNode = (FileUriCollectNode)plan.collectNode();
+        collectNode = (FileUriCollectPhase)plan.collectNode();
         assertNull(collectNode.compression());
         assertNull(collectNode.sharedStorage());
     }
@@ -1068,7 +1068,7 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
         CollectAndMerge plan = (CollectAndMerge) plan("copy users (name) to '/file.ext'");
-        CollectNode node = plan.collectNode();
+        CollectPhase node = plan.collectNode();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
@@ -1089,7 +1089,7 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testShardSelect() throws Exception {
         QueryAndFetch planNode = (QueryAndFetch) plan("select id from sys.shards");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertTrue(collectNode.isRouted());
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
     }
@@ -1192,7 +1192,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
         NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
-        MergeNode mergeNode = nonDistributedGroupBy.localMergeNode();
+        MergePhase mergeNode = nonDistributedGroupBy.localMergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
@@ -1205,17 +1205,17 @@ public class PlannerTest extends CrateUnitTest {
         IterablePlan plan = (IterablePlan) plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(CollectPhase.class));
 
         planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(planNode, instanceOf(MergePhase.class));
+        MergePhase mergeNode = (MergePhase)planNode;
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
 
         planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        mergeNode = (MergeNode)planNode;
+        assertThat(planNode, instanceOf(MergePhase.class));
+        mergeNode = (MergePhase)planNode;
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)mergeNode.projections().get(0)).limit(), is(10));
@@ -1230,7 +1230,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from users group by name)");
         DistributedGroupBy groupBy = (DistributedGroupBy)planNode.innerPlan();
-        MergeNode mergeNode = groupBy.reducerMergeNode();
+        MergePhase mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
@@ -1245,7 +1245,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(projection.tableIdent().fqn(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
-        MergeNode localMergeNode = planNode.handlerMergeNode().get();
+        MergePhase localMergeNode = planNode.handlerMergeNode().get();
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
@@ -1257,7 +1257,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into parted (id, date) (select id, date from users group by id, date)");
         DistributedGroupBy groupBy = (DistributedGroupBy)planNode.innerPlan();
-        MergeNode mergeNode = groupBy.reducerMergeNode();
+        MergePhase mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
@@ -1275,7 +1275,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableIdent().fqn(), is("parted"));
 
-        MergeNode localMergeNode = planNode.handlerMergeNode().get();
+        MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1288,7 +1288,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (name, id) (select arbitrary(name), count(*) from users)");
         GlobalAggregate globalAggregate = (GlobalAggregate)planNode.innerPlan();
-        MergeNode mergeNode = globalAggregate.mergeNode();
+        MergePhase mergeNode = globalAggregate.mergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
@@ -1317,7 +1317,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (date, id, name) (select date, id, name from users where id=1)");
         QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
-        CollectNode collectNode = queryAndFetch.collectNode();
+        CollectPhase collectNode = queryAndFetch.collectNode();
 
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
@@ -1338,7 +1338,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryWithLimit() throws Exception {
         Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectNode collectNode = ((QueryThenFetch) plan).collectNode();
+        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
 
@@ -1346,8 +1346,8 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(resultNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) resultNode;
+        assertThat(resultNode, instanceOf(MergePhase.class));
+        MergePhase mergeNode = (MergePhase) resultNode;
         assertTrue(mergeNode.finalProjection().isPresent());
 
         assertThat(mergeNode.projections().size(), is(2));
@@ -1369,12 +1369,12 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (date, id, name) (select date, id, name from users)");
         QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
-        CollectNode collectNode = queryAndFetch.collectNode();
+        CollectPhase collectNode = queryAndFetch.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
         assertNull(queryAndFetch.localMergeNode());
 
-        MergeNode localMergeNode = planNode.handlerMergeNode().get();
+        MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1384,11 +1384,11 @@ public class PlannerTest extends CrateUnitTest {
     public void testGroupByHaving() throws Exception {
         DistributedGroupBy distributedGroupBy = (DistributedGroupBy) plan(
                 "select avg(date), name from users group by name having min(date) > '1970-01-01'");
-        CollectNode collectNode = distributedGroupBy.collectNode();
+        CollectPhase collectNode = distributedGroupBy.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
 
-        MergeNode mergeNode = distributedGroupBy.reducerMergeNode();
+        MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
 
         assertThat(mergeNode.projections().size(), is(3));
 
@@ -1414,7 +1414,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, date) (select id, date from parted)");
         QueryAndFetch queryAndFetch = (QueryAndFetch)planNode.innerPlan();
-        CollectNode collectNode = queryAndFetch.collectNode();
+        CollectPhase collectNode = queryAndFetch.collectNode();
         List<Symbol> toCollect = collectNode.toCollect();
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isFunction("toLong"));
@@ -1428,7 +1428,7 @@ public class PlannerTest extends CrateUnitTest {
         InsertFromSubQuery planNode = (InsertFromSubQuery) plan(
                 "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         DistributedGroupBy groupByNode = (DistributedGroupBy)planNode.innerPlan();
-        MergeNode mergeNode = groupByNode.reducerMergeNode();
+        MergePhase mergeNode = groupByNode.reducerMergeNode();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
@@ -1443,7 +1443,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(inputColumn.index(), is(0));
         inputColumn = (InputColumn)filterProjection.outputs().get(1);
         assertThat(inputColumn.index(), is(1));
-        MergeNode localMergeNode = planNode.handlerMergeNode().get();
+        MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1455,7 +1455,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testGroupByHavingNonDistributed() throws Exception {
         NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
                 "select id from users group by id having id > 0");
-        CollectNode collectNode = planNode.collectNode();
+        CollectPhase collectNode = planNode.collectNode();
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.projections().get(1), instanceOf(FilterProjection.class));
@@ -1467,7 +1467,7 @@ public class PlannerTest extends CrateUnitTest {
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
 
-        MergeNode localMergeNode = planNode.localMergeNode();
+        MergePhase localMergeNode = planNode.localMergeNode();
 
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(TopNProjection.class));
@@ -1477,11 +1477,11 @@ public class PlannerTest extends CrateUnitTest {
     public void testGlobalAggregationHaving() throws Exception {
         GlobalAggregate globalAggregate = (GlobalAggregate) plan(
                 "select avg(date) from users having min(date) > '1970-01-01'");
-        CollectNode collectNode = globalAggregate.collectNode();
+        CollectPhase collectNode = globalAggregate.collectNode();
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
 
-        MergeNode localMergeNode = globalAggregate.mergeNode();
+        MergePhase localMergeNode = globalAggregate.mergeNode();
 
         assertThat(localMergeNode.projections().size(), is(3));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -1539,7 +1539,7 @@ public class PlannerTest extends CrateUnitTest {
         DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select count(*), name from users group by name having count(*) > 1 limit 100");;
 
-        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
+        MergePhase mergeNode = planNode.reducerMergeNode(); // reducer
 
         Projection projection = mergeNode.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -1555,7 +1555,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
 
 
-        MergeNode localMerge = planNode.localMergeNode();
+        MergePhase localMerge = planNode.localMergeNode();
         // topN projection
         //      outputs: count(*), name
         topN = (TopNProjection) localMerge.projections().get(0);
@@ -1568,7 +1568,7 @@ public class PlannerTest extends CrateUnitTest {
         DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select count(*), name from users group by name having count(*) > 1");
 
-        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
+        MergePhase mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1595,7 +1595,7 @@ public class PlannerTest extends CrateUnitTest {
         DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select name, count(*) from users group by name having count(*) > 1");
 
-        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
+        MergePhase mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1614,7 +1614,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
 
-        MergeNode localMerge = planNode.localMergeNode();
+        MergePhase localMerge = planNode.localMergeNode();
         // topN projection
         //      outputs: name, count(*)
         TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
@@ -1627,7 +1627,7 @@ public class PlannerTest extends CrateUnitTest {
         DistributedGroupBy planNode = (DistributedGroupBy) plan(
                 "select name, count(*) from users group by name having count(*) > 1 limit 100");
 
-        MergeNode mergeNode = planNode.reducerMergeNode(); // reducer
+        MergePhase mergeNode = planNode.reducerMergeNode(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -1654,7 +1654,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
 
 
-        MergeNode localMerge = planNode.localMergeNode();
+        MergePhase localMerge = planNode.localMergeNode();
 
         // topN projection
         //      outputs: name, count(*)
@@ -1826,9 +1826,9 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
         Planner.Context plannerContext = new Planner.Context(clusterService);
-        CollectNode collectNode = new CollectNode(
+        CollectPhase collectNode = new CollectPhase(
                 UUID.randomUUID(),
-                plannerContext.nextExecutionNodeId(), "collect", shardRouting);
+                plannerContext.nextExecutionPhaseId(), "collect", shardRouting);
         int shardNum = collectNode.routing().numShards();
 
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
@@ -1859,17 +1859,17 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testExecutionNodeIdSequence() throws Exception {
+    public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(clusterService);
-        CollectNode collectNode1 = new CollectNode(
+        CollectPhase collectNode1 = new CollectPhase(
                 UUID.randomUUID(),
-                plannerContext.nextExecutionNodeId(), "collect1", shardRouting);
-        CollectNode collectNode2 = new CollectNode(
+                plannerContext.nextExecutionPhaseId(), "collect1", shardRouting);
+        CollectPhase collectNode2 = new CollectPhase(
                 UUID.randomUUID(),
-                plannerContext.nextExecutionNodeId(), "collect2", shardRouting);
+                plannerContext.nextExecutionPhaseId(), "collect2", shardRouting);
 
-        assertThat(collectNode1.executionNodeId(), is(0));
-        assertThat(collectNode2.executionNodeId(), is(1));
+        assertThat(collectNode1.executionPhaseId(), is(0));
+        assertThat(collectNode2.executionPhaseId(), is(1));
     }
 
     @SuppressWarnings("ConstantConditions")

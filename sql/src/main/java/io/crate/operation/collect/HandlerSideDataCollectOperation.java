@@ -30,7 +30,7 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 
 
@@ -55,7 +55,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation, RowUps
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
     }
 
-    private void handleCluster(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    private void handleCluster(CollectPhase collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
             downstream.registerUpstream(this).finish();
@@ -73,7 +73,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation, RowUps
     }
 
     private void handleWithService(CollectService collectService,
-                                   CollectNode node,
+                                   CollectPhase node,
                                    RowDownstream rowDownstream,
                                    RamAccountingContext ramAccountingContext) {
         CrateCollector collector = collectService.getCollector(node, rowDownstream); // calls projector.registerUpstream()
@@ -81,7 +81,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation, RowUps
     }
 
     @Override
-    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    public void collect(CollectPhase collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results

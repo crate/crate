@@ -33,7 +33,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -70,7 +70,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "clusterCollect", routing);
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "clusterCollect", routing);
 
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
@@ -80,7 +80,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assertTrue(((BytesRef) result.iterator().next().get(0)).utf8ToString().startsWith("shared-"));
     }
 
-    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private Bucket collect(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector collectingProjector = new CollectingProjector();
         collectingProjector.startProjection();
         operation.collect(collectNode, collectingProjector, null);
@@ -92,7 +92,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.tables", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "tablesCollect", routing);
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "tablesCollect", routing);
 
         InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
@@ -121,7 +121,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.columns", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "columnsCollect", routing);
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "columnsCollect", routing);
 
         InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");

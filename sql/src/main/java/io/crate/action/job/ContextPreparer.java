@@ -24,7 +24,6 @@ package io.crate.action.job;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
@@ -42,13 +41,13 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ResultProviderFactory;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -103,11 +102,11 @@ public class ContextPreparer {
 
     @Nullable
     public ListenableFuture<Bucket> prepare(UUID jobId,
-                                            ExecutionNode executionNode,
+                                            ExecutionPhase executionPhase,
                                             JobExecutionContext.Builder contextBuilder) {
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode);
+        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionPhase);
         PreparerContext preparerContext = new PreparerContext(jobId, ramAccountingContext, contextBuilder);
-        innerPreparer.process(executionNode, preparerContext);
+        innerPreparer.process(executionPhase, preparerContext);
         return preparerContext.directResultFuture;
     }
 
@@ -130,7 +129,7 @@ public class ContextPreparer {
     private class InnerPreparer extends ExecutionNodeVisitor<PreparerContext, Void> {
 
         @Override
-        public Void visitCountNode(CountNode countNode, PreparerContext context) {
+        public Void visitCountNode(CountPhase countNode, PreparerContext context) {
             Map<String, Map<String, List<Integer>>> locations = countNode.routing().locations();
             if (locations == null) {
                 throw new IllegalArgumentException("locations are empty. Can't start count operation");
@@ -149,12 +148,12 @@ public class ContextPreparer {
                     countNode.whereClause()
             );
             context.directResultFuture = singleBucketBuilder.result();
-            context.contextBuilder.addSubContext(countNode.executionNodeId(), countContext);
+            context.contextBuilder.addSubContext(countNode.executionPhaseId(), countContext);
             return null;
         }
 
         @Override
-        public Void visitMergeNode(final MergeNode node, final PreparerContext context) {
+        public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
 
             ResultProvider downstream = resultProviderFactory.createDownstream(node, node.jobId());
             PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
@@ -168,23 +167,23 @@ public class ContextPreparer {
                     pageDownstream, streamerContext.inputStreamers(),
                     context.ramAccountingContext, node.numUpstreams());
 
-            statsTables.operationStarted(node.executionNodeId(), context.jobId, node.name());
+            statsTables.operationStarted(node.executionPhaseId(), context.jobId, node.name());
             Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(
-                    node.executionNodeId(), statsTables, context.ramAccountingContext));
+                    node.executionPhaseId(), statsTables, context.ramAccountingContext));
 
-            context.contextBuilder.addSubContext(node.executionNodeId(), pageDownstreamContext);
+            context.contextBuilder.addSubContext(node.executionPhaseId(), pageDownstreamContext);
             return null;
         }
 
         @Override
-        public Void visitCollectNode(final CollectNode node, final PreparerContext context) {
+        public Void visitCollectNode(final CollectPhase node, final PreparerContext context) {
             ResultProvider downstream = collectOperationHandler.createDownstream(node);
 
             if (ExecutionNodes.hasDirectResponseDownstream(node.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
             }
             Futures.addCallback(downstream.result(), new OperationFinishedStatsTablesCallback<Bucket>(
-                    node.executionNodeId(), statsTables, context.ramAccountingContext));
+                    node.executionPhaseId(), statsTables, context.ramAccountingContext));
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
                     node,
@@ -192,7 +191,7 @@ public class ContextPreparer {
                     context.ramAccountingContext,
                     downstream
             );
-            context.contextBuilder.addSubContext(node.executionNodeId(), jobCollectContext);
+            context.contextBuilder.addSubContext(node.executionPhaseId(), jobCollectContext);
             return null;
         }
     }

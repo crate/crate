@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.CollectingProjector;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
@@ -55,7 +55,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         super.setUp();
         jobCollectContext = new JobCollectContext(
                 UUID.randomUUID(),
-                mock(CollectNode.class),
+                mock(CollectPhase.class),
                 mock(CollectOperation.class), ramAccountingContext, new CollectingProjector());
     }
 

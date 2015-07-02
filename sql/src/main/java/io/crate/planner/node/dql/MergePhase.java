@@ -39,12 +39,12 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergeNode extends AbstractDQLPlanNode {
+public class MergePhase extends AbstractDQLPlanPhase {
 
-    public static final ExecutionNodeFactory<MergeNode> FACTORY = new ExecutionNodeFactory<MergeNode>() {
+    public static final ExecutionNodeFactory<MergePhase> FACTORY = new ExecutionNodeFactory<MergePhase>() {
         @Override
-        public MergeNode create() {
-            return new MergeNode();
+        public MergePhase create() {
+            return new MergePhase();
         }
     };
 
@@ -59,19 +59,19 @@ public class MergeNode extends AbstractDQLPlanNode {
     private int[] orderByIndices;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
-    private int downstreamExecutionNodeId = NO_EXECUTION_NODE;
+    private int downstreamExecutionPhaseId = NO_EXECUTION_NODE;
     private List<String> downstreamNodes = ImmutableList.of();
 
-    public MergeNode() {
+    public MergePhase() {
         numUpstreams = 0;
     }
 
-    public MergeNode(UUID jobId, int executionNodeId, String name, int numUpstreams) {
+    public MergePhase(UUID jobId, int executionNodeId, String name, int numUpstreams) {
         super(jobId, executionNodeId, name);
         this.numUpstreams = numUpstreams;
     }
 
-    public static MergeNode sortedMergeNode(UUID jobId,
+    public static MergePhase sortedMergeNode(UUID jobId,
                                             int executionNodeId,
                                             String name,
                                             int numUpstreams,
@@ -81,7 +81,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         Preconditions.checkArgument(
                 orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
                 "ordering parameters must be of the same length");
-        MergeNode mergeNode = new MergeNode(jobId, executionNodeId, name, numUpstreams);
+        MergePhase mergeNode = new MergePhase(jobId, executionNodeId, name, numUpstreams);
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
         mergeNode.reverseFlags = reverseFlags;
@@ -113,8 +113,8 @@ public class MergeNode extends AbstractDQLPlanNode {
     }
 
     @Override
-    public int downstreamExecutionNodeId() {
-        return downstreamExecutionNodeId;
+    public int downstreamExecutionPhaseId() {
+        return downstreamExecutionPhaseId;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -165,7 +165,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionNodeId = in.readVInt();
+        downstreamExecutionPhaseId = in.readVInt();
 
         int numDownstreamNodes = in.readVInt();
         downstreamNodes = new ArrayList<>(numDownstreamNodes);
@@ -209,7 +209,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionNodeId);
+        out.writeVInt(downstreamExecutionPhaseId);
 
         out.writeVInt(downstreamNodes.size());
         for (String downstreamNode : downstreamNodes) {
@@ -249,7 +249,7 @@ public class MergeNode extends AbstractDQLPlanNode {
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-                .add("executionNodeId", executionNodeId())
+                .add("executionNodeId", executionPhaseId())
                 .add("name", name())
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
@@ -266,7 +266,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         return helper.toString();
     }
 
-    public void downstreamExecutionNodeId(int downstreamExecutionNodeId) {
-        this.downstreamExecutionNodeId = downstreamExecutionNodeId;
+    public void downstreamExecutionPhaseId(int downstreamExecutionPhaseId) {
+        this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
     }
 }

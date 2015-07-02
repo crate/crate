@@ -39,7 +39,7 @@ import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -121,11 +121,11 @@ public class ShardCollectService {
      * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect(RamAccountingContext)})} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectNode collectNode,
+    public CrateCollector getCollector(CollectPhase collectNode,
                                        ShardProjectorChain projectorChain,
                                        JobCollectContext jobCollectContext,
                                        int jobSearchContextId) throws Exception {
-        CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
+        CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
         RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
@@ -146,7 +146,7 @@ public class ShardCollectService {
         }
     }
 
-    private CrateCollector getBlobIndexCollector(CollectNode collectNode, RowDownstream downstream) {
+    private CrateCollector getBlobIndexCollector(CollectPhase collectNode, RowDownstream downstream) {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
@@ -163,7 +163,7 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(final CollectNode collectNode,
+    private CrateCollector getLuceneIndexCollector(final CollectPhase collectNode,
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId) throws Exception {

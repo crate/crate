@@ -36,7 +36,7 @@ import java.util.UUID;
 public class NodeFetchRequest extends TransportRequest {
 
     private UUID jobId;
-    private int executionNodeId;
+    private int executionPhaseId;
     private LongArrayList jobSearchContextDocIds;
     private List<Reference> toFetchReferences;
     private boolean closeContext = true;
@@ -52,12 +52,12 @@ public class NodeFetchRequest extends TransportRequest {
         return jobId;
     }
 
-    public void executionNodeId(int executionNodeId) {
-        this.executionNodeId = executionNodeId;
+    public void executionPhaseId(int executionNodeId) {
+        this.executionPhaseId = executionNodeId;
     }
 
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public void jobSearchContextDocIds(LongArrayList jobSearchContextDocIds) {
@@ -88,7 +88,7 @@ public class NodeFetchRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
-        executionNodeId = in.readVInt();
+        executionPhaseId = in.readVInt();
         int listSize = in.readVInt();
         jobSearchContextDocIds = new LongArrayList(listSize);
         for (int i = 0; i < listSize; i++) {
@@ -107,7 +107,7 @@ public class NodeFetchRequest extends TransportRequest {
         super.writeTo(out);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
-        out.writeVInt(executionNodeId);
+        out.writeVInt(executionPhaseId);
         out.writeVInt(jobSearchContextDocIds.size());
         for (LongCursor jobSearchContextDocId : jobSearchContextDocIds) {
             out.writeVLong(jobSearchContextDocId.value);

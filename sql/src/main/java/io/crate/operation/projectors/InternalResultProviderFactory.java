@@ -29,7 +29,7 @@ import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
@@ -56,7 +56,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
         this.streamerVisitor = streamerVisitor;
     }
 
-    public ResultProvider createDownstream(ExecutionNode node, UUID jobId) {
+    public ResultProvider createDownstream(ExecutionPhase node, UUID jobId) {
         Streamer<?>[] streamers = getStreamers(node);
         assert !Iterables.all(FluentIterable.of(streamers), Predicates.isNull()) : "streamers must not be null";
 
@@ -72,7 +72,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
             return new DistributingDownstream(
                     jobId,
-                    node.downstreamExecutionNodeId(),
+                    node.downstreamExecutionPhaseId(),
                     bucketIdx,
                     node.downstreamNodes(),
                     transportDistributedResultAction,
@@ -81,7 +81,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
         }
     }
 
-    protected Streamer<?>[] getStreamers(ExecutionNode node) {
+    protected Streamer<?>[] getStreamers(ExecutionPhase node) {
         return streamerVisitor.processExecutionNode(node).outputStreamers();
     }
 }

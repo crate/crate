@@ -36,31 +36,31 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-public class FileUriCollectNode extends CollectNode {
+public class FileUriCollectPhase extends CollectPhase {
 
-    public static final ExecutionNodeFactory<FileUriCollectNode> FACTORY = new ExecutionNodeFactory<FileUriCollectNode>() {
+    public static final ExecutionNodeFactory<FileUriCollectPhase> FACTORY = new ExecutionNodeFactory<FileUriCollectPhase>() {
         @Override
-        public FileUriCollectNode create() {
-            return new FileUriCollectNode();
+        public FileUriCollectPhase create() {
+            return new FileUriCollectPhase();
         }
     };
     private Symbol targetUri;
     private String compression;
     private Boolean sharedStorage;
 
-    private FileUriCollectNode() {
+    private FileUriCollectPhase() {
         super();
     }
 
-    public FileUriCollectNode(UUID jobId,
-                              int executionNodeId,
-                              String name,
-                              Routing routing,
-                              Symbol targetUri,
-                              List<Symbol> toCollect,
-                              List<Projection> projections,
-                              String compression,
-                              Boolean sharedStorage) {
+    public FileUriCollectPhase(UUID jobId,
+                               int executionNodeId,
+                               String name,
+                               Routing routing,
+                               Symbol targetUri,
+                               List<Symbol> toCollect,
+                               List<Projection> projections,
+                               String compression,
+                               Boolean sharedStorage) {
         super(jobId, executionNodeId, name, routing, toCollect, projections);
         this.targetUri = targetUri;
         this.compression = compression;
@@ -81,7 +81,7 @@ public class FileUriCollectNode extends CollectNode {
     }
 
     @Override
-    public FileUriCollectNode normalize(EvaluatingNormalizer normalizer) {
+    public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer) {
         List<Symbol> normalizedToCollect = normalizer.normalize(toCollect());
         Symbol normalizedTargetUri = normalizer.normalize(targetUri);
         WhereClause normalizedWhereClause = whereClause().normalize(normalizer);
@@ -92,9 +92,9 @@ public class FileUriCollectNode extends CollectNode {
         if (!changed) {
             return this;
         }
-        FileUriCollectNode result = new FileUriCollectNode(
+        FileUriCollectPhase result = new FileUriCollectPhase(
                 jobId(),
-                executionNodeId(),
+                executionPhaseId(),
                 name(),
                 routing(),
                 normalizedTargetUri,

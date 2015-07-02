@@ -59,7 +59,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class NodeFetchOperation implements RowUpstream {
 
     private final UUID jobId;
-    private final int executionNodeId;
+    private final int executionPhaseId;
     private final List<Reference> toFetchReferences;
     private final boolean closeContext;
     private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
@@ -75,7 +75,7 @@ public class NodeFetchOperation implements RowUpstream {
     private static final ESLogger LOGGER = Loggers.getLogger(NodeFetchOperation.class);
 
     public NodeFetchOperation(UUID jobId,
-                              int executionNodeId,
+                              int executionPhaseId,
                               LongArrayList jobSearchContextDocIds,
                               List<Reference> toFetchReferences,
                               boolean closeContext,
@@ -84,7 +84,7 @@ public class NodeFetchOperation implements RowUpstream {
                               Functions functions,
                               RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.toFetchReferences = toFetchReferences;
         this.closeContext = closeContext;
         this.jobContextService = jobContextService;
@@ -121,7 +121,7 @@ public class NodeFetchOperation implements RowUpstream {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionNodeId);
+        final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionPhaseId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(resultProvider, toFetchReferences.size());
         if (closeContext) {

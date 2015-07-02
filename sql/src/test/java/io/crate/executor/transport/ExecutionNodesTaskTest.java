@@ -24,9 +24,9 @@ package io.crate.executor.transport;
 import com.google.common.collect.Sets;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
-import io.crate.planner.node.ExecutionNode;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -47,38 +47,38 @@ public class ExecutionNodesTaskTest {
                 .map());
 
         UUID jobId = UUID.randomUUID();
-        CollectNode c1 = new CollectNode(jobId, 1, "c1", twoNodeRouting);
+        CollectPhase c1 = new CollectPhase(jobId, 1, "c1", twoNodeRouting);
 
-        MergeNode m1 = new MergeNode(jobId, 2, "merge1", 2);
+        MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2);
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergeNode m2 = new MergeNode(jobId, 3, "merge2", 2);
+        MergePhase m2 = new MergePhase(jobId, 3, "merge2", 2);
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
-        Map<String, Collection<ExecutionNode>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(new ExecutionNode[]{c1, m1, m2});
+        Map<String, Collection<ExecutionPhase>> groupByServer = ExecutionNodesTask.groupExecutionNodesByServer(new ExecutionPhase[]{c1, m1, m2});
 
         assertThat(groupByServer.containsKey("node1"), is(true));
-        assertThat(groupByServer.get("node1"), Matchers.<ExecutionNode>containsInAnyOrder(c1, m2));
+        assertThat(groupByServer.get("node1"), Matchers.<ExecutionPhase>containsInAnyOrder(c1, m2));
 
         assertThat(groupByServer.containsKey("node2"), is(true));
-        assertThat(groupByServer.get("node2"), Matchers.<ExecutionNode>containsInAnyOrder(c1));
+        assertThat(groupByServer.get("node2"), Matchers.<ExecutionPhase>containsInAnyOrder(c1));
 
         assertThat(groupByServer.containsKey("node3"), is(true));
-        assertThat(groupByServer.get("node3"), Matchers.<ExecutionNode>containsInAnyOrder(m1, m2));
+        assertThat(groupByServer.get("node3"), Matchers.<ExecutionPhase>containsInAnyOrder(m1, m2));
 
         assertThat(groupByServer.containsKey("node4"), is(true));
-        assertThat(groupByServer.get("node4"), Matchers.<ExecutionNode>containsInAnyOrder(m1));
+        assertThat(groupByServer.get("node4"), Matchers.<ExecutionPhase>containsInAnyOrder(m1));
     }
 
     @Test
     public void testDetectsHasDirectResponse() throws Exception {
-        CollectNode c1 = new CollectNode(UUID.randomUUID(), 1, "c1");
+        CollectPhase c1 = new CollectPhase(UUID.randomUUID(), 1, "c1");
         c1.downstreamNodes(Collections.singletonList("foo"));
 
-        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c1}), is(false));
+        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionPhase[]{c1}), is(false));
 
-        CollectNode c2 = new CollectNode(UUID.randomUUID(), 1, "c1");
-        c2.downstreamNodes(Collections.singletonList(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE));
-        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionNode[]{c2}), is(true));
+        CollectPhase c2 = new CollectPhase(UUID.randomUUID(), 1, "c1");
+        c2.downstreamNodes(Collections.singletonList(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE));
+        assertThat(ExecutionNodesTask.hasDirectResponse(new ExecutionPhase[]{c2}), is(true));
     }
 }

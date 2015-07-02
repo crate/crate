@@ -30,7 +30,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.dml.InsertFromSubQuery;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
@@ -91,7 +91,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 PlannedAnalyzedRelation analyzedRelation = (PlannedAnalyzedRelation)innerRelation;
                 analyzedRelation.addProjection(indexWriterProjection);
 
-                MergeNode mergeNode = null;
+                MergePhase mergeNode = null;
                 if (analyzedRelation.resultIsDistributed()) {
                     // add local merge Node which aggregates the distributed results
                     AggregationProjection aggregationProjection = QueryAndFetchConsumer.localMergeProjection(this.analysisMetaData.functions());

@@ -59,7 +59,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
@@ -74,7 +73,7 @@ public class ESGetTask extends JobTask {
     private final ActionRequest request;
     private final ActionListener listener;
     private final JobContextService jobContextService;
-    private final int executionNodeId;
+    private final int executionPhaseId;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
@@ -92,7 +91,7 @@ public class ESGetTask extends JobTask {
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
         this.jobContextService = jobContextService;
-        executionNodeId = node.executionNodeId();
+        executionPhaseId = node.executionPhaseId();
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
@@ -294,7 +293,7 @@ public class ESGetTask extends JobTask {
     public void start() {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         ESGetContext context = new ESGetContext(request, listener, transportAction);
-        contextBuilder.addSubContext(executionNodeId, context);
+        contextBuilder.addSubContext(executionPhaseId, context);
         context.start();
     }
 

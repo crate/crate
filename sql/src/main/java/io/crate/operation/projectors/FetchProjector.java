@@ -58,7 +58,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final TransportCloseContextNodeAction transportCloseContextNodeAction;
 
     private final UUID jobId;
-    private final int executionNodeId;
+    private final int executionPhaseId;
     private final CollectExpression<?> collectDocIdExpression;
     private final List<ReferenceInfo> partitionedBy;
     private final List<Reference> toFetchReferences;
@@ -89,7 +89,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           TransportCloseContextNodeAction transportCloseContextNodeAction,
                           Functions functions,
                           UUID jobId,
-                          int executionNodeId,
+                          int executionPhaseId,
                           CollectExpression<?> collectDocIdExpression,
                           List<Symbol> inputSymbols,
                           List<Symbol> outputSymbols,
@@ -101,7 +101,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.collectDocIdExpression = collectDocIdExpression;
         this.partitionedBy = partitionedBy;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
@@ -248,7 +248,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         NodeFetchRequest request = new NodeFetchRequest();
         request.jobId(jobId);
-        request.executionNodeId(executionNodeId);
+        request.executionPhaseId(executionPhaseId);
         request.toFetchReferences(toFetchReferences);
         request.jobSearchContextDocIds(nodeBucket.docIds());
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
@@ -307,7 +307,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
             for (final String nodeId : executionNodes) {
                 transportCloseContextNodeAction.execute(nodeId,
-                        new NodeCloseContextRequest(jobId, executionNodeId),
+                        new NodeCloseContextRequest(jobId, executionPhaseId),
                         new ActionListener<NodeCloseContextResponse>() {
                     @Override
                     public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {

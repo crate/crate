@@ -29,14 +29,14 @@ import java.util.List;
 
 public class ExecutionNodes {
 
-    public static ExecutionNode fromStream(StreamInput in) throws IOException {
-        ExecutionNode.Type type = ExecutionNode.Type.values()[in.readVInt()];
-        ExecutionNode node = type.factory().create();
+    public static ExecutionPhase fromStream(StreamInput in) throws IOException {
+        ExecutionPhase.Type type = ExecutionPhase.Type.values()[in.readVInt()];
+        ExecutionPhase node = type.factory().create();
         node.readFrom(in);
         return node;
     }
 
-    public static void toStream(StreamOutput out, ExecutionNode node) throws IOException {
+    public static void toStream(StreamOutput out, ExecutionPhase node) throws IOException {
         out.writeVInt(node.type().ordinal());
         node.writeTo(out);
     }
@@ -44,7 +44,7 @@ public class ExecutionNodes {
 
     public static boolean hasDirectResponseDownstream(List<String> downstreamNodes) {
         for (String nodeId : downstreamNodes) {
-            if (nodeId.equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+            if (nodeId.equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
                 return true;
             }
         }

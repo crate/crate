@@ -28,7 +28,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
@@ -46,12 +46,12 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends AbstractDQLPlanNode {
+public class CollectPhase extends AbstractDQLPlanPhase {
 
-    public static final ExecutionNodeFactory<CollectNode> FACTORY = new ExecutionNodeFactory<CollectNode>() {
+    public static final ExecutionNodeFactory<CollectPhase> FACTORY = new ExecutionNodeFactory<CollectPhase>() {
         @Override
-        public CollectNode create() {
-            return new CollectNode();
+        public CollectPhase create() {
+            return new CollectPhase();
         }
     };
     private Routing routing;
@@ -62,7 +62,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     @Nullable
     private List<String> downstreamNodes;
 
-    private int downstreamExecutionNodeId = ExecutionNode.NO_EXECUTION_NODE;
+    private int downstreamExecutionPhaseId = ExecutionPhase.NO_EXECUTION_NODE;
 
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
@@ -70,24 +70,24 @@ public class CollectNode extends AbstractDQLPlanNode {
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
 
-    protected CollectNode() {
+    protected CollectPhase() {
         super();
     }
 
-    public CollectNode(UUID jobId, int executionNodeId, String name) {
+    public CollectPhase(UUID jobId, int executionNodeId, String name) {
         super(jobId, executionNodeId, name);
     }
 
-    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing) {
+    public CollectPhase(UUID jobId, int executionNodeId, String name, Routing routing) {
         this(jobId, executionNodeId, name, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
     }
 
-    public CollectNode(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+    public CollectPhase(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
         super(jobId, executionNodeId, name);
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
-        this.downstreamNodes = ImmutableList.of(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE);
+        this.downstreamNodes = ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
     }
 
     @Override
@@ -127,13 +127,13 @@ public class CollectNode extends AbstractDQLPlanNode {
 
     /**
      * This method returns true if downstreams other than
-     * {@link ExecutionNode#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
+     * {@link ExecutionPhase#DIRECT_RETURN_DOWNSTREAM_NODE} are defined, which means that results
      * of this collect operation should be sent to other nodes instead of being returned directly.
      */
     public boolean hasDistributingDownstreams() {
         if (downstreamNodes != null && downstreamNodes.size() > 0) {
             if (downstreamNodes.size() == 1
-                    && downstreamNodes.get(0).equals(ExecutionNode.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+                    && downstreamNodes.get(0).equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
                 return false;
             }
             return true;
@@ -145,12 +145,12 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.downstreamNodes = downStreamNodes;
     }
 
-    public void downstreamExecutionNodeId(int executionNodeId) {
-        this.downstreamExecutionNodeId = executionNodeId;
+    public void downstreamExecutionPhaseId(int executionNodeId) {
+        this.downstreamExecutionPhaseId = executionNodeId;
     }
 
-    public int downstreamExecutionNodeId() {
-        return downstreamExecutionNodeId;
+    public int downstreamExecutionPhaseId() {
+        return downstreamExecutionPhaseId;
     }
 
     public WhereClause whereClause() {
@@ -217,7 +217,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        downstreamExecutionNodeId = in.readVInt();
+        downstreamExecutionPhaseId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -261,7 +261,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(downstreamExecutionNodeId);
+        out.writeVInt(downstreamExecutionPhaseId);
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -312,9 +312,9 @@ public class CollectNode extends AbstractDQLPlanNode {
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public CollectNode normalize(EvaluatingNormalizer normalizer) {
+    public CollectPhase normalize(EvaluatingNormalizer normalizer) {
         assert whereClause() != null;
-        CollectNode result = this;
+        CollectPhase result = this;
         List<Symbol> newToCollect = normalizer.normalize(toCollect());
         boolean changed = newToCollect != toCollect();
         WhereClause newWhereClause = whereClause().normalize(normalizer);
@@ -322,7 +322,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectNode(jobId, executionNodeId(), name(), routing, newToCollect, projections);
+            result = new CollectPhase(jobId, executionPhaseId(), name(), routing, newToCollect, projections);
             result.downstreamNodes = downstreamNodes;
             result.maxRowGranularity = maxRowGranularity;
             result.keepContextForFetcher = keepContextForFetcher;

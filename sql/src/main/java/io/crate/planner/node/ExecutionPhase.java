@@ -21,31 +21,31 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public interface ExecutionNode extends Streamable {
+public interface ExecutionPhase extends Streamable {
 
     String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
 
     int NO_EXECUTION_NODE = Integer.MAX_VALUE;
 
-    interface ExecutionNodeFactory<T extends ExecutionNode> {
+    interface ExecutionNodeFactory<T extends ExecutionPhase> {
         T create();
     }
 
     enum Type {
-        COLLECT(CollectNode.FACTORY),
-        COUNT(CountNode.FACTORY),
-        FILE_URI_COLLECT(FileUriCollectNode.FACTORY),
-        MERGE(MergeNode.FACTORY);
+        COLLECT(CollectPhase.FACTORY),
+        COUNT(CountPhase.FACTORY),
+        FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
+        MERGE(MergePhase.FACTORY);
 
         private final ExecutionNodeFactory factory;
 
@@ -62,13 +62,13 @@ public interface ExecutionNode extends Streamable {
 
     String name();
 
-    int executionNodeId();
+    int executionPhaseId();
 
     Set<String> executionNodes();
 
     List<String> downstreamNodes();
 
-    int downstreamExecutionNodeId();
+    int downstreamExecutionPhaseId();
 
     UUID jobId();
 

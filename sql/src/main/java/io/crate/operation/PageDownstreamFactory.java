@@ -32,7 +32,7 @@ import io.crate.operation.merge.SortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -70,7 +70,7 @@ public class PageDownstreamFactory {
         );
     }
 
-    public PageDownstream createMergeNodePageDownstream(MergeNode mergeNode,
+    public PageDownstream createMergeNodePageDownstream(MergePhase mergeNode,
                                                         RowDownstream rowDownstream,
                                                         RamAccountingContext ramAccountingContext,
                                                         Optional<Executor> executorOptional) {

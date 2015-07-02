@@ -43,12 +43,12 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodeVisitor;
 import io.crate.planner.node.ExecutionNodes;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -66,7 +66,7 @@ public class ExecutionNodesTask extends JobTask {
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionNodesTask.class);
 
     private final TransportJobAction transportJobAction;
-    private final ExecutionNode[] executionNodes;
+    private final ExecutionPhase[] executionPhases;
     private final List<ListenableFuture<TaskResult>> results;
     private final boolean hasDirectResponse;
     private final SettableFuture<TaskResult> result;
@@ -82,12 +82,12 @@ public class ExecutionNodesTask extends JobTask {
     private TransportCloseContextNodeAction transportCloseContextNodeAction;
     private final StreamerVisitor streamerVisitor;
     private final CircuitBreaker circuitBreaker;
-    private MergeNode mergeNode;
+    private MergePhase mergeNode;
 
     /**
      * @param mergeNode the mergeNode for the final merge operation on the handler.
      *                  This may be null in the constructor but then it must be set using the
-     *                  {@link #mergeNode(MergeNode)} setter before {@link #start()} is called.
+     *                  {@link #mergeNode(MergePhase)} setter before {@link #start()} is called.
      */
     protected ExecutionNodesTask(UUID jobId,
                                  ClusterService clusterService,
@@ -103,8 +103,8 @@ public class ExecutionNodesTask extends JobTask {
                                  TransportCloseContextNodeAction transportCloseContextNodeAction,
                                  StreamerVisitor streamerVisitor,
                                  CircuitBreaker circuitBreaker,
-                                 @Nullable MergeNode mergeNode,
-                                 ExecutionNode... executionNodes) {
+                                 @Nullable MergePhase mergeNode,
+                                 ExecutionPhase... executionPhases) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -120,14 +120,14 @@ public class ExecutionNodesTask extends JobTask {
         this.circuitBreaker = circuitBreaker;
         this.mergeNode = mergeNode;
         this.transportJobAction = transportJobAction;
-        this.executionNodes = executionNodes;
-        hasDirectResponse = hasDirectResponse(executionNodes);
+        this.executionPhases = executionPhases;
+        hasDirectResponse = hasDirectResponse(executionPhases);
 
         result = SettableFuture.create();
         results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
     }
 
-    public void mergeNode(MergeNode mergeNode) {
+    public void mergeNode(MergePhase mergeNode) {
         assert this.mergeNode == null : "can only overwrite mergeNode if it was null";
         this.mergeNode = mergeNode;
     }
@@ -139,7 +139,7 @@ public class ExecutionNodesTask extends JobTask {
 
         Streamer<?>[] streamers = streamerVisitor.processExecutionNode(mergeNode).inputStreamers();
         final PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(ramAccountingContext, streamers);
-        Map<String, Collection<ExecutionNode>> nodesByServer = groupExecutionNodesByServer(executionNodes);
+        Map<String, Collection<ExecutionPhase>> nodesByServer = groupExecutionNodesByServer(executionPhases);
         if (nodesByServer.size() == 0) {
             pageDownstreamContext.finish();
             return;
@@ -147,7 +147,7 @@ public class ExecutionNodesTask extends JobTask {
         if (!hasDirectResponse) {
             createLocalContextAndStartOperation(pageDownstreamContext, nodesByServer);
         }
-        addCloseContextCallback(transportCloseContextNodeAction, executionNodes, nodesByServer.keySet());
+        addCloseContextCallback(transportCloseContextNodeAction, executionPhases, nodesByServer.keySet());
         sendJobRequests(streamers, pageDownstreamContext, nodesByServer);
     }
 
@@ -163,22 +163,22 @@ public class ExecutionNodesTask extends JobTask {
                 finalMergePageDownstream,
                 streamers,
                 ramAccountingContext,
-                executionNodes[executionNodes.length - 1].executionNodes().size()
+                executionPhases[executionPhases.length - 1].executionNodes().size()
         );
     }
 
     private void sendJobRequests(Streamer<?>[] streamers,
                                  PageDownstreamContext pageDownstreamContext,
-                                 Map<String, Collection<ExecutionNode>> nodesByServer) {
+                                 Map<String, Collection<ExecutionPhase>> nodesByServer) {
         int idx = 0;
-        for (Map.Entry<String, Collection<ExecutionNode>> entry : nodesByServer.entrySet()) {
+        for (Map.Entry<String, Collection<ExecutionPhase>> entry : nodesByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            Collection<ExecutionNode> executionNodes = entry.getValue();
+            Collection<ExecutionPhase> executionPhases = entry.getValue();
 
             if (serverNodeId.equals(TableInfo.NULL_NODE_ID)) {
-                handlerSideCollect(idx, executionNodes, pageDownstreamContext);
+                handlerSideCollect(idx, executionPhases, pageDownstreamContext);
             } else {
-                JobRequest request = new JobRequest(jobId(), executionNodes);
+                JobRequest request = new JobRequest(jobId(), executionPhases);
                 if (hasDirectResponse) {
                     transportJobAction.execute(serverNodeId, request,
                             new DirectResponseListener(idx, streamers, pageDownstreamContext));
@@ -197,35 +197,35 @@ public class ExecutionNodesTask extends JobTask {
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
     private void createLocalContextAndStartOperation(PageDownstreamContext finalLocalMerge,
-                                                     Map<String, Collection<ExecutionNode>> nodesByServer) {
+                                                     Map<String, Collection<ExecutionPhase>> nodesByServer) {
         String localNodeId = clusterService.localNode().id();
-        Collection<ExecutionNode> localExecutionNodes = nodesByServer.remove(localNodeId);
+        Collection<ExecutionPhase> localExecutionPhases = nodesByServer.remove(localNodeId);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(mergeNode.executionNodeId(), finalLocalMerge);
+        builder.addSubContext(mergeNode.executionPhaseId(), finalLocalMerge);
 
-        if (localExecutionNodes == null || localExecutionNodes.isEmpty()) {
+        if (localExecutionPhases == null || localExecutionPhases.isEmpty()) {
             // only the local merge happens locally so it is enough to just create that context.
             jobContextService.createOrMergeContext(builder);
         } else {
-            for (ExecutionNode executionNode : localExecutionNodes) {
-                contextPreparer.prepare(jobId(), executionNode, builder);
+            for (ExecutionPhase executionPhase : localExecutionPhases) {
+                contextPreparer.prepare(jobId(), executionPhase, builder);
             }
             JobExecutionContext context = jobContextService.createOrMergeContext(builder);
-            for (ExecutionNode executionNode : localExecutionNodes) {
-                executionNodeOperationStarter.startOperation(executionNode, context);
+            for (ExecutionPhase executionPhase : localExecutionPhases) {
+                executionNodeOperationStarter.startOperation(executionPhase, context);
             }
         }
     }
 
     private void handlerSideCollect(final int bucketIdx,
-                                    Collection<ExecutionNode> executionNodes,
+                                    Collection<ExecutionPhase> executionPhases,
                                     final PageDownstreamContext pageDownstreamContext) {
-        assert executionNodes.size() == 1 : "handlerSideCollect is only possible with 1 collectNode";
-        ExecutionNode onlyElement = Iterables.getOnlyElement(executionNodes);
-        assert onlyElement instanceof CollectNode : "handlerSideCollect is only possible with 1 collectNode";
+        assert executionPhases.size() == 1 : "handlerSideCollect is only possible with 1 collectNode";
+        ExecutionPhase onlyElement = Iterables.getOnlyElement(executionPhases);
+        assert onlyElement instanceof CollectPhase : "handlerSideCollect is only possible with 1 collectNode";
 
-        CollectNode collectNode = ((CollectNode) onlyElement);
+        CollectPhase collectNode = ((CollectPhase) onlyElement);
         RamAccountingContext ramAccountingContext = trackOperation(collectNode, "handlerSide collect");
 
         CollectingProjector collectingProjector = new CollectingProjector();
@@ -269,7 +269,7 @@ public class ExecutionNodesTask extends JobTask {
     }
 
     private void addCloseContextCallback(TransportCloseContextNodeAction transportCloseContextNodeAction,
-                                         final ExecutionNode[] executionNodes,
+                                         final ExecutionPhase[] executionPhases,
                                          final Set<String> server) {
         if (server.isEmpty()) {
             return;
@@ -284,18 +284,18 @@ public class ExecutionNodesTask extends JobTask {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 // if a failure happens, no fetch projection will be called, clean up contexts
-                for (ExecutionNode executionNode : executionNodes) {
-                    contextCloser.process(executionNode, server);
+                for (ExecutionPhase executionPhase : executionPhases) {
+                    contextCloser.process(executionPhase, server);
                 }
             }
         });
     }
 
-    private RamAccountingContext trackOperation(ExecutionNode executionNode, String operationName) {
-        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionNode);
-        statsTables.operationStarted(executionNode.executionNodeId(), jobId(), operationName);
+    private RamAccountingContext trackOperation(ExecutionPhase executionPhase, String operationName) {
+        RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionNode(circuitBreaker, executionPhase);
+        statsTables.operationStarted(executionPhase.executionPhaseId(), jobId(), operationName);
         Futures.addCallback(result, new OperationFinishedStatsTablesCallback<>(
-                executionNode.executionNodeId(), statsTables, ramAccountingContext));
+                executionPhase.executionPhaseId(), statsTables, ramAccountingContext));
         return ramAccountingContext;
     }
 
@@ -309,20 +309,20 @@ public class ExecutionNodesTask extends JobTask {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
     }
 
-    static boolean hasDirectResponse(ExecutionNode[] executionNodes) {
-        for (ExecutionNode executionNode : executionNodes) {
-            if (ExecutionNodes.hasDirectResponseDownstream(executionNode.downstreamNodes())) {
+    static boolean hasDirectResponse(ExecutionPhase[] executionPhases) {
+        for (ExecutionPhase executionPhase : executionPhases) {
+            if (ExecutionNodes.hasDirectResponseDownstream(executionPhase.downstreamNodes())) {
                 return true;
             }
         }
         return false;
     }
 
-    static Map<String, Collection<ExecutionNode>> groupExecutionNodesByServer(ExecutionNode[] executionNodes) {
-        ArrayListMultimap<String, ExecutionNode> executionNodesGroupedByServer = ArrayListMultimap.create();
-        for (ExecutionNode executionNode : executionNodes) {
-            for (String server : executionNode.executionNodes()) {
-                executionNodesGroupedByServer.put(server, executionNode);
+    static Map<String, Collection<ExecutionPhase>> groupExecutionNodesByServer(ExecutionPhase[] executionPhases) {
+        ArrayListMultimap<String, ExecutionPhase> executionNodesGroupedByServer = ArrayListMultimap.create();
+        for (ExecutionPhase executionPhase : executionPhases) {
+            for (String server : executionPhase.executionNodes()) {
+                executionNodesGroupedByServer.put(server, executionPhase);
             }
         }
         return executionNodesGroupedByServer.asMap();
@@ -397,7 +397,7 @@ public class ExecutionNodesTask extends JobTask {
         }
 
         @Override
-        public Void visitCollectNode(final CollectNode node, Set<String> nodeIds) {
+        public Void visitCollectNode(final CollectPhase node, Set<String> nodeIds) {
             if (!node.keepContextForFetcher()) {
                 return null;
             }
@@ -406,7 +406,7 @@ public class ExecutionNodesTask extends JobTask {
             for (final String nodeId : nodeIds) {
                 transportCloseContextNodeAction.execute(
                         nodeId,
-                        new NodeCloseContextRequest(node.jobId(), node.executionNodeId()),
+                        new NodeCloseContextRequest(node.jobId(), node.executionPhaseId()),
                         new ActionListener<NodeCloseContextResponse>() {
 
                     @Override

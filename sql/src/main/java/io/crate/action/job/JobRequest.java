@@ -21,7 +21,7 @@
 
 package io.crate.action.job;
 
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,12 +35,12 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
-    private Collection<? extends ExecutionNode> executionNodes;
+    private Collection<? extends ExecutionPhase> executionNodes;
 
     protected JobRequest() {
     }
 
-    public JobRequest(UUID jobId, Collection<? extends ExecutionNode> executionNodes) {
+    public JobRequest(UUID jobId, Collection<? extends ExecutionPhase> executionNodes) {
         // TODO: assert that only 1 DIRECT_RETURN_DOWNSTREAM_NODE on all execution nodes is set
         this.jobId = jobId;
         this.executionNodes = executionNodes;
@@ -50,7 +50,7 @@ public class JobRequest extends TransportRequest {
         return jobId;
     }
 
-    public Collection<? extends ExecutionNode> executionNodes() {
+    public Collection<? extends ExecutionPhase> executionNodes() {
         return this.executionNodes;
     }
 
@@ -61,12 +61,12 @@ public class JobRequest extends TransportRequest {
         jobId = new UUID(in.readLong(), in.readLong());
 
         int numExecutionNodes = in.readVInt();
-        ArrayList<ExecutionNode> executionNodes = new ArrayList<>(numExecutionNodes);
+        ArrayList<ExecutionPhase> executionPhases = new ArrayList<>(numExecutionNodes);
         for (int i = 0; i < numExecutionNodes; i++) {
-            ExecutionNode node = ExecutionNodes.fromStream(in);
-            executionNodes.add(node);
+            ExecutionPhase node = ExecutionNodes.fromStream(in);
+            executionPhases.add(node);
         }
-        this.executionNodes = executionNodes;
+        this.executionNodes = executionPhases;
     }
 
     @Override
@@ -77,8 +77,8 @@ public class JobRequest extends TransportRequest {
         out.writeLong(jobId.getLeastSignificantBits());
 
         out.writeVInt(executionNodes.size());
-        for (ExecutionNode executionNode : executionNodes) {
-            ExecutionNodes.toStream(out, executionNode);
+        for (ExecutionPhase executionPhase : executionNodes) {
+            ExecutionNodes.toStream(out, executionPhase);
         }
     }
 }

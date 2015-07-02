@@ -36,8 +36,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
@@ -142,8 +142,8 @@ public class QueryAndFetchConsumer implements Consumer {
                     outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
                 }
             }
-            CollectNode collectNode;
-            MergeNode mergeNode = null;
+            CollectPhase collectNode;
+            MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
             if (context.consumerContext.rootRelation() != table) {
                 // insert directly from shards

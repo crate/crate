@@ -36,7 +36,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -157,7 +157,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevel() throws Exception {
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "docCollect", routing(TEST_TABLE_NAME));
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         PlanNodeBuilder.setOutputTypes(collectNode);
@@ -172,7 +172,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevelWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "docCollect", routing(TEST_TABLE_NAME));
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
@@ -190,7 +190,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Exception {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
         TableIdent tableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        CollectNode collectNode = new CollectNode(UUID.randomUUID(), 0, "docCollect", routing);
+        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "docCollect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(
                 new Reference(new ReferenceInfo(
                         new ReferenceIdent(tableIdent, "id"),
@@ -214,7 +214,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
     }
 
-    private Bucket collect(CollectNode collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private Bucket collect(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector cd = new CollectingProjector();
         ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
         JobContextService contextService = cluster().getInstance(JobContextService.class);

@@ -34,7 +34,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -122,7 +122,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode node, RowDownstream downstream) {
+    public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
         if (node.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }

@@ -32,9 +32,9 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GlobalAggregate;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -115,7 +115,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.ITER,
                 Aggregation.Step.PARTIAL);
 
-        CollectNode collectNode = PlanNodeBuilder.collect(
+        CollectPhase collectNode = PlanNodeBuilder.collect(
                 context.plannerContext().jobId(),
                 tableRelation.tableInfo(),
                 context.plannerContext(),
@@ -150,7 +150,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 table.querySpec().outputs()
                 );
         projections.add(topNProjection);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
+        MergePhase localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
                 context.plannerContext());
         return new GlobalAggregate(collectNode, localMergeNode, context.plannerContext().jobId());
     }

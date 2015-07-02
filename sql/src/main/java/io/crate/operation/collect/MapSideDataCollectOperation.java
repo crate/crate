@@ -48,8 +48,8 @@ import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.symbol.ValueSymbolVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -146,7 +146,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
 
-    public ResultProvider createDownstream(CollectNode collectNode) {
+    public ResultProvider createDownstream(CollectPhase collectNode) {
         return resultProviderFactory.createDownstream(collectNode, collectNode.jobId());
     }
 
@@ -163,7 +163,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * </p>
      */
     @Override
-    public void collect(CollectNode collectNode,
+    public void collect(CollectPhase collectNode,
                         RowDownstream downstream,
                         RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
@@ -186,10 +186,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     /**
      * collect data on node level only - one row per node expected
      *
-     * @param collectNode {@link CollectNode} instance containing routing information and symbols to collect
+     * @param collectNode {@link CollectPhase} instance containing routing information and symbols to collect
      * @param downstream  the receiver of the rows generated
      */
-    protected void handleNodeCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    protected void handleNodeCollect(CollectPhase collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         EvaluatingNormalizer nodeNormalizer = this.nodeNormalizer;
         if (collectNode.maxRowGranularity().finerThan(RowGranularity.CLUSTER)) {
             nodeNormalizer = new EvaluatingNormalizer(functions,
@@ -215,11 +215,11 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         collector.doCollect(ramAccountingContext);
     }
 
-    private CrateCollector getCollector(CollectNode collectNode,
+    private CrateCollector getCollector(CollectPhase collectNode,
                                         RowDownstream downstream) {
-        if (collectNode instanceof FileUriCollectNode) {
+        if (collectNode instanceof FileUriCollectPhase) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
-            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) collectNode;
+            FileUriCollectPhase fileUriCollectNode = (FileUriCollectPhase) collectNode;
 
             String[] readers = fileUriCollectNode.executionNodes().toArray(
                     new String[fileUriCollectNode.executionNodes().size()]);
@@ -260,9 +260,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      * </p>
      *
-     * @param collectNode {@link CollectNode} containing routing information and symbols to collect
+     * @param collectNode {@link CollectPhase} containing routing information and symbols to collect
      */
-    protected void handleShardCollect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
+    protected void handleShardCollect(CollectPhase collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
@@ -281,7 +281,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         context = jobContextService.getContext(collectNode.jobId());
         JobCollectContext jobCollectContext;
         try {
-            jobCollectContext = context.getSubContext(collectNode.executionNodeId());
+            jobCollectContext = context.getSubContext(collectNode.executionPhaseId());
         } catch (IllegalArgumentException e) {
             downstream.registerUpstream(this).finish();
             return;
@@ -377,7 +377,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
     }
 
-    private void runCollectThreaded(CollectNode collectNode,
+    private void runCollectThreaded(CollectPhase collectNode,
                                     final List<CrateCollector> shardCollectors,
                                     final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {

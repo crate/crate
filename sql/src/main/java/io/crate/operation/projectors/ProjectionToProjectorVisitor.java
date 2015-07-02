@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
@@ -155,7 +154,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Override
     public Projector visitMergeProjection(MergeProjection projection, Context context) {
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
-                (List<Symbol>)projection.outputs());
+                (List<Symbol>) projection.outputs());
         return new MergeProjector(
                 orderByIndices,
                 projection.reverseFlags(),
@@ -351,7 +350,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
                 context.jobId.get(),
-                projection.executionNodeId(),
+                projection.executionPhaseId(),
                 ctxDocId.collectExpressions().iterator().next(),
                 projection.inputSymbols(),
                 projection.outputSymbols(),

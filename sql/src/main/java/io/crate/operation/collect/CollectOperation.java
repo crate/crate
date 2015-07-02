@@ -23,8 +23,8 @@ package io.crate.operation.collect;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.RowDownstream;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 
 public interface CollectOperation {
-    public void collect(CollectNode collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext);
+    public void collect(CollectPhase collectNode, RowDownstream downstream, RamAccountingContext ramAccountingContext);
 }

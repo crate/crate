@@ -146,7 +146,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
-        contextBuilder.addSubContext(node.executionNodeId(), upsertByIdContext);
+        contextBuilder.addSubContext(node.executionPhaseId(), upsertByIdContext);
         jobContextService.createOrMergeContext(contextBuilder);
         upsertByIdContext.start();
     }

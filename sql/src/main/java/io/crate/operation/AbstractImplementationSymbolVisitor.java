@@ -25,7 +25,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.aggregation.FunctionExpression;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
 
     protected abstract C newContext();
 
-    public C process(CollectNode node) {
+    public C process(CollectPhase node) {
         C context = newContext();
         if (node.toCollect() != null) {
             for (Symbol symbol : node.toCollect()) {

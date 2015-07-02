@@ -27,8 +27,8 @@ import io.crate.Streamer;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -86,22 +86,22 @@ public class StreamerVisitor {
         return context;
     }
 
-    public Context processExecutionNode(ExecutionNode executionNode) {
+    public Context processExecutionNode(ExecutionPhase executionPhase) {
         Context context = new Context();
-        executionNodeStreamerVisitor.process(executionNode, context);
+        executionNodeStreamerVisitor.process(executionPhase, context);
         return context;
     }
 
     private class PlanNodeStreamerVisitor extends PlanNodeVisitor<Context, Void> {
 
         @Override
-        public Void visitCollectNode(CollectNode node, Context context) {
+        public Void visitCollectNode(CollectPhase node, Context context) {
             extractFromCollectNode(node, context);
             return null;
         }
 
         @Override
-        public Void visitMergeNode(MergeNode node, Context context) {
+        public Void visitMergeNode(MergePhase node, Context context) {
             extractFromMergeNode(node, context);
             return null;
         }
@@ -110,19 +110,19 @@ public class StreamerVisitor {
     private class ExecutionNodeStreamerVisitor extends ExecutionNodeVisitor<Context, Void> {
 
         @Override
-        public Void visitMergeNode(MergeNode node, Context context) {
+        public Void visitMergeNode(MergePhase node, Context context) {
             extractFromMergeNode(node, context);
             return null;
         }
 
         @Override
-        public Void visitCollectNode(CollectNode collectNode, Context context) {
+        public Void visitCollectNode(CollectPhase collectNode, Context context) {
             extractFromCollectNode(collectNode, context);
             return null;
         }
 
         @Override
-        protected Void visitExecutionNode(ExecutionNode node, Context context) {
+        protected Void visitExecutionNode(ExecutionPhase node, Context context) {
             throw new UnsupportedOperationException(String.format("Got unsupported ExecutionNode %s", node.getClass().getName()));
         }
     }
@@ -151,7 +151,7 @@ public class StreamerVisitor {
         return streamer;
     }
 
-    private void extractFromCollectNode(CollectNode node, Context context) {
+    private void extractFromCollectNode(CollectPhase node, Context context) {
         // get aggregations, if any
         List<Aggregation> aggregations = ImmutableList.of();
         List<Projection> projections = Lists.reverse(node.projections());
@@ -188,7 +188,7 @@ public class StreamerVisitor {
         }
     }
 
-    private void extractFromMergeNode(MergeNode node, Context context) {
+    private void extractFromMergeNode(MergePhase node, Context context) {
         if (node.projections().isEmpty()) {
             for (DataType dataType : node.inputTypes()) {
                 if (dataType != null) {

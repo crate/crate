@@ -221,7 +221,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
             ));
         }
 
-        private Task createExecutableNodesTask(Job job, CollectNode collectNode, @Nullable MergeNode localMergeNode) {
+        private Task createExecutableNodesTask(Job job, CollectPhase collectNode, @Nullable MergePhase localMergeNode) {
             return new ExecutionNodesTask(
                     job.id(),
                     clusterService,

@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -37,22 +37,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, ExecutionNode {
+public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, ExecutionPhase {
 
     protected UUID jobId;
-    private int executionNodeId;
+    private int executionPhaseId;
     private String name;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
     private List<DataType> inputTypes;
 
-    public AbstractDQLPlanNode() {
+    public AbstractDQLPlanPhase() {
 
     }
 
-    protected AbstractDQLPlanNode(UUID jobId, int executionNodeId, String name) {
+    protected AbstractDQLPlanPhase(UUID jobId, int executionPhaseId, String name) {
         this.jobId = jobId;
-        this.executionNodeId = executionNodeId;
+        this.executionPhaseId = executionPhaseId;
         this.name = name;
     }
 
@@ -66,8 +66,8 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     }
 
     @Override
-    public int executionNodeId() {
-        return executionNodeId;
+    public int executionPhaseId() {
+        return executionPhaseId;
     }
 
     public boolean hasProjections() {
@@ -120,7 +120,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public void readFrom(StreamInput in) throws IOException {
         name = in.readString();
-        executionNodeId = in.readVInt();
+        executionPhaseId = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -143,7 +143,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
-        out.writeVInt(executionNodeId);
+        out.writeVInt(executionPhaseId);
 
         int numCols = outputTypes.size();
         out.writeVInt(numCols);
@@ -166,7 +166,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable, Ex
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        AbstractDQLPlanNode node = (AbstractDQLPlanNode) o;
+        AbstractDQLPlanPhase node = (AbstractDQLPlanPhase) o;
 
         return !(name != null ? !name.equals(node.name) : node.name != null);
 

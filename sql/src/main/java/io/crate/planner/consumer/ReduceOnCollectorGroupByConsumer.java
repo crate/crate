@@ -36,9 +36,9 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -181,7 +181,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 ));
             }
 
-            CollectNode collectNode = PlanNodeBuilder.collect(
+            CollectPhase collectNode = PlanNodeBuilder.collect(
                     context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
@@ -192,7 +192,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
-            MergeNode localMergeNode;
+            MergePhase localMergeNode;
             if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger

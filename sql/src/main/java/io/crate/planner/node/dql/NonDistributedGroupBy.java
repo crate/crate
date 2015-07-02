@@ -29,11 +29,11 @@ import java.util.UUID;
 
 public class NonDistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
-    private final CollectNode collectNode;
-    private MergeNode localMergeNode;
+    private final CollectPhase collectNode;
+    private MergePhase localMergeNode;
     private final UUID id;
 
-    public NonDistributedGroupBy(CollectNode collectNode, MergeNode localMergeNode, UUID id){
+    public NonDistributedGroupBy(CollectPhase collectNode, MergePhase localMergeNode, UUID id){
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
         this.id = id;
@@ -49,11 +49,11 @@ public class NonDistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
         return id;
     }
 
-    public MergeNode localMergeNode() {
+    public MergePhase localMergeNode() {
         return localMergeNode;
     }
 
-    public CollectNode collectNode() {
+    public CollectPhase collectNode() {
         return collectNode;
     }
 

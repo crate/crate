@@ -21,29 +21,29 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.MergePhase;
 
 public class ExecutionNodeVisitor<C, R> {
 
-    public R process(ExecutionNode node, C context) {
+    public R process(ExecutionPhase node, C context) {
         return node.accept(this, context);
     }
 
-    protected R visitExecutionNode(ExecutionNode node, C context) {
+    protected R visitExecutionNode(ExecutionPhase node, C context) {
         return null;
     }
 
-    public R visitCollectNode(CollectNode node, C context) {
+    public R visitCollectNode(CollectPhase node, C context) {
         return visitExecutionNode(node, context);
     }
 
-    public R visitMergeNode(MergeNode node, C context) {
+    public R visitMergeNode(MergePhase node, C context) {
         return visitExecutionNode(node, context);
     }
 
-    public R visitCountNode(CountNode countNode, C context) {
+    public R visitCountNode(CountPhase countNode, C context) {
         return visitExecutionNode(countNode, context);
     }
 }

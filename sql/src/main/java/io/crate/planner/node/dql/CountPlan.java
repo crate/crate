@@ -29,21 +29,21 @@ import java.util.UUID;
 
 public class CountPlan extends PlanAndPlannedAnalyzedRelation{
 
-    private final CountNode countNode;
-    private final MergeNode mergeNode;
+    private final CountPhase countNode;
+    private final MergePhase mergeNode;
     private final UUID id;
 
-    public CountPlan(CountNode countNode, MergeNode mergeNode, UUID id) {
+    public CountPlan(CountPhase countNode, MergePhase mergeNode, UUID id) {
         this.countNode = countNode;
         this.mergeNode = mergeNode;
         this.id = id;
     }
 
-    public CountNode countNode() {
+    public CountPhase countNode() {
         return countNode;
     }
 
-    public MergeNode mergeNode() {
+    public MergePhase mergeNode() {
         return mergeNode;
     }
 

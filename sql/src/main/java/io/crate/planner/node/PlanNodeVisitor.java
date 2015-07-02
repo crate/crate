@@ -36,11 +36,11 @@ public class PlanNodeVisitor<C, R> {
         return null;
     }
 
-    public R visitMergeNode(MergeNode node, C context) {
+    public R visitMergeNode(MergePhase node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitCollectNode(CollectNode node, C context) {
+    public R visitCollectNode(CollectPhase node, C context) {
         return visitPlanNode(node, context);
     }
 

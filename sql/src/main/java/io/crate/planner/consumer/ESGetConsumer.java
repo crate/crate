@@ -80,7 +80,7 @@ public class ESGetConsumer implements Consumer {
             if (orderBy != null){
                 table.tableRelation().validateOrderBy(orderBy);
             }
-            return new ESGetNode(context.plannerContext().nextExecutionNodeId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
+            return new ESGetNode(context.plannerContext().nextExecutionPhaseId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
         }
 
         @Override

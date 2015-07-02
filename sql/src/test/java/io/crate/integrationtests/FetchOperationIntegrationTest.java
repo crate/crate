@@ -58,7 +58,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
@@ -135,7 +135,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         );
     }
 
-    private CollectNode createCollectNode(Planner.Context plannerContext, boolean keepContextForFetcher) {
+    private CollectPhase createCollectNode(Planner.Context plannerContext, boolean keepContextForFetcher) {
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
 
         ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(new ColumnIdent("_docid"));
@@ -147,9 +147,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             outputTypes.add(symbol.valueType());
         }
 
-        CollectNode collectNode = new CollectNode(
+        CollectPhase collectNode = new CollectPhase(
                 UUID.randomUUID(),
-                plannerContext.nextExecutionNodeId(),
+                plannerContext.nextExecutionPhaseId(),
                 "collect",
                 tableInfo.getRouting(WhereClause.MATCH_ALL, null));
         collectNode.toCollect(toCollect);
@@ -165,7 +165,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     public void testCollectDocId() throws Exception {
         setUpCharacters();
         Planner.Context plannerContext = new Planner.Context(clusterService());
-        CollectNode collectNode = createCollectNode(plannerContext, false);
+        CollectPhase collectNode = createCollectNode(plannerContext, false);
 
         List<Bucket> results = new ArrayList<>();
         Iterable<MapSideDataCollectOperation> collectOperations = cluster().getInstances(MapSideDataCollectOperation.class);
@@ -254,7 +254,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
             nodeFetchRequest.jobId(plan.collectNode().jobId());
-            nodeFetchRequest.executionNodeId(plan.collectNode().executionNodeId());
+            nodeFetchRequest.executionPhaseId(plan.collectNode().executionPhaseId());
             nodeFetchRequest.toFetchReferences(context.references());
             nodeFetchRequest.closeContext(true);
             nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());
@@ -284,7 +284,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         }
     }
 
-    private List<JobExecutionContext> createJobContext(CollectNode collectNode) {
+    private List<JobExecutionContext> createJobContext(CollectPhase collectNode) {
         ContextPreparer contextPreparer = cluster().getInstance(ContextPreparer.class);
 
         List<JobExecutionContext> executionContexts = new ArrayList<>(2);

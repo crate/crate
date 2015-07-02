@@ -31,23 +31,23 @@ import java.util.UUID;
 
 public class CollectAndMerge implements Iterable<PlanNode>, Plan {
 
-    private final CollectNode collectNode;
-    private final MergeNode localMergeNode;
+    private final CollectPhase collectNode;
+    private final MergePhase localMergeNode;
     private Iterable<PlanNode> nodes;
     private final UUID id;
 
-    public CollectAndMerge(CollectNode collectNode, MergeNode localMergeNode, UUID id) {
+    public CollectAndMerge(CollectPhase collectNode, MergePhase localMergeNode, UUID id) {
         this.collectNode = collectNode;
         this.localMergeNode = localMergeNode;
         nodes = Arrays.<PlanNode>asList(collectNode, localMergeNode);
         this.id = id;
     }
 
-    public CollectNode collectNode() {
+    public CollectPhase collectNode() {
         return collectNode;
     }
 
-    public MergeNode localMergeNode() {
+    public MergePhase localMergeNode() {
         return localMergeNode;
     }
 

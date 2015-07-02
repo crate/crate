@@ -23,7 +23,7 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
@@ -42,7 +42,7 @@ public class CollectNodeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        CollectNode cn = new CollectNode(UUID.randomUUID(), 0, "cn");
+        CollectPhase cn = new CollectPhase(UUID.randomUUID(), 0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
@@ -52,7 +52,7 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(UUID.randomUUID(), 1, "collect");
+        CollectPhase cn2 = new CollectPhase(UUID.randomUUID(), 1, "collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 
@@ -66,7 +66,7 @@ public class CollectNodeTest extends CrateUnitTest {
     @Test
     public void testStreamingWithJobId() throws Exception {
         UUID jobId = UUID.randomUUID();
-        CollectNode cn = new CollectNode(jobId, 0, "cn");
+        CollectPhase cn = new CollectPhase(jobId, 0, "cn");
         cn.maxRowGranularity(RowGranularity.DOC);
         cn.downstreamNodes(Arrays.asList("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
@@ -75,7 +75,7 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode(UUID.randomUUID(), 1, "collect");
+        CollectPhase cn2 = new CollectPhase(UUID.randomUUID(), 1, "collect");
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 
@@ -83,7 +83,7 @@ public class CollectNodeTest extends CrateUnitTest {
         assertThat(cn.downstreamNodes(), is(cn2.downstreamNodes()));
         assertThat(cn.executionNodes(), is(cn2.executionNodes()));
         assertThat(cn.jobId(), is(cn2.jobId()));
-        assertThat(cn.executionNodeId(), is(cn2.executionNodeId()));
+        assertThat(cn.executionPhaseId(), is(cn2.executionPhaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
     }
 }

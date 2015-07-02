@@ -31,7 +31,7 @@ import io.crate.lucene.QueryBuilderHelper;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.*;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -106,7 +105,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     public LuceneDocCollector(CrateSearchContext searchContext,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              CollectNode collectNode,
+                              CollectPhase collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {

@@ -43,7 +43,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
@@ -195,7 +195,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
         UUID jobId = UUID.randomUUID();
-        CollectNode node = new CollectNode(jobId, 0, "collect");
+        CollectPhase node = new CollectPhase(jobId, 0, "collect");
         node.whereClause(WhereClause.MATCH_ALL);
         node.orderBy(orderBy);
         node.limit(limit);
@@ -210,7 +210,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         jobCollectContext = new JobCollectContext(jobId, node,
                 cluster.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
-        builder.addSubContext(node.executionNodeId(), jobCollectContext);
+        builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
         collector.pageSize(PAGE_SIZE);
         return collector;

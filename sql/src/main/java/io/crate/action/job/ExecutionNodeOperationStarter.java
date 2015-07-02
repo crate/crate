@@ -26,11 +26,11 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.node.ExecutionNode;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionNodeVisitor;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.CountNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -48,40 +48,40 @@ public class ExecutionNodeOperationStarter implements RowUpstream {
         this.innerStarter = new InnerStarter();
     }
 
-    public void startOperation(ExecutionNode executionNode, JobExecutionContext jobExecutionContext) {
-        innerStarter.process(executionNode, jobExecutionContext);
+    public void startOperation(ExecutionPhase executionPhase, JobExecutionContext jobExecutionContext) {
+        innerStarter.process(executionPhase, jobExecutionContext);
     }
 
-    public void startOperations(Collection<? extends ExecutionNode>executionNodes, JobExecutionContext jobExecutionContext) {
-        for (ExecutionNode executionNode : executionNodes) {
-            startOperation(executionNode, jobExecutionContext);
+    public void startOperations(Collection<? extends ExecutionPhase>executionNodes, JobExecutionContext jobExecutionContext) {
+        for (ExecutionPhase executionPhase : executionNodes) {
+            startOperation(executionPhase, jobExecutionContext);
         }
     }
 
     private class InnerStarter extends ExecutionNodeVisitor<JobExecutionContext, Void> {
 
         @Override
-        protected Void visitExecutionNode(ExecutionNode node, JobExecutionContext context) {
+        protected Void visitExecutionNode(ExecutionPhase node, JobExecutionContext context) {
             throw new UnsupportedOperationException("Can't handle " + node);
         }
 
         @Override
-        public Void visitMergeNode(MergeNode node, JobExecutionContext context) {
+        public Void visitMergeNode(MergePhase node, JobExecutionContext context) {
             // nothing to do; merge is done by creating a context and then rows/pages are pushed into that context
             return null;
         }
 
         @Override
-        public Void visitCountNode(CountNode countNode, JobExecutionContext context) {
-            CountContext countContext = context.getSubContext(countNode.executionNodeId());
+        public Void visitCountNode(CountPhase countNode, JobExecutionContext context) {
+            CountContext countContext = context.getSubContext(countNode.executionPhaseId());
             countContext.start();
             return null;
         }
 
         @Override
-        public Void visitCollectNode(CollectNode collectNode, JobExecutionContext context) {
-            JobCollectContext collectContext = context.getSubContext(collectNode.executionNodeId());
-            statsTables.operationStarted(collectNode.executionNodeId(), collectNode.jobId(), collectNode.name());
+        public Void visitCollectNode(CollectPhase collectNode, JobExecutionContext context) {
+            JobCollectContext collectContext = context.getSubContext(collectNode.executionPhaseId());
+            statsTables.operationStarted(collectNode.executionPhaseId(), collectNode.jobId(), collectNode.name());
             collectContext.start();
             return null;
         }
