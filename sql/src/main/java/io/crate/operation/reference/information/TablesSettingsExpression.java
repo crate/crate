@@ -21,14 +21,16 @@
 
 package io.crate.operation.reference.information;
 
+import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameterInfo;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.information.InformationTablesTableInfo;
+import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
-    private static final BytesRef EMPTY_BYTES_REF = new BytesRef();
     public static final String NAME = "settings";
 
     public TablesSettingsExpression() {
@@ -45,6 +47,33 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsGatewayExpression.NAME, new TablesSettingsGatewayExpression());
     }
 
+    static class TableParameterExpression extends RowContextCollectorExpression<TableInfo, Object> {
+
+        private final String paramName;
+
+        public TableParameterExpression(String paramName) {
+            this.paramName = paramName;
+        }
+
+        @Override
+        public Object value() {
+            return row.tableParameters().get(paramName);
+        }
+    }
+
+    static class BytesRefTableParameterExpression extends RowContextCollectorExpression<TableInfo, BytesRef> {
+
+        private final String paramName;
+
+        public BytesRefTableParameterExpression(String paramName) {
+            this.paramName = paramName;
+        }
+
+        @Override
+        public BytesRef value() {
+            return BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+        }
+    }
 
     static class TablesSettingsBlocksExpression extends AbstractTablesSettingsExpression {
 
@@ -61,34 +90,10 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String METADATA = "metadata";
 
         private void addChildImplementations() {
-            childImplementations.put(READ_ONLY,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.READ_ONLY);
-                        }
-                    });
-            childImplementations.put(READ,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_READ);
-                        }
-                    });
-            childImplementations.put(WRITE,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_WRITE);
-                        }
-                    });
-            childImplementations.put(METADATA,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_METADATA);
-                        }
-                    });
+            childImplementations.put(READ_ONLY, new TableParameterExpression(TableParameterInfo.READ_ONLY));
+            childImplementations.put(READ, new TableParameterExpression(TableParameterInfo.BLOCKS_READ));
+            childImplementations.put(WRITE, new TableParameterExpression(TableParameterInfo.BLOCKS_WRITE));
+            childImplementations.put(METADATA, new TableParameterExpression(TableParameterInfo.BLOCKS_METADATA));
         }
     }
 
@@ -119,21 +124,8 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE,
-                    new InformationTablesExpression<BytesRef>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
-                        @Override
-                        public BytesRef value() {
-                            String value = (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
-                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
-                        }
-                    });
-            childImplementations.put(TOTAL_SHARDS_PER_NODE,
-                    new InformationTablesExpression<Integer>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE) {
-                        @Override
-                        public Integer value() {
-                            return (Integer) this.row.tableParameters().get(TableParameterInfo.TOTAL_SHARDS_PER_NODE);
-                        }
-                    });
+            childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
+            childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE));
         }
     }
 
@@ -149,14 +141,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String INITIAL_SHARDS = "initial_shards";
 
         private void addChildImplementations() {
-            childImplementations.put(INITIAL_SHARDS,
-                    new InformationTablesExpression<BytesRef>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
-                        @Override
-                        public BytesRef value() {
-                            String value = (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
-                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
-                        }
-                    });
+            childImplementations.put(INITIAL_SHARDS, new BytesRefTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
         }
     }
 
@@ -172,13 +157,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLED,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.WARMER_ENABLED);
-                        }
-                    });
+            childImplementations.put(ENABLED, new TableParameterExpression(TableParameterInfo.WARMER_ENABLED));
         }
     }
 
@@ -210,13 +189,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String SYNC = "sync";
 
         private void addChildImplementations() {
-            childImplementations.put(SYNC,
-                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
-                        }
-                    });
+            childImplementations.put(SYNC, new TableParameterExpression(TableParameterInfo.GATEWAY_LOCAL_SYNC));
         }
     }
 
@@ -236,41 +209,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String INTERVAL = "interval";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_OPS,
-                    new InformationTablesExpression<Integer>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS) {
-                        @Override
-                        public Integer value() {
-                            return (Integer) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_OPS);
-                        }
-                    });
-            childImplementations.put(FLUSH_THRESHOLD_SIZE,
-                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
-                        }
-                    });
-            childImplementations.put(FLUSH_THRESHOLD_PERIOD,
-                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
-                        }
-                    });
-            childImplementations.put(DISABLE_FLUSH,
-                    new InformationTablesExpression<Boolean>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.FLUSH_DISABLE);
-                        }
-                    });
-            childImplementations.put(INTERVAL,
-                    new InformationTablesExpression<Long>(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
-                        }
-                    });
+            childImplementations.put(FLUSH_THRESHOLD_OPS, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
+            childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
+            childImplementations.put(FLUSH_THRESHOLD_PERIOD, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
+            childImplementations.put(DISABLE_FLUSH, new TableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
+            childImplementations.put(INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
         }
     }
 }

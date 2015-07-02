@@ -43,10 +43,16 @@ public class SysJobsTableInfo extends SysTableInfo {
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+    }
+
     static {
-        register("id", DataTypes.STRING, null);
-        register("stmt", DataTypes.STRING, null);
-        register("started", DataTypes.TIMESTAMP, null);
+        register(Columns.ID, DataTypes.STRING, null);
+        register(Columns.STMT, DataTypes.STRING, null);
+        register(Columns.STARTED, DataTypes.TIMESTAMP, null);
     }
 
     @Inject
@@ -54,8 +60,8 @@ public class SysJobsTableInfo extends SysTableInfo {
         super(service, sysSchemaInfo);
     }
 
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.DOC, type);
+    private static ReferenceInfo register(ColumnIdent column, DataType type, List<String> path) {
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }

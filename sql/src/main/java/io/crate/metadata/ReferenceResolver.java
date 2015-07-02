@@ -23,6 +23,6 @@ package io.crate.metadata;
 
 public interface ReferenceResolver {
 
-    public ReferenceImplementation getImplementation(ReferenceIdent ident);
+    ReferenceImplementation getImplementation(ReferenceIdent ident);
 
 }
