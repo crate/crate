@@ -29,43 +29,33 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
+@Singleton
 public class SysOperationsTableInfo extends SysTableInfo {
-
-    private final TableColumn nodesTableColumn;
-
-    public static class ColumnNames {
-        public final static String ID = "id";
-        public final static String JOB_ID = "job_id";
-        public final static String NAME = "name";
-        public final static String STARTED = "started";
-        public final static String USED_BYTES = "used_bytes";
-    }
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations");
     private static final String[] INDICES = new String[] { IDENT.name() };
 
-    private static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-
-    private static ReferenceInfo register(String column, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
-        columns.add(info);
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
+    public static class Columns {
+        public final static ColumnIdent ID = new ColumnIdent("id");
+        public final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        public final static ColumnIdent NAME = new ColumnIdent("name");
+        public final static ColumnIdent STARTED = new ColumnIdent("started");
+        public final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
     }
 
-    static {
-        register(ColumnNames.ID, DataTypes.STRING);
-        register(ColumnNames.JOB_ID, DataTypes.STRING);
-        register(ColumnNames.NAME, DataTypes.STRING);
-        register(ColumnNames.STARTED, DataTypes.TIMESTAMP);
-        register(ColumnNames.USED_BYTES, DataTypes.LONG);
+    private final TableColumn nodesTableColumn;
+    private final Map<ColumnIdent, ReferenceInfo> infos = new LinkedHashMap<>();
+    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
-        INFOS.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+    private void register(ColumnIdent column, DataType type) {
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
+        columns.add(info);
+        infos.put(column, info);
     }
 
     @Inject
@@ -74,21 +64,23 @@ public class SysOperationsTableInfo extends SysTableInfo {
                                   SysNodesTableInfo sysNodesTableInfo) {
         super(clusterService, sysSchemaInfo);
         nodesTableColumn = sysNodesTableInfo.tableColumn();
+        register(Columns.ID, DataTypes.STRING);
+        register(Columns.JOB_ID, DataTypes.STRING);
+        register(Columns.NAME, DataTypes.STRING);
+        register(Columns.STARTED, DataTypes.TIMESTAMP);
+        register(Columns.USED_BYTES, DataTypes.LONG);
+        infos.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
     }
+
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = columnInfo(columnIdent);
+        ReferenceInfo info = infos.get(columnIdent);
         if (info == null) {
             return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
         }
         return info;
-    }
-
-    @Nullable
-    public static ReferenceInfo columnInfo(ColumnIdent ident) {
-        return INFOS.get(ident);
     }
 
     @Override
@@ -123,6 +115,6 @@ public class SysOperationsTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

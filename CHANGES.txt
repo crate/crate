@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause concurrent queries on information_schema or
+   sys tables to return inconsistent results
+
  - Fix: IS NULL predicate in query could return records that have already been
    marked for deletion
 

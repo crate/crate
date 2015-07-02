@@ -22,9 +22,11 @@
 package io.crate.operation.reference.partitioned;
 
 import io.crate.analyze.TableParameterInfo;
+import io.crate.metadata.PartitionInfo;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
-import io.crate.operation.reference.information.InformationTablePartitionsExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
 
@@ -45,6 +47,34 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         childImplementations.put(PartitionsSettingsGatewayExpression.NAME, new PartitionsSettingsGatewayExpression());
     }
 
+    static class PartitionTableParameterExpression extends RowContextCollectorExpression<PartitionInfo, Object> {
+
+        private final String paramName;
+
+        public PartitionTableParameterExpression(String paramName) {
+            this.paramName = paramName;
+        }
+
+        @Override
+        public Object value() {
+            return row.tableParameters().get(paramName);
+        }
+    }
+
+    static class BytesRefPartitionTableParameterExpression extends RowContextCollectorExpression<PartitionInfo, BytesRef> {
+
+        private final String paramName;
+
+        public BytesRefPartitionTableParameterExpression(String paramName) {
+            this.paramName = paramName;
+        }
+
+        @Override
+        public BytesRef value() {
+            return BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+        }
+    }
+
 
     static class PartitionsSettingsBlocksExpression extends AbstractPartitionsSettingsExpression {
 
@@ -61,34 +91,10 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String METADATA = "metadata";
 
         private void addChildImplementations() {
-            childImplementations.put(READ_ONLY,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.READ_ONLY);
-                        }
-                    });
-            childImplementations.put(READ,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_READ);
-                        }
-                    });
-            childImplementations.put(WRITE,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_WRITE);
-                        }
-                    });
-            childImplementations.put(METADATA,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.BLOCKS_METADATA);
-                        }
-                    });
+            childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY));
+            childImplementations.put(READ, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_READ));
+            childImplementations.put(WRITE, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_WRITE));
+            childImplementations.put(METADATA, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_METADATA));
         }
     }
 
@@ -119,21 +125,8 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE,
-                    new InformationTablePartitionsExpression<BytesRef>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE) {
-                        @Override
-                        public BytesRef value() {
-                            String value = (String) this.row.tableParameters().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE);
-                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
-                        }
-                    });
-            childImplementations.put(TOTAL_SHARDS_PER_NODE,
-                    new InformationTablePartitionsExpression<Integer>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE) {
-                        @Override
-                        public Integer value() {
-                            return (Integer) this.row.tableParameters().get(TableParameterInfo.TOTAL_SHARDS_PER_NODE);
-                        }
-                    });
+            childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
+            childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE));
         }
     }
 
@@ -149,14 +142,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String INITIAL_SHARDS = "initial_shards";
 
         private void addChildImplementations() {
-            childImplementations.put(INITIAL_SHARDS,
-                    new InformationTablePartitionsExpression<BytesRef>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS) {
-                        @Override
-                        public BytesRef value() {
-                            String value = (String) this.row.tableParameters().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS);
-                            return value != null ? new BytesRef(value) : EMPTY_BYTES_REF;
-                        }
-                    });
+            childImplementations.put(INITIAL_SHARDS, new PartitionTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
         }
     }
 
@@ -172,13 +158,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLED,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.WARMER_ENABLED);
-                        }
-                    });
+            childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED));
         }
     }
 
@@ -209,13 +189,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String SYNC = "sync";
 
         private void addChildImplementations() {
-            childImplementations.put(SYNC,
-                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.GATEWAY_LOCAL_SYNC);
-                        }
-                    });
+            childImplementations.put(SYNC, new PartitionTableParameterExpression(TableParameterInfo.GATEWAY_LOCAL_SYNC));
         }
     }
     
@@ -235,41 +209,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String INTERVAL = "interval";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_OPS,
-                    new InformationTablePartitionsExpression<Integer>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS) {
-                        @Override
-                        public Integer value() {
-                            return (Integer) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_OPS);
-                        }
-                    });
-            childImplementations.put(FLUSH_THRESHOLD_SIZE,
-                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE);
-                        }
-                    });
-            childImplementations.put(FLUSH_THRESHOLD_PERIOD,
-                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD);
-                        }
-                    });
-            childImplementations.put(DISABLE_FLUSH,
-                    new InformationTablePartitionsExpression<Boolean>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH) {
-                        @Override
-                        public Boolean value() {
-                            return (Boolean) this.row.tableParameters().get(TableParameterInfo.FLUSH_DISABLE);
-                        }
-                    });
-            childImplementations.put(INTERVAL,
-                    new InformationTablePartitionsExpression<Long>(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL) {
-                        @Override
-                        public Long value() {
-                            return (Long) this.row.tableParameters().get(TableParameterInfo.TRANSLOG_INTERVAL);
-                        }
-                    });
+            childImplementations.put(FLUSH_THRESHOLD_OPS, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
+            childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
+            childImplementations.put(FLUSH_THRESHOLD_PERIOD, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
+            childImplementations.put(DISABLE_FLUSH, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
+            childImplementations.put(INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
         }
     }
 }

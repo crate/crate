@@ -23,109 +23,322 @@ package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.information.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.operation.reference.RowCollectNestedObjectExpression;
+import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
+import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.List;
 import java.util.Map;
 
 @Singleton
 public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
 
-    private final ImmutableMap<ReferenceIdent, RowCollectExpression<?, ?>> implementations;
+    private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
+    private final BytesRef DOC_SCHEMA_INFO = new BytesRef(ReferenceInfos.DEFAULT_SCHEMA_NAME);
 
     @Inject
     public InformationDocLevelReferenceResolver() {
-        ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder = ImmutableMap.builder();
-
-        // information_schema.tables
-        builder.put(InformationTablesExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
-                InformationTablesExpression.SCHEMA_NAME_EXPRESSION);
-        builder.put(InformationTablesExpression.TABLE_NAME_EXPRESSION.info().ident(),
-                InformationTablesExpression.TABLE_NAME_EXPRESSION);
-        builder.put(InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION.info().ident(),
-                InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION);
-        builder.put(InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION.info().ident(),
-                InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION);
-        builder.put(InformationTablesExpression.CLUSTERED_BY_EXPRESSION.info().ident(),
-                InformationTablesExpression.CLUSTERED_BY_EXPRESSION);
-        builder.put(InformationTablesExpression.PARTITION_BY_EXPRESSION.info().ident(),
-                InformationTablesExpression.PARTITION_BY_EXPRESSION);
-        builder.put(InformationTablesExpression.BLOB_PATH_EXPRESSION.info().ident(),
-                InformationTablesExpression.BLOB_PATH_EXPRESSION);
-        builder.put(InformationTablesExpression.SETTINGS_EXPRESSION.info().ident(),
-                InformationTablesExpression.SETTINGS_EXPRESSION);
-        addChildImplementationToBuilder(builder, InformationTablesExpression.SETTINGS_EXPRESSION);
-
-
-        // information_schema.columns
-        builder.put(InformationColumnsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
-                InformationColumnsExpression.SCHEMA_NAME_EXPRESSION);
-        builder.put(InformationColumnsExpression.TABLE_NAME_EXPRESSION.info().ident(),
-                InformationColumnsExpression.TABLE_NAME_EXPRESSION);
-        builder.put(InformationColumnsExpression.COLUMN_NAME_EXPRESSION.info().ident(),
-                InformationColumnsExpression.COLUMN_NAME_EXPRESSION);
-        builder.put(InformationColumnsExpression.ORDINAL_EXPRESSION.info().ident(),
-                InformationColumnsExpression.ORDINAL_EXPRESSION);
-        builder.put(InformationColumnsExpression.DATA_TYPE_EXPRESSION.info().ident(),
-                InformationColumnsExpression.DATA_TYPE_EXPRESSION);
-
-        // information_schema.table_partitions
-        builder.put(InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.VALUES_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.VALUES_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.NUMBER_OF_SHARDS_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.NUMBER_OF_REPLICAS_EXPRESSION);
-        builder.put(InformationTablePartitionsExpression.SETTINGS_EXPRESSION.info().ident(),
-                InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
-        addChildImplementationToBuilder(builder, InformationTablePartitionsExpression.SETTINGS_EXPRESSION);
-
-        // information_schema.table_constraints
-        builder.put(InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
-                InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION);
-        builder.put(InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION.info().ident(),
-                InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION);
-        builder.put(InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION.info().ident(),
-                InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION);
-        builder.put(InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION.info().ident(),
-                InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION);
-
-        // information_schema.routines
-        builder.put(InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION.info().ident(),
-                InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION);
-        builder.put(InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION.info().ident(),
-                InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION);
-
-        // information_schema.schemata
-        builder.put(InformationSchemataExpression.SCHEMA_NAME_EXPRESSION.info().ident(),
-                InformationSchemataExpression.SCHEMA_NAME_EXPRESSION);
-
-        implementations = builder.build();
+        ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder = ImmutableMap.builder();
+        addInformationSchemaTablesFactories(builder);
+        addInformationSchemaColumnsFactories(builder);
+        addInformationSchemaTablePartitionsFactories(builder);
+        addInformationSchemaTableConstraintsFactories(builder);
+        addInformationSchemaRoutinesFactories(builder);
+        addInformationSchemaSchemataFactories(builder);
+        factoryMap = builder.build();
     }
 
+    private void addInformationSchemaSchemataFactories(
+            ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
 
-    private void addChildImplementationToBuilder(ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder, RowCollectNestedObjectExpression parent) {
-        for (Map.Entry<String, ReferenceImplementation> e : parent.getChildImplementations().entrySet()) {
-            if (e.getValue() instanceof RowCollectNestedObjectExpression) {
-                addChildImplementationToBuilder(builder, (RowCollectNestedObjectExpression) e.getValue());
-            }
-            if (e.getValue() instanceof RowCollectExpression) {
-                ReferenceIdent ident = ((RowCollectExpression)e.getValue()).info().ident();
-                builder.put(ident, (RowCollectExpression) e.getValue());
-            }
-        }
+        builder.put(InformationSchemataTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationSchemataTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new SchemataSchemaNameExpression();
+                    }
+                })
+                .build());
+    }
+
+    private void addInformationSchemaRoutinesFactories(
+            ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
+
+        builder.put(InformationRoutinesTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationRoutinesTableInfo.Columns.ROUTINE_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationRoutinesExpression.RoutineNameExpression();
+                    }
+                })
+                .put(InformationRoutinesTableInfo.Columns.ROUTINE_TYPE, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationRoutinesExpression.RoutineTypeExpression();
+                    }
+                })
+                .build());
+    }
+
+    private void addInformationSchemaTableConstraintsFactories(
+            ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
+
+        builder.put(InformationTableConstraintsTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationTableConstraintsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTableConstraintsExpression.TableConstraintsSchemaNameExpression();
+                    }
+                })
+                .put(InformationTableConstraintsTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTableConstraintsExpression.TableConstraintsTableNameExpression();
+                    }
+                })
+                .put(InformationTableConstraintsTableInfo.Columns.CONSTRAINT_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTableConstraintsExpression.TableConstraintsConstraintNameExpression();
+                    }
+                })
+                .put(InformationTableConstraintsTableInfo.Columns.CONSTRAINT_TYPE, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTableConstraintsExpression.TableConstraintsConstraintTypeExpression();
+                    }
+                })
+                .build());
+    }
+
+    private void addInformationSchemaTablePartitionsFactories(
+            ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
+
+        builder.put(InformationPartitionsTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationPartitionsTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsTableNameExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsSchemaNameExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.PARTITION_IDENT, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsPartitionIdentExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.VALUES, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsValuesExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.NUMBER_OF_SHARDS, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsNumberOfShardsExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.NUMBER_OF_REPLICAS, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationTablePartitionsExpression.PartitionsNumberOfReplicasExpression();
+                    }
+                })
+                .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new PartitionsSettingsExpression();
+                    }
+                })
+                .build());
+    }
+
+    private void addInformationSchemaColumnsFactories(ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
+        builder.put(InformationColumnsTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationColumnsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsSchemaNameExpression();
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsTableNameExpression();
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.COLUMN_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsColumnNameExpression();
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.ORDINAL_POSITION, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsOrdinalExpression();
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.DATA_TYPE, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsDataTypeExpression();
+                    }
+                })
+                .build());
+    }
+
+    private void addInformationSchemaTablesFactories(ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
+        builder.put(InformationTablesTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                String schema = row.ident().schema();
+                                if (schema == null) {
+                                    return DOC_SCHEMA_INFO;
+                                }
+                                return new BytesRef(schema);
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                return new BytesRef(row.ident().name());
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, Integer>() {
+
+                            @Override
+                            public Integer value() {
+                                return row.numberOfShards();
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                return row.numberOfReplicas();
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.CLUSTERED_BY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                ColumnIdent clusteredBy = row.clusteredBy();
+                                if (clusteredBy == null) {
+                                    return null;
+                                }
+                                return new BytesRef(clusteredBy.fqn());
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.PARTITIONED_BY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef[]>() {
+
+                            @Override
+                            public BytesRef[] value() {
+                                List<ColumnIdent> partitionedBy = row.partitionedBy();
+                                if (partitionedBy == null || partitionedBy.isEmpty()) {
+                                    return null;
+                                }
+
+                                BytesRef[] partitions = new BytesRef[partitionedBy.size()];
+                                for (int i = 0; i < partitions.length; i++) {
+                                    partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
+                                }
+                                return partitions;
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.BLOBS_PATH, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                if (row instanceof BlobTableInfo) {
+                                    return ((BlobTableInfo) row).blobsPath();
+                                }
+                                return null;
+                            }
+                        };
+                    }
+                })
+                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new TablesSettingsExpression();
+                    }
+                })
+                .build());
     }
 
     @Override
     public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
-        return implementations.get(info.ident());
+        return RowContextDocLevelReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, info);
     }
 }

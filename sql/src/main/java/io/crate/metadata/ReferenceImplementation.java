@@ -32,6 +32,6 @@ public interface ReferenceImplementation<T> extends Input<T> {
      * @return an implementation for the child or null if not applicable or if there is no child available
      * with the given name
      */
-    public ReferenceImplementation getChildImplementation(String name);
+    ReferenceImplementation getChildImplementation(String name);
 
 }
