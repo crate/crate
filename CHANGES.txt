@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare race condition that could cause some queries with offset + limit higher
+   than 1_000_000 to return too few rows
+
  - Fixed an issue that could cause concurrent queries on information_schema or
    sys tables to return inconsistent results
 
