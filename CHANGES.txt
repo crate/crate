@@ -5,17 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed issue that could lead to deadlock and therefore freezing of a node
- 
  - Fixed hash collide in fetch requests to avoid collision of node identifiers
-
-2015/06/30 0.49.4
-=================
 
  - Fixed an issue that could lead to unclosed contexts when issuing bulk requests
 
  - Fixed an issue that could lead to deadlock and therefore freezing of a node
->>>>>>> 1574b40... fixed hash collide in fetch requests
    when there where too many queries asking for routing information in parallel.
 
  - Fix: Querying from information_schema while a table is created could
