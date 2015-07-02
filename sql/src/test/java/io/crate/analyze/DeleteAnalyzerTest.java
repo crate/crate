@@ -122,7 +122,6 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.whereClauses().get(0).partitions().size(), is(1));
         assertThat(statement.whereClauses().get(0).partitions().get(0),
                 is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
-
     }
 
     @Test

@@ -31,6 +31,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.management.KillPlan;
@@ -284,6 +285,16 @@ public class PlannerTest extends CrateUnitTest {
                 new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
+    private Plan plan(String statement, Object[] args) {
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+                new ParameterContext(args, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+    }
+
+    private Plan plan(String statement, Object[][] bulkArgs) {
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+                new ParameterContext(new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+    }
+
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
         CollectPhase collectNode = ((DistributedGroupBy) plan("select count('foo'), name from users group by name")).collectNode();
@@ -404,6 +415,20 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(node.tableInfo().ident().name(), is("users"));
         assertThat(node.docKeys().size(), is(1));
         assertThat(node.docKeys().get(0), isDocKey(1L));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testBulkDeletePartitionedTable() throws Exception {
+        IterablePlan plan = (IterablePlan) plan("delete from parted where date = ?", new Object[][]{
+                new Object[]{"0"},
+                new Object[]{"123"},
+        });
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESDeletePartitionNode node1 = (ESDeletePartitionNode) iterator.next();
+        assertThat(node1.indices(), is(new String[]{".partitioned.parted.04130"}));
+        ESDeletePartitionNode node2 = (ESDeletePartitionNode) iterator.next();
+        assertThat(node2.indices(), is(new String[]{ ".partitioned.parted.04232chj" }));
         assertFalse(iterator.hasNext());
     }
 
