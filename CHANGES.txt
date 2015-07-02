@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare race condition that could cause some queries with offset + limit higher
+   than 1_000_000 to return too few rows
+
  - Fixed a possible race condition which leads to the execution of a
    non-distributed group by instead of a distributed one.
 
