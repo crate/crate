@@ -359,6 +359,24 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDeleteWhereIsNull() throws Exception {
+        execute("create table test (id integer, name string) with (number_of_replicas=0)");
+        execute("insert into test (id, name) values (1, 'foo')"); // name exists
+        execute("insert into test (id, name) values (2, null)"); // name is null
+        execute("insert into test (id) values (3)"); // name does not exist
+        refresh();
+        execute("delete from test where name is null");
+        refresh();
+        execute("select * from test");
+        assertEquals(1, response.rowCount());
+        execute("select * from test where name is not null");
+        assertEquals(1, response.rowCount());
+        execute("select * from test where name is null");
+        assertEquals(0, response.rowCount());
+    }
+
+
+    @Test
     public void testSqlRequestWithLimit() throws Exception {
         createIndex("test");
         ensureYellow();
