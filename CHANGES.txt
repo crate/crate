@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a possible race condition which leads to the execution of a
+   non-distributed group by instead of a distributed one.
+
  - Fixed hash collide in fetch requests to avoid collision of node identifiers
 
  - Fixed an issue that could lead to unclosed contexts when issuing bulk requests
