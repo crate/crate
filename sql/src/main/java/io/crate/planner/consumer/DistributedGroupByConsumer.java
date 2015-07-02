@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
@@ -34,7 +33,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -92,8 +90,6 @@ public class DistributedGroupByConsumer implements Consumer {
                 return null;
             }
 
-            Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
-
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -114,7 +110,6 @@ public class DistributedGroupByConsumer implements Consumer {
                     context.plannerContext(),
                     table.querySpec().where(),
                     splitPoints.leaves(),
-                    Lists.newArrayList(routing.nodes()),
                     ImmutableList.<Projection>of(groupProjection)
             );
             // end: Map/Collect side
