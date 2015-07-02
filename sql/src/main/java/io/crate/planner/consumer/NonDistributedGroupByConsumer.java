@@ -84,7 +84,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             }
 
             context.result = true;
-            return nonDistributedGroupBy(table, context);
+            return nonDistributedGroupBy(table, routing, context);
         }
 
         @Override
@@ -110,7 +110,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          *
          */
-        private AnalyzedRelation nonDistributedGroupBy(QueriedTable table, Context context) {
+        private AnalyzedRelation nonDistributedGroupBy(QueriedTable table, Routing routing, Context context) {
             TableInfo tableInfo = table.tableRelation().tableInfo();
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
@@ -132,8 +132,10 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     tableInfo,
                     context.consumerContext.plannerContext(),
                     table.querySpec().where(),
+                    routing,
                     splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection)
+                    ImmutableList.<Projection>of(groupProjection),
+                    null, null, null
             );
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(

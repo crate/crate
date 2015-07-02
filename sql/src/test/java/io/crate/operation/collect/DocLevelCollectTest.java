@@ -188,7 +188,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Exception {
-        Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
+        Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL, null);
         TableIdent tableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "docCollect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(

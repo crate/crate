@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a possible race condition which leads to the execution of a
+   non-distributed group by instead of a distributed one.
+
  - Fix: IS NULL predicate in query could return records that have already been
    marked for deletion
 
