@@ -162,7 +162,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     }
 
     @Test
-    public void testInsertBulkNullArray() throws Exception {
+    public void testInsertDynamicNullArrayInBulk() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
         ensureYellow();
         SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
@@ -176,7 +176,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         waitForConcreteMappingsOnAll("foo", Constants.DEFAULT_MAPPING_TYPE, "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
-        assertThat((String)response.rows()[0][0], is("long_array"));
+        assertThat((String) response.rows()[0][0], is("long_array"));
     }
 
     private void assertBulkResponseWithTypes(String stmt, Object[][] bulkArgs) {
