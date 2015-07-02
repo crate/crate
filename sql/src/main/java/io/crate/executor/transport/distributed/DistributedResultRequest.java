@@ -50,11 +50,23 @@ public class DistributedResultRequest extends TransportRequest {
     public DistributedResultRequest() {
     }
 
-    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers) {
+    private DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.bucketIdx = bucketIdx;
         this.streamers = streamers;
+    }
+
+    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers, Bucket rows,
+                                    boolean isLast) {
+        this(jobId, executionPhaseId, bucketIdx, streamers);
+        this.rows = rows;
+        this.isLast = isLast;
+    }
+
+    public DistributedResultRequest(UUID jobId, int executionPhaseId, int bucketIdx, Streamer<?>[] streamers, Throwable throwable) {
+        this(jobId, executionPhaseId, bucketIdx, streamers);
+        this.throwable = throwable;
     }
 
     public UUID jobId() {
@@ -88,20 +100,12 @@ public class DistributedResultRequest extends TransportRequest {
         return rows;
     }
 
-    public void rows(Bucket rows) {
-        this.rows = rows;
-    }
-
     public boolean isLast() {
         return isLast;
     }
 
     public void isLast(boolean isLast) {
         this.isLast = isLast;
-    }
-
-    public void throwable(Throwable throwable) {
-        this.throwable = throwable;
     }
 
     @Nullable

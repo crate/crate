@@ -36,6 +36,7 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 public class DistributedResultRequestTest extends CrateUnitTest {
 
@@ -48,8 +49,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         };
         UUID uuid = UUID.randomUUID();
 
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, 1, streamers);
-        r1.rows(new ArrayBucket(rows));
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, 1, streamers, new ArrayBucket(rows), false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -60,6 +60,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         assertTrue(r2.rowsCanBeRead());
 
         assertEquals(r1.rows().size(), r2.rows().size());
+        assertThat(r1.isLast(), is(r2.isLast()));
 
         assertThat(r2.rows(), contains(isRow("ab"), isNullRow(), isRow("cd")));
     }

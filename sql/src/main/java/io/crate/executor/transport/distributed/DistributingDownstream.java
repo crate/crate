@@ -86,16 +86,16 @@ public class DistributingDownstream extends ResultProviderBase {
         return true;
     }
 
-    protected void sendRequestIfNeeded(int downstreamIdx) {
+    private void sendRequestIfNeeded(int downstreamIdx) {
         int size = bucketBuilder.size(downstreamIdx);
         if (size >= Constants.PAGE_SIZE || remainingUpstreams.get() <= 0) {
             Downstream downstream = downstreams[downstreamIdx];
             downstream.bucketQueue.add(bucketBuilder.build(downstreamIdx));
-            sendRequest(downstream);
+            downstream.sendRequest(remainingUpstreams.get() <= 0);
         }
     }
 
-    protected void onAllUpstreamsFinished() {
+    private void onAllUpstreamsFinished() {
         for (int i = 0; i < downstreams.length; i++) {
             sendRequestIfNeeded(i);
         }
@@ -103,46 +103,12 @@ public class DistributingDownstream extends ResultProviderBase {
 
     private void forwardFailures(Throwable throwable) {
         for (Downstream downstream : downstreams) {
-            downstream.request.throwable(throwable);
-            sendRequest(downstream.request, downstream);
+            downstream.sendRequest(throwable);
         }
     }
 
     private boolean allDownstreamsFinished() {
         return finishedDownstreams.get() == downstreams.length;
-    }
-
-    private void sendRequest(Downstream downstream) {
-        if (downstream.requestPending.compareAndSet(false, true)) {
-            DistributedResultRequest request = downstream.request;
-            Deque<Bucket> queue = downstream.bucketQueue;
-            int size = queue.size();
-            if (size > 0) {
-                request.rows(queue.poll());
-            } else {
-                request.rows(Bucket.EMPTY);
-            }
-            request.isLast(!(size > 1 || remainingUpstreams.get() > 0));
-            sendRequest(request, downstream);
-        }
-    }
-
-    private void sendRequest(final DistributedResultRequest request, final Downstream downstream) {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[{}] sending distributing collect request to {}, isLast? {} ...",
-                    jobId.toString(),
-                    downstream.node, request.isLast());
-        }
-        try {
-            transportDistributedResultAction.pushResult(
-                    downstream.node,
-                    request,
-                    new DistributedResultResponseActionListener(downstream)
-            );
-        } catch (IllegalArgumentException e) {
-            LOGGER.error(e.getMessage(), e);
-            downstream.wantMore.set(false);
-        }
     }
 
     @Override
@@ -162,13 +128,18 @@ public class DistributingDownstream extends ResultProviderBase {
         return t;
     }
 
-    static class Downstream {
+    private class Downstream implements ActionListener<DistributedResultResponse> {
 
         final AtomicBoolean wantMore = new AtomicBoolean(true);
         final AtomicBoolean requestPending = new AtomicBoolean(false);
         final Deque<Bucket> bucketQueue = new ConcurrentLinkedDeque<>();
-        final DistributedResultRequest request;
+        final Deque<DistributedResultRequest> requestQueue = new ConcurrentLinkedDeque<>();
         final String node;
+
+        final UUID jobId;
+        final int targetExecutionNodeId;
+        final int bucketIdx;
+        final Streamer<?>[] streamers;
 
         public Downstream(String node,
                           UUID jobId,
@@ -176,15 +147,46 @@ public class DistributingDownstream extends ResultProviderBase {
                           int bucketIdx,
                           Streamer<?>[] streamers) {
             this.node = node;
-            this.request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers);
+            this.jobId = jobId;
+            this.targetExecutionNodeId = targetExecutionNodeId;
+            this.bucketIdx = bucketIdx;
+            this.streamers = streamers;
         }
-    }
 
-    private class DistributedResultResponseActionListener implements ActionListener<DistributedResultResponse> {
-        private final Downstream downstream;
+        public void sendRequest(Throwable t) {
+            DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx, streamers, t);
+            sendRequest(request);
+        }
 
-        public DistributedResultResponseActionListener(Downstream downstream) {
-            this.downstream = downstream;
+        public void sendRequest(boolean isLast) {
+            Bucket bucket = bucketQueue.poll();
+            DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx,
+                    streamers, bucket != null ? bucket : Bucket.EMPTY, isLast);
+            synchronized(this.requestQueue) {
+                if (!requestPending.compareAndSet(false, true)) {
+                    requestQueue.add(request);
+                    return;
+                }
+            }
+            sendRequest(request);
+        }
+
+        private void sendRequest(final DistributedResultRequest request) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[{}] sending distributing collect request to {}, isLast? {} ...",
+                        jobId.toString(),
+                        node, request.isLast());
+            }
+            try {
+                transportDistributedResultAction.pushResult(
+                        node,
+                        request,
+                        this
+                );
+            } catch (IllegalArgumentException e) {
+                LOGGER.error(e.getMessage(), e);
+                wantMore.set(false);
+            }
         }
 
         @Override
@@ -192,27 +194,35 @@ public class DistributingDownstream extends ResultProviderBase {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("[{}] successfully sent distributing collect request to {}, needMore? {}",
                         jobId,
-                        downstream.node,
+                        node,
                         response.needMore());
             }
 
-            downstream.wantMore.set(response.needMore());
+            wantMore.set(response.needMore());
             if (!response.needMore()) {
                 finishedDownstreams.incrementAndGet();
+                requestQueue.clear();
                 // clean-up queue because no more rows are wanted
-                downstream.bucketQueue.clear();
+                bucketQueue.clear();
             } else {
-                // send next request or final empty closing one
-                downstream.requestPending.set(false);
-                sendRequest(downstream);
+                DistributedResultRequest request;
+                synchronized (requestQueue) {
+                    if (requestQueue.size() > 0) {
+                        request = requestQueue.poll();
+                    } else {
+                        requestPending.set(false);
+                        return;
+                    }
+                }
+                sendRequest(request);
             }
         }
 
         @Override
         public void onFailure(Throwable exp) {
-            LOGGER.error("[{}] Exception sending distributing collect request to {}", exp, jobId, downstream.node);
-            downstream.wantMore.set(false);
-            downstream.bucketQueue.clear();
+            LOGGER.error("[{}] Exception sending distributing collect request to {}", exp, jobId, node);
+            wantMore.set(false);
+            bucketQueue.clear();
             finishedDownstreams.incrementAndGet();
         }
     }
