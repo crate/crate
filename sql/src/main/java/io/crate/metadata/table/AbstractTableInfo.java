@@ -7,16 +7,12 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
 import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractTableInfo implements TableInfo {
 
@@ -110,7 +106,4 @@ public abstract class AbstractTableInfo implements TableInfo {
         return String.format("%s.%s", schemaInfo.name(), ident().name());
     }
 
-    public Routing getRouting(WhereClause whereClause) {
-        return getRouting(whereClause, null);
-    }
 }
