@@ -11,8 +11,8 @@
 *~
 .gradle
 *build/
+data/
 /out
-*data/
 /sandbox
 /docs/eggs
 /docs/out
