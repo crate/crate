@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed bulk delete for partitioned tables where partition column was part
+   of the where clause
+
  - Fixed a rare race condition that could cause some queries with offset + limit higher
    than 1_000_000 to return too few rows
 
