@@ -42,7 +42,6 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.RegexMatcher;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Function;
 import io.crate.types.DataTypes;

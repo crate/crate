@@ -74,7 +74,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
-import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
@@ -455,9 +454,10 @@ public class LuceneQueryBuilder {
 
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
-                return new FilteredQuery(
-                        Queries.newMatchAllQuery(),
-                        new NotFilter(builderHelper.rangeFilter(columnName, null, null, true, true)));
+                BooleanFilter boolFilter = new BooleanFilter();
+                boolFilter.add(builderHelper.rangeFilter(columnName, null, null, true, true),
+                        BooleanClause.Occur.MUST_NOT);
+                return new FilteredQuery(Queries.newMatchAllQuery(), boolFilter);
             }
         }
 
