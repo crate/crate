@@ -20,27 +20,14 @@
  */
 package io.crate.operation.reference.information;
 
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RoutineInfo;
-import io.crate.metadata.information.RowCollectExpression;
-import io.crate.metadata.information.InformationRoutinesTableInfo;
+import io.crate.metadata.RowContextCollectorExpression;
 import org.apache.lucene.util.BytesRef;
 
 public abstract class InformationRoutinesExpression<T>
-    extends RowCollectExpression<RoutineInfo, T> {
-
-    public static final RoutineNameExpression ROUTINE_NAME_EXPRESSION = new RoutineNameExpression();
-    public static final RoutineTypeExpression ROUTINE_TYPE_EXPRESSION = new RoutineTypeExpression();
-
-    protected InformationRoutinesExpression(ReferenceInfo info) {
-        super(info);
-    }
+    extends RowContextCollectorExpression<RoutineInfo, T> {
 
     public static class RoutineNameExpression extends InformationRoutinesExpression<BytesRef> {
-        protected RoutineNameExpression() {
-            super(InformationRoutinesTableInfo.ReferenceInfos.ROUTINE_NAME);
-        }
-
         @Override
         public BytesRef value() {
             return new BytesRef(row.name());
@@ -48,10 +35,6 @@ public abstract class InformationRoutinesExpression<T>
     }
 
     public static class RoutineTypeExpression extends InformationRoutinesExpression<BytesRef> {
-        protected RoutineTypeExpression() {
-            super(InformationRoutinesTableInfo.ReferenceInfos.ROUTINE_TYPE);
-        }
-
         @Override
         public BytesRef value() {
             return new BytesRef(row.type());

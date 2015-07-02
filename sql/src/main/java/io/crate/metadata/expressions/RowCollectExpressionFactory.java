@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,36 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
+package io.crate.metadata.expressions;
 
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.Input;
+import io.crate.metadata.RowCollectExpression;
 
-/**
- * Base class for information_schema expressions.
- * @param <T> The returnType of the expression
- */
-public abstract class RowCollectExpression<R, T> implements ReferenceImplementation<T> {
+public interface RowCollectExpressionFactory {
 
-    protected final ReferenceInfo info;
-    protected R row;
-
-    public RowCollectExpression(ReferenceInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
-
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
-    }
-
-    public void setNextRow(R row) {
-        this.row = row;
-    }
+   RowCollectExpression create();
 }

@@ -26,6 +26,5 @@ import io.crate.operation.Input;
 
 public interface DocLevelReferenceResolver<E extends Input<?>> {
 
-    public E getImplementation(ReferenceInfo ident);
-
+    E getImplementation(ReferenceInfo ident);
 }

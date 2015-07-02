@@ -29,45 +29,53 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
+@Singleton
 public class SysJobsLogTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs_log");
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final String[] INDICES = new String[] { IDENT.name() };
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-    private static final List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
 
-    static {
-        register("id", DataTypes.STRING, null);
-        register("stmt", DataTypes.STRING, null);
-        register("started", DataTypes.TIMESTAMP, null);
-        register("ended", DataTypes.TIMESTAMP, null);
-        register("error", DataTypes.STRING, null);
+    private final Map<ColumnIdent, ReferenceInfo> infos = new LinkedHashMap<>();
+    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        public static final ColumnIdent ENDED = new ColumnIdent("ended");
+        public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
+
 
     @Inject
     public SysJobsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
+
+        register(Columns.ID, DataTypes.STRING);
+        register(Columns.STMT, DataTypes.STRING);
+        register(Columns.STARTED, DataTypes.TIMESTAMP);
+        register(Columns.ENDED, DataTypes.TIMESTAMP);
+        register(Columns.ERROR, DataTypes.STRING);
     }
 
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.DOC, type);
-        if (info.ident().isColumn()) {
+    private void register(ColumnIdent column, DataType type) {
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
+        if (column.isColumn()) {
             columns.add(info);
         }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
+        infos.put(column, info);
     }
-
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
@@ -102,6 +110,6 @@ public class SysJobsLogTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

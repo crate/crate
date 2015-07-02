@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,17 +21,11 @@
 
 package io.crate.metadata;
 
-public abstract class RowContextCollectorExpression<TRow, TReturnValue> implements RowCollectExpression<TRow, TReturnValue> {
+/**
+ * Base interface for row based expressions.
+ * @param <TReturnValue> The returnType of the expression
+ */
+public interface RowCollectExpression<TRow, TReturnValue> extends ReferenceImplementation<TReturnValue> {
 
-    protected TRow row;
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
-
-    @Override
-    public void setNextRow(TRow row) {
-        this.row = row;
-    }
+    void setNextRow(TRow row);
 }

@@ -21,9 +21,14 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
@@ -43,5 +48,36 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards");
         assertEquals(5L, response.rowCount()); // t3 isn't included
+    }
+
+    @Test
+    public void testConcurrentInformationSchemaQueries() throws Exception {
+        final SQLResponse response = execute("select * from information_schema.columns " +
+                "order by schema_name, table_name, column_name");
+        final CountDownLatch latch = new CountDownLatch(40);
+        final AtomicReference<AssertionError> lastAssertionError = new AtomicReference<>();
+
+        for (int i = 0; i < 40; i++) {
+            final Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    SQLResponse resp = execute("select * from information_schema.columns " +
+                            "order by schema_name, table_name, column_name");
+                    try {
+                        assertThat(resp.rows(), Matchers.equalTo(response.rows()));
+                    } catch (AssertionError e) {
+                        lastAssertionError.set(e);
+                    }
+                    latch.countDown();;
+                }
+            });
+            t.start();
+        }
+
+        latch.await();
+        AssertionError assertionError = lastAssertionError.get();
+        if (assertionError != null) {
+            throw assertionError;
+        }
     }
 }

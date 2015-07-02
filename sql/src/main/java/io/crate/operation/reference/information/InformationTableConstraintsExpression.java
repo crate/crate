@@ -22,33 +22,18 @@
 package io.crate.operation.reference.information;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.RowCollectExpression;
-import io.crate.metadata.information.InformationTableConstraintsTableInfo;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public abstract class InformationTableConstraintsExpression<T> extends RowCollectExpression<TableInfo, T> {
+public abstract class InformationTableConstraintsExpression<T> extends RowContextCollectorExpression<TableInfo, T> {
 
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
 
-    public static final TableConstraintsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new TableConstraintsSchemaNameExpression();
-    public static final TableConstraintsTableNameExpression TABLE_NAME_EXPRESSION = new TableConstraintsTableNameExpression();
-    public static final TableConstraintsConstraintNameExpression CONSTRAINT_NAME_EXPRESSION = new TableConstraintsConstraintNameExpression();
-    public static final TableConstraintsConstraintTypeExpression CONSTRAINT_TYPE_EXPRESSION = new TableConstraintsConstraintTypeExpression();
-
-    protected InformationTableConstraintsExpression(ReferenceInfo info) {
-        super(info);
-    }
-
     public static class TableConstraintsSchemaNameExpression
             extends InformationTableConstraintsExpression<BytesRef> {
-
-        protected TableConstraintsSchemaNameExpression() {
-            super(InformationTableConstraintsTableInfo.ReferenceInfos.SCHEMA_NAME);
-        }
 
         @Override
         public BytesRef value() {
@@ -59,10 +44,6 @@ public abstract class InformationTableConstraintsExpression<T> extends RowCollec
     public static class TableConstraintsTableNameExpression
             extends InformationTableConstraintsExpression<BytesRef> {
 
-        protected TableConstraintsTableNameExpression() {
-            super(InformationTableConstraintsTableInfo.ReferenceInfos.TABLE_NAME);
-        }
-
         @Override
         public BytesRef value() {
             assert row.ident().name() != null : "table name must not be null";
@@ -72,10 +53,6 @@ public abstract class InformationTableConstraintsExpression<T> extends RowCollec
 
     public static class TableConstraintsConstraintNameExpression
             extends InformationTableConstraintsExpression<BytesRef[]> {
-
-        protected TableConstraintsConstraintNameExpression() {
-            super(InformationTableConstraintsTableInfo.ReferenceInfos.CONSTRAINT_NAME);
-        }
 
         @Override
         public BytesRef[] value() {
@@ -90,10 +67,6 @@ public abstract class InformationTableConstraintsExpression<T> extends RowCollec
 
     public static class TableConstraintsConstraintTypeExpression
             extends InformationTableConstraintsExpression<BytesRef> {
-
-        protected TableConstraintsConstraintTypeExpression() {
-            super(InformationTableConstraintsTableInfo.ReferenceInfos.CONSTRAINT_TYPE);
-        }
 
         @Override
         public BytesRef value() {

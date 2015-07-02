@@ -21,29 +21,14 @@
 
 package io.crate.operation.reference.information;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.InformationSchemataTableInfo;
-import io.crate.metadata.information.RowCollectExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.table.SchemaInfo;
 import org.apache.lucene.util.BytesRef;
 
-public abstract class InformationSchemataExpression<T> extends RowCollectExpression<SchemaInfo, T> {
+public class SchemataSchemaNameExpression extends RowContextCollectorExpression<SchemaInfo, BytesRef> {
 
-    public static final SchemataSchemaNameExpression SCHEMA_NAME_EXPRESSION = new SchemataSchemaNameExpression();
-
-    protected InformationSchemataExpression(ReferenceInfo info) {
-        super(info);
-    }
-
-    private static class SchemataSchemaNameExpression extends InformationSchemataExpression<BytesRef> {
-
-        protected SchemataSchemaNameExpression() {
-            super(InformationSchemataTableInfo.ReferenceInfos.SCHEMA_NAME);
-        }
-
-        @Override
-        public BytesRef value() {
-            return new BytesRef(this.row.name());
-        }
+    @Override
+    public BytesRef value() {
+        return new BytesRef(this.row.name());
     }
 }

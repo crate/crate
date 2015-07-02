@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
@@ -47,15 +48,14 @@ import java.util.Set;
  */
 public class SystemCollectService implements CollectService {
 
-    private final CollectInputSymbolVisitor<RowContextCollectorExpression<?, ?>> docInputSymbolVisitor;
+    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, StatsTables.IterableGetter> iterableGetters;
     private final DiscoveryService discoveryService;
 
 
     @Inject
     public SystemCollectService(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
-        docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
-                RowContextDocLevelReferenceResolver.INSTANCE);
+        docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextDocLevelReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.<String, StatsTables.IterableGetter>of(
                 SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
