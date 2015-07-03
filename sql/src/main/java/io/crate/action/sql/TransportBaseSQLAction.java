@@ -62,6 +62,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -255,10 +256,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     @Override
                     public void onFailure(final @Nonnull Throwable t) {
                         String message;
-                        if (t instanceof CancellationException) {
+                        Throwable unwrappedException = Exceptions.unwrap(t);
+                        if (unwrappedException instanceof CancellationException) {
                             message = Constants.KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
-                        } else if (Exceptions.unwrap(t) instanceof IndexShardMissingException && attempt <= MAX_SHARD_MISSING_RETRIES) {
+                        } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
+                                && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
                             killJobs(ImmutableList.of(plan.jobId()), new FutureCallback<Long>() {
                                 @Override
