@@ -43,7 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class JobContextServiceTest extends CrateUnitTest {
@@ -67,9 +68,10 @@ public class JobContextServiceTest extends CrateUnitTest {
         // create new context
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
-        builder1.addSubContext(1, mock(PageDownstreamContext.class));
+        ExecutionSubContext subContext = mock(PageDownstreamContext.class);
+        builder1.addSubContext(1, subContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
-        assertThat(ctx1.lastAccessTime(), is(-1L));
+        assertThat(ctx1.getSubContext(1), is(subContext));
     }
 
     @Test
@@ -83,8 +85,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         // create new context
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
         builder1.addSubContext(1, mock(PageDownstreamContext.class));
-        JobExecutionContext ctx1 = jobContextService.createContext(builder1);
-        assertThat(ctx1.lastAccessTime(), is(-1L));
+        jobContextService.createContext(builder1);
 
         // creating a context with the same jobId will fail
         JobExecutionContext.Builder builder2 = jobContextService.newBuilder(jobId);
@@ -105,9 +106,10 @@ public class JobContextServiceTest extends CrateUnitTest {
     @Test
     public void testAccessContext() throws Exception {
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
-        assertThat(ctx1.lastAccessTime(), is(-1L));
+        long firstAccessTime = ctx1.lastAccessTime();
+        Thread.sleep(205); // sleep for > 200 ms to ensure that the estimatedTime in ThreadPool is updated
         ctx1.getSubContextOrNull(1);
-        assertThat(ctx1.lastAccessTime(), greaterThan(-1L));
+        assertThat(ctx1.lastAccessTime(), greaterThan(firstAccessTime));
     }
 
     @Test
@@ -234,7 +236,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     @Test
     public void testKeepAliveExpiration() throws Exception {
         JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMillis(1);
-        JobContextService.DEFAULT_KEEP_ALIVE = timeValueMillis(0).millis();
+        JobContextService.KEEP_ALIVE = timeValueMillis(0).millis();
         JobContextService jobContextService1 = new JobContextService(settings, testThreadPool, mock(StatsTables.class));
 
         JobExecutionContext jobExecutionContext = getJobExecutionContextWithOneActiveSubContext(jobContextService1);
@@ -251,7 +253,7 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         // set back original values
         JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
-        JobContextService.DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
+        JobContextService.KEEP_ALIVE = timeValueMinutes(5).millis();
     }
 
     protected static class DummySubContext implements ExecutionSubContext {

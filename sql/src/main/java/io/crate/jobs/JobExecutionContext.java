@@ -38,7 +38,6 @@ public class JobExecutionContext {
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
 
     private final UUID jobId;
-    private final long keepAlive;
     private final LinkedHashMap<Integer, ExecutionSubContext> subContexts;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
@@ -55,7 +54,6 @@ public class JobExecutionContext {
         private final UUID jobId;
         private final ThreadPool threadPool;
         private final StatsTables statsTables;
-        private final long keepAlive = JobContextService.DEFAULT_KEEP_ALIVE;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
 
         Builder(UUID jobId, ThreadPool threadPool, StatsTables statsTables) {
@@ -81,21 +79,20 @@ public class JobExecutionContext {
         }
 
         public JobExecutionContext build() {
-            return new JobExecutionContext(jobId, keepAlive, threadPool, statsTables, subContexts);
+            return new JobExecutionContext(jobId, threadPool, statsTables, subContexts);
         }
     }
 
 
     private JobExecutionContext(UUID jobId,
-                                long keepAlive,
                                 ThreadPool threadPool,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
         this.subContexts = new LinkedHashMap<>(subContexts.size());
         this.jobId = jobId;
-        this.keepAlive = keepAlive;
         this.threadPool = threadPool;
         this.statsTables = statsTables;
+        lastAccessTime = threadPool.estimatedTimeInMillis();
 
         for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
             addContext(entry.getKey(), entry.getValue());
@@ -158,10 +155,6 @@ public class JobExecutionContext {
 
     public long lastAccessTime() {
         return this.lastAccessTime;
-    }
-
-    public long keepAlive() {
-        return this.keepAlive;
     }
 
     public long kill() {

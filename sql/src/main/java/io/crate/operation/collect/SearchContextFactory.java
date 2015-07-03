@@ -99,7 +99,7 @@ public class SearchContextFactory {
                 bigArrays,
                 threadPool.estimatedTimeInMillisCounter(),
                 Optional.<Scroll>absent(),
-                JobContextService.DEFAULT_KEEP_ALIVE
+                JobContextService.KEEP_ALIVE
         );
         LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(whereClause, searchContext, indexService.cache());
         searchContext.parsedQuery(new ParsedQuery(context.query(), EMPTY_NAMED_FILTERS));
