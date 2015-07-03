@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added a limitation notice that `COPY TO` doesn't work with system tables and
+   attempting to do so will result in a more meaningful error.
+
  - Fixed bulk delete for partitioned tables where partition column was part
    of the where clause
 

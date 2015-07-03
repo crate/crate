@@ -144,6 +144,13 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCopySysTableTo() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot COPY sys.nodes TO. COPY TO doesn't support system tables");
+        analyze("copy sys.nodes to directory '/foo'");
+    }
+
+    @Test
     public void testCopyToWithColumnList() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users (id, name) to DIRECTORY '/tmp'");
         assertThat(analysis.selectedColumns().size(), is(2));

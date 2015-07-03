@@ -46,6 +46,12 @@ way to prevent filename conflicts.
  To prevent such cases use the ``DIRECTORY`` keyword. An example is given
  in :ref:`exporting_data`.
 
+
+.. note::
+
+  Currently only user tables can be exported. System tables like `sys.nodes`
+  and blob tables don't work with the `COPY TO` statement.
+
 Parameters
 ==========
 
