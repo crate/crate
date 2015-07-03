@@ -30,6 +30,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,7 +40,8 @@ public class JobExecutionContext {
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
 
     private final UUID jobId;
-    private final LinkedHashMap<Integer, ExecutionSubContext> subContexts;
+    private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
+    private final List<Integer> reverseContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
     private StatsTables statsTables;
@@ -88,7 +91,7 @@ public class JobExecutionContext {
                                 ThreadPool threadPool,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
-        this.subContexts = new LinkedHashMap<>(subContexts.size());
+        reverseContextIds = Lists.reverse(Lists.newArrayList(subContexts.keySet()));
         this.jobId = jobId;
         this.threadPool = threadPool;
         this.statsTables = statsTables;
@@ -121,10 +124,6 @@ public class JobExecutionContext {
     }
 
     public void start() {
-        List<Integer> reverseContextIds;
-        synchronized (subContexts) {
-             reverseContextIds = Lists.reverse(Lists.newArrayList(subContexts.keySet()));
-        }
         for (Integer id : reverseContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
@@ -163,11 +162,7 @@ public class JobExecutionContext {
             if (activeSubContexts.get() == 0) {
                 callContextCallback();
             } else {
-                List<ExecutionSubContext> contexts;
-                synchronized (subContexts) {
-                    contexts = Lists.newArrayList(subContexts.values());
-                }
-                for (ExecutionSubContext executionSubContext : contexts) {
+                for (ExecutionSubContext executionSubContext : subContexts.values()) {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
                     executionSubContext.kill();
