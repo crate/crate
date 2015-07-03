@@ -106,6 +106,11 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         statement.mode(CopyAnalyzedStatement.Mode.TO);
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+
+        if (tableInfo.schemaInfo().systemSchema()) {
+            throw new UnsupportedOperationException(String.format(
+                    "Cannot COPY %s TO. COPY TO doesn't support system tables", tableInfo.ident()));
+        }
         statement.table(tableInfo);
         TableRelation tableRelation = new TableRelation(tableInfo);
 
