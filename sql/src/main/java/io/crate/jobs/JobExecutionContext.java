@@ -22,6 +22,7 @@
 package io.crate.jobs;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
@@ -45,6 +46,7 @@ public class JobExecutionContext {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
     private StatsTables statsTables;
+    private final SettableFuture<Void> killFuture = SettableFuture.create();
 
     volatile ContextCallback contextCallback;
 
@@ -168,6 +170,14 @@ public class JobExecutionContext {
                     executionSubContext.kill();
                     numKilled++;
                 }
+            }
+            killFuture.set(null);
+        } else {
+            try {
+                killFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running kill {}", e);
+                return numKilled;
             }
         }
         return numKilled;
