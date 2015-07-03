@@ -54,8 +54,8 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -132,6 +132,25 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
             printStackDump(LOGGER);
             throw new AssertionError(errorMessageBuilder.toString(), e);
         }
+    }
+
+
+    public void runJobContextReapers() throws Exception{
+        long defaultKeepAlive = JobContextService.KEEP_ALIVE;
+        try {
+            // The estimateTimeThread is updated in a 200ms interval only, so Reaper time and lastAccessTime has the same
+            // value in most test cases. So set KEEP_ALIVE to -1 to bypass the time check.
+            JobContextService.KEEP_ALIVE = -1;
+            Class<?> innerClass = Class.forName("io.crate.jobs.JobContextService$Reaper");
+            Constructor<?> reaperConst = innerClass.getDeclaredConstructor(JobContextService.class);
+            reaperConst.setAccessible(true);
+            for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+                ((Runnable)reaperConst.newInstance(jobContextService)).run();
+            }
+        } finally {
+            JobContextService.KEEP_ALIVE = defaultKeepAlive;
+        }
+
     }
 
     /**

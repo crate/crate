@@ -47,7 +47,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private static final ESLogger LOGGER = Loggers.getLogger(JobContextService.class);
 
     // TODO: maybe make configurable
-    public static long DEFAULT_KEEP_ALIVE = timeValueMinutes(5).millis();
+    public static long KEEP_ALIVE = timeValueMinutes(5).millis();
     protected static TimeValue DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
 
 
@@ -199,10 +199,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                 if (lastAccessTime == -1L) { // its being processed or timeout is disabled
                     continue;
                 }
-                if ((time - lastAccessTime > context.keepAlive())) {
+                if ((time - lastAccessTime > KEEP_ALIVE)) {
                     UUID id = entry.getKey();
-                    logger.debug("closing job collect context [{}], time [{}], lastAccessTime [{}], keepAlive [{}]",
-                            id, time, lastAccessTime, context.keepAlive());
+                    logger.debug("closing job collect context [{}], time [{}], lastAccessTime [{}]",
+                            id, time, lastAccessTime);
                     context.close();
                 }
             }
