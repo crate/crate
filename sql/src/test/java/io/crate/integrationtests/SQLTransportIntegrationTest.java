@@ -29,8 +29,11 @@ import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -243,13 +246,13 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return builder.string();
     }
 
-    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception{
+    public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception{
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                Iterable<DocSchemaInfo> instances = internalCluster().getInstances(DocSchemaInfo.class);
-                for (DocSchemaInfo schemaInfo : instances) {
-                    DocTableInfo tableInfo = schemaInfo.getTableInfo(tableOrPartition);
+                Iterable<ReferenceInfos> referenceInfosIterable = internalCluster().getInstances(ReferenceInfos.class);
+                for (ReferenceInfos referenceInfos : referenceInfosIterable) {
+                    TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
                     assertThat(tableInfo, Matchers.notNullValue());
                     for (String fieldName : fieldNames) {
                         ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
@@ -258,6 +261,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 }
             }
         });
+    }
+    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
+        waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
     }
 
     /**

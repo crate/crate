@@ -138,6 +138,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table order by id");
         assertThat(response.rowCount(), is(2L));
+        assertThat(response.cols().length, is(3));
         assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL| 1| Ford\n" +

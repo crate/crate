@@ -588,7 +588,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(ctx.jobId(), getNode);
+        plan = new IterablePlan(UUID.randomUUID(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -622,7 +622,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         ESGetNode getNode = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(ctx.jobId(), getNode);
+        plan = new IterablePlan(UUID.randomUUID(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -655,7 +655,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(ctx.jobId(), getNode);
+        plan = new IterablePlan(UUID.randomUUID(), getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
