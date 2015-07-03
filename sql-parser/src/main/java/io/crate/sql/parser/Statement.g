@@ -86,6 +86,7 @@ tokens {
     DROP_TABLE;
     DROP_BLOB_TABLE;
     TABLE_ELEMENT_LIST;
+    TABLE_PARTITION_LIST;
     ADD_COLUMN;
     COLUMN_DEF;
     NESTED_COLUMN_DEF;
@@ -1010,8 +1011,12 @@ namedProperties
     : ident (WITH '(' genericProperties ')' )? -> ^(NAMED_PROPERTIES ident genericProperties?)
     ;
 
+tableWithPartitionList
+    : tableWithPartition ( ',' tableWithPartition )* -> ^(TABLE_PARTITION_LIST tableWithPartition+)
+    ;
+
 refreshStmt
-    : REFRESH TABLE tableWithPartition -> ^(REFRESH tableWithPartition)
+    : REFRESH TABLE tableWithPartitionList -> ^(REFRESH tableWithPartitionList)
     ;
 
 setStmt

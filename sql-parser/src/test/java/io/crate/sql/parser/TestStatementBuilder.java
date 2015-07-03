@@ -206,6 +206,7 @@ public class TestStatementBuilder
                 "  over='write'" +
                 ")");
         printStatement("refresh table t");
+        printStatement("refresh table t partition (pcol='val'), tableh partition (pcol='val')");
         printStatement("refresh table schemah.tableh");
         printStatement("refresh table tableh partition (pcol='val')");
         printStatement("refresh table tableh partition (pcol=?)");

@@ -28,28 +28,30 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
-import java.util.Locale;
+import java.util.*;
 
 public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
-    private TableInfo tableInfo;
-    private PartitionName partitionName;
+    private final List<TableInfo> tableInfos = new ArrayList<>();
+    private final Map<TableInfo, PartitionName> partitions = new HashMap<>();
 
     protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos){
         this.referenceInfos = referenceInfos;
     }
 
-    public void table(TableIdent tableIdent) {
-        tableInfo = referenceInfos.getWritableTable(tableIdent);
-    }
-
-    public TableInfo table() {
+    public TableInfo table(TableIdent tableIdent) {
+        TableInfo tableInfo = referenceInfos.getWritableTable(tableIdent);
+        tableInfos.add(tableInfo);
         return tableInfo;
     }
 
-    public @Nullable PartitionName partitionName() {
-        return partitionName;
+    public List<TableInfo> tables() {
+        return tableInfos;
+    }
+
+    public @Nullable Map<TableInfo, PartitionName> partitions() {
+        return partitions;
     }
 
     @Override
@@ -57,30 +59,33 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
     }
 
-    public void partitionIdent(String ident) {
-        assert table() != null;
+    public void partitionIdent(TableInfo tableInfo, String ident) {
+        assert tableInfo != null;
+        PartitionName partitionName;
 
-        if (!table().isPartitioned()) {
+        if (!tableInfo.isPartitioned()) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH,
-                            "Table '%s' is not partitioned", table().ident().fqn()));
+                            "Table '%s' is not partitioned", tableInfo.ident().fqn()));
         }
         try {
-            this.partitionName = PartitionName.fromPartitionIdent(
-                    table().ident().schema(),
-                    table().ident().name(),
+            partitionName = PartitionName.fromPartitionIdent(
+                    tableInfo.ident().schema(),
+                    tableInfo.ident().name(),
                     ident
             );
+
+            partitions.put(tableInfo, partitionName);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
-                            table().ident().fqn(), ident), e);
+                            tableInfo.ident().fqn(), ident), e);
         }
 
-        if (!table().partitions().contains(this.partitionName)) {
+        if (!tableInfo.partitions().contains(partitionName)) {
             throw new PartitionUnknownException(
-                    this.table().ident().fqn(),
-                    this.partitionName.ident());
+                    tableInfo.ident().fqn(),
+                    partitionName.ident());
         }
     }
 }

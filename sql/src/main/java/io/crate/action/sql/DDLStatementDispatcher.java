@@ -80,6 +80,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -315,27 +316,38 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
 
     @Override
     public ListenableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, UUID jobId) {
-        String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
-        if (analysis.table().schemaInfo().systemSchema() || indexNames.length == 0) {
-            // shortcut when refreshing on system tables
-            // or empty partitioned tables
-            return Futures.immediateFuture(null);
-        } else {
-            final SettableFuture<Long> future = SettableFuture.create();
-            RefreshRequest request = new RefreshRequest(indexNames);
-            transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
-                @Override
-                public void onResponse(RefreshResponse refreshResponse) {
-                    future.set(null); // no row count
-                }
+        Map partitionNames = analysis.partitions();
+        final SettableFuture<Long> resultFuture = SettableFuture.create();
+        final AtomicInteger operations = new AtomicInteger(analysis.tables().size());
 
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
+        for (TableInfo tableInfo : analysis.tables()) {
+            String[] indexNames = getIndexNames(tableInfo, (PartitionName) partitionNames.get(tableInfo));
+            if (tableInfo.schemaInfo().systemSchema() || indexNames.length == 0) {
+                // shortcut when refreshing on system tables or empty partitioned tables
+                if (operations.decrementAndGet() == 0) {
+                    resultFuture.set(null);
                 }
-            });
-            return future;
+            } else {
+                RefreshRequest request = new RefreshRequest(indexNames);
+                transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
+                    @Override
+                    public void onResponse(RefreshResponse refreshResponse) {
+                        if (operations.decrementAndGet() == 0) {
+                            resultFuture.set(null); // no row count
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        if (operations.decrementAndGet() == 0) {
+                            resultFuture.setException(e); // no row count
+                        }
+                    }
+                });
+            }
         }
+
+        return resultFuture;
     }
 
     private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {

@@ -23,10 +23,8 @@ package io.crate.analyze;
 
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.RefreshStatement;
+import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -50,23 +48,29 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
     @Override
     public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
         RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(referenceInfos);
-        statement.table(TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        if (!node.table().partitionProperties().isEmpty()) {
-            setParitionIdent(node.table().partitionProperties(), statement, analysis.parameterContext());
+        for (Table nodeTable : node.tables()) {
+            TableIdent tableIdent = TableIdent.of(nodeTable, analysis.parameterContext().defaultSchema());
+            TableInfo tableInfo = statement.table(tableIdent);
+
+            if (!nodeTable.partitionProperties().isEmpty()) {
+                setPartitionIdent(tableInfo, nodeTable.partitionProperties(), statement, analysis.parameterContext());
+            }
         }
 
         return statement;
     }
 
-    private void setParitionIdent(List<Assignment> properties,
+    private void setPartitionIdent(TableInfo tableInfo, List<Assignment> properties,
                                   RefreshTableAnalyzedStatement statement,
                                   ParameterContext parameterContext) {
+
+
         String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                statement.table(),
-                properties,
-                parameterContext.parameters()
-        );
-        statement.partitionIdent(partitionIdent);
+                    tableInfo,
+                    properties,
+                    parameterContext.parameters()
+            );
+        statement.partitionIdent(tableInfo, partitionIdent);
     }
 
 }

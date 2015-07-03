@@ -92,8 +92,8 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshBlobTable() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table blob.blobs");
-        assertThat(analysis.table().ident().schema(), is("blob"));
-        assertThat(analysis.table().ident().name(), is("blobs"));
+        assertThat(analysis.tables().get(0).ident().schema(), is("blob"));
+        assertThat(analysis.tables().get(0).ident().name(), is("blobs"));
 
     }
 
@@ -101,17 +101,20 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted PARTITION (date=1395874800000)");
-        assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+
+        assertThat(analysis.tables().get(0).ident().name(), is("parted"));
+        assertThat(analysis.partitions().get(analysis.tables().get(0)).toString(), is(partition.stringValue()));
     }
 
     @Test
-    public void testRefreshPartitionsParameter() throws Exception {
+    public void testRefreshMultiTablesWithPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze(
-                "refresh table parted PARTITION (date=?)", new Object[] {"1395874800000"});
-        assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+                "refresh table parted PARTITION (date=?), users", new Object[] {"1395874800000"});
+
+        assertThat(analysis.tables().get(0).ident().name(), is("parted"));
+        assertThat(analysis.partitions().get(analysis.tables().get(0)).toString(), is(partition.stringValue()));
+        assertThat(analysis.tables().get(1).ident().name(), is("users"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -139,7 +142,14 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
-        assertNotNull(analysis.partitionName());
-        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted.0400"));
+        assertNotNull(analysis.partitions().get(analysis.tables().get(0)));
+        assertThat(analysis.partitions().get(analysis.tables().get(0)).toString(), is(".partitioned.parted.0400"));
+    }
+
+    @Test
+    public void testRefreshMultiTables() throws Exception {
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table users, parted");
+        assertThat(analysis.tables().get(0).ident().name(), is("users"));
+        assertThat(analysis.tables().get(1).ident().name(), is("parted"));
     }
 }

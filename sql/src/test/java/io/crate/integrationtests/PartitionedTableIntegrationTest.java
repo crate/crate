@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -1412,15 +1413,23 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testRefreshPartitionedTableAllPartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        execute("create table parted (id integer, name string, date timestamp) " +
+                "partitioned by (date) with (refresh_interval=0)");
+        execute("create table temp (id integer, temp integer, date timestamp) " +
+                "partitioned by (temp) with (refresh_interval=0)");
         ensureYellow();
 
-        execute("refresh table parted");
+        execute("refresh table temp, parted");
         assertThat(response.rowCount(), is(-1L));
 
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +
                 "(2, 'Arthur', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("insert into temp (id, temp, date) values " +
+                "(1, '30', '1970-01-01'), " +
+                "(2, '32', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
         ensureYellow();
 
@@ -1430,11 +1439,17 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         // cannot exactly tell which rows are visible
         assertThat((Long) response.rows()[0][0], lessThanOrEqualTo(2L));
 
-        execute("refresh table parted");
+        execute("select count(*) from temp");
+        assertThat((Long) response.rows()[0][0], lessThanOrEqualTo(2L));
+
+        execute("refresh table parted, temp");
         assertThat(response.rowCount(), is(-1L));
 
         // assert that all is available after refresh
         execute("select count(*) from parted");
+        assertThat((Long) response.rows()[0][0], is(2L));
+
+        execute("select count(*) from temp");
         assertThat((Long) response.rows()[0][0], is(2L));
     }
 
@@ -1450,20 +1465,32 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
-                "with (number_of_replicas=0, refresh_interval=-1)");
+        execute("create table parted (id integer, name string, date timestamp) " +
+                "partitioned by (date) with (number_of_replicas=0, refresh_interval=-1)");
+        execute("create table temperature (id integer, temp_data integer, date timestamp) " +
+                "partitioned by (temp_data) with (number_of_replicas=0, refresh_interval=-1)");
         ensureYellow();
+
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
 
+        execute("insert into temperature (id, temp_data, date) values " +
+                "(1, 5, '1970-01-01'), " +
+                "(2, -10, '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
         ensureYellow();
-        execute("refresh table parted");
+
+        execute("refresh table parted, temperature");
         assertThat(response.rowCount(), is(-1L));
 
         // assert that after refresh all columns are available
         execute("select * from parted");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select * from temperature");
         assertThat(response.rowCount(), is(2L));
 
         execute("insert into parted (id, name, date) values " +
@@ -1471,23 +1498,38 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "(4, 'Marvin', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
 
+        execute("insert into temperature (id, temp_data, date) values " +
+                "(3, -10, '1970-01-01')," +
+                "(4, 5, '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
         // cannot exactly tell which rows are visible
         execute("select * from parted");
         // cannot exactly tell how much rows are visible at this point
         assertThat(response.rowCount(), lessThanOrEqualTo(4L));
 
-        execute("refresh table parted PARTITION (date='1970-01-01')");
+        execute("select * from temperature");
+        assertThat(response.rowCount(), lessThanOrEqualTo(4L));
+
+        execute("refresh table temperature PARTITION (temp_data=-10), parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(-1L));
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-01'");
         assertThat(response.rowCount(), is(2L));
 
-        execute("refresh table parted PARTITION (date='1970-01-07')");
+        execute("select * from temperature where temp_data=-10");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("refresh table temperature PARTITION (temp_data=5), parted PARTITION (date='1970-01-07')");
         assertThat(response.rowCount(), is(-1L));
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-07'");
+        assertThat(response.rowCount(), is(2L));
+
+        // assert all partition rows are available after refresh
+        execute("select * from temperature where temp_data=5");
         assertThat(response.rowCount(), is(2L));
     }
 
