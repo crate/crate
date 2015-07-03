@@ -23,14 +23,8 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.*;
+import io.crate.analyze.relations.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
@@ -74,22 +68,30 @@ public class QueryAndFetchConsumer implements Consumer {
         private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            TableRelation tableRelation = table.tableRelation();
-            QuerySpec querySpec = table.querySpec();
-            if (querySpec.hasAggregates()) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+            if (table.querySpec().hasAggregates()) {
                 return null;
             }
-            if(querySpec.where().hasVersions()){
+            if(table.querySpec().where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            TableInfo tableInfo = tableRelation.tableInfo();
-
-            if (tableInfo.schemaInfo().systemSchema() && querySpec.where().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(querySpec.where().query());
+            List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
+            for (Symbol symbol : table.querySpec().outputs()) {
+                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
             }
-           return normalSelect(table, querySpec.where(), tableRelation, context);
+            return normalSelect(table, table.querySpec().where(), context, outputSymbols);
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (table.querySpec().hasAggregates()) {
+                return null;
+            }
+            if (table.querySpec().where().hasQuery()) {
+                ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
+            }
+            return normalSelect(table, table.querySpec().where(), context, table.querySpec().outputs());
         }
 
         @Override
@@ -114,22 +116,13 @@ public class QueryAndFetchConsumer implements Consumer {
             }
         }
 
-        private static PlannedAnalyzedRelation normalSelect(QueriedTable table,
-                                                            WhereClause whereClause,
-                                                            TableRelation tableRelation,
-                                                            ConsumerContext context){
+        private PlannedAnalyzedRelation normalSelect(QueriedTableRelation table,
+                                                     WhereClause whereClause,
+                                                     ConsumerContext context,
+                                                     List<Symbol> outputSymbols){
             QuerySpec querySpec = table.querySpec();
-            TableInfo tableInfo = tableRelation.tableInfo();
+            TableInfo tableInfo = table.tableRelation().tableInfo();
 
-            List<Symbol> outputSymbols;
-            if (tableInfo.schemaInfo().systemSchema()) {
-                outputSymbols = querySpec.outputs();
-            } else {
-                outputSymbols = new ArrayList<>(querySpec.outputs().size());
-                for (Symbol symbol : querySpec.outputs()) {
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
-                }
-            }
             CollectPhase collectNode;
             MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();

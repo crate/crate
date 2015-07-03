@@ -22,7 +22,7 @@
 package io.crate.planner.node.dml;
 
 import io.crate.analyze.where.DocKeys;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.PlanNodeVisitor;
 
 import java.util.List;
@@ -30,11 +30,11 @@ import java.util.List;
 public class ESDeleteNode extends RowCountPlanNode {
 
     private final int executionPhaseId;
-    private final TableInfo tableInfo;
+    private final DocTableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
 
     public ESDeleteNode(int executionPhaseId,
-                        TableInfo tableInfo,
+                        DocTableInfo tableInfo,
                         List<DocKeys.DocKey> docKeys) {
         this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
@@ -45,7 +45,7 @@ public class ESDeleteNode extends RowCountPlanNode {
         return executionPhaseId;
     }
 
-    public TableInfo tableInfo() {
+    public DocTableInfo tableInfo() {
         return tableInfo;
     }
 

@@ -35,6 +35,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -63,7 +64,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return process(node, relationAnalysisContext);
     }
 
-    public AnalyzedRelation analyze(Node node, Analysis analysis){
+    public AnalyzedRelation analyze(Node node, Analysis analysis) {
         return analyze(node, new RelationAnalysisContext(analysis.parameterContext(), analysisMetaData));
     }
 
@@ -109,17 +110,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 .groupBy(groupBy)
                 .hasAggregates(expressionAnalysisContext.hasAggregates);
 
-        if (context.sources().size()==1){
-            Map.Entry<QualifiedName, AnalyzedRelation> entry = Iterables.getOnlyElement(context.sources().entrySet());
-            if (entry.getValue() instanceof TableRelation){
-                QueriedTable relation = new QueriedTable(entry.getKey(), (TableRelation) entry.getValue(),
-                        selectAnalysis.outputNames(), querySpec);
-                relation = relation.normalize(analysisMetaData);
-                return relation;
+        if (context.sources().size() == 1) {
+            AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
+            QueriedTableRelation relation;
+            if (source instanceof DocTableRelation) {
+                relation = new QueriedDocTable(
+                        (DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
+            } else if (source instanceof TableRelation) {
+                relation =  new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
                 throw new UnsupportedOperationException
-                        ("Only tables are allowed in the FROM clause, got: " + entry.getValue());
+                        ("Only tables are allowed in the FROM clause, got: " + source);
             }
+            relation.normalize(analysisMetaData);
+            return relation;
         }
         // TODO: implement multi table selects
         // once this is used .normalize should for this class needs to be handled here too
@@ -170,7 +174,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 return true;
             } else {
                 for (Symbol argument : symbol.arguments()) {
-                    if (process(argument, context)){
+                    if (process(argument, context)) {
                         return true;
                     }
                 }
@@ -188,7 +192,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis, List<SortItem> orderBy,
                                    RelationAnalysisContext context) {
         int size = orderBy.size();
-        if (size==0){
+        if (size == 0) {
             return null;
         }
         List<Symbol> symbols = new ArrayList<>(size);
@@ -248,7 +252,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         return new WhereClause(
                 context.expressionAnalyzer().normalize(context.expressionAnalyzer().convert(where.get(),
-                                context.expressionAnalysisContext())),
+                        context.expressionAnalysisContext())),
                 null, null);
     }
 
@@ -335,7 +339,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitTable(Table node, RelationAnalysisContext context) {
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
                 TableIdent.of(node, context.parameterContext().defaultSchema()));
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        AnalyzedRelation tableRelation;
+        // Dispatching of doc relations is based on the returned class of the schema information.
+        if (tableInfo instanceof DocTableInfo){
+            tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
+        } else {
+            tableRelation = new TableRelation(tableInfo);
+        }
         context.addSourceRelation(tableInfo.schemaInfo().name(), tableInfo.ident().name(), tableRelation);
         return tableRelation;
     }

@@ -19,33 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl;
+package io.crate.analyze.relations;
 
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.RowCountPlanNode;
+import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.metadata.OutputName;
 
-public class DropTableNode extends RowCountPlanNode {
+import java.util.List;
 
-    private final DocTableInfo table;
-    private final boolean ifExists;
+public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
 
-
-    public DropTableNode(DocTableInfo table, boolean ifExists) {
-        this.table = table;
-        this.ifExists = ifExists;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    public DocTableInfo tableInfo() {
-        return table;
+    public QueriedDocTable(DocTableRelation tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
+        super(tableRelation, outputNames, querySpec);
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitDropTableNode(this, context);
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+        return visitor.visitQueriedDocTable(this, context);
     }
+
+    public void normalize(AnalysisMetaData analysisMetaData){
+        super.normalize(analysisMetaData);
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+        querySpec().where(whereClauseAnalyzer.analyze(querySpec().where()));
+    }
+
+
 }

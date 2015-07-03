@@ -33,7 +33,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -44,13 +45,13 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -161,7 +162,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
         return result;
     }
 
-    private Plan genCountStarPlan(TableInfo table, UUID jobId) {
+    private Plan genCountStarPlan(DocTableInfo table, UUID jobId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.where(WhereClause.MATCH_ALL);
         Function countFunction = new Function(
@@ -169,9 +170,8 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
         querySpec.outputs(ImmutableList.<Symbol>of(countFunction));
         querySpec.hasAggregates(true);
 
-        QueriedTable queriedTable = new QueriedTable(
-                QualifiedName.of(table.ident().fqn()),
-                new TableRelation(table),
+        QueriedDocTable queriedTable = new QueriedDocTable(
+                new DocTableRelation(table),
                 ImmutableList.of(new OutputName("count(*)")),
                 querySpec
                 );
@@ -301,7 +301,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }
 
-    private String[] getIndexNames(TableInfo tableInfo, @Nullable PartitionName partitionName) {
+    private static String[] getIndexNames(DocTableInfo tableInfo, @Nullable PartitionName partitionName) {
         String[] indexNames;
         if (tableInfo.isPartitioned()) {
             if (partitionName == null) {
@@ -319,35 +319,22 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
 
     @Override
     public ListenableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, UUID jobId) {
-        Map partitionNames = analysis.partitions();
-        Set<String> indexNameSet = new HashSet<>();
-
-        for (TableInfo tableInfo : analysis.tables()) {
-            if (!tableInfo.schemaInfo().systemSchema()) {
-                String[] indexNames = getIndexNames(tableInfo, (PartitionName) partitionNames.get(tableInfo));
-                indexNameSet.addAll(Arrays.asList(indexNames));
-            }
-        }
-        if (indexNameSet.isEmpty()) {
+        if (analysis.indexNames().isEmpty()) {
             return Futures.immediateFuture(null);
         }
-
         final SettableFuture<Long> future = SettableFuture.create();
-
-            RefreshRequest request = new RefreshRequest(indexNameSet.toArray(new String[indexNameSet.size()]));
+            RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
+                    new String[analysis.indexNames().size()]));
             transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
                 @Override
                 public void onResponse(RefreshResponse refreshResponse) {
                     future.set(null); // no row count
                 }
-
                 @Override
                 public void onFailure(Throwable e) {
                     future.setException(e);
                 }
             });
-
-
         return future;
     }
 
@@ -369,7 +356,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
 
     @Override
     public ListenableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, UUID jobId) {
-        TableInfo table = analysis.table();
+        DocTableInfo table = analysis.table();
         if (table.isAlias() && !table.isPartitioned()) {
             return Futures.immediateFailedFuture(new AlterTableAliasException(table.ident().fqn()));
         }

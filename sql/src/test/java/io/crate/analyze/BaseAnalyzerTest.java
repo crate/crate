@@ -29,7 +29,6 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -63,7 +62,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
     static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
-    static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+    static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("other_id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
@@ -85,7 +84,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_multi_pk");
-    static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, RowGranularity.DOC, shardRouting)
+    static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
@@ -96,7 +95,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_clustered_by_only");
-    static final TableInfo userTableInfoClusteredByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY, RowGranularity.DOC, shardRouting)
+    static final TableInfo userTableInfoClusteredByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
@@ -105,13 +104,13 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "user_refresh_interval");
-    static final TableInfo userTableInfoRefreshIntervalByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY, RowGranularity.DOC, shardRouting)
+    static final TableInfo userTableInfoRefreshIntervalByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("content", DataTypes.STRING, null)
             .clusteredBy("id")
             .build();
     static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_pk");
-    static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+    static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("o", DataTypes.BYTE, Arrays.asList("b"))
@@ -121,7 +120,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
     static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_PARTITIONED_TABLE_IDENT, new Routing())
             .add("id", DataTypes.INTEGER, null)
             .add("name", DataTypes.STRING, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
@@ -134,7 +133,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
     static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing())
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
             .add("num", DataTypes.LONG, null)
@@ -148,7 +147,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_parted");
     static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_NESTED_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing())
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
             .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -161,7 +160,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "transactions");
     static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_DOC_TRANSACTIONS_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing())
             .add("id", DataTypes.LONG, null)
             .add("sender", DataTypes.STRING, null)
             .add("recipient", DataTypes.STRING, null)
@@ -170,7 +169,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "deeply_nested");
     static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-            DEEPLY_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            DEEPLY_NESTED_TABLE_IDENT, new Routing())
             .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
             .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ColumnPolicy.DYNAMIC)
@@ -186,17 +185,17 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     public static final TableIdent IGNORED_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "ignored_nested");
     public static final TableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-                IGNORED_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+                IGNORED_NESTED_TABLE_IDENT, new Routing())
                 .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                 .build();
 
     static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "locations");
-    static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+    static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("loc", DataTypes.GEO_POINT, null)
             .build();
 
-    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "bystring"), RowGranularity.DOC, shardRouting)
+    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "bystring"), shardRouting)
             .add("name", DataTypes.STRING, null)
             .add("score", DataTypes.DOUBLE, null)
             .addPrimaryKey("name")

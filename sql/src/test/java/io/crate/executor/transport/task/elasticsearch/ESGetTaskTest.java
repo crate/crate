@@ -30,7 +30,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.ESGetNode;
@@ -56,7 +55,7 @@ public class ESGetTaskTest extends CrateUnitTest {
 
     static {
         TableIdent tableIdent = new TableIdent("doc", "dummy");
-        TableInfo tableInfo = mock(DocTableInfo.class);
+        DocTableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.ident()).thenReturn(tableIdent);
         node = BaseTransportExecutorTest.newGetNode(
                 tableInfo,

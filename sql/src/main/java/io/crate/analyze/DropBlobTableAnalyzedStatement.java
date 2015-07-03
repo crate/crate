@@ -22,8 +22,12 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobTableInfo;
 
-public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement {
+public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement<BlobTableInfo> {
 
     public DropBlobTableAnalyzedStatement(Schemas schemas, boolean ignoreNonExistentTable) {
         super(schemas, ignoreNonExistentTable);
@@ -32,5 +36,17 @@ public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedSta
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDropBlobTableStatement(this, context);
+    }
+
+    public void table(TableIdent tableIdent) {
+        try {
+            tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
+        } catch (SchemaUnknownException | TableUnknownException e) {
+            if (dropIfExists) {
+                noop = true;
+            } else {
+                throw e;
+            }
+        }
     }
 }

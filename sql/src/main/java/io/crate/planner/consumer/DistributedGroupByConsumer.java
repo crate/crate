@@ -27,13 +27,13 @@ import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -78,13 +78,13 @@ public class DistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             List<Symbol> groupBy = table.querySpec().groupBy();
             if (groupBy == null) {
                 return null;
             }
 
-            TableInfo tableInfo = table.tableRelation().tableInfo();
+            DocTableInfo tableInfo = table.tableRelation().tableInfo();
             if(table.querySpec().where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;

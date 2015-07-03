@@ -30,6 +30,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
@@ -48,7 +49,7 @@ import java.util.UUID;
 public class PlanNodeBuilder {
 
     public static CollectPhase distributingCollect(UUID jobId,
-                                                   TableInfo tableInfo,
+                                                   DocTableInfo tableInfo,
                                                    Planner.Context plannerContext,
                                                    WhereClause whereClause,
                                                    List<Symbol> toCollect,
@@ -176,7 +177,10 @@ public class PlanNodeBuilder {
                 projections);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.isPartitioned(tableInfo.isPartitioned());
+        // TODO: use polymorphism if possible, need to investigate the hierarchy of callers to this util class
+        if (tableInfo instanceof DocTableInfo){
+            node.isPartitioned(((DocTableInfo)tableInfo).isPartitioned());
+        }
         node.orderBy(orderBy);
         node.limit(limit);
         return node;

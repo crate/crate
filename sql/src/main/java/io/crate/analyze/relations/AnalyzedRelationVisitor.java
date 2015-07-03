@@ -42,12 +42,20 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(table, context);
     }
 
+    public R visitQueriedDocTable(QueriedDocTable table, C context) {
+        return visitAnalyzedRelation(table, context);
+    }
+
     public R visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, C context) {
         return visitAnalyzedRelation(multiSourceSelect, context);
     }
 
     public R visitTableRelation(TableRelation tableRelation, C context) {
         return visitAnalyzedRelation(tableRelation, context);
+    }
+
+    public R visitDocTableRelation(DocTableRelation relation, C context) {
+        return visitAnalyzedRelation(relation, context);
     }
 
     public R visitPlanedAnalyzedRelation(PlannedAnalyzedRelation plannedAnalyzedRelation, C context) {

@@ -28,12 +28,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
@@ -136,7 +137,7 @@ public class ExpressionAnalyzer {
     }
 
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context,
-                                           TableRelation tableRelation) {
+                                           AbstractTableRelation tableRelation) {
         if (whereExpression.isPresent()) {
             WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)), null, null);
             whereClause = tableRelation.resolve(whereClause);
@@ -265,7 +266,10 @@ public class ExpressionAnalyzer {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
                 }
-                DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, forWrite);
+                DynamicReference dynamicReference = null;
+                if (tableInfo instanceof DocTableInfo){
+                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, forWrite);
+                }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
                 }

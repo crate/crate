@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,33 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.metadata.table;
 
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.ColumnIdent;
+import org.apache.lucene.util.BytesRef;
 
-public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public interface ShardedTable {
 
-    private final Schemas schemas;
-    private BlobTableInfo tableInfo;
+    public int numberOfShards();
 
-    public AlterBlobTableAnalyzedStatement(Schemas schemas) {
-        this.schemas = schemas;
-    }
+    public BytesRef numberOfReplicas();
 
-    public void table(TableIdent tableIdent) {
-        assert BlobSchemaInfo.NAME.equals(tableIdent.schema());
-        tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
-    }
+    public ColumnIdent clusteredBy();
 
-    public BlobTableInfo table() {
-        return tableInfo;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterBlobTableStatement(this, context);
-    }
 }

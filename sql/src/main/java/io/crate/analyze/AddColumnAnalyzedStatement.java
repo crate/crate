@@ -23,12 +23,12 @@ package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final Schemas schemas;
-    private TableInfo tableInfo;
+    private DocTableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
 
@@ -40,7 +40,7 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         tableInfo = schemas.getWritableTable(tableIdent);
     }
 
-    public TableInfo table() {
+    public DocTableInfo table() {
         return this.tableInfo;
     }
 

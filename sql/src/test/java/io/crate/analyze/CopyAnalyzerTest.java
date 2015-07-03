@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
@@ -44,7 +44,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
@@ -146,7 +145,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopySysTableTo() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot COPY sys.nodes TO. COPY TO doesn't support system tables");
+        expectedException.expectMessage("Cannot COPY sys.nodes TO. COPY TO only supports user tables");
         analyze("copy sys.nodes to directory '/foo'");
     }
 

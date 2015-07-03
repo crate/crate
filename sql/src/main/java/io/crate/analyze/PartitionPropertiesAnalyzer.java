@@ -27,7 +27,7 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -51,7 +51,7 @@ public class PartitionPropertiesAnalyzer {
         return map;
     }
 
-    public static PartitionName toPartitionName(TableInfo tableInfo,
+    public static PartitionName toPartitionName(DocTableInfo tableInfo,
                                                 List<Assignment> partitionProperties,
                                                 Object[] parameters) {
         Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
@@ -80,7 +80,7 @@ public class PartitionPropertiesAnalyzer {
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
     }
 
-    public static String toPartitionIdent(TableInfo tableInfo,
+    public static String toPartitionIdent(DocTableInfo tableInfo,
                                           List<Assignment> partitionProperties,
                                           Object[] parameters) {
         return toPartitionName(tableInfo, partitionProperties, parameters).ident();

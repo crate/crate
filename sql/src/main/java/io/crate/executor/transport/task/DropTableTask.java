@@ -23,7 +23,7 @@ package io.crate.executor.transport.task;
 
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.ddl.DropTableNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -49,7 +49,7 @@ public class DropTableTask extends AbstractChainedTask {
 
     private static final ESLogger logger = Loggers.getLogger(DropTableTask.class);
 
-    private final TableInfo tableInfo;
+    private final DocTableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
     private final boolean ifExists;

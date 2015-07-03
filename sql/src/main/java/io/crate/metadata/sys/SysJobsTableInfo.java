@@ -36,7 +36,6 @@ import java.util.*;
 public class SysJobsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs");
-    private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(new ColumnIdent("id"));
 
@@ -97,11 +96,6 @@ public class SysJobsTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKey;
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return PARTITIONS;
     }
 
     @Override

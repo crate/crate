@@ -26,7 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -42,7 +42,7 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
     @Nullable
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
-    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
+    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, DocTableInfo targetTableInfo) {
         tableInfo(targetTableInfo);
         this.subQueryRelation = subQueryRelation;
     }

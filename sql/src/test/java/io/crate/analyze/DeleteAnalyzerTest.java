@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
@@ -87,7 +87,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testDeleteWhere() throws Exception {
         DeleteAnalyzedStatement statement = analyze("delete from users where name='Trillian'");
-        TableRelation tableRelation = ((TableRelation) statement.analyzedRelation);
+        DocTableRelation tableRelation = ((DocTableRelation) statement.analyzedRelation);
         TableInfo tableInfo = tableRelation.tableInfo();
         assertThat(TEST_DOC_TABLE_IDENT, equalTo(tableInfo.ident()));
 

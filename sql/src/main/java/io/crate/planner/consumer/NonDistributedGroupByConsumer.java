@@ -21,13 +21,18 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -71,11 +76,11 @@ public class NonDistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (table.querySpec().groupBy() == null) {
                 return null;
             }
-            TableInfo tableInfo = table.tableRelation().tableInfo();
+            DocTableInfo tableInfo = table.tableRelation().tableInfo();
 
             if (table.querySpec().where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
@@ -83,11 +88,19 @@ public class NonDistributedGroupByConsumer implements Consumer {
             }
 
             Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
-
-            if (GroupByConsumer.requiresDistribution(tableInfo, routing) && !(tableInfo.schemaInfo().systemSchema())) {
+            if (routing.hasLocations() && routing.locations().size()>1) {
                 return null;
             }
+            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
+            return nonDistributedGroupBy(table, routing, context);
+        }
 
+        @Override
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+            if (table.querySpec().groupBy() == null) {
+                return null;
+            }
+            Routing routing = table.tableRelation().tableInfo().getRouting(table.querySpec().where(), null);
             return nonDistributedGroupBy(table, routing, context);
         }
 
@@ -107,10 +120,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          *
          */
-        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTable table, Routing routing, ConsumerContext context) {
+        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, Routing routing, ConsumerContext context) {
             TableInfo tableInfo = table.tableRelation().tableInfo();
 
-            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
             List<Symbol> groupBy = table.querySpec().groupBy();
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());

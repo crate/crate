@@ -40,11 +40,13 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -152,7 +154,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
         context = jobContextService.createContext(contextBuilder);
     }
 
-    public static String indexName(TableInfo tableInfo, Optional<List<BytesRef>> values) {
+    public static String indexName(DocTableInfo tableInfo, Optional<List<BytesRef>> values) {
         if (tableInfo.isPartitioned()) {
             return new PartitionName(tableInfo.ident(), values.get()).stringValue();
         } else {

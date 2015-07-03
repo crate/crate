@@ -27,7 +27,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 
@@ -46,7 +46,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
     private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
-    private TableInfo tableInfo;
+    private DocTableInfo tableInfo;
 
     private final Set<ReferenceInfo> allocatedReferences = new HashSet<>();
 
@@ -102,11 +102,11 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         }
     }
 
-    public TableInfo tableInfo() {
+    public DocTableInfo tableInfo() {
         return tableInfo;
     }
 
-    public void tableInfo(TableInfo tableInfo) {
+    public void tableInfo(DocTableInfo tableInfo) {
         this.tableInfo = tableInfo;
     }
 

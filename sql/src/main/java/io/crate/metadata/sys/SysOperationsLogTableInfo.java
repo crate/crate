@@ -48,8 +48,6 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
     }
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations_log");
-    private static final String[] INDICES = new String[] { IDENT.name() };
-
 
     private final Map<ColumnIdent, ReferenceInfo> columns_info = new LinkedHashMap<>();
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -101,11 +99,6 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return ImmutableList.of();
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return INDICES;
     }
 
     @Override

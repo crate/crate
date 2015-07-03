@@ -21,36 +21,18 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.PartitionUnknownException;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
-
-import java.util.*;
+import java.util.Set;
 
 public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final Schemas schemas;
-    private final Set<TableInfo> tableInfos = new HashSet<>();
-    private final Map<TableInfo, PartitionName> partitions = new HashMap<>();
+    private final Set<String> indexNames;
 
-    protected RefreshTableAnalyzedStatement(Schemas schemas){
-        this.schemas = schemas;
+    public RefreshTableAnalyzedStatement(Set<String> indexNames) {
+        this.indexNames = indexNames;
     }
 
-    public TableInfo table(TableIdent tableIdent) {
-        TableInfo tableInfo = schemas.getWritableTable(tableIdent);
-        tableInfos.add(tableInfo);
-        return tableInfo;
-    }
-
-    public Set<TableInfo> tables() {
-        return tableInfos;
-    }
-
-    public Map<TableInfo, PartitionName> partitions() {
-        return partitions;
+    public Set<String> indexNames() {
+        return indexNames;
     }
 
     @Override
@@ -58,33 +40,4 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
     }
 
-    public void partitionIdent(TableInfo tableInfo, String ident) {
-        assert tableInfo != null;
-        PartitionName partitionName;
-
-        if (!tableInfo.isPartitioned()) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH,
-                            "Table '%s' is not partitioned", tableInfo.ident().fqn()));
-        }
-        try {
-            partitionName = PartitionName.fromPartitionIdent(
-                    tableInfo.ident().schema(),
-                    tableInfo.ident().name(),
-                    ident
-            );
-
-            partitions.put(tableInfo, partitionName);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
-                            tableInfo.ident().fqn(), ident), e);
-        }
-
-        if (!tableInfo.partitions().contains(partitionName)) {
-            throw new PartitionUnknownException(
-                    tableInfo.ident().fqn(),
-                    partitionName.ident());
-        }
-    }
 }

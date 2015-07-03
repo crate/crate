@@ -22,7 +22,7 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedTable;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class Relations {
 
@@ -40,14 +40,19 @@ public class Relations {
         }
 
         @Override
+        public Boolean visitQueriedDocTable(QueriedDocTable table, Void context) {
+            return process(table.tableRelation(), context);
+        }
+
+        @Override
         public Boolean visitQueriedTable(QueriedTable table, Void context) {
             return process(table.tableRelation(), context);
         }
 
         @Override
-        public Boolean visitTableRelation(TableRelation tableRelation, Void context) {
-            TableInfo tableInfo = tableRelation.tableInfo();
-            return tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned());
+        public Boolean visitDocTableRelation(DocTableRelation relation, Void context) {
+            DocTableInfo tableInfo = relation.tableInfo();
+            return tableInfo.isAlias() && !tableInfo.isPartitioned();
         }
     }
 }

@@ -21,26 +21,28 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.testing.MockedClusterServiceModule;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,6 +55,31 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private static class TestingBlobTableInfo extends BlobTableInfo {
+
+        private Routing routing;
+
+        public TestingBlobTableInfo(BlobSchemaInfo blobSchemaInfo,
+                                    TableIdent ident,
+                                    String index,
+                                    ClusterService clusterService,
+                                    int numberOfShards,
+                                    BytesRef numberOfReplicas,
+                                    ImmutableMap<String, Object> tableParameters,
+                                    BytesRef blobsPath) {
+            super(blobSchemaInfo, ident, index, clusterService, numberOfShards, numberOfReplicas, tableParameters, blobsPath);
+        }
+
+        @Override
+        public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+            return routing;
+        }
+
+        public void routing(Routing routing) {
+            this.routing = routing;
+        }
+    }
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void configure() {
@@ -62,13 +89,20 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
 
+            BlobSchemaInfo schemaInfo = mock(BlobSchemaInfo.class);
             TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "myblobs");
-            TableInfo myBlobsInfo = TestingTableInfo.builder(myBlobsIdent, RowGranularity.DOC, shardRouting)
-                    .schemaInfo(schemaInfo)
-                    .build();
-
+            TestingBlobTableInfo myBlobsInfo = new TestingBlobTableInfo(
+                    schemaInfo,
+                    myBlobsIdent,
+                    myBlobsIdent.esName(),
+                    null,
+                    5,
+                    new BytesRef("0"),
+                    ImmutableMap.<String, Object>of(),
+                    null
+            );
+            myBlobsInfo.routing(shardRouting);
             when(schemaInfo.getTableInfo(myBlobsIdent.name())).thenReturn(myBlobsInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }

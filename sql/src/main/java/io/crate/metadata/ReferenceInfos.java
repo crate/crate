@@ -27,6 +27,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -76,27 +77,27 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     }
 
     @Override
-    public TableInfo getWritableTable(TableIdent tableIdent) {
+    public DocTableInfo getWritableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
-        if ((tableInfo.schemaInfo().systemSchema() && !tableInfo.schemaInfo().name().equals(BlobSchemaInfo.NAME))) {
+        if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
         }
-        if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
+        DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+        if (docTableInfo.isAlias() && !docTableInfo.isPartitioned()) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
         }
-        return tableInfo;
+        return docTableInfo;
     }
 
     /**
-     *
      * @param ident the table ident to get a TableInfo for
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
-     *         does not exist
-     * @throws io.crate.exceptions.TableUnknownException if table given in <code>ident</code> does
-     *         not exist in the given schema
+     *                                                    does not exist
+     * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
+     *                                                    not exist in the given schema
      */
     @Override
     public TableInfo getTableInfo(TableIdent ident) {
@@ -107,6 +108,10 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
             throw new TableUnknownException(ident);
         }
         return info;
+    }
+
+    public DocTableInfo getDocTableInfo(TableIdent ident) {
+        return (DocTableInfo) getTableInfo(ident);
     }
 
     private SchemaInfo getSchemaInfo(TableIdent ident) {
@@ -202,9 +207,10 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         }
         schemaInfo.invalidateTableCache(tableIdent.name());
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        //noinspection RedundantIfStatement
-        if (tableInfo == null || isOrphanedAlias(tableInfo)) {
+        if (tableInfo == null) {
             return false;
+        } else if (tableInfo instanceof DocTableInfo) {
+            return !isOrphanedAlias((DocTableInfo) tableInfo);
         }
         return true;
     }
@@ -213,7 +219,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      * checks if the given TableInfo has been created from an orphaned alias left from
      * an incomplete drop table on a partitioned table
      */
-    private static boolean isOrphanedAlias(TableInfo table) {
+    private static boolean isOrphanedAlias(DocTableInfo table) {
         if (!table.isPartitioned() && table.isAlias()
                 && table.concreteIndices().length >= 1) {
 

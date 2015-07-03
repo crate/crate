@@ -66,7 +66,7 @@ public class DocTableInfoTest extends CrateUnitTest {
 
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
-        DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")));
+        DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), false);
         assertNull(reference);
         reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), true);
         assertNotNull(reference);
@@ -116,11 +116,11 @@ public class DocTableInfoTest extends CrateUnitTest {
 
         ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
         assertNull(info.getReferenceInfo(columnIdent));
-        assertNull(info.getDynamic(columnIdent));
+        assertNull(info.getDynamic(columnIdent, false));
 
         columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
         assertNull(info.getReferenceInfo(columnIdent));
-        assertNull(info.getDynamic(columnIdent));
+        assertNull(info.getDynamic(columnIdent, false));
 
         ReferenceInfo colInfo = info.getReferenceInfo(new ColumnIdent("foobar"));
         assertNotNull(colInfo);

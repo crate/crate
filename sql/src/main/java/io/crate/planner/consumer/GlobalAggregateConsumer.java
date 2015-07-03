@@ -22,11 +22,11 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -77,18 +77,17 @@ public class GlobalAggregateConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (table.querySpec().groupBy()!=null || !table.querySpec().hasAggregates()) {
-                return null;
-            }
-            if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
-                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
-            }
-
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (table.querySpec().where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
+            return globalAggregates(functions, table, table.tableRelation(),  table.querySpec().where(), context);
+
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             return globalAggregates(functions, table, table.tableRelation(),  table.querySpec().where(), context);
         }
 
@@ -98,16 +97,19 @@ public class GlobalAggregateConsumer implements Consumer {
         }
     }
 
-    private static boolean noGroupBy(List<Symbol> groupBy) {
-        return groupBy == null || groupBy.isEmpty();
-    }
-
     private static PlannedAnalyzedRelation globalAggregates(Functions functions,
-                                                            QueriedTable table,
-                                                            TableRelation tableRelation,
+                                                            QueriedTableRelation table,
+                                                            AbstractTableRelation tableRelation,
                                                             WhereClause whereClause,
                                                             ConsumerContext context) {
-        assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
+        if (table.querySpec().groupBy()!=null || !table.querySpec().hasAggregates()) {
+            return null;
+        }
+
+        if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
+            return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+        }
+
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
 
@@ -160,7 +162,7 @@ public class GlobalAggregateConsumer implements Consumer {
         return new GlobalAggregate(collectNode, localMergeNode, context.plannerContext().jobId());
     }
 
-    private static void validateAggregationOutputs(TableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
+    private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
         OutputValidatorContext context = new OutputValidatorContext(tableRelation);
         for (Symbol outputSymbol : outputSymbols) {
             context.insideAggregation = false;
@@ -169,10 +171,10 @@ public class GlobalAggregateConsumer implements Consumer {
     }
 
     private static class OutputValidatorContext {
-        private final TableRelation tableRelation;
+        private final AbstractTableRelation tableRelation;
         private boolean insideAggregation = false;
 
-        public OutputValidatorContext(TableRelation tableRelation) {
+        public OutputValidatorContext(AbstractTableRelation tableRelation) {
             this.tableRelation = tableRelation;
         }
     }

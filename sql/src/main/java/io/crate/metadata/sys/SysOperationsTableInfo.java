@@ -38,7 +38,6 @@ import java.util.*;
 public class SysOperationsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations");
-    private static final String[] INDICES = new String[] { IDENT.name() };
 
     public static class Columns {
         public final static ColumnIdent ID = new ColumnIdent("id");
@@ -106,11 +105,6 @@ public class SysOperationsTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return ImmutableList.of();
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return INDICES;
     }
 
     @Override

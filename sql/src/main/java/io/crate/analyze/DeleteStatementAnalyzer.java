@@ -76,12 +76,12 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     private static class InnerAnalysisContext {
         private final ExpressionAnalyzer expressionAnalyzer;
-        private final TableRelation tableRelation;
+        private final DocTableRelation tableRelation;
         private final ExpressionAnalysisContext expressionAnalysisContext;
         private final DeleteAnalyzedStatement deleteAnalyzedStatement;
         private final WhereClauseAnalyzer whereClauseAnalyzer;
 
-        InnerAnalysisContext(TableRelation tableRelation,
+        InnerAnalysisContext(DocTableRelation tableRelation,
                              ExpressionAnalyzer expressionAnalyzer,
                              ExpressionAnalysisContext expressionAnalysisContext,
                              DeleteAnalyzedStatement deleteAnalyzedStatement,
@@ -107,8 +107,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new UnsupportedOperationException(String.format(
                     "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
-        assert analyzedRelation instanceof TableRelation;
-        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement((TableRelation) analyzedRelation);
+        assert analyzedRelation instanceof DocTableRelation;
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement((DocTableRelation) analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 deleteAnalyzedStatement.analyzedRelation(),
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),

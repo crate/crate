@@ -396,11 +396,6 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String[] concreteIndices() {
-        return PARTITIONS;
-    }
-
-    @Override
     public Iterator<ReferenceInfo> iterator() {
         return INFOS.values().iterator();
     }

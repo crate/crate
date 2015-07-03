@@ -31,7 +31,6 @@ import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -42,7 +41,6 @@ public class SysNodesTableInfo extends SysTableInfo {
     public static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
-    private static final String[] PARTITIONS = new String[]{IDENT.name()};
     private final TableColumn tableColumn;
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
@@ -158,7 +156,6 @@ public class SysNodesTableInfo extends SysTableInfo {
 
     }
 
-    @Inject
     public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
         super(service, sysSchemaInfo);
         this.tableColumn = new TableColumn(this, SYS_COL_NAME);
@@ -218,11 +215,6 @@ public class SysNodesTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKey;
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return PARTITIONS;
     }
 
     @Override

@@ -29,7 +29,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.AbstractTableInfo;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 
 import javax.annotation.Nullable;
@@ -159,16 +158,6 @@ public class InformationTableInfo extends AbstractTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKeyIdentList;
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return concreteIndices;
-    }
-
-    @Override
-    public ColumnPolicy columnPolicy() {
-        return ColumnPolicy.STRICT;
     }
 
     @Override

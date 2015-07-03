@@ -37,7 +37,6 @@ import java.util.*;
 public class SysShardsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
-    private static final String[] CONCRETE_INDICES = new String[]{IDENT.esName()};
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
@@ -142,11 +141,6 @@ public class SysShardsTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKey;
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return CONCRETE_INDICES;
     }
 
     @Override

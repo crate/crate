@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
@@ -86,7 +87,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
 
-        List<Symbol> outputSymbols = ((QueriedTable)statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = ((QueriedDocTable)statement.subQueryRelation()).querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
 
         for (int i = 0; i < statement.columns().size(); i++) {
@@ -190,7 +191,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
                         ")");
 
 
-        List<Symbol> outputSymbols = ((QueriedTable)statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = ((QueriedDocTable)statement.subQueryRelation()).querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function)outputSymbols.get(1);
