@@ -25,14 +25,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
-import io.crate.executor.transport.task.CreateTableTask;
-import io.crate.executor.transport.task.DropTableTask;
-import io.crate.executor.transport.task.KillTask;
-import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
+import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
@@ -49,7 +47,9 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import org.codehaus.groovy.ast.GenericsType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -65,7 +65,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
-    private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
+    private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
+    private ShowStatementDispatcher showStatementDispatcherProvider;
     private final NodeVisitor nodeVisitor;
     private final ThreadPool threadPool;
 
@@ -94,7 +95,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              PageDownstreamFactory pageDownstreamFactory,
-                             Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
+                             DDLStatementDispatcher ddlAnalysisDispatcherProvider,
+                             ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
                              CrateCircuitBreakerService breakerService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
@@ -105,6 +107,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
+        this.showStatementDispatcherProvider = showStatementDispatcherProvider;
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         nodeVisitor = new NodeVisitor();
@@ -219,6 +222,12 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     job.id()));
         }
 
+        @Override
+        public List<? extends Task> visitGenericShowPlan(GenericShowPlan genericShowPlan, Job job) {
+            return ImmutableList.<Task>of(new GenericShowTask(job.id(),
+                    showStatementDispatcherProvider,
+                    genericShowPlan.statement()));
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -229,7 +238,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
-            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider.get(), node));
+            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider, node));
         }
 
         @Override

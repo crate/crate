@@ -24,6 +24,8 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -47,16 +49,10 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             .put("crate2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
 
-    static ReferenceInfo COL_TEXT = new ReferenceInfo(new ReferenceIdent(TEST_DOC_TABLE_IDENT, "text", null),
-            RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
-
-    static ReferenceInfo COL_NAME = new ReferenceInfo(new ReferenceIdent(TEST_DOC_TABLE_IDENT, "name", null),
-            RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
-
     @Test
     public void testBuildCreateTableColumns() throws Exception {
         TableIdent ident = new TableIdent("doc", "test");
-        TableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
+        AbstractTableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
                 .add("bytes", DataTypes.BYTE, null)
                 .add("strings", DataTypes.STRING, null)
                 .add("shorts", DataTypes.SHORT, null)
@@ -95,13 +91,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "      \"col_2\" STRING\n" +
                 "   )\n" +
                 ")\n" +
-                "CLUSTERED INTO 1 SHARDS", SqlFormatter.formatSql(node));
+                "CLUSTERED INTO 5 SHARDS\n" +
+                "WITH (\n" +
+                "   number_of_replicas = '0-all'\n" +
+                ")",
+                SqlFormatter.formatSql(node));
     }
 
     @Test
     public void testBuildCreateTablePrimaryKey() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
-        TableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
+        AbstractTableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
                 .add("pk_col_one", DataTypes.LONG, null)
                 .add("pk_col_two", DataTypes.LONG, null)
                 .addPrimaryKey("pk_col_one")
@@ -113,13 +113,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "   \"pk_col_two\" LONG,\n" +
                 "   PRIMARY KEY (\"pk_col_one\", \"pk_col_two\")\n" +
                 ")\n" +
-                "CLUSTERED INTO 1 SHARDS", SqlFormatter.formatSql(node));
+                "CLUSTERED INTO 5 SHARDS\n" +
+                "WITH (\n" +
+                "   number_of_replicas = '0-all'\n" +
+                ")",
+                SqlFormatter.formatSql(node));
     }
 
     @Test
     public void testBuildCreateTableParameters() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
-        TableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
+        AbstractTableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
                 .add("id", DataTypes.LONG, null)
                 .addParameter("refresh_interval", 10000L)
                 .addParameter("param_array", new String[]{"foo", "bar"})
@@ -127,25 +131,26 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                     put("foo", "bar");
                     put("int", 42);
                 }})
-                .numberOfReplicas("0-all")
+                .numberOfReplicas("5")
                 .build();
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                 "   \"id\" LONG\n" +
                 ")\n" +
-                "CLUSTERED INTO 1 SHARDS\n" +
+                "CLUSTERED INTO 5 SHARDS\n" +
                 "WITH (\n" +
-                "   number_of_replicas = '0-all',\n" +
+                "   number_of_replicas = '5',\n" +
                 "   param_array = ['foo','bar'],\n" +
                 "   param_obj = {foo: 'bar', int: 42},\n" +
                 "   refresh_interval = 10000\n" +
-                ")", SqlFormatter.formatSql(node));
+                ")",
+                SqlFormatter.formatSql(node));
     }
 
     @Test
     public void testBuildCreateTableClusteredByPartitionedBy() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
-        TableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
+        AbstractTableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
                 .add("id", DataTypes.LONG, null)
                 .add("partition_column", DataTypes.STRING, null, true)
                 .add("cluster_column", DataTypes.STRING, null)
@@ -157,15 +162,19 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "   \"partition_column\" STRING,\n" +
                 "   \"cluster_column\" STRING\n" +
                 ")\n" +
-                "CLUSTERED BY (\"cluster_column\") INTO 1 SHARDS\n" +
-                "PARTITIONED BY (\"partition_column\")", SqlFormatter.formatSql(node));
+                "CLUSTERED BY (\"cluster_column\") INTO 5 SHARDS\n" +
+                "PARTITIONED BY (\"partition_column\")\n" +
+                "WITH (\n" +
+                "   number_of_replicas = '0-all'\n" +
+                ")",
+                SqlFormatter.formatSql(node));
     }
 
     @Test
     public void testBuildCreateTableIndexes() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
         ReferenceInfo colA = new ReferenceInfo(new ReferenceIdent(ident, "col_a", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
         ReferenceInfo colB = new ReferenceInfo(new ReferenceIdent(ident, "col_b", null),
                 RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
         ReferenceInfo colC = new ReferenceInfo(new ReferenceIdent(ident, "col_c", null),
@@ -173,19 +182,15 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         ReferenceInfo colD = new ReferenceInfo(new ReferenceIdent(ident, "col_d", null),
                 RowGranularity.DOC, DataTypes.OBJECT);
         ReferenceInfo colE = new ReferenceInfo(new ReferenceIdent(ident, "col_d", Arrays.asList("a")),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
 
-        TableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
+        AbstractTableInfo tableInfo = TestingTableInfo.builder(ident, RowGranularity.DOC, SHARD_ROUTING)
                 .add("id", DataTypes.LONG, null)
                 .add(colA)
                 .add(colB)
                 .add(colC)
                 .add(colD)
                 .add(colE)
-                .addIndex(new ColumnIdent("col_a_plain"), ReferenceInfo.IndexType.NOT_ANALYZED,
-                        ImmutableList.of(colA))
-                .addIndex(new ColumnIdent("col_b_ft"), ReferenceInfo.IndexType.ANALYZED,
-                        ImmutableList.of(colB))
                 .addIndex(new ColumnIdent("col_a_col_b_ft"), ReferenceInfo.IndexType.ANALYZED,
                         ImmutableList.of(colA, colB), "english")
                 .addIndex(new ColumnIdent("col_d_a_ft"), ReferenceInfo.IndexType.ANALYZED,
@@ -195,13 +200,11 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                 "   \"id\" LONG,\n" +
                 "   \"col_a\" STRING,\n" +
-                "   \"col_b\" STRING,\n" +
+                "   \"col_b\" STRING INDEX USING FULLTEXT,\n" +
                 "   \"col_c\" STRING INDEX OFF,\n" +
                 "   \"col_d\" OBJECT (DYNAMIC) AS (\n" +
                 "      \"a\" STRING\n" +
                 "   ),\n" +
-                "   INDEX \"col_a_plain\" USING PLAIN (\"col_a\"),\n" +
-                "   INDEX \"col_b_ft\" USING FULLTEXT (\"col_b\"),\n" +
                 "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
                 "      analyzer = 'english'\n" +
                 "   ),\n" +
@@ -209,6 +212,10 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "      analyzer = 'custom_analyzer'\n" +
                 "   )\n" +
                 ")\n" +
-                "CLUSTERED INTO 1 SHARDS", SqlFormatter.formatSql(node));
+                "CLUSTERED INTO 5 SHARDS\n" +
+                "WITH (\n" +
+                "   number_of_replicas = '0-all'\n" +
+                ")",
+                SqlFormatter.formatSql(node));
     }
 }

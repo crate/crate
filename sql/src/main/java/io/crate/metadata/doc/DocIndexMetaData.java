@@ -44,6 +44,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -554,5 +555,36 @@ public class DocIndexMetaData {
 
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    private ImmutableMap<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
+        ImmutableMap.Builder<ColumnIdent, String> builder = ImmutableMap.builder();
+        for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
+            Map<String, Object> columnProperties = (Map) columnEntry.getValue();
+            DataType columnDataType = getColumnDataType(columnProperties);
+            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+            columnProperties = furtherColumnProperties(columnProperties);
+            if (columnDataType == DataTypes.OBJECT
+                    || (columnDataType.id() == ArrayType.ID
+                    && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
+                if (columnProperties.get("properties") != null) {
+                    builder.putAll(getAnalyzers(newIdent, (Map<String, Object>) columnProperties.get("properties")));
+                }
+            }
+            String analyzer = (String) columnProperties.get("analyzer");
+            if (analyzer != null) {
+                builder.put(newIdent, analyzer);
+            }
+        }
+        return builder.build();
+    }
+
+    public ImmutableMap<ColumnIdent, String> analyzers() {
+        Map<String, Object> propertiesMap = getNested(defaultMappingMap, "properties");
+        if (propertiesMap == null) {
+            return ImmutableMap.of();
+        } else {
+            return getAnalyzers(null, propertiesMap);
+        }
     }
 }
