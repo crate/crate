@@ -816,8 +816,6 @@ node startup defined configuration file value or to its default value::
 Show Create Table
 =================
 
-To print a user-created table the ``SHOW CREATE TABLE`` statement can be used. This statement displays the DDL-schema of an existing table in the cluster.
-
 .. hide:
     cr> create table if not exists my_table (
     ... first_column integer primary key,
@@ -826,16 +824,40 @@ To print a user-created table the ``SHOW CREATE TABLE`` statement can be used. T
     ... ) clustered by (first_column) into 5 shards;
     CREATE OK (... sec)
 
-If the ``SHOW CREATE TABLE`` statement gets invoked, the schema of the previous created table gets returned. ::
+The ``SHOW CREATE TABLE`` statement can be used to print the DDL statement of
+already existing user-created doc table in the cluster::
 
     cr> show create table my_table;
-    +-----------------------------------------------+
-    | show create table my_table                    |
-    +-----------------------------------------------+
-    | CREATE TABLE IF NOT EXISTS "my_table" (       |
-    |     "first_column" INTEGER PRIMARY KEY,       |
-    |     "second_column" STRING,                   |
-    |     "third_column" TIMESTAMP                  |
-    | ) CLUSTERED BY ("first_column") INTO 5 SHARDS |
-    +-----------------------------------------------+
-    SELECT 1 row in set (... sec)
+    +-----------------------------------------------------+
+    | SHOW CREATE TABLE my_table                          |
+    +-----------------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "my_table" (             |
+    |    "first_column" INTEGER,                          |
+    |    "second_column" STRING,                          |
+    |    "third_column" TIMESTAMP                         |
+    |    PRIMARY KEY ("first_column")                     |
+    | ) CLUSTERED BY ("first_column") INTO 5 SHARDS       |
+    | WITH (                                              |
+    |    "blocks.metadata" = false,                       |
+    |    "blocks.read" = false,                           |
+    |    "blocks.read_only" = false,                      |
+    |    "blocks.write" = false,                          |
+    |    "gateway.local.sync" = 5000,                     |
+    |    number_of_replicas = '1',                        |
+    |    "recovery.initial_shards" = 'quorum',            |
+    |    refresh_interval = 1000,                         |
+    |    "routing.allocation.enable" = 'all',             |
+    |    "routing.allocation.total_shards_per_node" = -1, |
+    |    "translog.disable_flush" = false,                |
+    |    "translog.flush_threshold_ops" = 2147483647,     |
+    |    "translog.flush_threshold_period" = 1800000,     |
+    |    "translog.flush_threshold_size" = 209715200,     |
+    |    "translog.interval" = 5000,                      |
+    |    "warmer.enabled" = true                          |
+    | )                                                   |
+    +-----------------------------------------------------+
+    SHOW 1 row in set (... sec)
+
+It is not possible to invoke ``SHOW CREATE TABLE`` on blob tables
+or system tables.
+

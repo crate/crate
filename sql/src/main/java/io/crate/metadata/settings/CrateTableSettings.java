@@ -22,6 +22,7 @@
 package io.crate.metadata.settings;
 
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.TableParameterInfo;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -209,6 +210,18 @@ public class CrateTableSettings {
         @Override
         public TimeValue defaultValue() {
             return TimeValue.timeValueSeconds(5);
+        }
+    };
+
+    public static final TimeSetting REFRESH_INTERVAL = new TimeSetting() {
+        @Override
+        public String name() {
+            return TableParameterInfo.REFRESH_INTERVAL;
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueMillis(1000);
         }
     };
 

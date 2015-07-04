@@ -71,6 +71,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -87,6 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Its methods return a future returning a Long containing the response rowCount.
  * If the future returns <code>null</code>, no row count shall be created.
  */
+@Singleton
 public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, ListenableFuture<Long>> {
 
     private final ClusterService clusterService;

@@ -21,12 +21,50 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public abstract class Literal
-        extends Expression
-{
+        extends Expression  {
+
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLiteral(this, context);
     }
+
+    public static Literal fromObject(Object value) {
+        Literal literal = null;
+        if (value == null) {
+            literal = new NullLiteral();
+        } else if (value instanceof String) {
+            literal = new StringLiteral((String) value);
+        } else if (value instanceof Number) {
+            if (value instanceof Float || value instanceof Double) {
+                literal = new DoubleLiteral(value.toString());
+            } else if (value instanceof Short || value instanceof Integer || value instanceof Long){
+                literal = new LongLiteral(value.toString());
+            }
+        } else if (value instanceof Boolean) {
+            literal = new BooleanLiteral(value.toString());
+        } else if (value instanceof Object[]) {
+            List<Expression> expressions = new ArrayList<>();
+            for (Object o : (Object[]) value) {
+                expressions.add(fromObject(o));
+            }
+            literal = new ArrayLiteral(expressions);
+        } else if (value instanceof Map) {
+            Multimap<String, Expression> map = HashMultimap.create();
+            @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) value;
+            for (String key : valueMap.keySet()) {
+                map.put(key, fromObject(valueMap.get(key)));
+            }
+            literal = new ObjectLiteral(map);
+        }
+        return literal;
+    }
+
 }

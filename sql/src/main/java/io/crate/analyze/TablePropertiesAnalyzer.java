@@ -33,6 +33,7 @@ import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -108,6 +109,11 @@ public class TablePropertiesAnalyzer {
             return setting.substring("index.".length());
         }
         return setting;
+    }
+
+    public static String esToCrateSettingName(String esSettingName) {
+        String val = ES_TO_CRATE_SETTINGS_MAP.get(esSettingName);
+        return (val == null) ? esSettingName : val;
     }
 
     public void analyze(TableParameter tableParameter,
@@ -233,7 +239,7 @@ public class TablePropertiesAnalyzer {
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         public static final Settings DEFAULT = ImmutableSettings.builder()
-                .put(TableParameterInfo.REFRESH_INTERVAL, 1000).build(); // ms
+                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis()).build();
 
         private RefreshIntervalSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.REFRESH_INTERVAL), DEFAULT);
