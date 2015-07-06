@@ -24,6 +24,7 @@ package io.crate.planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.common.Nullable;
@@ -80,5 +81,9 @@ public class PlanVisitor<C, R> {
 
     public R visitGenericShowPlan(GenericShowPlan genericShowPlan, C context) {
         return visitPlan(genericShowPlan, context);
+    }
+
+    public R visitNestedLoop(NestedLoop plan, C context) {
+        return visitPlan(plan, context);
     }
 }
