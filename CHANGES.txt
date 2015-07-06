@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that could lead to a NullPointerException
+   caused by reporting row results to handler node before merge phase on handler
+   was started
+
  - Fixed an issue that could cause concurrent queries on information_schema or
    sys tables to return inconsistent results
 
