@@ -24,32 +24,38 @@ package io.crate.executor.transport.distributed;
 import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
+import io.crate.executor.transport.Transports;
+import io.crate.jobs.JobContextService;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-public class DistributingDownstreamTest extends CrateUnitTest {
+public class ModuloDistributingDownstreamTest extends CrateUnitTest {
 
     private TransportDistributedResultAction distributedResultAction;
+    private TransportDistributedResultAction failingDistributedResultAction;
     private DistributingDownstream downstream;
+    private ThreadPool threadPool;
 
     @Captor
     public ArgumentCaptor<ActionListener<DistributedResultResponse>> listenerArgumentCaptor;
@@ -58,34 +64,73 @@ public class DistributingDownstreamTest extends CrateUnitTest {
     @Before
     public void before() throws Exception {
         originalPageSize = Constants.PAGE_SIZE;
-        MockitoAnnotations.initMocks(this);
+        threadPool = new ThreadPool("dummy");
 
-        List<String> downstreamNodes = Arrays.asList("n1", "n2");
-        distributedResultAction = mock(TransportDistributedResultAction.class);
-        Streamer<?>[] streamers = {DataTypes.STRING.streamer()};
-        downstream = new DistributingDownstream(
-                UUID.randomUUID(),
-                1,
-                0,
-                downstreamNodes,
-                distributedResultAction,
-                streamers
-        );
-        downstream.registerUpstream(null);
+        distributedResultAction = spy(new TransportDistributedResultAction(
+                mock(Transports.class),
+                mock(JobContextService.class),
+                mock(ThreadPool.class),
+                mock(TransportService.class)) {
+
+            @Override
+            public void pushResult(String node, DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
+                threadPool.executor("same").execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onResponse(new DistributedResultResponse(true));
+                    }
+                });
+            }
+        });
+
+        failingDistributedResultAction = spy(new TransportDistributedResultAction(
+                mock(Transports.class),
+                mock(JobContextService.class),
+                mock(ThreadPool.class),
+                mock(TransportService.class)) {
+
+            @Override
+            public void pushResult(String node, DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
+                threadPool.executor("same").execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onFailure(new IllegalStateException("epic fail"));
+                    }
+                });
+            }
+        });
+
+        initDownstream(false);
     }
 
     @After
     public void after() throws Exception {
         Constants.PAGE_SIZE = originalPageSize;
+        threadPool.shutdown();
+        threadPool.awaitTermination(100, TimeUnit.MILLISECONDS);
+    }
+
+    private void initDownstream(boolean useFailingTransport) {
+        List<String> downstreamNodes = Arrays.asList("n1", "n2");
+        Streamer<?>[] streamers = {DataTypes.STRING.streamer()};
+        downstream = new ModuloDistributingDownstream(
+                UUID.randomUUID(),
+                1,
+                0,
+                downstreamNodes,
+                useFailingTransport ? failingDistributedResultAction : distributedResultAction,
+                streamers
+        );
+        downstream.registerUpstream(null);
     }
 
     @Test
     public void testBucketing() throws Exception {
         ArgumentCaptor<DistributedResultRequest> r1Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq("n1"), r1Captor.capture(), any(ActionListener.class));
+        doCallRealMethod().when(distributedResultAction).pushResult(eq("n1"), r1Captor.capture(), any(ActionListener.class));
 
         ArgumentCaptor<DistributedResultRequest> r2Captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(eq("n2"), r2Captor.capture(), any(ActionListener.class));
+        doCallRealMethod().when(distributedResultAction).pushResult(eq("n2"), r2Captor.capture(), any(ActionListener.class));
 
 
         downstream.setNextRow(new Row1(new BytesRef("Trillian")));
@@ -102,21 +147,21 @@ public class DistributingDownstreamTest extends CrateUnitTest {
     @Test
     public void testOperationIsStoppedOnFailureResponse() throws Exception {
         Constants.PAGE_SIZE = 2;
+        // if we modify the PAGE_SIZE, we must re-instantiate the downstream
+        // also we need a failing transport here
+        initDownstream(true);
 
         ArgumentCaptor<DistributedResultRequest> captor = ArgumentCaptor.forClass(DistributedResultRequest.class);
-        doNothing().when(distributedResultAction).pushResult(any(String.class), captor.capture(), listenerArgumentCaptor.capture());
+        doNothing().when(distributedResultAction).pushResult(any(String.class), captor.capture(), any(ActionListener.class));
 
         int iterations = 0;
-        int expected = -1;
+        int expected = 1;
         while (true) {
             if (!downstream.setNextRow(new Row1(new BytesRef("Trillian")))) {
                 break;
             }
-            List<ActionListener<DistributedResultResponse>> allValues = listenerArgumentCaptor.getAllValues();
-            if (allValues.size() == 1) {
-                ActionListener<DistributedResultResponse> distributedResultResponseActionListener = allValues.get(0);
-                distributedResultResponseActionListener.onFailure(new IllegalStateException("epic fail"));
-                expected = iterations + 1;
+            if (!downstream.setNextRow(new Row1(new BytesRef("Arthur")))) {
+                break;
             }
             iterations++;
         }

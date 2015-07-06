@@ -70,7 +70,7 @@ public abstract class ResultProviderBase implements ResultProvider {
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0 && !failed.get()) {
+        if (remainingUpstreams.decrementAndGet() == 0 && !failed.get()) {
             result.set(doFinish());
         }
     }

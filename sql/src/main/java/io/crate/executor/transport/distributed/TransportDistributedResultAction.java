@@ -44,10 +44,15 @@ import java.util.concurrent.TimeUnit;
 
 public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(TransportDistributedResultAction.class);
+    public static final  String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
-    public final static String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
-    private final static String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportDistributedResultAction.class);
+    /**
+     * The request producer class can block the collectors which are running in the
+     * <code>SEARCH</code> thread pool. To avoid dead locks, we must use a different thread pool
+     * here. Lets use the <code>SUGGEST</code> thread pool which is currently not used anywhere else.
+     */
+    private static final String EXECUTOR_NAME = ThreadPool.Names.SUGGEST;
 
     private final Transports transports;
     private final JobContextService jobContextService;
