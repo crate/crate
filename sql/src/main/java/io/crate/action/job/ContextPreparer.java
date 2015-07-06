@@ -53,6 +53,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -61,6 +62,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -74,6 +76,7 @@ public class ContextPreparer {
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
     private CountOperation countOperation;
+    private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final RowDownstreamFactory rowDownstreamFactory;
@@ -84,11 +87,13 @@ public class ContextPreparer {
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
+                           ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
+        this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
@@ -335,6 +340,7 @@ public class ContextPreparer {
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             phase,
                             rowReceiver,
+                            false,
                             ramAccountingContext,
                             // no separate executor because TransportDistributedResultAction already runs in a threadPool
                             Optional.<Executor>absent());
@@ -377,6 +383,23 @@ public class ContextPreparer {
                     ramAccountingContext,
                     rowReceiver
             );
+        }
+
+        @Override
+        public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+
+            RowReceiver rowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
+            if (rowReceiver == null) {
+                context.executionPhasesToProcess.add(phase);
+                return null;
+            }
+            return new NestedLoopContext(
+                    phase,
+                    rowReceiver,
+                    ramAccountingContext,
+                    pageDownstreamFactory,
+                    threadPool);
         }
     }
 }
