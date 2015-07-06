@@ -24,6 +24,7 @@ package io.crate.planner.node;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 
 public class ExecutionPhaseVisitor<C, R> {
@@ -49,6 +50,10 @@ public class ExecutionPhaseVisitor<C, R> {
     }
 
     public R visitFetchPhase(FetchPhase phase, C context) {
+        return visitExecutionPhase(phase, context);
+    }
+
+    public R visitNestedLoopPhase(NestedLoopPhase phase, C context) {
         return visitExecutionPhase(phase, context);
     }
 }
