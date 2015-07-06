@@ -6,16 +6,14 @@ import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.operation.PageDownstream;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
@@ -23,6 +21,7 @@ import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelega
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.support.TransportAction;
 import org.junit.Test;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -206,6 +205,20 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 mock(SymbolBasedUpsertByIdNode.Item.class),
                 SettableFuture.<TaskResult>create(),
                 mock(SymbolBasedTransportShardUpsertActionDelegate.class)));
+    }
+
+    @Test
+    public void testParallelCloseNestedLoopContext() throws Throwable {
+        verifyParallelClose(new NestedLoopContext(mock(NestedLoopPhase.class),
+                mock(RowDownstream.class), mock(RamAccountingContext.class),
+                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
+    }
+
+    @Test
+    public void testParallelKillNestedLoopContext() throws Throwable {
+        verifyParallelKill(new NestedLoopContext(mock(NestedLoopPhase.class),
+                mock(RowDownstream.class), mock(RamAccountingContext.class),
+                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
     }
 
 }
