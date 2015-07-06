@@ -25,10 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.CountContext;
-import io.crate.jobs.ExecutionSubContext;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.PageDownstreamContext;
+import io.crate.jobs.*;
 import io.crate.metadata.Routing;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
@@ -42,6 +39,7 @@ import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -50,6 +48,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -65,6 +64,7 @@ public class ContextPreparer {
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
     private CountOperation countOperation;
+    private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final RowDownstreamFactory rowDownstreamFactory;
@@ -75,11 +75,13 @@ public class ContextPreparer {
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
+                           ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
+        this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
@@ -196,6 +198,19 @@ public class ContextPreparer {
                     ramAccountingContext,
                     downstream
             );
+        }
+
+        @Override
+        public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+
+            RowDownstream downstream = getDownstream(context, Paging.PAGE_SIZE);
+            return new NestedLoopContext(
+                    phase,
+                    downstream,
+                    ramAccountingContext,
+                    pageDownstreamFactory,
+                    threadPool);
         }
     }
 }
