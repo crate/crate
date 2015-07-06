@@ -77,7 +77,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 
@@ -150,7 +150,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (rightFinished) {
                     downstream.finish();
                 } else {
-                    rightUpstream.resume();
+                    rightUpstream.resume(false);
                 }
             }
             LOGGER.debug("left downstream finished");
@@ -211,7 +211,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (leftFinished) {
                     downstream.finish();
                 } else {
-                    leftUpstream.resume();
+                    leftUpstream.resume(false);
                 }
             }
         }
@@ -237,7 +237,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                     return false;
                 }
             } else {
-                rightUpstream.resume();
+                rightUpstream.resume(false);
             }
             return true;
         }
