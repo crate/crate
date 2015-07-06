@@ -23,6 +23,8 @@ package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanPhase;
@@ -34,7 +36,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.*;
 
-public class NestedLoopPhase extends AbstractDQLPlanPhase {
+public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<NestedLoopPhase> FACTORY = new ExecutionPhaseFactory<NestedLoopPhase>() {
         @Override
@@ -46,6 +48,7 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
     private Set<String> executionNodes;
     private MergePhase leftMergePhase;
     private MergePhase rightMergePhase;
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_SAME_NODE;
 
     public NestedLoopPhase() {}
 
@@ -101,6 +104,8 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
+        distributionInfo = DistributionInfo.fromStream(in);
+
         int numExecutionNodes = in.readVInt();
         if (numExecutionNodes > 0) {
             executionNodes = new HashSet<>(numExecutionNodes);
@@ -121,6 +126,8 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+
+        distributionInfo.writeTo(out);
 
         if (executionNodes == null) {
             out.writeVInt(0);
@@ -154,5 +161,15 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
                 .add("jobId", jobId())
                 .add("executionNodes", executionNodes);
         return helper.toString();
+    }
+
+    @Override
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
+    }
+
+    @Override
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
     }
 }
