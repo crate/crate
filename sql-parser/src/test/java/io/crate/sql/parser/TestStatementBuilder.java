@@ -169,7 +169,7 @@ public class TestStatementBuilder
         printStatement("create table test (col1 string, col2 string," +
                 "index \"_col1_ft\" using fulltext(col1))");
         printStatement("create table test (col1 string, col2 string," +
-                 "index col1_col2_ft using fulltext(col1, col2))");
+                "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
 
         printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
         printStatement("create table test (nested set(set(array(boolean))))");
