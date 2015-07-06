@@ -173,7 +173,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingRowReceiver rowReceiver) {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
                 pageDownstreamFactory.createMergeNodePageDownstream(
-                        mergeNode, rowReceiver, ramAccountingContext, Optional.<Executor>absent());
+                        mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
         downstreamFlatProjectorChainTuple.v2().startProjections(mock(ExecutionState.class));
         return downstreamFlatProjectorChainTuple.v1();
     }
