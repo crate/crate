@@ -116,6 +116,12 @@ public class BlobTableInfo implements TableInfo {
         return null;
     }
 
+    @Nullable
+    @Override
+    public Iterator<IndexReferenceInfo> indexColumns() {
+        return null;
+    }
+
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;

@@ -33,6 +33,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
+import org.hamcrest.generator.qdox.parser.Builder;
 import org.mockito.Answers;
 
 import javax.annotation.Nullable;
@@ -46,8 +47,10 @@ import static org.mockito.Mockito.when;
 
 public class TestingTableInfo extends AbstractDynamicTableInfo {
 
+
     private final Routing routing;
     private final ColumnIdent clusteredBy;
+    private final ImmutableMap<String, Object> tableParameters;
 
     public static Builder builder(TableIdent ident, RowGranularity granularity, Routing routing) {
         return new Builder(ident, granularity, routing);
@@ -62,6 +65,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
         private final ImmutableList.Builder<ColumnIdent> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> indexColumns = ImmutableMap.builder();
+        private final ImmutableMap.Builder<String, Object> parameters = ImmutableMap.builder();
         private ColumnIdent clusteredBy;
 
 
@@ -119,6 +123,10 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             }
             ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
                     rowGranularity, type, columnPolicy, indexType);
+            return add(info, partitionBy);
+        }
+
+        public Builder add(ReferenceInfo info, boolean partitionBy) {
             if (info.ident().isColumn()) {
                 columns.add(info);
             }
@@ -130,10 +138,26 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             return this;
         }
 
+        public Builder add(ReferenceInfo info) {
+            return add(info, false);
+        }
+
         public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType) {
+            return addIndex(columnIdent, indexType, ImmutableList.<ReferenceInfo>of());
+        }
+
+        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType, List<ReferenceInfo> columns) {
+            return addIndex(columnIdent, indexType, columns, null);
+        }
+
+        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType, List<ReferenceInfo> columns, String analyzer) {
             IndexReferenceInfo.Builder builder = new IndexReferenceInfo.Builder()
                     .ident(new ReferenceIdent(ident, columnIdent))
-                    .indexType(indexType);
+                    .indexType(indexType)
+                    .analyzer(analyzer);
+            for (ReferenceInfo column : columns) {
+                builder.addColumn(column);
+            }
             indexColumns.put(columnIdent, builder.build());
             return this;
         }
@@ -166,6 +190,16 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             return this;
         }
 
+        public Builder numberOfReplicas(Object s) {
+            addParameter("number_of_replicas", s);
+            return this;
+        }
+
+        public Builder addParameter(String key, Object value) {
+            parameters.put(key, value);
+            return this;
+        }
+
         public TableInfo build() {
             addDocSysColumns();
             return new TestingTableInfo(
@@ -182,7 +216,9 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
                     partitionedBy.build(),
                     partitions.build(),
                     columnPolicy,
-                    schemaInfo == null ? mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()) : schemaInfo);
+                    schemaInfo == null ? mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()) : schemaInfo,
+                    parameters.build()
+            );
         }
 
     }
@@ -215,7 +251,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions,
                             ColumnPolicy columnPolicy,
-                            SchemaInfo schemaInfo
+                            SchemaInfo schemaInfo,
+                            ImmutableMap<String, Object> tableParameters
                             ) {
         super(schemaInfo);
         this.columns = columns;
@@ -242,6 +279,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
         } else {
             tableParameterInfo = new AlterPartitionedTableParameterInfo();
         }
+        this.tableParameters = tableParameters;
     }
 
     @Override
@@ -263,6 +301,11 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
     @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
         return indexColumns.get(ident);
+    }
+
+    @Override
+    public Iterator<IndexReferenceInfo> indexColumns() {
+        return indexColumns.values().iterator();
     }
 
     @Override
@@ -340,6 +383,11 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
     @Override
     public ColumnPolicy columnPolicy() {
         return columnPolicy;
+    }
+
+    @Override
+    public ImmutableMap<String, Object> tableParameters() {
+        return tableParameters;
     }
 
     @Override

@@ -142,7 +142,6 @@ public class DocIndexMetaData {
             if (metaColumnsMap == null) {
                 metaColumnsMap = ImmutableMap.of();
             }
-
             partitionedByList = getNested(metaMap, "partitioned_by");
             if (partitionedByList == null) {
                 partitionedByList = ImmutableList.of();
@@ -296,7 +295,8 @@ public class DocIndexMetaData {
                 if (indicesMap.containsKey(newIdent.fqn())) {
                     IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
-                            .ident(new ReferenceIdent(ident, newIdent));
+                            .ident(new ReferenceIdent(ident, newIdent))
+                            .analyzer((String) columnProperties.get("analyzer"));
                 } else {
                     add(newIdent, columnDataType, columnIndexType);
                 }

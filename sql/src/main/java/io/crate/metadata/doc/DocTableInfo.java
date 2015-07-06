@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
@@ -344,6 +345,11 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
         return indexColumns.get(ident);
+    }
+
+    @Override
+    public Iterator<IndexReferenceInfo> indexColumns() {
+        return indexColumns.values().iterator();
     }
 
     @Override
