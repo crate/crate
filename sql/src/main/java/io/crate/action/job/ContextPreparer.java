@@ -31,6 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.NestedLoopContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Routing;
 import io.crate.operation.*;
@@ -45,6 +46,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -208,6 +210,23 @@ public class ContextPreparer {
                     downstream
             );
             context.contextBuilder.addSubContext(phase.executionPhaseId(), jobCollectContext);
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+
+            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId());
+
+            NestedLoopContext nestedLoopContext = new NestedLoopContext(
+                    phase,
+                    downstream,
+                    ramAccountingContext,
+                    pageDownstreamFactory,
+                    threadPool);
+
+            context.contextBuilder.addSubContext(phase.executionPhaseId(), nestedLoopContext);
             return null;
         }
     }
