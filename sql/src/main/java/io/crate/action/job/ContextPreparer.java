@@ -45,6 +45,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
+import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
@@ -57,6 +58,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -66,6 +68,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -79,6 +82,7 @@ public class ContextPreparer {
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
     private CountOperation countOperation;
+    private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final RowDownstreamFactory rowDownstreamFactory;
@@ -89,11 +93,13 @@ public class ContextPreparer {
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
+                           ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
+        this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
@@ -371,6 +377,7 @@ public class ContextPreparer {
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             phase,
                             rowReceiver,
+                            false,
                             ramAccountingContext,
                             // no separate executor because TransportDistributedResultAction already runs in a threadPool
                             Optional.<Executor>absent());
@@ -436,6 +443,83 @@ public class ContextPreparer {
                     localNodeId,
                     context.sharedShardContexts,
                     routings);
+        }
+
+        @Override
+        public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RowReceiver downstreamRowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
+            if (downstreamRowReceiver == null) {
+                context.executionPhasesToProcess.add(phase);
+                return null;
+            }
+
+            FlatProjectorChain flatProjectorChain;
+            if (!phase.projections().isEmpty()) {
+                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                        pageDownstreamFactory.projectorFactory(),
+                        ramAccountingContext,
+                        phase.projections(),
+                        downstreamRowReceiver,
+                        phase.jobId()
+                );
+            } else {
+                flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
+            }
+
+            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(flatProjectorChain.firstProjector());
+            return new NestedLoopContext(
+                    phase,
+                    flatProjectorChain,
+                    nestedLoopOperation,
+                    pageDownstreamContextForNestedLoop(
+                            phase.executionPhaseId(),
+                            context,
+                            (byte) 0,
+                            phase.leftMergePhase(),
+                            nestedLoopOperation.leftRowReceiver(),
+                            ramAccountingContext),
+                    pageDownstreamContextForNestedLoop(
+                            phase.executionPhaseId(),
+                            context,
+                            (byte) 1,
+                            phase.rightMergePhase(),
+                            nestedLoopOperation.rightRowReceiver(),
+                            ramAccountingContext
+                    )
+            );
+        }
+
+        @Nullable
+        private PageDownstreamContext pageDownstreamContextForNestedLoop(int nlPhaseId,
+                                                                         PreparerContext ctx,
+                                                                         byte inputId,
+                                                                         @Nullable MergePhase mergePhase,
+                                                                         RowReceiver rowReceiver,
+                                                                         RamAccountingContext ramAccountingContext) {
+            boolean upstreamOnSameNode = ctx.getPhaseHasSameNodeUpstream(nlPhaseId, inputId);
+            if (upstreamOnSameNode) {
+                assert mergePhase == null : "if upstream is on same node the phase must be null";
+                ctx.registerRowReceiver(nlPhaseId, inputId, rowReceiver);
+                return null;
+            }
+            assert mergePhase != null : "if upstream isn't on the same node, there must be a mergePhase";
+            Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain = pageDownstreamFactory.createMergeNodePageDownstream(
+                    mergePhase,
+                    rowReceiver,
+                    true,
+                    ramAccountingContext,
+                    Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
+            );
+            return new PageDownstreamContext(
+                    mergePhase.executionPhaseId(),
+                    mergePhase.name(),
+                    pageDownstreamWithChain.v1(),
+                    StreamerVisitor.streamerFromOutputs(mergePhase),
+                    ramAccountingContext,
+                    mergePhase.numUpstreams(),
+                    pageDownstreamWithChain.v2()
+            );
         }
     }
 }
