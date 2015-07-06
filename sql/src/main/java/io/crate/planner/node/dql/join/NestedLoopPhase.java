@@ -119,11 +119,11 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase {
             }
         }
         if (in.readBoolean()) {
-            leftMergePhase = new MergePhase();
+            leftMergePhase = MergePhase.FACTORY.create();
             leftMergePhase.readFrom(in);
         }
         if (in.readBoolean()) {
-            rightMergePhase = new MergePhase();
+            rightMergePhase = MergePhase.FACTORY.create();
             rightMergePhase.readFrom(in);
         }
     }
