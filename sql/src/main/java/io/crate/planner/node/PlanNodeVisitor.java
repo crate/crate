@@ -28,6 +28,7 @@ import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import org.elasticsearch.common.Nullable;
 
 public class PlanNodeVisitor<C, R> {
@@ -82,6 +83,10 @@ public class PlanNodeVisitor<C, R> {
 
     public R visitCreateTableNode(CreateTableNode node, C context) {
         return visitPlanNode(node, context);
+    }
+
+    public R visitNestedLoopPhase(NestedLoopPhase phase, C context) {
+        return visitPlanNode(phase, context);
     }
 
     public R visitGenericDDLNode(GenericDDLNode node, C context) {
