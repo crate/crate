@@ -31,8 +31,7 @@ import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.ExpressionFormatter.expressionFormatterFunction;
 import static io.crate.sql.ExpressionFormatter.formatExpression;
 
-public final class SqlFormatter
-{
+public final class SqlFormatter {
     private static final String INDENT = "   ";
 
     private SqlFormatter() {}
@@ -247,7 +246,7 @@ public final class SqlFormatter
                 }
             }
 
-            if (node.properties().isPresent()) {
+            if (node.properties().isPresent() && !node.properties().get().isEmpty()) {
                 builder.append("\n");
                 node.properties().get().accept(this, indent);
             }
@@ -323,7 +322,7 @@ public final class SqlFormatter
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             builder.append("OBJECT");
             if (node.objectType().isPresent()) {
-                builder.append(String.format(" (%s)", node.objectType().get()));
+                builder.append(String.format(" (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
@@ -378,6 +377,10 @@ public final class SqlFormatter
                     .append(node.method().toUpperCase(Locale.ENGLISH))
                     .append(" ");
             appendFlatNodeList(node.columns(), indent);
+            if (!node.properties().isEmpty()) {
+                builder.append(" ");
+                process(node.properties(), indent);
+            }
             return null;
         }
 
