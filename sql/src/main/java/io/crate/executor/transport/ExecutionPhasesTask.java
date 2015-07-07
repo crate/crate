@@ -211,13 +211,12 @@ public class ExecutionPhasesTask extends JobTask {
         Collection<ExecutionPhase> localExecutionPhases = nodesByServer.remove(localNodeId);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
-
         if (localExecutionPhases != null) {
             for (ExecutionPhase executionPhase : localExecutionPhases) {
                 contextPreparer.prepare(jobId(), executionPhase, builder);
             }
         }
+        builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
         JobExecutionContext context = jobContextService.createContext(builder);
         context.start();
     }

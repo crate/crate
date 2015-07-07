@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that could lead to a NullPointerException
+   caused by reporting row results to handler node before merge phase on handler
+   was started
+
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
    attempting to do so will result in a more meaningful error.
 
