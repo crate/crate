@@ -52,6 +52,13 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 "green| small\n"));
     }
 
+    @Test
+    public void testExplicitJoinSyntax() throws Exception {
+        createColorsAndSizes();
+        // TODO: hangs if limit > n rows
+        execute("select colors.name, sizes.name from colors cross join sizes");
+    }
+
     private void createColorsAndSizes() {
         execute("create table colors (name string) ");
         execute("create table sizes (name string) ");
