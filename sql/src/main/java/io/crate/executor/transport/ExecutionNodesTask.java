@@ -202,15 +202,16 @@ public class ExecutionNodesTask extends JobTask {
         Collection<ExecutionPhase> localExecutionPhases = nodesByServer.remove(localNodeId);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(mergeNode.executionPhaseId(), finalLocalMerge);
 
         if (localExecutionPhases == null || localExecutionPhases.isEmpty()) {
             // only the local merge happens locally so it is enough to just create that context.
+            builder.addSubContext(mergeNode.executionPhaseId(), finalLocalMerge);
             jobContextService.createOrMergeContext(builder);
         } else {
             for (ExecutionPhase executionPhase : localExecutionPhases) {
                 contextPreparer.prepare(jobId(), executionPhase, builder);
             }
+            builder.addSubContext(mergeNode.executionPhaseId(), finalLocalMerge);
             JobExecutionContext context = jobContextService.createOrMergeContext(builder);
             for (ExecutionPhase executionPhase : localExecutionPhases) {
                 executionNodeOperationStarter.startOperation(executionPhase, context);
