@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
+import com.google.common.base.Function;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -32,13 +33,15 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
-import java.util.List;
+import javax.annotation.Nullable;
+import java.util.*;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,26 +95,24 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshBlobTable() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table blob.blobs");
-        assertThat(analysis.table().ident().schema(), is("blob"));
-        assertThat(analysis.table().ident().name(), is("blobs"));
 
+        assertThat(analysis.tables().iterator().next().ident().name(), is("blobs"));
     }
 
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted PARTITION (date=1395874800000)");
-        assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+
+        assertThat(analysis.tables(), contains(Matchers.hasToString("doc.parted")));
     }
 
-    @Test
-    public void testRefreshPartitionsParameter() throws Exception {
-        PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze(
-                "refresh table parted PARTITION (date=?)", new Object[] {"1395874800000"});
-        assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+    @Test(expected = TableUnknownException.class)
+    public void testRefreshMultipleTablesUnknown() throws Exception {
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted, foo, bar");
+
+        assertThat(analysis.tables().size(), is(1));
+        assertThat(analysis.tables(),contains(Matchers.hasToString("doc.parted")));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -139,7 +140,9 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
-        assertNotNull(analysis.partitionName());
-        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted.0400"));
+
+        assertThat(analysis.partitions().values(),
+                contains(Matchers.hasToString(".partitioned.parted.0400"))
+        );
     }
 }

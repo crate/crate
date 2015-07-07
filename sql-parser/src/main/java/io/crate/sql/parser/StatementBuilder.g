@@ -960,7 +960,11 @@ namedProperties returns [NamedProperties value]
     ;
 
 refresh returns [RefreshStatement value]
-    : ^(REFRESH namedTable) { $value = new RefreshStatement($namedTable.value); }
+    : ^(REFRESH tableWithPartitionList)  { $value = new RefreshStatement($tableWithPartitionList.value); }
+    ;
+
+tableWithPartitionList returns [List<Table> value = new ArrayList<>()]
+    : ^(TABLE_PARTITION_LIST ( namedTable { $value.add($namedTable.value); })+ )
     ;
 
 set returns [SetStatement value]

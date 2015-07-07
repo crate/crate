@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for multiple tables in refresh statement.
+
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
    attempting to do so will result in a more meaningful error.
 
