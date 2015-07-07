@@ -34,7 +34,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
@@ -61,8 +60,8 @@ public class QueryAndFetchConsumer implements Consumer {
     private final Visitor visitor;
 
     @Inject
-    public QueryAndFetchConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    public QueryAndFetchConsumer() {
+        visitor = new Visitor();
     }
 
     @Override
@@ -72,30 +71,26 @@ public class QueryAndFetchConsumer implements Consumer {
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        private final Functions functions;
-
-        public Visitor(Functions functions) {
-            this.functions = functions;
-        }
+        private final Visitor.NoPredicateVisitor noPredicateVisitor = new NoPredicateVisitor();
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             TableRelation tableRelation = table.tableRelation();
-            if(table.querySpec().where().hasVersions()){
+            QuerySpec querySpec = table.querySpec();
+            if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            TableInfo tableInfo = tableRelation.tableInfo();
+            if (querySpec.hasAggregates()) {
+                return null;
+            }
 
-            if (tableInfo.schemaInfo().systemSchema() && table.querySpec().where().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
+            TableInfo tableInfo = tableRelation.tableInfo();
+            if (tableInfo.schemaInfo().systemSchema() && querySpec.where().hasQuery()) {
+                ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
-            if (table.querySpec().hasAggregates()) {
-                return GlobalAggregateConsumer.globalAggregates(
-                        functions, table, tableRelation, table.querySpec().where(), context);
-            } else {
-               return normalSelect(table, table.querySpec().where(), tableRelation, context);
-            }
+
+           return normalSelect(table, querySpec.where(), tableRelation, context);
         }
 
         @Override
@@ -104,7 +99,6 @@ public class QueryAndFetchConsumer implements Consumer {
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {
-            NoPredicateVisitor noPredicateVisitor = new NoPredicateVisitor();
             noPredicateVisitor.process(query, null);
         }
 
@@ -130,29 +124,18 @@ public class QueryAndFetchConsumer implements Consumer {
 
             List<Symbol> outputSymbols;
             if (tableInfo.schemaInfo().systemSchema()) {
-                outputSymbols = tableRelation.resolve(querySpec.outputs());
+                outputSymbols = querySpec.outputs();
             } else {
                 outputSymbols = new ArrayList<>(querySpec.outputs().size());
                 for (Symbol symbol : querySpec.outputs()) {
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
                 }
             }
+
             CollectPhase collectNode;
             MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
-            if (context.rootRelation() != table) {
-                ImmutableList<Projection> projections = ImmutableList.<Projection>of();
-                collectNode = PlanNodeBuilder.collect(
-                        context.plannerContext().jobId(),
-                        tableInfo,
-                        context.plannerContext(),
-                        whereClause,
-                        outputSymbols,
-                        projections,
-                        querySpec.orderBy(),
-                        querySpec.limit()
-                );
-            } else if (querySpec.isLimited() || orderBy != null) {
+            if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date
                  *
@@ -164,7 +147,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
                 if (orderBy != null){
-                    List<Symbol> orderBySymbols = tableRelation.resolve(orderBy.orderBySymbols());
+                    List<Symbol> orderBySymbols = orderBy.orderBySymbols();
                     toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
                     toCollect.addAll(outputSymbols);
                     // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
@@ -182,14 +165,8 @@ public class QueryAndFetchConsumer implements Consumer {
                     toCollect.addAll(outputSymbols);
                 }
 
-                List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
-                for (int i = 0; i < toCollect.size(); i++) {
-                    allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
-                }
-                List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
-                for (int i = 0; i < outputSymbols.size(); i++) {
-                    finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
-                }
+                List<Symbol> allOutputs = toInputColumns(toCollect);
+                List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
                 // if we have an offset we have to get as much docs from every node as we have offset+limit
                 // otherwise results will be wrong
@@ -233,6 +210,13 @@ public class QueryAndFetchConsumer implements Consumer {
                             context.plannerContext()
                     );
                 }
+            } else if (context.rootRelation() != table) {
+                ImmutableList<Projection> projections = ImmutableList.of();
+                collectNode = PlanNodeBuilder.collect(
+                        context.plannerContext().jobId(),
+                        tableInfo,
+                        context.plannerContext(),
+                        whereClause, outputSymbols, projections);
             } else {
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
@@ -245,6 +229,14 @@ public class QueryAndFetchConsumer implements Consumer {
                         context.plannerContext());
             }
             return new QueryAndFetch(collectNode, mergeNode, context.plannerContext().jobId());
+        }
+
+        private List<Symbol> toInputColumns(List<Symbol> symbols) {
+            List<Symbol> inputColumns = new ArrayList<>(symbols.size());
+            for (int i = 0; i < symbols.size(); i++) {
+                inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
+            }
+            return inputColumns;
         }
     }
 }
