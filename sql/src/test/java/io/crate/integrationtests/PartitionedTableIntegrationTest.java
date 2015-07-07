@@ -1923,6 +1923,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @Repeat(iterations = 1000)
     public void testSelectWhileShardsAreRelocating() throws Throwable {
         execute("create table t (name string, p string) " +
                 "clustered into 2 shards " +
