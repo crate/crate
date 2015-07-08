@@ -34,7 +34,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.PlanNodeBuilder;
@@ -124,11 +123,11 @@ public class QueryAndFetchConsumer implements Consumer {
 
             List<Symbol> outputSymbols;
             if (tableInfo.schemaInfo().systemSchema()) {
-                outputSymbols = tableRelation.resolve(querySpec.outputs());
+                outputSymbols = querySpec.outputs();
             } else {
                 outputSymbols = new ArrayList<>(querySpec.outputs().size());
                 for (Symbol symbol : querySpec.outputs()) {
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(tableRelation.resolve(symbol), tableInfo));
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, tableInfo));
                 }
             }
             CollectPhase collectNode;
@@ -139,7 +138,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
                         "Analyzer should have thrown an exception already.";
 
-                ImmutableList<Projection> projections = ImmutableList.<Projection>of();
+                ImmutableList<Projection> projections = ImmutableList.of();
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
@@ -157,7 +156,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
                 if (orderBy != null){
-                    List<Symbol> orderBySymbols = tableRelation.resolve(orderBy.orderBySymbols());
+                    List<Symbol> orderBySymbols = orderBy.orderBySymbols();
                     toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
                     toCollect.addAll(outputSymbols);
                     // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
