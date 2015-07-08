@@ -61,8 +61,8 @@ public class QueryAndFetchConsumer implements Consumer {
     private final Visitor visitor;
 
     @Inject
-    public QueryAndFetchConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    public QueryAndFetchConsumer() {
+        visitor = new Visitor();
     }
 
     @Override
@@ -72,30 +72,25 @@ public class QueryAndFetchConsumer implements Consumer {
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
-        private final Functions functions;
-
-        public Visitor(Functions functions) {
-            this.functions = functions;
-        }
+        private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             TableRelation tableRelation = table.tableRelation();
-            if(table.querySpec().where().hasVersions()){
+            QuerySpec querySpec = table.querySpec();
+            if (querySpec.hasAggregates()) {
+                return null;
+            }
+            if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
 
-            if (tableInfo.schemaInfo().systemSchema() && table.querySpec().where().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
+            if (tableInfo.schemaInfo().systemSchema() && querySpec.where().hasQuery()) {
+                ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
-            if (table.querySpec().hasAggregates()) {
-                return GlobalAggregateConsumer.globalAggregates(
-                        functions, table, tableRelation, table.querySpec().where(), context);
-            } else {
-               return normalSelect(table, table.querySpec().where(), tableRelation, context);
-            }
+           return normalSelect(table, querySpec.where(), tableRelation, context);
         }
 
         @Override
@@ -104,8 +99,7 @@ public class QueryAndFetchConsumer implements Consumer {
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {
-            NoPredicateVisitor noPredicateVisitor = new NoPredicateVisitor();
-            noPredicateVisitor.process(query, null);
+            NO_PREDICATE_VISITOR.process(query, null);
         }
 
         private static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {

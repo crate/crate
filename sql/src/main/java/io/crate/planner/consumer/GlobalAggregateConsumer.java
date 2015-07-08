@@ -102,11 +102,11 @@ public class GlobalAggregateConsumer implements Consumer {
         return groupBy == null || groupBy.isEmpty();
     }
 
-    public static PlannedAnalyzedRelation globalAggregates(Functions functions,
-                                                           QueriedTable table,
-                                                           TableRelation tableRelation,
-                                                           WhereClause whereClause,
-                                                           ConsumerContext context) {
+    private static PlannedAnalyzedRelation globalAggregates(Functions functions,
+                                                            QueriedTable table,
+                                                            TableRelation tableRelation,
+                                                            WhereClause whereClause,
+                                                            ConsumerContext context) {
         assert noGroupBy(table.querySpec().groupBy()) : "must not have group by clause for global aggregate queries";
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
