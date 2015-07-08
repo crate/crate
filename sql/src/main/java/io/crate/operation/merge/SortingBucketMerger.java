@@ -36,10 +36,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.projectors.NoOpProjector;
+import io.crate.operation.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 
 import java.util.*;
@@ -50,9 +47,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * BucketMerger implementation that expects sorted rows in the
  * incoming buckets and merges them to a single sorted stream of {@linkplain Row}s.
  */
-public class SortingBucketMerger implements BucketMerger {
+public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
-    private RowDownstreamHandle downstream;
+    private final RowDownstreamHandle downstream;
     private final Ordering<Row> ordering;
     private final int numBuckets;
     private final AtomicBoolean wantMore;
@@ -62,7 +59,8 @@ public class SortingBucketMerger implements BucketMerger {
     private final Optional<Executor> executor;
     private Iterator<Row>[] remainingBucketIts = null;
 
-    public SortingBucketMerger(int numBuckets,
+    public SortingBucketMerger(RowDownstream rowDownstream,
+                               int numBuckets,
                                int[] orderByPositions,
                                boolean[] reverseFlags,
                                Boolean[] nullsFirst,
@@ -84,8 +82,7 @@ public class SortingBucketMerger implements BucketMerger {
         bucketsWithRowEqualToLeast = new IntArrayList(numBuckets);
         exhaustedIterators = new IntOpenHashSet(numBuckets, 1);
 
-        // use noOp as default to avoid null checks
-        downstream = NoOpProjector.INSTANCE;
+        downstream = rowDownstream.registerUpstream(this);
     }
 
     /**
@@ -341,11 +338,5 @@ public class SortingBucketMerger implements BucketMerger {
     @Override
     public void fail(Throwable e) {
         downstream.fail(e);
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        assert downstream != null : "downstream must not be null";
-        this.downstream = downstream.registerUpstream(this);
     }
 }

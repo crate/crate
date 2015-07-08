@@ -24,15 +24,11 @@ package io.crate.operation.merge;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.projectors.NoOpProjector;
+import io.crate.operation.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -41,28 +37,27 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * BucketMerger implementation that does not care about sorting
  * and just emits a stream of rows, whose order is undeterministic
  * as it is not guaranteed which row from which bucket ends up in the stream at which position.
  */
-public class NonSortingBucketMerger implements BucketMerger {
+public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
-    private RowDownstreamHandle downstream;
+    private final RowDownstreamHandle downstream;
     private final AtomicBoolean wantMore;
     private final AtomicBoolean alreadyFinished;
     private final Optional<Executor>  executor;
 
-    public NonSortingBucketMerger() {
-        this(Optional.<Executor>absent());
+    public NonSortingBucketMerger(RowDownstream rowDownstream) {
+        this(rowDownstream, Optional.<Executor>absent());
     }
 
-    public NonSortingBucketMerger(Optional<Executor> executor) {
-        this.downstream = NoOpProjector.INSTANCE;
+    public NonSortingBucketMerger(RowDownstream rowDownstream, Optional<Executor> executor) {
+        this.downstream = rowDownstream.registerUpstream(this);
         this.wantMore = new AtomicBoolean(true);
         this.alreadyFinished = new AtomicBoolean(false);
         this.executor = executor;
@@ -140,11 +135,5 @@ public class NonSortingBucketMerger implements BucketMerger {
             LOGGER.trace("{} failed.", t, hashCode());
             downstream.fail(t);
         }
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        assert downstream != null : "downstream must not be null";
-        this.downstream = downstream.registerUpstream(this);
     }
 }

@@ -59,9 +59,8 @@ public class SortingBucketMergerTest extends CrateUnitTest {
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        final SortingBucketMerger merger = new SortingBucketMerger(
+        final SortingBucketMerger merger = new SortingBucketMerger(collectingProjector,
                 buckets, new int[] { 0 }, new boolean[] { false }, new Boolean[] { nullsFirst }, Optional.<Executor>absent());
-        merger.downstream(collectingProjector);
         collectingProjector.startProjection(mock(ExecutionState.class));
 
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
@@ -390,10 +389,11 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         Thread mergeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                final SortingBucketMerger bucketMerger = new SortingBucketMerger(2, new int[]{0}, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>absent());
                 InputCollectExpression inputCollectExpression = new InputCollectExpression<>(0);
-                SimpleTopNProjector topN = new SimpleTopNProjector(Arrays.<Input<?>>asList(inputCollectExpression), new CollectExpression[]{ inputCollectExpression }, 100, 0);
-                bucketMerger.downstream(topN);
+                SimpleTopNProjector topN = new SimpleTopNProjector(
+                        Arrays.<Input<?>>asList(inputCollectExpression), new CollectExpression[]{ inputCollectExpression }, 100, 0);
+                final SortingBucketMerger bucketMerger = new SortingBucketMerger(
+                        topN, 2, new int[]{0}, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>absent());
                 CollectingProjector collectingProjector = new CollectingProjector();
                 topN.downstream(collectingProjector);
                 collectingProjector.startProjection(mock(ExecutionState.class));
@@ -432,9 +432,8 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
 
         // order by col2 asc, col1 desc nulls first
-        final SortingBucketMerger merger = new SortingBucketMerger(
+        final SortingBucketMerger merger = new SortingBucketMerger(collectingProjector,
                 2, new int[]{1, 0}, new boolean[]{false, true}, new Boolean[]{null, true}, Optional.<Executor>absent());
-        merger.downstream(collectingProjector);
         collectingProjector.startProjection(mock(ExecutionState.class));
         BucketPage page1 = createPage(
                 Arrays.asList(

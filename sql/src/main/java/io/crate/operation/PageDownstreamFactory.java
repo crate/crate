@@ -26,7 +26,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.merge.BucketMerger;
 import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.merge.SortingBucketMerger;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -75,19 +74,6 @@ public class PageDownstreamFactory {
                                                                                    RowDownstream rowDownstream,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
-        BucketMerger bucketMerger;
-        if (mergeNode.sortedInputOutput()) {
-            bucketMerger = new SortingBucketMerger(
-                    mergeNode.numUpstreams(),
-                    mergeNode.orderByIndices(),
-                    mergeNode.reverseFlags(),
-                    mergeNode.nullsFirst(),
-                    executorOptional
-            );
-        } else {
-            bucketMerger = new NonSortingBucketMerger(executorOptional);
-        }
-
         FlatProjectorChain projectorChain = null;
         if (!mergeNode.projections().isEmpty()) {
             projectorChain = FlatProjectorChain.withAttachedDownstream(
@@ -100,7 +86,19 @@ public class PageDownstreamFactory {
             rowDownstream = projectorChain.firstProjector();
         }
 
-        bucketMerger.downstream(rowDownstream);
-        return new Tuple<PageDownstream, FlatProjectorChain>(bucketMerger, projectorChain);
+        PageDownstream pageDownstream;
+        if (mergeNode.sortedInputOutput()) {
+            pageDownstream = new SortingBucketMerger(
+                    rowDownstream,
+                    mergeNode.numUpstreams(),
+                    mergeNode.orderByIndices(),
+                    mergeNode.reverseFlags(),
+                    mergeNode.nullsFirst(),
+                    executorOptional
+            );
+        } else {
+            pageDownstream = new NonSortingBucketMerger(rowDownstream, executorOptional);
+        }
+        return new Tuple<>(pageDownstream, projectorChain);
     }
 }
