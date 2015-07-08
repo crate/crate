@@ -114,10 +114,10 @@ public class QueryAndFetchConsumer implements Consumer {
             }
         }
 
-        private PlannedAnalyzedRelation normalSelect(QueriedTable table,
-                                                     WhereClause whereClause,
-                                                     TableRelation tableRelation,
-                                                     ConsumerContext context){
+        private static PlannedAnalyzedRelation normalSelect(QueriedTable table,
+                                                            WhereClause whereClause,
+                                                            TableRelation tableRelation,
+                                                            ConsumerContext context){
             QuerySpec querySpec = table.querySpec();
             TableInfo tableInfo = tableRelation.tableInfo();
 
@@ -133,18 +133,7 @@ public class QueryAndFetchConsumer implements Consumer {
             CollectPhase collectNode;
             MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
-            if (context.rootRelation() != table) {
-                // insert directly from shards
-                assert !querySpec.isLimited() : "insert from sub query with limit or order by is not supported. " +
-                        "Analyzer should have thrown an exception already.";
-
-                ImmutableList<Projection> projections = ImmutableList.of();
-                collectNode = PlanNodeBuilder.collect(
-                        context.plannerContext().jobId(),
-                        tableInfo,
-                        context.plannerContext(),
-                        whereClause, outputSymbols, projections);
-            } else if (querySpec.isLimited() || orderBy != null) {
+            if (querySpec.isLimited() || orderBy != null) {
                 /**
                  * select id, name, order by id, date
                  *
@@ -174,14 +163,8 @@ public class QueryAndFetchConsumer implements Consumer {
                     toCollect.addAll(outputSymbols);
                 }
 
-                List<Symbol> allOutputs = new ArrayList<>(toCollect.size());        // outputs from collector
-                for (int i = 0; i < toCollect.size(); i++) {
-                    allOutputs.add(new InputColumn(i, toCollect.get(i).valueType()));
-                }
-                List<Symbol> finalOutputs = new ArrayList<>(outputSymbols.size());  // final outputs on handler after sort
-                for (int i = 0; i < outputSymbols.size(); i++) {
-                    finalOutputs.add(new InputColumn(i, outputSymbols.get(i).valueType()));
-                }
+                List<Symbol> allOutputs = toInputColumns(toCollect);
+                List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
                 // if we have an offset we have to get as much docs from every node as we have offset+limit
                 // otherwise results will be wrong
@@ -226,17 +209,33 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
             } else {
+                ImmutableList<Projection> projections = ImmutableList.of();
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
                         context.plannerContext(),
-                        whereClause, outputSymbols, ImmutableList.<Projection>of());
-                mergeNode = PlanNodeBuilder.localMerge(
-                        context.plannerContext().jobId(),
-                        ImmutableList.<Projection>of(), collectNode,
-                        context.plannerContext());
+                        whereClause,
+                        outputSymbols,
+                        projections
+                );
+                if (context.rootRelation() == table) {
+                    mergeNode = PlanNodeBuilder.localMerge(
+                            context.plannerContext().jobId(),
+                            ImmutableList.<Projection>of(),
+                            collectNode,
+                            context.plannerContext()
+                    );
+                }
             }
             return new QueryAndFetch(collectNode, mergeNode, context.plannerContext().jobId());
+        }
+
+        private static List<Symbol> toInputColumns(List<Symbol> symbols) {
+            List<Symbol> inputColumns = new ArrayList<>(symbols.size());
+            for (int i = 0; i < symbols.size(); i++) {
+                inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
+            }
+            return inputColumns;
         }
     }
 }
