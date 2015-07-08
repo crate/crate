@@ -33,7 +33,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +47,6 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
     private final RowDownstreamHandle downstream;
-    private final AtomicBoolean wantMore;
     private final AtomicBoolean alreadyFinished;
     private final Optional<Executor>  executor;
 
@@ -58,52 +56,37 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
 
     public NonSortingBucketMerger(RowDownstream rowDownstream, Optional<Executor> executor) {
         this.downstream = rowDownstream.registerUpstream(this);
-        this.wantMore = new AtomicBoolean(true);
         this.alreadyFinished = new AtomicBoolean(false);
         this.executor = executor;
     }
 
     @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
-        final AtomicBoolean listenerNotified = new AtomicBoolean(false);
         FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
             @Override
-            public void onSuccess(@Nullable List<Bucket> result) {
+            public void onSuccess(List<Bucket> buckets) {
                 LOGGER.trace("received bucket");
-                if (result != null && wantMore.get() && !listenerNotified.get()) {
-                    for (Bucket rows : result) {
-                        for (Row row : rows) {
-                            try {
-                                if (!emitRow(row)) {
-                                    wantMore.set(false);
-                                    notifyListener();
-                                    break;
-                                }
-                            } catch (Throwable t) {
-                                onFailure(t);
+                for (Bucket bucket : buckets) {
+                    for (Row row : bucket) {
+                        try {
+                            boolean needMore = downstream.setNextRow(row);
+                            if (!needMore) {
+                                listener.finish();
+                                return;
                             }
+                        } catch (Throwable t) {
+                            onFailure(t);
+                            return;
                         }
                     }
                 }
-                notifyListener();
-            }
-
-            private void notifyListener() {
-                if (!listenerNotified.getAndSet(true)) {
-                    if (wantMore.get()) {
-                        listener.needMore();
-                    } else {
-                        listener.finish();
-                    }
-                }
+                listener.needMore();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                LOGGER.trace("error in {}", t, NonSortingBucketMerger.this.getClass().getSimpleName());
-                wantMore.set(false);
                 fail(t);
-                notifyListener();
+                listener.finish();
             }
         };
 
@@ -120,19 +103,16 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
     @Override
     public void finish() {
         if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("{} finished.", hashCode());
+            LOGGER.trace("NonSortingBucketMerger {} finished.", hashCode());
             downstream.finish();
         }
     }
 
-    private synchronized boolean emitRow(Row row) {
-        return downstream.setNextRow(row);
-    }
 
     @Override
     public void fail(Throwable t) {
         if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("{} failed.", t, hashCode());
+            LOGGER.trace("NonSortingBucketMerger {} failed.", t, hashCode());
             downstream.fail(t);
         }
     }
