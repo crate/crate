@@ -50,7 +50,7 @@ public class SQLTransportExecutor {
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
     private static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "60")), TimeUnit.SECONDS);
 
     public static SQLTransportExecutor create(final TestCluster testCluster) {
         return new SQLTransportExecutor(new ClientProvider() {
