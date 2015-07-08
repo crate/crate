@@ -25,3 +25,8 @@ script: ./gradlew -PtestForks=2 test itest -s
 
 after_success:
   - ./gradlew jacocoReport coveralls
+
+
+branches:
+  except:
+    - /.*\/.*/
