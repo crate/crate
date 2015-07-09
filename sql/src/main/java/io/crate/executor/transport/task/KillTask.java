@@ -46,14 +46,14 @@ public class KillTask extends JobTask {
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> results;
     private ClusterService clusterService;
-    private TransportKillAllNodeAction transportKillAllNodeAction;
+    private TransportKillAllNodeAction nodeAction;
 
     public KillTask(ClusterService clusterService,
-                    TransportKillAllNodeAction transportKillAllNodeAction,
+                    TransportKillAllNodeAction nodeAction,
                     UUID jobId) {
         super(jobId);
         this.clusterService = clusterService;
-        this.transportKillAllNodeAction = transportKillAllNodeAction;
+        this.nodeAction = nodeAction;
         result = SettableFuture.create();
         results = ImmutableList.of((ListenableFuture<TaskResult>) result);
     }
@@ -67,7 +67,7 @@ public class KillTask extends JobTask {
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
         for (DiscoveryNode node : nodes) {
-            transportKillAllNodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
+            nodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
                 @Override
                 public void onResponse(KillResponse killResponse) {
                     numKilled.addAndGet(killResponse.numKilled());

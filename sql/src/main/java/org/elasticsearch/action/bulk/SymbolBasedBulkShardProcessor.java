@@ -69,6 +69,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     private final Predicate<String> shouldAutocreateIndexPredicate;
 
     private final int bulkSize;
+    private final UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();
@@ -104,11 +105,13 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                                          final boolean autoCreateIndices,
                                          int bulkSize,
                                          BulkRequestBuilder<Request> requestBuilder,
-                                         BulkRequestExecutor<Request, Response> requestExecutor) {
+                                         BulkRequestExecutor<Request, Response> requestExecutor,
+                                         UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
+        this.jobId = jobId;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
 
 
@@ -326,7 +329,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices in bulk...", indices.size());
             TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
-            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId)
                     .timeout(timeout);
 
             final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {

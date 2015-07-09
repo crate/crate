@@ -47,6 +47,9 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -104,11 +107,11 @@ public class SymbolBasedTransportShardUpsertActionTest extends CrateUnitTest {
 
         ShardId shardId = new ShardId("characters", 0);
         final SymbolBasedShardUpsertRequest request = new SymbolBasedShardUpsertRequest(
-                new ShardId("characters", 0), null, new Reference[]{idRef});
+                new ShardId("characters", 0), null, new Reference[]{idRef}, UUID.randomUUID());
         request.add(1, "1", null, new Object[]{1}, null, null);
 
         ShardUpsertResponse response = transportShardUpsertAction.processRequestItems(
-                shardId, request);
+                shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(), is("IndexMissingException[[characters] missing]"));

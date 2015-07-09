@@ -62,6 +62,7 @@ import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,6 +72,7 @@ public abstract class AbstractIndexWriterProjector implements
 
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;
+    private UUID jobId;
     private final TableIdent tableIdent;
     @Nullable
     private final String partitionIdent;
@@ -108,13 +110,15 @@ public abstract class AbstractIndexWriterProjector implements
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
                                            CollectExpression<?>[] collectExpressions,
-                                           final TableIdent tableIdent) {
+                                           final TableIdent tableIdent,
+                                           UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.transportActionProvider = transportActionProvider;
         this.tableIdent = tableIdent;
         this.partitionIdent = partitionIdent;
         this.partitionedByInputs = partitionedByInputs;
         this.collectExpressions = collectExpressions;
+        this.jobId = jobId;
         if (partitionedByInputs.size() > 0) {
             partitionIdentCache = CacheBuilder.newBuilder()
                     .initialCapacity(10)
@@ -138,7 +142,8 @@ public abstract class AbstractIndexWriterProjector implements
                                             boolean autoCreateIndices,
                                             boolean overwriteDuplicates,
                                             @Nullable Map<Reference, Symbol> updateAssignments,
-                                            @Nullable Map<Reference, Symbol> insertAssignments) {
+                                            @Nullable Map<Reference, Symbol> insertAssignments,
+                                            UUID jobId) {
 
         AssignmentVisitor.AssignmentVisitorContext visitorContext = AssignmentVisitor.processAssignments(
                 updateAssignments,
@@ -152,7 +157,8 @@ public abstract class AbstractIndexWriterProjector implements
                 overwriteDuplicates,
                 updateAssignments,
                 insertAssignments,
-                null
+                null,
+                jobId
         );
         bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
@@ -163,7 +169,8 @@ public abstract class AbstractIndexWriterProjector implements
                 MoreObjects.firstNonNull(bulkActions, 100),
                 bulkRetryCoordinatorPool,
                 requestBuilder,
-                transportActionProvider.transportShardUpsertActionDelegate());
+                transportActionProvider.transportShardUpsertActionDelegate(),
+                jobId);
     }
 
     @Override

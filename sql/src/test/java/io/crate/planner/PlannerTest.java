@@ -414,7 +414,7 @@ public class PlannerTest extends CrateUnitTest {
         ESDeletePartitionNode node1 = (ESDeletePartitionNode) iterator.next();
         assertThat(node1.indices(), is(new String[]{".partitioned.parted.04130"}));
         ESDeletePartitionNode node2 = (ESDeletePartitionNode) iterator.next();
-        assertThat(node2.indices(), is(new String[]{ ".partitioned.parted.04232chj" }));
+        assertThat(node2.indices(), is(new String[]{".partitioned.parted.04232chj"}));
         assertFalse(iterator.hasNext());
     }
 
@@ -630,6 +630,8 @@ public class PlannerTest extends CrateUnitTest {
         fetchProjection = (FetchProjection)mergeNode.projections().get(1);
         assertThat(fetchProjection.bulkSize(), is(-1));
     }
+
+
 
     @Test
     public void testQueryThenFetchPlanPartitioned() throws Exception {
@@ -1309,7 +1311,7 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(projection.columnSymbols().size(), is(2));
         assertThat(((InputColumn)projection.columnSymbols().get(0)).index(), is(0));
-        assertThat(((InputColumn)projection.columnSymbols().get(1)).index(), is(1));
+        assertThat(((InputColumn) projection.columnSymbols().get(1)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -1337,7 +1339,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(projection.columnReferences().get(1).ident().columnIdent().fqn(), is("id"));
         assertThat(projection.columnReferences().get(2).ident().columnIdent().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
-        assertThat(((InputColumn)projection.clusteredBy()).index(), is(1));
+        assertThat(((InputColumn) projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
         assertThat(planNode.handlerMergeNode().isPresent(), is(true));
@@ -1898,8 +1900,17 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testKillPlan() throws Exception {
-        Plan killPlan = plan("kill all");
+    public void testKillPlanAll() throws Exception {
+        KillPlan killPlan = (KillPlan) plan("kill all");
         assertThat(killPlan, instanceOf(KillPlan.class));
+        assertThat(killPlan.jobId(), notNullValue());
+        assertThat(killPlan.jobToKill().isPresent(), is(false));
+    }
+
+    @Test
+    public void testKillPlanJobs() throws Exception {
+        KillPlan killJobsPlan = (KillPlan) plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+        assertThat(killJobsPlan.jobId(), notNullValue());
+        assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
 }

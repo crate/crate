@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -210,6 +211,23 @@ public class JobContextServiceTest extends CrateUnitTest {
         jobContextService.createContext(builder);
 
         assertThat(jobContextService.killAll(), is(2L));
+    }
+
+    @Test
+    public void testKillSingleJob() {
+        ImmutableList<UUID> jobsToKill = ImmutableList.<UUID>of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobsToKill.get(0));
+        builder.addSubContext(1, new DummySubContext());
+        jobContextService.createContext(builder);
+
+        builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, new DummySubContext());
+        jobContextService.createContext(builder);
+
+        builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(1, new DummySubContext());
+        jobContextService.createContext(builder);
+        assertThat(jobContextService.killJobs(jobsToKill), is(1L));
     }
 
     @Test

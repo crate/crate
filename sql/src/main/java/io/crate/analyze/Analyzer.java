@@ -59,6 +59,7 @@ public class Analyzer {
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+        private final KillStatementAnalyzer killStatementAnalyzer;
 
 
         @Inject
@@ -78,7 +79,8 @@ public class Analyzer {
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   CopyStatementAnalyzer copyStatementAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
-                                  DeleteStatementAnalyzer deleteStatementAnalyzer) {
+                                  DeleteStatementAnalyzer deleteStatementAnalyzer,
+                                  KillStatementAnalyzer killStatementAnalyzer) {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
@@ -96,6 +98,7 @@ public class Analyzer {
             this.copyStatementAnalyzer = copyStatementAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
+            this.killStatementAnalyzer = killStatementAnalyzer;
         }
 
         @Override
@@ -194,8 +197,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            return KillAnalyzedStatement.INSTANCE;
+            return killStatementAnalyzer.analyze(node, context);
         }
 
         @Override

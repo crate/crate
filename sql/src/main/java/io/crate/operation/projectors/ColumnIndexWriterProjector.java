@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
 
@@ -56,7 +57,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          @Nullable
                                          Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
-                                         boolean autoCreateIndices) {
+                                         boolean autoCreateIndices,
+                                         UUID jobId) {
         super(bulkRetryCoordinatorPool,
                 transportActionProvider,
                 partitionIdent,
@@ -65,7 +67,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 partitionedByInputs,
                 routingSymbol,
                 collectExpressions,
-                tableIdent
+                tableIdent,
+                jobId
         );
         assert columnReferences.size() == columnSymbols.size();
 
@@ -82,7 +85,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 autoCreateIndices,
                 false, // overwriteDuplicates
                 updateAssignments,
-                insertAssignments);
+                insertAssignments,
+                jobId);
     }
 
     @Override

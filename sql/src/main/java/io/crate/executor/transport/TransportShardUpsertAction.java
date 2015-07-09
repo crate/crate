@@ -22,6 +22,11 @@
 package io.crate.executor.transport;
 
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
@@ -80,10 +85,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class TransportShardUpsertAction
@@ -98,7 +106,8 @@ public class TransportShardUpsertAction
     private final Functions functions;
     private final AssignmentSymbolVisitor assignmentSymbolVisitor;
     private final SymbolToInputVisitor symbolToInputVisitor;
-    private volatile long lastKillAll = System.nanoTime();
+    private Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
+
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -162,29 +171,52 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
-        long startTime = System.nanoTime();
+    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
 
-        ShardUpsertRequest request = shardRequest.request;
-        SymbolToFieldExtractorContext extractorContextUpdate = null;
-        SymbolToInputContext implContextInsert = null;
-        if (request.updateAssignments() != null) {
-            AssignmentSymbolVisitor.Context implContextUpdate = assignmentSymbolVisitor.process(request.updateAssignments().values());
-            extractorContextUpdate = new SymbolToFieldExtractorContext(
-                    functions,
-                    request.updateAssignments().size(),
-                    implContextUpdate);
-        }
-        if (request.insertAssignments() != null) {
-            implContextInsert = new SymbolToInputContext(request.insertAssignments().size());
-            for (Map.Entry<Reference, Symbol> entry : request.insertAssignments().entrySet()) {
-                implContextInsert.referenceInputMap.put(entry.getKey(), symbolToInputVisitor.process(entry.getValue(), implContextInsert));
+        KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
+
+            private AtomicBoolean killed = new AtomicBoolean(false);
+
+            @Override
+            public void kill() {
+                killed.getAndSet(true);
             }
-        }
 
-        ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, request,
-                extractorContextUpdate, implContextInsert, startTime);
-        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+            @Override
+            public PrimaryResponse call() throws Exception {
+                ShardUpsertRequest request = shardRequest.request;
+                SymbolToFieldExtractorContext extractorContextUpdate = null;
+                SymbolToInputContext implContextInsert = null;
+                if (request.updateAssignments() != null) {
+                    AssignmentSymbolVisitor.Context implContextUpdate = assignmentSymbolVisitor.process(request.updateAssignments().values());
+                    extractorContextUpdate = new SymbolToFieldExtractorContext(
+                            functions,
+                            request.updateAssignments().size(),
+                            implContextUpdate);
+                }
+                if (request.insertAssignments() != null) {
+                    implContextInsert = new SymbolToInputContext(request.insertAssignments().size());
+                    for (Map.Entry<Reference, Symbol> entry : request.insertAssignments().entrySet()) {
+                        implContextInsert.referenceInputMap.put(entry.getKey(), symbolToInputVisitor.process(entry.getValue(), implContextInsert));
+                    }
+                }
+                ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, request,
+                        extractorContextUpdate, implContextInsert, killed);
+                return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+            }
+
+        };
+
+        activeOperations.put(shardRequest.request.jobId(), callable);
+        PrimaryResponse response;
+        try {
+            response = callable.call();
+        } catch (Throwable e) {
+            throw Throwables.propagate(e);
+        } finally {
+            activeOperations.remove(shardRequest.request.jobId(), callable);
+        }
+        return response;
     }
 
     @Override
@@ -195,10 +227,10 @@ public class TransportShardUpsertAction
                                                       ShardUpsertRequest request,
                                                       SymbolToFieldExtractorContext extractorContextUpdate,
                                                       SymbolToInputContext implContextInsert,
-                                                      long startTime) {
+                                                      AtomicBoolean killed) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         for (ShardUpsertRequest.Item item : request) {
-            if (startTime <= lastKillAll) {
+            if (killed.get()) {
                 throw new CancellationException();
             }
             try {
@@ -228,12 +260,12 @@ public class TransportShardUpsertAction
     }
 
     protected IndexResponse indexItem(ShardUpsertRequest request,
-                                   ShardUpsertRequest.Item item,
-                                   ShardId shardId,
-                                   SymbolToFieldExtractorContext extractorContextUpdate,
-                                   SymbolToInputContext implContextInsert,
-                                   boolean tryInsertFirst,
-                                   int retryCount) throws ElasticsearchException {
+                                      ShardUpsertRequest.Item item,
+                                      ShardId shardId,
+                                      SymbolToFieldExtractorContext extractorContextUpdate,
+                                      SymbolToInputContext implContextInsert,
+                                      boolean tryInsertFirst,
+                                      int retryCount) throws ElasticsearchException {
 
         try {
             IndexRequest indexRequest;
@@ -261,8 +293,6 @@ public class TransportShardUpsertAction
             }
         }
     }
-
-
 
     /**
      * Prepares an update request by converting it into an index request.
@@ -406,11 +436,27 @@ public class TransportShardUpsertAction
             }
         }
     }
+    @Override
+    public void killAllJobs(long timestamp) {
+        synchronized (activeOperations) {
+            for (KillableCallable operation : activeOperations.values()) {
+                operation.kill();
+            }
+            activeOperations.clear();
+        }
+    }
 
     @Override
-    public void killAllCalled(long timestamp) {
-        lastKillAll = timestamp;
+    public void killJob(UUID jobId) {
+        synchronized (activeOperations) {
+            Collection<KillableCallable> operations = activeOperations.get(jobId);
+            for(KillableCallable callable : operations) {
+                callable.kill();
+            }
+            activeOperations.removeAll(jobId);
+        }
     }
+
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
         private final AssignmentSymbolVisitor.Context implContext;

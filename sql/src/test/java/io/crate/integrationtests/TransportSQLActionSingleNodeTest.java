@@ -25,7 +25,11 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.action.sql.*;
+import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
@@ -284,7 +288,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
 
     @Test
-    public void testKilledJobLog() throws Exception {
+    public void testKilledAllLog() throws Exception {
         execute("create table likes (" +
                 "   event_id string," +
                 "   item_id string" +

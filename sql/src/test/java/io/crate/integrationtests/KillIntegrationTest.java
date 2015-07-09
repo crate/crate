@@ -22,13 +22,17 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -47,6 +52,11 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Before
+    public void setSetup() {
+        execute("SET GLOBAL stats.enabled = true");
+    }
 
     @Test
     public void testKillInsertFromSubQuery() throws Exception {
@@ -60,10 +70,10 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 " good boolean" +
                 ") with (number_of_replicas=1)");
         ensureYellow();
-        assertGotCancelled("insert into new_employees (select * from employees)", null);
+        assertGotCancelled("insert into new_employees (select * from employees)", null, true);
     }
 
-    private void assertGotCancelled(final String statement, @Nullable final Object[] params) throws Exception {
+    private void assertGotCancelled(final String statement, @Nullable final Object[] params, boolean killAll) throws Exception {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         final AtomicReference<Throwable> thrown = new AtomicReference<>();
         try {
@@ -79,7 +89,13 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 }
             });
             Thread.sleep(100L);
-            execute("kill all");
+            if (killAll) {
+                execute("kill all");
+            } else {
+                SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{statement});
+                String jobId = logResponse.rows()[0][0].toString();
+                execute("kill ?", new Object[]{jobId});
+            }
             executor.shutdown();
             executor.awaitTermination(5L, TimeUnit.SECONDS);
             Throwable exception = thrown.get();
@@ -99,14 +115,14 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testKillUpdateByQuery() throws Exception {
         setup.setUpEmployees();
-        assertGotCancelled("update employees set income=income+100 where department='management'", null);
+        assertGotCancelled("update employees set income=income+100 where department='management'", null, true);
     }
 
     @Test
     public void testKillCopyTo() throws Exception {
         String path = temporaryFolder.newFolder().getAbsolutePath();
         setup.setUpEmployees();
-        assertGotCancelled("copy employees to directory ?", new Object[]{path});
+        assertGotCancelled("copy employees to directory ?", new Object[]{path}, true);
     }
 
     @Test
@@ -117,19 +133,39 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 "group by sleep(500), department " +
                 "having avg(income) > 100 " +
                 "order by department desc nulls first " +
-                "limit 10", null);
+                "limit 10", null, true);
         runJobContextReapers();
     }
 
     @Test
     public void testKillSelectSysTable() throws Exception {
-        assertGotCancelled("SELECT sleep(500) FROM sys.nodes", null);
+        assertGotCancelled("SELECT sleep(500) FROM sys.nodes", null, true);
     }
 
     @Test
     public void testKillSelectDocTable() throws Exception {
         setup.setUpEmployees();
-        assertGotCancelled("SELECT name, department, sleep(500) FROM employees ORDER BY name", null);
+        assertGotCancelled("SELECT name, department, sleep(500) FROM employees ORDER BY name", null, true);
+    }
+
+    @Test
+    public void testKillSelectSysTableJobById() throws Exception {
+        assertGotCancelled("SELECT sleep(500) FROM sys.nodes", null, false);
+    }
+
+    @Test
+    public void testKillNonExisitingJob() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        SQLResponse killResponse = execute("KILL ?", new Object[]{jobId});
+        assertThat(killResponse.rowCount(), is(0L));
+        SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
+        assertThat(logResponse.rowCount(), is(0L));
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        execute("reset GLOBAL stats.enabled");
     }
 
 }

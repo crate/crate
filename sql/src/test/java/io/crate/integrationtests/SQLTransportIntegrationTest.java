@@ -33,6 +33,10 @@ import io.crate.analyze.ParameterContext;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
+import com.google.common.collect.Multimap;
+import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
+import io.crate.executor.transport.TransportShardUpsertAction;
+import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
@@ -112,7 +116,12 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @After
     public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
+        final Field activeOperations = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
+        final Field activeOperationsSb = SymbolBasedTransportShardUpsertAction.class.getDeclaredField("activeOperations");
+
         activeContexts.setAccessible(true);
+        activeOperations.setAccessible(true);
+        activeOperationsSb.setAccessible(true);
         try {
             assertBusy(new Runnable() {
                 @Override
@@ -122,6 +131,22 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                             //noinspection unchecked
                             Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
                             assertThat(contexts.size(), is(0));
+                        } catch (IllegalAccessException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                    for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
+                        try {
+                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperations.get(action);
+                            assertThat(operations.size(), is(0));
+                        } catch (IllegalAccessException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                    for (SymbolBasedTransportShardUpsertAction action : internalCluster().getInstances(SymbolBasedTransportShardUpsertAction.class)) {
+                        try {
+                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                            assertThat(operations.size(), is(0));
                         } catch (IllegalAccessException e) {
                             throw Throwables.propagate(e);
                         }
@@ -151,8 +176,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         }
     }
 
-
-    public void runJobContextReapers() throws Exception{
+    public void runJobContextReapers() throws Exception {
         long defaultKeepAlive = JobContextService.KEEP_ALIVE;
         try {
             // The estimateTimeThread is updated in a 200ms interval only, so Reaper time and lastAccessTime has the same

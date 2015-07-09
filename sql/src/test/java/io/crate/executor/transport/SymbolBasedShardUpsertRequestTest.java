@@ -38,6 +38,8 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static org.hamcrest.core.Is.is;
 
 public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
@@ -53,11 +55,12 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         ShardId shardId = new ShardId("test", 1);
         String[] assignmentColumns = new String[]{"id", "name"};
+        UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
         SymbolBasedShardUpsertRequest request = new SymbolBasedShardUpsertRequest(
                 shardId,
                 assignmentColumns,
-                missingAssignmentColumns);
+                missingAssignmentColumns, jobId);
 
         request.add(123, "99",
                 null,
@@ -78,6 +81,7 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
 
         assertThat(request2.index(), is(shardId.getIndex()));
         assertThat(request2.shardId(), is(shardId.id()));
+        assertThat(request2.jobId(), is(jobId));
         assertThat(request2.updateColumns(), is(assignmentColumns));
         assertThat(request2.insertColumns(), is(missingAssignmentColumns));
 

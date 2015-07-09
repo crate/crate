@@ -49,12 +49,10 @@ import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
-import org.codehaus.groovy.ast.GenericsType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -216,10 +214,14 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
-            return ImmutableList.<Task>of(new KillTask(
-                    clusterService,
-                    transportActionProvider.transportKillAllNodeAction(),
-                    job.id()));
+            Task task = killPlan.jobToKill().isPresent() ?
+                    new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
+                            job.id(),
+                            killPlan.jobToKill().get()) :
+                    new KillTask(clusterService,
+                            transportActionProvider.transportKillAllNodeAction(),
+                            job.id());
+            return ImmutableList.of(task);
         }
 
         @Override

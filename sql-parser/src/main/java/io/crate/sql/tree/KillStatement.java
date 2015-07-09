@@ -21,25 +21,43 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.Optional;
+
 public class KillStatement extends Statement {
 
-    public static final KillStatement INSTANCE = new KillStatement();
+    private final Optional<Expression> jobId;
 
-    private KillStatement() {}
+
+    public KillStatement() {
+        this.jobId = Optional.absent();
+    }
+
+    public KillStatement(Expression jobId) {
+        this.jobId = Optional.of(jobId);
+    }
+
+    public Optional<Expression> jobId() {
+        return jobId;
+    }
 
     @Override
     public int hashCode() {
-        return System.identityHashCode(this);
+        return jobId.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
-        return this == obj;
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        KillStatement that = (KillStatement) obj;
+
+        return jobId.equals(that.jobId);
     }
 
     @Override
     public String toString() {
-        return "KILL ALL";
+        return jobId.isPresent() ? String.format("KILL '%s'", jobId.get()) : "KILL ALL";
     }
 
     @Override

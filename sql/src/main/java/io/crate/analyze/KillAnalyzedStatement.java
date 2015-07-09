@@ -21,11 +21,24 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
+
+import java.util.UUID;
+
 public class KillAnalyzedStatement implements AnalyzedStatement {
 
-    public static final KillAnalyzedStatement INSTANCE = new KillAnalyzedStatement();
+    final private Optional<UUID> jobId;
 
-    private KillAnalyzedStatement() {
+    public KillAnalyzedStatement() {
+        jobId = Optional.absent();
+    }
+
+    public KillAnalyzedStatement(UUID jobId) {
+        this.jobId = Optional.of(jobId);
+    }
+
+    public Optional<UUID> jobId() {
+        return jobId;
     }
 
     @Override

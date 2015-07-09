@@ -48,6 +48,7 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
@@ -90,7 +91,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                null
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
@@ -131,7 +133,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                UUID.randomUUID()
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);

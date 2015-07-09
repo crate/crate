@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.management;
 
+import com.google.common.base.Optional;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 
@@ -29,9 +30,16 @@ import java.util.UUID;
 public class KillPlan implements Plan {
 
     private final UUID id;
+    private final Optional<UUID> jobToKill;
 
     public KillPlan(UUID id) {
         this.id = id;
+        this.jobToKill = Optional.absent();
+    }
+
+    public KillPlan(UUID id, UUID jobToKill) {
+        this.id = id;
+        this.jobToKill = Optional.of(jobToKill);
     }
 
     @Override
@@ -43,4 +51,9 @@ public class KillPlan implements Plan {
     public UUID jobId() {
         return id;
     }
+
+    public Optional<UUID> jobToKill() {
+        return jobToKill;
+    }
+
 }

@@ -24,11 +24,14 @@ package io.crate.analyze;
 import io.crate.metadata.MetaDataModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import static org.hamcrest.core.Is.is;
 
 public class KillAnalyzerTest extends BaseAnalyzerTest {
 
@@ -43,8 +46,32 @@ public class KillAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testAnalyzeKill() throws Exception {
-        AnalyzedStatement stmt = analyze("kill all");
-        assertThat(stmt, Matchers.<AnalyzedStatement>is(KillAnalyzedStatement.INSTANCE));
+    public void testAnalyzeKillAll() throws Exception {
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill all");
+        assertThat(stmt.jobId().isPresent(), is(false));
     }
+
+    @Test
+    public void testAnalyzeKillJobWithParameter() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill $2", new Object[]{2, jobId});
+        assertThat(stmt.jobId().get(), is(jobId));
+        stmt = (KillAnalyzedStatement) analyze("kill $1", new Object[]{jobId});
+        assertThat(stmt.jobId().get(), is(jobId));
+        stmt = (KillAnalyzedStatement) analyze("kill ?", new Object[]{jobId});
+        assertThat(stmt.jobId().get(), is(jobId));
+    }
+
+    @Test
+    public void testAnalyzeKillJobWithLiteral() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze(String.format(Locale.ENGLISH, "kill '%s'", jobId.toString()));
+        assertThat(stmt.jobId().get(), is(jobId));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAnalyzeKillJobsNotParsable() throws Exception {
+        analyze("kill '6a3d6401-4333-933d-b38c9322fca7'");
+    }
+
 }

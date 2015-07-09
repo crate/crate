@@ -45,6 +45,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.BitSet;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,7 +75,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                            CollectExpression<?> collectUidExpression,
                            String[] assignmentsColumns,
                            Symbol[] assignments,
-                           @Nullable Long requiredVersion) {
+                           @Nullable Long requiredVersion,
+                           UUID jobId) {
         this.shardId = shardId;
         this.collectUidExpression = collectUidExpression;
         this.assignments = assignments;
@@ -84,7 +86,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                 false,
                 false,
                 assignmentsColumns,
-                null
+                null,
+                jobId
         );
         this.bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
@@ -94,7 +97,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                 false,
                 DEFAULT_BULK_SIZE,
                 builder,
-                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()
+                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                jobId
         );
     }
 

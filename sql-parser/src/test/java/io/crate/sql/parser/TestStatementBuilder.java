@@ -37,9 +37,7 @@ import static io.crate.sql.parser.TreePrinter.treeToString;
 import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -240,7 +238,10 @@ public class TestStatementBuilder
         printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
+
         printStatement("kill all");
+        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+
         printStatement("show create table foo");
     }
 
@@ -504,9 +505,15 @@ public class TestStatementBuilder
     }
 
     @Test
-    public void testKill() throws Exception {
+    public void testKillJob() {
+        KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
+        assertThat(stmt.jobId().isPresent(), is(true));
+    }
+
+    @Test
+    public void testKillAll() throws Exception {
         Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertTrue("stmt not identical to singleton", stmt == KillStatement.INSTANCE);
+        assertTrue(stmt.equals(new KillStatement()));
     }
 
     @Test

@@ -741,6 +741,10 @@ bool
     | FALSE
     ;
 
+jobId
+    : parameterOrLiteral
+    ;
+
 integer
     : INTEGER_VALUE
     ;
@@ -785,7 +789,6 @@ insertValues
 valuesList
     : '(' expr (',' expr)* ')' -> ^(VALUES_LIST expr+)
     ;
-
 
 deleteStmt
     : DELETE FROM tablePrimary whereClause? -> ^(DELETE tablePrimary whereClause?)
@@ -1040,6 +1043,7 @@ settingsType
 
 killStmt
     : KILL ALL -> ^(KILL ALL)
+    | KILL jobId -> ^(KILL jobId)
     ;
 
 nonReserved
