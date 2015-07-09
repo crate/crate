@@ -24,7 +24,6 @@ package io.crate.operation.merge;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
@@ -41,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * BucketMerger implementation that does not care about sorting
@@ -79,6 +77,10 @@ public class NonSortingBucketMerger implements BucketMerger {
                     for (Bucket rows : result) {
                         for (Row row : rows) {
                             try {
+                                if (alreadyFinished.get()) {
+                                    listener.finish();
+                                    return;
+                                }
                                 if (!emitRow(row)) {
                                     wantMore.set(false);
                                     notifyListener();

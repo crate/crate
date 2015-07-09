@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which could cause an error if a ``group by`` query was killed
+
  - Fixed an issue that caused COPY TO `s3` statements to get stuck
 
  - Fixed an issue which results in _id queries not matching on

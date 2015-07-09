@@ -61,6 +61,8 @@ public class SortingBucketMerger implements BucketMerger {
     private final ArrayList<Row> previousRows;
     private final Optional<Executor> executor;
     private Iterator<Row>[] remainingBucketIts = null;
+    private final AtomicBoolean alreadyFinished = new AtomicBoolean(false);
+
 
     public SortingBucketMerger(int numBuckets,
                                int[] orderByPositions,
@@ -310,7 +312,7 @@ public class SortingBucketMerger implements BucketMerger {
     }
 
     private boolean emit(Row row) {
-        if (!downstream.setNextRow(row)) {
+        if (alreadyFinished.get() || !downstream.setNextRow(row)) {
             wantMore.set(false);
             return false;
         }
@@ -319,6 +321,9 @@ public class SortingBucketMerger implements BucketMerger {
 
     @Override
     public void finish() {
+        if(alreadyFinished.get()) {
+            return;
+        }
         while (hasReminaingBucketIts()) {
             ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
             for (Iterator<Row> bucketIt : remainingBucketIts) {
@@ -330,7 +335,9 @@ public class SortingBucketMerger implements BucketMerger {
             }
             emitBuckets(bucketIts);
         }
-        downstream.finish();
+        if (!alreadyFinished.getAndSet(true)) {
+            downstream.finish();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -340,7 +347,9 @@ public class SortingBucketMerger implements BucketMerger {
 
     @Override
     public void fail(Throwable e) {
-        downstream.fail(e);
+        if (!alreadyFinished.getAndSet(true)) {
+            downstream.fail(e);
+        }
     }
 
     @Override
