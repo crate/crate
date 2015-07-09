@@ -58,6 +58,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -436,7 +437,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                                     jobSearchContextId
                             );
                             shardCollectors.add(collector);
-                        } catch (IndexShardMissingException | CancellationException e) {
+                        } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
                             throw e;
                         } catch (Exception e) {
                             LOGGER.error("Error while getting collector", e);

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug which prevented a retry if a shard was closed because of relocation
+
  - Fixed issue that could lead to a NullPointerException
    caused by reporting row results to handler node before merge phase on handler
    was started
