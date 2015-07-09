@@ -21,11 +21,17 @@
 
 package io.crate.sql.tree;
 
+import java.util.UUID;
+
 public class KillStatement extends Statement {
 
-    public static final KillStatement INSTANCE = new KillStatement();
+    private UUID jobId;
 
-    private KillStatement() {}
+    public KillStatement() {}
+
+    public KillStatement(String jobId) {
+        this.jobId = UUID.fromString(jobId);
+    }
 
     @Override
     public int hashCode() {
@@ -39,7 +45,7 @@ public class KillStatement extends Statement {
 
     @Override
     public String toString() {
-        return "KILL ALL";
+        return jobId == null ? "KILL ALL" : "KILL " + jobId.toString();
     }
 
     @Override
