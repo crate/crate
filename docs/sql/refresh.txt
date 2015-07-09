@@ -50,8 +50,15 @@ table is completed.
 
 ::
 
-    cr> REFRESH TABLE locations, parted_table
+    cr> REFRESH TABLE locations, parted_table;
     REFRESH OK (... sec)
+
+
+.. note::
+
+    If one or more tables or partitions do not exist, none of the given 
+    tables/partitions are refreshed and an error is returned. The error returns 
+    only the first non-existent table/partition.
 
 
 Partition Refresh
@@ -67,7 +74,7 @@ request on partitioned tables see the SQL syntax and its synopsis (see :ref:`sql
 
 ::
 
-    cr> REFRESH TABLE parted_table PARTITION (day='2014-04-08')
+    cr> REFRESH TABLE parted_table PARTITION (day='2014-04-08');
     REFRESH OK (... sec)
 
 In case the ``PARTITION`` clause is omitted all partitions will be refreshed. If a 
