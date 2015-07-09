@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which results in _id queries not matching on
+   partitioned and clustered tables without primary key columns.
 
 2015/07/07 0.49.5
 =================

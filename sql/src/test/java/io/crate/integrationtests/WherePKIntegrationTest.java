@@ -128,6 +128,36 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectByIdWithCustomRoutingUsesSearch() throws Exception {
+        execute("create table users (name string)" +
+                "clustered by (name) with (number_of_replicas = '0')");
+
+        execute("insert into users values ('hoschi'), ('galoschi'), ('x')");
+        execute("refresh table users");
+
+        execute("select _id from users");
+        for (Object[] row : response.rows()) {
+            execute("select name from users where _id=?", row);
+            assertThat(response.rowCount(), is(1L));
+        }
+    }
+
+    @Test
+    public void testSelectByIdWithPartitionsUsesSearch() throws Exception {
+        execute("create table users (name string)" +
+                "  with (number_of_replicas = '0')");
+
+        execute("insert into users values ('hoschi'), ('galoschi'), ('x')");
+        execute("refresh table users");
+        execute("select _id from users");
+
+        for (Object[] row : response.rows()) {
+            execute("select name from users where _id=?", row);
+            assertThat(response.rowCount(), is(1L));
+        }
+    }
+
+    @Test
     public void testEmptyClusteredByUnderId() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table auto_id (" +

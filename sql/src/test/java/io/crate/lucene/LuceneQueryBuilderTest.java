@@ -208,6 +208,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testIdQuery() throws Exception {
+        Reference ref = createReference("_id", DataTypes.STRING);
+        Query query = convert(whereClause(EqOperator.NAME, ref, Literal.newLiteral("i1")));
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), is("_uid:default#i1"));
+    }
+
+    @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Reference ref = createReference("d", DataTypes.DOUBLE);
         Literal doubleArrayLiteral = Literal.newLiteral(new Object[]{-1.5d, 0.0d, 1.5d}, new ArrayType(DataTypes.DOUBLE));
