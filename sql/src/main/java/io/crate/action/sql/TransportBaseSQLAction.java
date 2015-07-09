@@ -262,7 +262,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                             logger.debug("KILLED: [{}]", request.stmt());
                         } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
-                            logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
+                            logger.error("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
                             killJobs(ImmutableList.of(plan.jobId()), new FutureCallback<Long>() {
                                 @Override
                                 public void onSuccess(@Nullable Long numJobsKilled) {
