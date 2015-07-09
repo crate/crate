@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.13.1 which contains following changes:
+
+    - added multiline support for tabular output format
+
  - Fixed an issue that caused COPY TO `s3` statements to get stuck
 
  - Fixed an issue which results in _id queries not matching on
