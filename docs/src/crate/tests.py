@@ -7,10 +7,15 @@ import shutil
 import re
 import process_test
 from .paths import crate_path, project_path
-from .ports import random_available_port
+from .ports import PortPool
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
+
+random_ports = PortPool()
+
+CRATE_HTTP_PORT = random_ports.get()
+CRATE_TRANSPORT_PORT = random_ports.get()
 
 
 class CrateTestCmd(CrateCmd):
@@ -28,10 +33,6 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 cmd = CrateTestCmd(is_tty=False)
-
-
-CRATE_HTTP_PORT = random_available_port()
-CRATE_TRANSPORT_PORT = random_available_port()
 
 
 def wait_for_schema_update(schema, table, column):
