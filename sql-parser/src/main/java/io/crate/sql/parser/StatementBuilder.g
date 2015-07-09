@@ -986,5 +986,6 @@ resetStatement returns [ResetStatement value]
     ;
 
 killStatement returns [KillStatement value]
-    : ^(KILL ALL) { $value = KillStatement.INSTANCE; }
+    : ^(KILL ALL) { $value = new KillStatement(); }
+    | ^(KILL string) { $value = new KillStatement($string.value); }
     ;
