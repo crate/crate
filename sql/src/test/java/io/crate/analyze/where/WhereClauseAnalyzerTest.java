@@ -212,14 +212,16 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2)).docKeys().get(), contains(isDocKey("3")));
     }
 
-
-
+    @Test
+    public void testSelectByIdWithCustomRouting() throws Exception {
+        WhereClause whereClause = analyzeSelect("select name from users_clustered_by_only where _id=1");
+        assertFalse(whereClause.docKeys().isPresent());
+    }
 
     @Test
-    public void testSelectById() throws Exception {
-        WhereClause whereClause = analyzeSelect("select name from users_clustered_by_only where _id=1");
-        assertTrue(whereClause.docKeys().isPresent());
-        assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("1"));
+    public void testSelectByIdWithPartitions() throws Exception {
+        WhereClause whereClause = analyzeSelect("select id from parted where _id=1");
+        assertFalse(whereClause.docKeys().isPresent());
     }
 
     @Test

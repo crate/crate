@@ -31,12 +31,14 @@ import com.spatial4j.core.shape.Rectangle;
 import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
+import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Functions;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.LuceneDocCollector;
@@ -79,6 +81,7 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeFilter;
@@ -961,7 +964,7 @@ public class LuceneQueryBuilder {
             if (fieldIgnored(function, context)) {
                 return Queries.newMatchAllQuery();
             }
-            validateNoUnsupportedFields(function, context);
+            function = rewriteAndValidateFields(function, context);
 
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
             if (toQuery == null) {
@@ -1027,20 +1030,26 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
-        private String validateNoUnsupportedFields(Function function, Context context){
-            if(function.arguments().size() != 2){
-                return null;
-            }
-            Symbol left = function.arguments().get(0);
-            Symbol right = function.arguments().get(1);
-            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
-                String columnName = ((Reference) left).info().ident().columnIdent().name();
-                String unsupportedMessage = context.unsupportedMessage(columnName);
-                if(unsupportedMessage != null){
-                    throw new UnsupportedFeatureException(unsupportedMessage);
+        private Function rewriteAndValidateFields(Function function, Context context) {
+            if (function.arguments().size() == 2) {
+                Symbol left = function.arguments().get(0);
+                Symbol right = function.arguments().get(1);
+                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+                    Reference ref = (Reference) left;
+                    if (ref.info().ident().columnIdent().equals(DocSysColumns.ID)) {
+                        function.setArgument(0,
+                                new Reference(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID)));
+                        function.setArgument(1, Literal.newLiteral(Uid.createUid(Constants.DEFAULT_MAPPING_TYPE,
+                                ValueSymbolVisitor.STRING.process(right))));
+                    } else {
+                        String unsupportedMessage = context.unsupportedMessage(ref.info().ident().columnIdent().name());
+                        if (unsupportedMessage != null) {
+                            throw new UnsupportedFeatureException(unsupportedMessage);
+                        }
+                    }
                 }
             }
-            return null;
+            return function;
         }
 
         private static Filter genericFunctionFilter(Function function,
