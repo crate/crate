@@ -52,7 +52,7 @@ public class Id {
     public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy, boolean create) {
         values = new ArrayList<>(primaryKeys.size());
-        if (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id") && create) {
+        if ((primaryKeys.isEmpty() || (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id"))) && create) {
             singleStringValue = Strings.base64UUID();
         } else {
             singleStringValue = null;

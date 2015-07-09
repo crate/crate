@@ -41,11 +41,14 @@ public class DocSysColumns {
 
     public static List<Tuple<ColumnIdent, ReferenceInfo>> forTable(TableIdent tableIdent) {
         List<Tuple<ColumnIdent, ReferenceInfo>> columns = new ArrayList<>(COLUMN_IDENTS.size());
-
         for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
             columns.add(new Tuple<>(entry.getKey(), newInfo(tableIdent, entry.getKey(), entry.getValue())));
         }
-
         return columns;
     }
+
+    public static ReferenceInfo forTable(TableIdent table, ColumnIdent column){
+        return newInfo(table, column, COLUMN_IDENTS.get(column));
+    }
+
 }

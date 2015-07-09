@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which results in _id queries not matching on
+   partitioned and clustered tables without primary key columns.
+
  - Updated crate-admin to 0.14.1 which includes following changes:
 
     - fix: number of underreplicated shards were fetched and displayed incorrectly
