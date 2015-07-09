@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added SHOW CREATE TABLE statement to dump the schema of a user created table
+
  - Updated crash to 0.13.1 which contains following changes:
 
     - added multiline support for tabular output format
