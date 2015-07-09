@@ -24,11 +24,12 @@ package io.crate.analyze;
 import io.crate.metadata.MetaDataModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static org.hamcrest.core.Is.is;
 
 public class KillAnalyzerTest extends BaseAnalyzerTest {
 
@@ -43,8 +44,20 @@ public class KillAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testAnalyzeKill() throws Exception {
-        AnalyzedStatement stmt = analyze("kill all");
-        assertThat(stmt, Matchers.<AnalyzedStatement>is(KillAnalyzedStatement.INSTANCE));
+    public void testAnalyzeKillAll() throws Exception {
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill all");
+        assertThat(stmt.jobId().isPresent(), is(false));
     }
+
+    @Test
+    public void testAnalyzeKillJobs() throws Exception {
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+        assertThat(stmt.jobId().get().toString(),  is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAnalyzeKillJobsNotParsable() throws Exception {
+        analyze("kill '6a3d6401-4333-933d-b38c9322fca7'");
+    }
+
 }

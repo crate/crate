@@ -31,6 +31,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.task.KillJobTask;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
@@ -431,4 +432,15 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(results, hasSize(1));
         results.get(0).get();
     }
+
+    @Test
+    public void testKillJobsTask() throws Exception {
+        Job job = executor.newJob(new KillPlan(UUID.randomUUID(), UUID.randomUUID()));
+        assertThat(job.tasks(), hasSize(1));
+        assertThat(job.tasks().get(0), instanceOf(KillJobTask.class));
+        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
+        assertThat(results, hasSize(1));
+        results.get(0).get();
+    }
+
 }
