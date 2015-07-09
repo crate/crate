@@ -21,26 +21,36 @@
 
 package io.crate.sql.tree;
 
-import java.util.UUID;
+import com.google.common.base.Optional;
 
 public class KillStatement extends Statement {
 
-    private String jobId;
+    private Optional<String> jobId = Optional.absent();
+
 
     public KillStatement() {}
 
     public KillStatement(String jobId) {
-        this.jobId = jobId;
+        this.jobId = Optional.of(jobId);
+    }
+
+    public Optional<String> jobId() {
+        return jobId;
     }
 
     @Override
     public int hashCode() {
-        return System.identityHashCode(this);
+        return jobId.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
-        return this == obj;
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        KillStatement that = (KillStatement) obj;
+
+        return jobId.equals(that.jobId);
     }
 
     @Override

@@ -505,9 +505,16 @@ public class TestStatementBuilder
     }
 
     @Test
-    public void testKill() throws Exception {
+    public void testKillJob() {
+        Statement stmt = SqlParser.createStatement("KILL '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+        assertTrue(stmt.equals(new KillStatement("6a3d6fb6-1401-4333-933d-b38c9322fca7")));
+        assertTrue(!stmt.equals(new KillStatement("6a3d6fb6-1401-4333-933d-b38c9322fca8")));
+    }
+
+    @Test
+    public void testKillAll() throws Exception {
         Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertTrue("stmt not identical to singleton", stmt == new KillStatement());
+        assertTrue(stmt.equals(new KillStatement()));
     }
 
     private static void printStatement(String sql)

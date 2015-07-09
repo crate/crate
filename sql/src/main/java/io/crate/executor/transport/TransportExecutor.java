@@ -29,10 +29,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
-import io.crate.executor.transport.task.CreateTableTask;
-import io.crate.executor.transport.task.DropTableTask;
-import io.crate.executor.transport.task.KillTask;
-import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
+import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
@@ -213,12 +210,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
-            return ImmutableList.<Task>of(new KillTask(
-                    clusterService,
-                    transportActionProvider.transportKillAllNodeAction(),
-                    job.id()));
+            Task task = killPlan.jobToKill().isPresent() ?
+                    new KillJobTask(clusterService,
+                            transportActionProvider.transportKillJobsNodeAction(),
+                            job.id(),
+                            killPlan.jobToKill().get()) :
+                    new KillTask(clusterService,
+                            transportActionProvider.transportKillAllNodeAction(),
+                            job.id());
+            return ImmutableList.of(task);
         }
-
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {

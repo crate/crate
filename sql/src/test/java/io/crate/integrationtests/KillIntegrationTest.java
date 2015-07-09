@@ -22,7 +22,10 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -35,8 +38,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.StringContains.containsString;
 
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -47,6 +50,11 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Before
+    public void setSetup() {
+        execute("SET GLOBAL stats.enabled = true");
+    }
 
     @Test
     public void testKillInsertFromSubQuery() throws Exception {
@@ -89,12 +97,16 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 }
             });
             happened.await();
-            execute("kill all");
+            SQLResponse logResponse = execute("select * from sys.jobs_log where stmt = ?",
+                    new Object[]{statement});
+            String jobId = logResponse.rows()[0][0].toString();
+            SQLResponse response = execute(jobId == null ? "kill all" : String.format("kill '%s'", jobId));
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
             // if killed, then cancellationException, nothing else
             Throwable exception = thrown.get();
             if (exception != null) {
+                assertThat(response.rows()[0][0].toString(), containsString(jobId));
                 assertThat(exception, instanceOf(SQLActionException.class));
                 assertThat(((SQLActionException)exception).stackTrace(), containsString("Job killed by user"));
             }
@@ -126,6 +138,34 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 "order by department desc nulls first " +
                 "limit 10", null);
         runJobContextReapers();
+    }
+
+    @Test
+    public void testKillCopyToJob() throws Exception {
+        String path = temporaryFolder.newFolder().getAbsolutePath();
+        setup.setUpEmployees();
+        assertGotCancelled("copy employees to directory ?", new Object[]{path});
+    }
+
+    @Test
+    public void testKillInsetJob() throws Exception {
+        setup.setUpEmployees();
+        execute("create table new_employees (" +
+                " name string, " +
+                " department string," +
+                " hired timestamp, " +
+                " age short," +
+                " income double, " +
+                " good boolean" +
+                ") with (number_of_replicas=1)");
+        ensureYellow();
+        assertGotCancelled("insert into new_employees (select * from employees)", null);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        execute("reset GLOBAL stats.enabled");
     }
 
 }
