@@ -25,12 +25,12 @@ import java.util.UUID;
 
 public class KillStatement extends Statement {
 
-    private UUID jobId;
+    private String jobId;
 
     public KillStatement() {}
 
     public KillStatement(String jobId) {
-        this.jobId = UUID.fromString(jobId);
+        this.jobId = jobId;
     }
 
     @Override
