@@ -240,7 +240,9 @@ public class TestStatementBuilder
         printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
+
         printStatement("kill all");
+        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
     }
 
     @Test
@@ -505,7 +507,7 @@ public class TestStatementBuilder
     @Test
     public void testKill() throws Exception {
         Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertTrue("stmt not identical to singleton", stmt == KillStatement.INSTANCE);
+        assertTrue("stmt not identical to singleton", stmt == new KillStatement());
     }
 
     private static void printStatement(String sql)
