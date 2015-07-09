@@ -69,6 +69,10 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
                 for (Bucket bucket : buckets) {
                     for (Row row : bucket) {
                         try {
+                            if (alreadyFinished.get()) {
+                                listener.finish();
+                                return;
+                            }
                             boolean needMore = downstream.setNextRow(row);
                             if (!needMore) {
                                 listener.finish();

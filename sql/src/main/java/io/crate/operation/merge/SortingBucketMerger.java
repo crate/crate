@@ -58,6 +58,8 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
     private final ArrayList<Row> previousRows;
     private final Optional<Executor> executor;
     private Iterator<Row>[] remainingBucketIts = null;
+    private final AtomicBoolean alreadyFinished = new AtomicBoolean(false);
+
 
     public SortingBucketMerger(RowDownstream rowDownstream,
                                int numBuckets,
@@ -307,7 +309,7 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
     }
 
     private boolean emit(Row row) {
-        if (!downstream.setNextRow(row)) {
+        if (alreadyFinished.get() || !downstream.setNextRow(row)) {
             wantMore.set(false);
             return false;
         }
@@ -316,6 +318,9 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
     @Override
     public void finish() {
+        if(alreadyFinished.get()) {
+            return;
+        }
         while (hasReminaingBucketIts()) {
             ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
             for (Iterator<Row> bucketIt : remainingBucketIts) {
@@ -327,7 +332,9 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             }
             emitBuckets(bucketIts);
         }
-        downstream.finish();
+        if (!alreadyFinished.getAndSet(true)) {
+            downstream.finish();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -337,6 +344,8 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
     @Override
     public void fail(Throwable e) {
-        downstream.fail(e);
+        if (!alreadyFinished.getAndSet(true)) {
+            downstream.fail(e);
+        }
     }
 }
