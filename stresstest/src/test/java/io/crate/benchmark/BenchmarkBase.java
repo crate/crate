@@ -91,7 +91,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
     }
 
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
-        return sqlExecutor.exec(new SQLBulkRequest(stmt, bulkArgs));
+        return sqlExecutor.client().execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(stmt, bulkArgs)).actionGet();
     }
 
     @BeforeClass
