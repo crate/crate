@@ -135,7 +135,7 @@ public class ExecutionPhasesTask extends JobTask {
                     circuitBreaker, nodeOperationTree.leaf());
 
             PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(
-                    ramAccountingContext, streamers, (MergePhase) nodeOperationTree.leaf(), nodeOperationTree.numLeafUpstreams(), rowDownstream);
+                    ramAccountingContext, streamers, (MergePhase) nodeOperationTree.leaf(), rowDownstream);
             if (operationByServer.isEmpty()) {
                 pageDownstreamContext.finish();
                 continue;
@@ -160,7 +160,6 @@ public class ExecutionPhasesTask extends JobTask {
             RamAccountingContext ramAccountingContext,
             Streamer<?>[] streamers,
             MergePhase mergeNode,
-            int numUpstreams,
             RowDownstream rowDownstream) {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
@@ -173,7 +172,7 @@ public class ExecutionPhasesTask extends JobTask {
                 pageDownstreamProjectorChain.v1(),
                 streamers,
                 ramAccountingContext,
-                numUpstreams, // = numBuckets
+                mergeNode.numUpstreams(),
                 pageDownstreamProjectorChain.v2()
         );
     }

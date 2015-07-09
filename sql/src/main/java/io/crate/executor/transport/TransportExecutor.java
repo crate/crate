@@ -359,7 +359,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         static class NodeOperationTreeContext {
             List<NodeOperation> nodeOperations = new ArrayList<>();
             ExecutionPhase leaf;
-            int numLeafUpstream = 0;
 
             boolean isRootPlanNode = true;
         }
@@ -367,10 +366,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public NodeOperationTree fromPlan(Plan plan) {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext();
             process(plan, nodeOperationTreeContext);
-            return new NodeOperationTree(
-                    nodeOperationTreeContext.nodeOperations,
-                    nodeOperationTreeContext.leaf,
-                    nodeOperationTreeContext.numLeafUpstream);
+            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations, nodeOperationTreeContext.leaf);
         }
 
         @Override
@@ -385,8 +381,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
-            context.numLeafUpstream = node.reducerMergeNode().executionNodes().size();
-
             if (context.isRootPlanNode) {
                 assert node.localMergeNode() != null : "if DistributedGroupBy is the root plan node it requires a localMergeNode";
                 context.leaf = node.localMergeNode();
@@ -398,7 +392,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, NodeOperationTreeContext context) {
-            context.numLeafUpstream = plan.collectNode().executionNodes().size();
             if (context.isRootPlanNode || context.leaf == null) {
                 context.leaf = plan.mergeNode();
             }
@@ -408,7 +401,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, NodeOperationTreeContext context) {
-            context.numLeafUpstream = node.collectNode().executionNodes().size();
             if (context.isRootPlanNode || context.leaf == null) {
                 context.leaf = node.localMergeNode();
             }
@@ -419,7 +411,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
             context.leaf = plan.mergeNode();
-            context.numLeafUpstream  = plan.countNode().executionNodes().size();
             context.nodeOperations.add(NodeOperation.withDownstream(plan.countNode(), plan.mergeNode()));
             return null;
         }
@@ -427,7 +418,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         @Override
         public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
             context.leaf = plan.localMergeNode();
-            context.numLeafUpstream = plan.collectNode().executionNodes().size();
             context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), plan.localMergeNode()));
             return null;
         }
@@ -438,13 +428,11 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 context.leaf = plan.localMergeNode();
             }
             context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
-            context.numLeafUpstream = plan.collectNode().executionNodes().size();
             return null;
         }
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            context.numLeafUpstream = node.collectNode().executionNodes().size();
             context.leaf = firstNonNull(node.mergeNode(), context.leaf);
             context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
             return null;

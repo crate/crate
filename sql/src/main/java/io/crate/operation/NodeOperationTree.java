@@ -49,12 +49,10 @@ public class NodeOperationTree {
 
     private final List<NodeOperation> nodeOperations;
     private final ExecutionPhase leaf;
-    private final int numLeafUpstreams;
 
-    public NodeOperationTree(List<NodeOperation> nodeOperations, ExecutionPhase leaf, int numLeafUpstreams) {
+    public NodeOperationTree(List<NodeOperation> nodeOperations, ExecutionPhase leaf) {
         this.nodeOperations = nodeOperations;
         this.leaf = leaf;
-        this.numLeafUpstreams = numLeafUpstreams;
     }
 
     /**
@@ -69,12 +67,5 @@ public class NodeOperationTree {
      */
     public ExecutionPhase leaf() {
         return leaf;
-    }
-
-    /**
-     * number of executionNodes that the parent executionPhases of the leaf have.
-     */
-    public int numLeafUpstreams() {
-        return numLeafUpstreams;
     }
 }
