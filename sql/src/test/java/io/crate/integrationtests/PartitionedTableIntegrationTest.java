@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -174,7 +173,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureGreen();
         waitNoPendingTasksOnAll();
 
-        execute("select schema_name, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by "+
+        execute("select schema_name, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
                 "from information_schema.tables where schema_name='my_schema' and table_name='parted'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]\n"));
 
@@ -306,10 +305,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
         ensureYellow();
-        execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][] {
-                new Object[]{ 1, "Ford", 13959981214861L },
-                new Object[]{ 2, "Trillian", 0L },
-                new Object[]{ 3, "Zaphod", null }
+        execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][]{
+                new Object[]{1, "Ford", 13959981214861L},
+                new Object[]{2, "Trillian", 0L},
+                new Object[]{3, "Zaphod", null}
         });
         ensureYellow();
         refresh();
@@ -571,7 +570,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        execute("update quotes set quote='now panic' where timestamp = ?", new Object[]{ 1395874800123L });
+        execute("update quotes set quote='now panic' where timestamp = ?", new Object[]{1395874800123L});
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
@@ -610,7 +609,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
-                new Object[]{ 1395874800123L, "Don't panic" });
+                new Object[]{1395874800123L, "Don't panic"});
         assertThat(response.rowCount(), is(0L));
         refresh();
 
@@ -631,7 +630,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("update quotes set quote='now panic' where not timestamp = ? and quote=?",
-                new Object[]{ 1395874800000L, "Don't panic" });
+                new Object[]{1395874800000L, "Don't panic"});
         refresh();
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount(), is(1L));
@@ -677,8 +676,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "where table_name='parted' and schema_name='doc'" +
                 "order by partition_ident");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
-        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
+        assertThat((String) response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
+        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
 
         execute("delete from parted where date = '2014-03-01'");
         refresh();
@@ -730,7 +729,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "order by partition_ident");
         assertThat(response.rowCount(), is(3L));
         assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395874800000"))).ident()));
-        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
+        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
         assertThat((String)response.rows()[2][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1396303200000"))).ident()));
 
         execute("delete from quotes where quote = 'Don''t panic'");
@@ -1766,7 +1765,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("refresh table event");
-        executeWithRetryOnUnknownColumn("select data['sessionid'] from event group by data['sessionid'] " +
+        waitForMappingUpdateOnAll("event", "data.sessionid");
+        execute("select data['sessionid'] from event group by data['sessionid'] " +
                 "order by format('%s', data['sessionid'])");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));
@@ -1781,7 +1781,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
         execute("refresh table event");
-        executeWithRetryOnUnknownColumn("select data['sessionid'] from event where " +
+        waitForMappingUpdateOnAll("event", "data.sessionid");
+        execute("select data['sessionid'] from event where " +
                 "format('%s', data['sessionid']) = 'ciao' order by data['sessionid']");
         assertThat(response.rows().length, Is.is(1));
         assertThat((String)response.rows()[0][0], Is.is("ciao"));
@@ -1795,7 +1796,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 42)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("refresh table event");
-        executeWithRetryOnUnknownColumn("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
+        waitForMappingUpdateOnAll("event", "data.sessionid");
+        execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL\n" +
                 "ciao\n" +
@@ -1861,7 +1863,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
         execute("refresh table event");
 
-        executeWithRetryOnUnknownColumn("select sessionid from event group by sessionid order by sessionid");
+        waitForMappingUpdateOnAll("event", "sessionid");
+        execute("select sessionid from event group by sessionid order by sessionid");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String)response.rows()[0][0], Is.is("hello"));
         assertThat(response.rows()[1][0], Is.is(nullValue()));

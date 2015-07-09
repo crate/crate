@@ -87,7 +87,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                         authorMap
                 });
         refresh();
-        executeWithRetryOnUnknownColumn("select title, author, author['dead'] from ot order by title");
+        waitForMappingUpdateOnAll("ot", "author.dead");
+        execute("select title, author, author['dead'] from ot order by title");
         assertEquals(2, response.rowCount());
         assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
         assertEquals(authorMap, response.rows()[0][1]);
@@ -141,7 +142,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         execute("update ot set author['job']='Writer' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         refresh();
-        executeWithRetryOnUnknownColumn("select author, author['job'] from ot " +
+        waitForMappingUpdateOnAll("ot", "author.job");
+        execute("select author, author['job'] from ot " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertEquals(1, response.rowCount());
         assertEquals(
@@ -201,8 +203,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                         authorMap
                 });
         refresh();
-        ensureYellow(); // ensure mapping change is distributed
-        executeWithRetryOnUnknownColumn("select author from ot where author['dead']=true");
+        waitForMappingUpdateOnAll("ot", "author.dead");
+        execute("select author from ot where author['dead']=true");
         assertEquals(1, response.rowCount());
         assertEquals(authorMap, response.rows()[0][0]);
     }
@@ -259,7 +261,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 }
         );
         refresh();
-        executeWithRetryOnUnknownColumn("select title, author['dead'] from ot order by author['dead'] desc");
+        waitForMappingUpdateOnAll("ot", "author.dead");
+        execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertEquals(3, response.rowCount());
         assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[0][0]);
         assertNull(response.rows()[0][1]);
@@ -279,8 +282,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
 
-        waitNoPendingTasksOnAll();
-        executeWithRetryOnUnknownColumn("select message, person['name'], person['addresses']['city'] from test " +
+        waitForMappingUpdateOnAll("test", "person.name");
+        execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
 
         assertEquals(1L, response.rowCount());

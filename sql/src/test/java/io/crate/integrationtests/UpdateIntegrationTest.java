@@ -211,7 +211,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        executeWithRetryOnUnknownColumn("select coolness['x'], coolness['y'] from test");
+        waitForMappingUpdateOnAll("test", "coolness.x");
+        execute("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rowCount());
         assertEquals("3", response.rows()[0][0]);
         assertEquals(2L, response.rows()[0][1]);

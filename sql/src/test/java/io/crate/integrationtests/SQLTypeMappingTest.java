@@ -294,17 +294,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNewColumn() throws Exception {
-        setUpSimple();
-        execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
-        refresh();
-
-        // schema update is async; retry if new column isn't available immediately
-        executeWithRetryOnUnknownColumn("select id, new_col from t1 where id=0");
-        assertEquals(0L, response.rows()[0][1]);
-    }
-
-    @Test
     public void testInsertNewObjectColumn() throws Exception {
         setUpSimple();
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{
@@ -318,7 +307,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         });
         refresh();
 
-        SQLResponse response = executeWithRetryOnUnknownColumn("select id, new_col from t1 where id=0");
+        waitForMappingUpdateOnAll("t1", "new_col");
+        SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>)response.rows()[0][1];
         assertEquals(0, mapped.get("a_date"));
