@@ -170,7 +170,9 @@ public class MetaDataToASTNodeResolver {
                             numReplicas
                     )
             );
-            ImmutableMap<String, Object> tableParameters = tableInfo.tableParameters();
+            // we want a sorted map of table parameters
+            TreeMap<String, Object> tableParameters = new TreeMap<>();
+            tableParameters.putAll(tableInfo.tableParameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
                 properties.add(new GenericProperty(
                                 TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
