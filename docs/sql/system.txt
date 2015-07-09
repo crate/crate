@@ -573,6 +573,7 @@ For example, you can query shards like this::
   +--------+-----------+----+-----+------+---------+------+---------+-------+
   SELECT 1 row in set (... sec)
 
+.. _jobs_operations_logs:
 
 Jobs, Operations and Logs
 =========================
