@@ -51,7 +51,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"translog.disable_flush\" = false, " +
                 "\"recovery.initial_shards\" = 'quorum', " +
                 "\"warmer.enabled\" = false, " +
-                "\"gateway.local.sync\" = '20s'" +
+                "\"gateway.local.sync\" = '20s'," +
+                "\"refresh_interval\" = '1000'" +
                 ")");
     }
 
@@ -71,6 +72,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
             assertTrue(((HashMap<String, Object>) row[0]).containsKey("recovery"));
             assertTrue(((HashMap<String, Object>) row[0]).containsKey("warmer"));
             assertTrue(((HashMap<String, Object>) row[0]).containsKey("gateway"));
+            assertTrue(((HashMap<String, Object>) row[0]).containsKey("refresh_interval"));
         }
     }
 
@@ -123,4 +125,10 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
     }
 
+    @Test
+    public void testDefaultRefreshIntervalSettings() {
+        execute("select * from information_schema.tables " +
+                "where settings['refresh_interval'] = 1000");
+        assertEquals(1, response.rowCount());
+    }
 }

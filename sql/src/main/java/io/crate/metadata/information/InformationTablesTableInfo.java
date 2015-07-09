@@ -49,6 +49,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
 
         public static final ReferenceInfo TABLE_SETTINGS = info(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
+        public static final ReferenceInfo TABLE_SETTINGS_REFRESH_INTERVAL = info(
+                Columns.TABLE_SETTINGS_REFRESH_INTERVAL, DataTypes.LONG);
+
         public static final ReferenceInfo TABLE_SETTINGS_BLOCKS = info(
                 Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_READ_ONLY = info(
@@ -72,7 +75,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, DataTypes.BOOLEAN);
         public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_INTERVAL = info(
                 Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, DataTypes.LONG);
-
+        
         public static final ReferenceInfo TABLE_SETTINGS_ROUTING= info(
                 Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT);
         public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION = info(
@@ -129,6 +132,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD);
                     put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH);
                     put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL);
+                    put(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, ReferenceInfos.TABLE_SETTINGS_REFRESH_INTERVAL);
                     put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING);
                     put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
                     put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE);
