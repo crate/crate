@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug which prevented a retry if a shard was closed because of relocation
+
  - Added support for multiple tables in refresh statement.
 
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
