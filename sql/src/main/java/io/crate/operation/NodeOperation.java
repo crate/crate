@@ -69,10 +69,6 @@ public class NodeOperation implements Streamable {
         }
     }
 
-    public static NodeOperation withDownstream(ExecutionPhase executionPhase, ExecutionPhase downstreamExecutionPhase) {
-        return withDownstream(executionPhase, downstreamExecutionPhase, (byte) 0);
-    }
-
     public ExecutionPhase executionPhase() {
         return executionPhase;
     }
