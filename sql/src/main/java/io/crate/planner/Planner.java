@@ -492,7 +492,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
-        return new KillPlan(context.jobId());
+        return analysis.jobId().isPresent() ?
+                new KillPlan(context.jobId(), analysis.jobId().get()) :
+                new KillPlan(context.jobId());
     }
 
     private void createESDeleteByQueryNode(DocTableInfo tableInfo,

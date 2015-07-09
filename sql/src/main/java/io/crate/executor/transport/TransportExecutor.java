@@ -216,10 +216,15 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
-            return ImmutableList.<Task>of(new KillTask(
-                    clusterService,
-                    transportActionProvider.transportKillAllNodeAction(),
-                    job.id()));
+            Task task = killPlan.jobToKill().isPresent() ?
+                    new KillJobTask(clusterService,
+                            transportActionProvider.transportKillJobsNodeAction(),
+                            job.id(),
+                            killPlan.jobToKill().get()) :
+                    new KillTask(clusterService,
+                            transportActionProvider.transportKillAllNodeAction(),
+                            job.id());
+            return ImmutableList.of(task);
         }
 
         @Override
