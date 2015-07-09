@@ -32,6 +32,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
     public static final String NAME = "settings";
+    public static final String REFRESH_INTERVAL = "refresh_interval";
 
     public TablesSettingsExpression() {
         super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS);
@@ -39,6 +40,8 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     }
 
     private void addChildImplementations() {
+
+        childImplementations.put(REFRESH_INTERVAL, new TableParameterExpression(TableParameterInfo.REFRESH_INTERVAL));
         childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
         childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());

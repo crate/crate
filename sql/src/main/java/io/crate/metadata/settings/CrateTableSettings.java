@@ -212,4 +212,15 @@ public class CrateTableSettings {
         }
     };
 
+    public static final TimeSetting REFRESH_INTERVAL = new TimeSetting() {
+        @Override
+        public String name() {
+            return TableParameterInfo.REFRESH_INTERVAL;
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueMillis(1000);
+        }
+    };
 }

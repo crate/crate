@@ -233,7 +233,7 @@ public class TablePropertiesAnalyzer {
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         public static final Settings DEFAULT = ImmutableSettings.builder()
-                .put(TableParameterInfo.REFRESH_INTERVAL, 1000).build(); // ms
+                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis()).build();
 
         private RefreshIntervalSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.REFRESH_INTERVAL), DEFAULT);

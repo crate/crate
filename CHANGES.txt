@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Expose missing refresh_interval table setting in information_schema.tables.
+
  - Fixed a bug which prevented a retry if a shard was closed because of relocation
 
  - Added support for multiple tables in refresh statement.

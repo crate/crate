@@ -100,6 +100,8 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("translog", "disable_flush"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
                 ImmutableList.of("translog", "interval"));
+        public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
+                ImmutableList.of("refresh_interval"));
     }
 
     protected InformationTableInfo(InformationSchemaInfo schemaInfo,
