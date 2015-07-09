@@ -106,6 +106,11 @@ public abstract class AbstractTableInfo implements TableInfo {
         return ImmutableMap.of();
     }
 
+    @Nullable
+    public String getAnalyzerForColumnIdent(ColumnIdent ident) {
+        return null;
+    }
+
     @Override
     public String toString() {
         return String.format("%s.%s", schemaInfo.name(), ident().name());

@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,47 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.planner.node.management;
 
-import com.google.common.base.MoreObjects;
+import io.crate.analyze.AbstractShowAnalyzedStatement;
+import io.crate.metadata.table.TableInfo;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 
-public class ShowCreateTable extends Statement {
+import java.util.UUID;
 
-    private final Table table;
+public class GenericShowPlan implements Plan {
+    private final UUID id;
+    private final AbstractShowAnalyzedStatement statement;
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitShowCreateTable(this, context);
-    }
-
-    public ShowCreateTable(Table table) {
-        this.table = table;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ShowCreateTable that = (ShowCreateTable) o;
-
-        return table.equals(that.table);
-
+    public GenericShowPlan(UUID jobId, AbstractShowAnalyzedStatement statement) {
+        id = jobId;
+        this.statement = statement;
     }
 
     @Override
-    public int hashCode() {
-        return table.hashCode();
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGenericShowPlan(this, context);
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .toString();
+    public UUID jobId() {
+        return id;
     }
 
-    public Table table() {
-        return table;
+    public AbstractShowAnalyzedStatement statement() {
+        return statement;
     }
 }

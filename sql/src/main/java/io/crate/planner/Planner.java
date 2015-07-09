@@ -49,6 +49,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
@@ -404,6 +405,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
         return new IterablePlan(context.jobId(), new GenericDDLNode(statement));
+    }
+
+    @Override
+    protected Plan visitShowAnalyzedStatement(AbstractShowAnalyzedStatement statement, Context context) {
+        return new GenericShowPlan(context.jobId(), statement);
     }
 
     @Override

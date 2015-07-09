@@ -21,35 +21,27 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
-import org.apache.lucene.analysis.*;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.analysis.CustomAnalyzer;
 
 import java.util.*;
 
 public class MetaDataToASTNodeResolver {
 
-
-    public MetaDataToASTNodeResolver() {}
-
-    public static CreateTable resolveCreateTable(TableInfo info) {
+    public static CreateTable resolveCreateTable(AbstractTableInfo info) {
         Extractor extractor = new Extractor(info);
         return extractor.extractCreateTable();
     }
 
     private static class Extractor {
 
-        private final TableInfo tableInfo;
+        private final AbstractTableInfo tableInfo;
 
-        public Extractor(TableInfo tableInfo) {
+        public Extractor(AbstractTableInfo tableInfo) {
             this.tableInfo = tableInfo;
         }
 
@@ -100,8 +92,17 @@ public class MetaDataToASTNodeResolver {
 
                 String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size()-1);
                 List<ColumnConstraint> constraints = new ArrayList<>();
-                if (info.indexType().equals(ReferenceInfo.IndexType.NO)) {
+                if (info.indexType().equals(ReferenceInfo.IndexType.NO)
+                        && !info.type().equals(DataTypes.OBJECT)
+                        && !(info.type().id() == ArrayType.ID && ((CollectionType)info.type()).innerType().equals(DataTypes.OBJECT))) {
                     constraints.add(IndexColumnConstraint.OFF);
+                } else if (info.indexType().equals(ReferenceInfo.IndexType.ANALYZED)) {
+                    String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
+                    GenericProperties properties = new GenericProperties();
+                    if (analyzer != null) {
+                        properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                    }
+                    constraints.add(new IndexColumnConstraint("fulltext", properties));
                 }
                 ColumnDefinition column = new ColumnDefinition(columnName, columnType, constraints);
                 elements.add(column);
@@ -146,12 +147,13 @@ public class MetaDataToASTNodeResolver {
         private List<CrateTableOption> extractTableOptions() {
             List<CrateTableOption> options = new ArrayList<>();
             // CLUSTERED BY (...) INTO ... SHARDS
-            Expression clusterColumn = null;
-            if (tableInfo.clusteredBy() != null) {
-                clusterColumn = expressionFromColumn(tableInfo.clusteredBy());
+            Expression clusteredByExpression = null;
+            ColumnIdent clusteredBy = tableInfo.clusteredBy();
+            if (clusteredBy != null && !clusteredBy.isSystemColumn()) {
+                clusteredByExpression = expressionFromColumn(clusteredBy);
             }
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            options.add(new ClusteredBy(clusterColumn, numShards));
+            options.add(new ClusteredBy(clusteredByExpression, numShards));
             // PARTITIONED BY (...)
             if (!tableInfo.partitionedBy().isEmpty()) {
                 options.add(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
@@ -160,43 +162,23 @@ public class MetaDataToASTNodeResolver {
         }
 
         private GenericProperties extractTableProperties() {
+            // WITH ( key = value, ... )
             GenericProperties properties = new GenericProperties();
+            Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas().utf8ToString());
+            properties.add(new GenericProperty(
+                            TablePropertiesAnalyzer.esToCrateSettingName(TableParameterInfo.NUMBER_OF_REPLICAS),
+                            numReplicas
+                    )
+            );
             ImmutableMap<String, Object> tableParameters = tableInfo.tableParameters();
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
-                properties.add(new GenericProperty(entry.getKey(), literalFromObject(entry.getValue())));
+                properties.add(new GenericProperty(
+                                TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
+                                Literal.fromObject(entry.getValue())
+                        )
+                );
             }
             return properties;
-        }
-
-        private static Expression literalFromObject(Object value) {
-            Expression expression = null;
-            if (value == null) {
-                expression = new NullLiteral();
-            } else if (value instanceof String) {
-                expression = new StringLiteral((String) value);
-            } else if (value instanceof Number) {
-                if (value instanceof Float || value instanceof Double) {
-                    expression = new DoubleLiteral(value.toString());
-                } else if (value instanceof Short || value instanceof Integer || value instanceof Long){
-                    expression = new LongLiteral(value.toString());
-                }
-            } else if (value instanceof Boolean) {
-                expression = new BooleanLiteral(value.toString());
-            } else if (value instanceof Object[]) {
-                List<Expression> expressions = new ArrayList<>();
-                for (Object o : (Object[]) value) {
-                    expressions.add(literalFromObject(o));
-                }
-                expression = new ArrayLiteral(expressions);
-            } else if (value instanceof Map) {
-                Multimap<String, Expression> map = HashMultimap.create();
-                @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) value;
-                for (String key : valueMap.keySet()) {
-                    map.put(key, literalFromObject(valueMap.get(key)));
-                }
-                expression = new ObjectLiteral(map);
-            }
-            return expression;
         }
 
         private boolean extractIfNotExists() {
@@ -212,11 +194,10 @@ public class MetaDataToASTNodeResolver {
             return new CreateTable(table, tableElements, tableOptions, tableProperties, ifNotExists);
         }
 
-
         private Expression expressionFromColumn(ColumnIdent ident) {
             Expression fqn = new QualifiedNameReference(QualifiedName.of(ident.getRoot().fqn()));
             for (String child : ident.path()) {
-                fqn = new SubscriptExpression(fqn, literalFromObject(child));
+                fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
             }
             return fqn;
         }

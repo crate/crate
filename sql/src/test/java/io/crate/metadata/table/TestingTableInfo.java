@@ -33,7 +33,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
-import org.hamcrest.generator.qdox.parser.Builder;
+import org.apache.lucene.util.BytesRef;
 import org.mockito.Answers;
 
 import javax.annotation.Nullable;
@@ -51,6 +51,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
     private final Routing routing;
     private final ColumnIdent clusteredBy;
     private final ImmutableMap<String, Object> tableParameters;
+    private final int numberOfShards;
+    private final BytesRef numberOfReplicas;
 
     public static Builder builder(TableIdent ident, RowGranularity granularity, Routing routing) {
         return new Builder(ident, granularity, routing);
@@ -67,7 +69,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
         private final ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> indexColumns = ImmutableMap.builder();
         private final ImmutableMap.Builder<String, Object> parameters = ImmutableMap.builder();
         private ColumnIdent clusteredBy;
-
+        private int numberOfShards;
+        private BytesRef numberOfReplicas;
 
         private final RowGranularity granularity;
         private final TableIdent ident;
@@ -81,6 +84,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             this.granularity = granularity;
             this.routing = routing;
             this.ident = ident;
+            numberOfShards = 5;
+            numberOfReplicas = new BytesRef("0-all");
         }
 
         private ReferenceInfo genInfo(ColumnIdent columnIdent, DataType type) {
@@ -190,8 +195,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             return this;
         }
 
-        public Builder numberOfReplicas(Object s) {
-            addParameter("number_of_replicas", s);
+        public Builder numberOfReplicas(String s) {
+            numberOfReplicas = new BytesRef(s);
             return this;
         }
 
@@ -200,7 +205,7 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             return this;
         }
 
-        public TableInfo build() {
+        public AbstractTableInfo build() {
             addDocSysColumns();
             return new TestingTableInfo(
                     columns.build(),
@@ -217,7 +222,9 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
                     partitions.build(),
                     columnPolicy,
                     schemaInfo == null ? mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()) : schemaInfo,
-                    parameters.build()
+                    parameters.build(),
+                    numberOfShards,
+                    numberOfReplicas
             );
         }
 
@@ -252,7 +259,9 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
                             List<PartitionName> partitions,
                             ColumnPolicy columnPolicy,
                             SchemaInfo schemaInfo,
-                            ImmutableMap<String, Object> tableParameters
+                            ImmutableMap<String, Object> tableParameters,
+                            int numberOfShards,
+                            BytesRef numberOfReplicas
                             ) {
         super(schemaInfo);
         this.columns = columns;
@@ -280,6 +289,8 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
             tableParameterInfo = new AlterPartitionedTableParameterInfo();
         }
         this.tableParameters = tableParameters;
+        this.numberOfShards = numberOfShards;
+        this.numberOfReplicas = numberOfReplicas;
     }
 
     @Override
@@ -401,4 +412,15 @@ public class TestingTableInfo extends AbstractDynamicTableInfo {
         when(schemaInfo.name()).thenReturn(ident.schema());
         return schemaInfo;
     }
+
+    @Override
+    public int numberOfShards() {
+        return numberOfShards;
+    }
+
+    @Override
+    public BytesRef numberOfReplicas() {
+        return numberOfReplicas;
+    }
+
 }
