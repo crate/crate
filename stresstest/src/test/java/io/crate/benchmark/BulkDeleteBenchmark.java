@@ -40,6 +40,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -69,6 +71,14 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     @Override
     protected String tableName() {
         return INDEX_NAME;
+    }
+
+    @Override
+    public Settings getNodeSettings() {
+        Settings settings = super.getNodeSettings();
+        settings = ImmutableSettings.builder().put(settings).put("threadpool.index.queue_size", ROWS).build();
+        return settings;
+
     }
 
     @Override

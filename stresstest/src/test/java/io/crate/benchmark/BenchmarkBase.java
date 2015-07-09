@@ -47,7 +47,6 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -116,10 +115,10 @@ public abstract class BenchmarkBase extends RandomizedTest {
     @Before
     public void setUp() throws Exception {
         if (NODE1 == null) {
-            NODE1 = CLUSTER.startNode(getNodeSettings(1));
+            NODE1 = CLUSTER.startNode(getNodeSettings());
         }
         if (NODE2 == null) {
-            NODE2 = CLUSTER.startNode(getNodeSettings(2));
+            NODE2 = CLUSTER.startNode(getNodeSettings());
         }
         if (!indexExists()) {
             createTable();
@@ -141,6 +140,8 @@ public abstract class BenchmarkBase extends RandomizedTest {
         CLUSTER.afterTest();
         CLUSTER.close();
         CLUSTER = null;
+        NODE1 = null;
+        NODE2 = null;
     }
 
     protected void createTable() {
@@ -277,7 +278,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
         return port;
     }
 
-    public Settings getNodeSettings(int nodeId) {
+    public Settings getNodeSettings() {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put("plugin.types", "io.crate.plugin.CrateCorePlugin")
                 .put("transport.tcp.port", randomAvailablePort())

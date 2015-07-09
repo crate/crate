@@ -46,10 +46,10 @@ public class BaseCreateBenchmark extends BenchmarkBase {
         if (!tablesCreated) {
 
             if (NODE1 == null) {
-                NODE1 = CLUSTER.startNode(getNodeSettings(1));
+                NODE1 = CLUSTER.startNode(getNodeSettings());
             }
             if (NODE2 == null) {
-                NODE2 = CLUSTER.startNode(getNodeSettings(2));
+                NODE2 = CLUSTER.startNode(getNodeSettings());
             }
             for (int i = 0; i < tablesAmount(); ++i) {
                 execute("create table setup_" + i + " (" +
