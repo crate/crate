@@ -224,6 +224,6 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         assert future != null;
         JobExecutionContext context = contextService.createContext(builder);
         context.start();
-        return future.get(500, TimeUnit.MILLISECONDS);
+        return future.get(2, TimeUnit.SECONDS);
     }
 }
