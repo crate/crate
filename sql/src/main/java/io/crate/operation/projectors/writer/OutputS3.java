@@ -39,10 +39,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.zip.GZIPOutputStream;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @NotThreadSafe
 public class OutputS3 extends Output {
@@ -94,7 +93,6 @@ public class OutputS3 extends Output {
 
         private ByteArrayOutputStream outputStream;
         long currentPartBytes = 0;
-        long bytesWritten = 0;
         int partNumber = 1;
 
         private S3OutputStream(ExecutorService executor, URI uri, S3ClientHelper s3ClientHelper) throws IOException {
@@ -110,7 +108,6 @@ public class OutputS3 extends Output {
         @Override
         public void write(byte[] b) throws IOException {
             outputStream.write(b);
-            bytesWritten += b.length;
             currentPartBytes += b.length;
             doUploadIfNeeded();
         }
@@ -118,7 +115,6 @@ public class OutputS3 extends Output {
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
             outputStream.write(b, off, len);
-            bytesWritten += len;
             currentPartBytes += len;
             doUploadIfNeeded();
         }
@@ -127,7 +123,6 @@ public class OutputS3 extends Output {
         public void write(int b) throws IOException {
             outputStream.write(b);
             currentPartBytes++;
-            bytesWritten++;
             doUploadIfNeeded();
         }
 
@@ -135,7 +130,6 @@ public class OutputS3 extends Output {
             if (currentPartBytes >= PART_SIZE) {
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
                 final int currentPart = partNumber;
-                final long offset = bytesWritten;
                 final long currentPartSize = currentPartBytes;
 
                 outputStream.close();
@@ -149,7 +143,6 @@ public class OutputS3 extends Output {
                                 .withKey(key)
                                 .withPartNumber(currentPart)
                                 .withPartSize(currentPartSize)
-                                .withFileOffset(offset)
                                 .withUploadId(multipartUpload.getUploadId())
                                 .withInputStream(inputStream);
                         UploadPartResult uploadPartResult = client.uploadPart(uploadPartRequest);
@@ -168,7 +161,6 @@ public class OutputS3 extends Output {
                     .withKey(key)
                     .withPartNumber(partNumber)
                     .withPartSize(outputStream.size())
-                    .withFileOffset(bytesWritten)
                     .withUploadId(multipartUpload.getUploadId())
                     .withInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
             UploadPartResult uploadPartResult = client.uploadPart(uploadPartRequest);
