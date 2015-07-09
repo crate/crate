@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.13.1 which contains following changes:
+
+    - added multiline support for tabular output format
+
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
    attempting to do so will result in a more meaningful error.
 

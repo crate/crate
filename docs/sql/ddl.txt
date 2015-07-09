@@ -834,9 +834,10 @@ already existing user-created doc table in the cluster::
     | CREATE TABLE IF NOT EXISTS "my_table" (             |
     |    "first_column" INTEGER,                          |
     |    "second_column" STRING,                          |
-    |    "third_column" TIMESTAMP                         |
+    |    "third_column" TIMESTAMP,                        |
     |    PRIMARY KEY ("first_column")                     |
-    | ) CLUSTERED BY ("first_column") INTO 5 SHARDS       |
+    | )                                                   |
+    | CLUSTERED BY ("first_column") INTO 5 SHARDS         |
     | WITH (                                              |
     |    "blocks.metadata" = false,                       |
     |    "blocks.read" = false,                           |
