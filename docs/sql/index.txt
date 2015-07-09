@@ -25,3 +25,4 @@ see :doc:`sql`. For general information about SQL please refer to
    information_schema
    system
    sql
+   kill
