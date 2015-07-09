@@ -23,6 +23,7 @@ package io.crate.operation;
 
 import io.crate.planner.node.ExecutionPhase;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -47,10 +48,10 @@ import java.util.List;
  */
 public class NodeOperationTree {
 
-    private final List<NodeOperation> nodeOperations;
+    private final Collection<NodeOperation> nodeOperations;
     private final ExecutionPhase leaf;
 
-    public NodeOperationTree(List<NodeOperation> nodeOperations, ExecutionPhase leaf) {
+    public NodeOperationTree(Collection<NodeOperation> nodeOperations, ExecutionPhase leaf) {
         this.nodeOperations = nodeOperations;
         this.leaf = leaf;
     }
@@ -58,7 +59,7 @@ public class NodeOperationTree {
     /**
      * all NodeOperations (leaf is not included)
      */
-    public List<NodeOperation> nodeOperations() {
+    public Collection<NodeOperation> nodeOperations() {
         return nodeOperations;
     }
 

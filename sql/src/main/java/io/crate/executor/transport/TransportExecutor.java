@@ -58,13 +58,8 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.operation.NodeOperation.withDownstream;
+import javax.annotation.Nullable;
+import java.util.*;
 
 public class TransportExecutor implements Executor, TaskExecutor {
 
@@ -354,87 +349,160 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
     }
 
+    /**
+     * class used to generate the NodeOperationTree
+     *
+     *
+     * E.g. a plan like NL:
+     *
+     *              NL
+     *           1 NLPhase
+     *           2 MergePhase
+     *        /               \
+     *       /                 \
+     *     QAF                 QAF
+     *   3 CollectPhase      5 CollectPhase
+     *   4 MergePhase        6 MergePhase
+     *
+     *
+     * Will have a data flow like this:
+     *
+     *   3 -- 4
+     *          -- 1 -- 2
+     *   5 -- 6
+     *
+     * The NodeOperation tree will have 5 NodeOperations (3-4, 4-1, 5-6, 6-1, 1-2)
+     * And leaf will be 2 (the Phase which will provide the final result)
+     *
+     *
+     * Implementation detail:
+     *
+     *
+     *   The phases are added in the following order
+     *
+     *   2 - 1 [new branch 0]  4 - 3
+     *         [new branch 1]  5 - 6
+     *
+     *   every time addPhase is called a NodeOperation is added
+     *   that connects the previous phase (if there is one) to the current phase
+     */
     static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
         static class NodeOperationTreeContext {
-            List<NodeOperation> nodeOperations = new ArrayList<>();
-            ExecutionPhase leaf;
+            private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
+            private final List<NodeOperation> nodeOperations = new ArrayList<>();
+            private final Stack<ExecutionPhase> root = new Stack<>();
 
-            boolean isRootPlanNode = true;
+            private Stack<ExecutionPhase> currentBranch = root;
+
+
+            /**
+             * adds a Phase to the "NodeOperation execution tree"
+             * should be called in the reverse order of how data flows.
+             *
+             * E.g. in a plan where data flows from CollectPhase to MergePhase
+             * it should be called first for MergePhase and then for CollectPhase
+             */
+            public void addPhase(@Nullable ExecutionPhase executionPhase) {
+                addPhase(executionPhase, nodeOperations);
+            }
+
+            /**
+             * same as {@link #addPhase(ExecutionPhase)} but those phases will be added
+             * in the front of the nodeOperation list to make sure that they are later in the execution started last
+             * to avoid race conditions.
+             */
+            public void addCollectExecutionPhase(@Nullable ExecutionPhase executionPhase) {
+                addPhase(executionPhase, collectNodeOperations);
+            }
+
+            private void addPhase(@Nullable ExecutionPhase executionPhase, List<NodeOperation> nodeOperations) {
+                if (executionPhase == null) {
+                    return;
+                }
+                if (currentBranch.isEmpty()) {
+                    currentBranch.add(executionPhase);
+                    return;
+                }
+
+                ExecutionPhase previousPhase;
+                previousPhase = currentBranch.lastElement();
+                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase));
+                currentBranch.add(executionPhase);
+            }
+
+            public Collection<NodeOperation> nodeOperations() {
+                return ImmutableList.<NodeOperation>builder()
+                        // collectNodeOperations must be first so that they're started last
+                        // to prevent context-setup race conditions
+                        .addAll(collectNodeOperations)
+                        .addAll(nodeOperations)
+                        .build();
+            }
         }
 
         public NodeOperationTree fromPlan(Plan plan) {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext();
             process(plan, nodeOperationTreeContext);
-            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations, nodeOperationTreeContext.leaf);
+            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(), nodeOperationTreeContext.root.firstElement());
         }
 
         @Override
         public Void visitInsertByQuery(InsertFromSubQuery node, NodeOperationTreeContext context) {
             if (node.handlerMergeNode().isPresent()) {
-                context.leaf = node.handlerMergeNode().get();
+                context.addPhase(node.handlerMergeNode().get());
             }
-            context.isRootPlanNode = false;
             process(node.innerPlan(), context);
             return null;
         }
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
-            if (context.isRootPlanNode) {
-                assert node.localMergeNode() != null : "if DistributedGroupBy is the root plan node it requires a localMergeNode";
-                context.leaf = node.localMergeNode();
-            }
-            context.nodeOperations.add(withDownstream(node.collectNode(), node.reducerMergeNode()));
-            context.nodeOperations.add(withDownstream(node.reducerMergeNode(), context.leaf));
+            context.addPhase(node.localMergeNode());
+            context.addPhase(node.reducerMergeNode());
+            context.addCollectExecutionPhase(node.collectNode());
             return null;
         }
 
         @Override
         public Void visitGlobalAggregate(GlobalAggregate plan, NodeOperationTreeContext context) {
-            if (context.isRootPlanNode || context.leaf == null) {
-                context.leaf = plan.mergeNode();
-            }
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            context.addPhase(plan.mergeNode());
+            context.addCollectExecutionPhase(plan.collectNode());
             return null;
         }
 
         @Override
         public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, NodeOperationTreeContext context) {
-            if (context.isRootPlanNode || context.leaf == null) {
-                context.leaf = node.localMergeNode();
-            }
-            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            context.addPhase(node.localMergeNode());
+            context.addCollectExecutionPhase(node.collectNode());
             return null;
         }
 
         @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
-            context.leaf = plan.mergeNode();
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.countNode(), plan.mergeNode()));
+            context.addPhase(plan.mergeNode());
+            context.addCollectExecutionPhase(plan.countNode());
             return null;
         }
 
         @Override
         public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
-            context.leaf = plan.localMergeNode();
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), plan.localMergeNode()));
+            context.addPhase(plan.localMergeNode());
+            context.addCollectExecutionPhase(plan.collectNode());
             return null;
         }
 
         @Override
         public Void visitQueryAndFetch(QueryAndFetch plan, NodeOperationTreeContext context) {
-            if (context.isRootPlanNode) {
-                context.leaf = plan.localMergeNode();
-            }
-            context.nodeOperations.add(NodeOperation.withDownstream(plan.collectNode(), context.leaf));
+            context.addPhase(plan.localMergeNode());
+            context.addCollectExecutionPhase(plan.collectNode());
             return null;
         }
 
         @Override
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            context.leaf = firstNonNull(node.mergeNode(), context.leaf);
-            context.nodeOperations.add(NodeOperation.withDownstream(node.collectNode(), context.leaf));
+            context.addPhase(node.mergeNode());
+            context.addCollectExecutionPhase(node.collectNode());
             return null;
         }
 
