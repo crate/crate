@@ -21,8 +21,8 @@
 
 package io.crate.operation.reference.information;
 
-import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 
 
@@ -31,7 +31,7 @@ public abstract class InformationColumnsExpression<T>
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
 
-        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
 
         @Override
         public BytesRef value() {

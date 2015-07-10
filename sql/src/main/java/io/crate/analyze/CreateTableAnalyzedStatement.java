@@ -42,11 +42,11 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    public void table(TableIdent tableIdent, boolean ifNotExists, ReferenceInfos referenceInfos) {
+    public void table(TableIdent tableIdent, boolean ifNotExists, Schemas schemas) {
         tableIdent.validate();
         if (ifNotExists) {
-            noOp = referenceInfos.tableExists(tableIdent);
-        } else if (referenceInfos.tableExists(tableIdent)) {
+            noOp = schemas.tableExists(tableIdent);
+        } else if (schemas.tableExists(tableIdent)) {
             throw new TableAlreadyExistsException(tableIdent);
         }
         this.ifNotExists = ifNotExists;

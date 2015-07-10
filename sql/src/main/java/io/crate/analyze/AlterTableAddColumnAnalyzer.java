@@ -36,13 +36,13 @@ import java.util.List;
 @Singleton
 public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     @Inject
-    public AlterTableAddColumnAnalyzer(ReferenceInfos referenceInfos,
+    public AlterTableAddColumnAnalyzer(Schemas schemas,
                                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        this.referenceInfos = referenceInfos;
+        this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
@@ -59,7 +59,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
 
     @Override
     public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
-        AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(referenceInfos);
+        AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(schemas);
         setTableAndPartitionName(node.table(), statement, analysis.parameterContext());
 
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(

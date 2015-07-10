@@ -65,7 +65,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     private Injector injector;
     private ReferenceResolver resolver;
-    private ReferenceInfos referenceInfos;
+    private Schemas schemas;
 
     private String indexName = "wikipedia_de";
     private static ThreadPool threadPool = new ThreadPool("testing");
@@ -81,7 +81,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
                 new SysShardExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ShardReferenceResolver.class);
-        referenceInfos = injector.getInstance(ReferenceInfos.class);
+        schemas = injector.getInstance(Schemas.class);
     }
 
     @AfterClass
@@ -153,7 +153,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testShardInfoLookup() throws Exception {
         ReferenceInfo info = SysShardsTableInfo.INFOS.get(new ColumnIdent("id"));
-        assertEquals(info, referenceInfos.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(info.ident().columnIdent()));
+        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(info.ident().columnIdent()));
     }
 
     @Test

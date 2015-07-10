@@ -23,10 +23,7 @@ package io.crate.analyze;
 import io.crate.Constants;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -40,7 +37,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     class Context {
@@ -58,9 +55,9 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     }
 
     @Inject
-    public CreateTableStatementAnalyzer(ReferenceInfos referenceInfos,
+    public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        this.referenceInfos = referenceInfos;
+        this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
@@ -100,7 +97,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     private void setTableIdent(CreateTable node, Context context) {
         TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
-        context.statement.table(tableIdent, node.ifNotExists(), referenceInfos);
+        context.statement.table(tableIdent, node.ifNotExists(), schemas);
     }
 
     @Override

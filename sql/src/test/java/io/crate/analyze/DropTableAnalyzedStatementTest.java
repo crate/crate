@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -39,13 +39,13 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
 
     public static final String IRRELEVANT = "Irrelevant";
 
-    private ReferenceInfos referenceInfos;
+    private Schemas schemas;
 
     private DropTableAnalyzedStatement dropTableAnalyzedStatement;
 
     @Before
     public void prepare() {
-        referenceInfos = mock(ReferenceInfos.class);
+        schemas = mock(Schemas.class);
     }
 
     @Test
@@ -54,18 +54,18 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expectMessage(String.format("Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, false);
+        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, false);
         dropTableAnalyzedStatement.table(tableIdent);
     }
 
     @Test
     public void unknownTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, true);
+        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, true);
         dropTableAnalyzedStatement.table(tableIdent);
 
         assertThat(dropTableAnalyzedStatement.noop(), is(true));
@@ -79,7 +79,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
 
-        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(referenceInfos, true);
+        dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, true);
 
         dropTableAnalyzedStatement.table(tableIdent);
         assertThat(dropTableAnalyzedStatement.noop(), is(false));

@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.sql.tree.DropBlobTable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -29,16 +29,16 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTableAnalyzedStatement> {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    public DropBlobTableStatementAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public DropBlobTableStatementAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     @Override
     public DropBlobTableAnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis analysis) {
-        DropBlobTableAnalyzedStatement statement = new DropBlobTableAnalyzedStatement(referenceInfos, node.ignoreNonExistentTable());
+        DropBlobTableAnalyzedStatement statement = new DropBlobTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
         statement.table(tableToIdent(node.table()));
         return statement;
     }

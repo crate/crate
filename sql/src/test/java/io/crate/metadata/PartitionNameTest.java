@@ -242,7 +242,7 @@ public class PartitionNameTest extends CrateUnitTest {
     public void splitTemplateName() throws Exception {
         assertThat(PartitionName.split(PartitionName.templateName("schema", "t")), arrayContaining("schema", "t", ""));
         assertThat(PartitionName.split(PartitionName.templateName(null, "t")), arrayContaining(null, "t", ""));
-        assertThat(PartitionName.split(PartitionName.templateName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));
+        assertThat(PartitionName.split(PartitionName.templateName(Schemas.DEFAULT_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));
     }
 
     @Test
@@ -294,7 +294,7 @@ public class PartitionNameTest extends CrateUnitTest {
                 is("081620j2")
         );
         Assert.assertThat(
-                PartitionName.ident(new PartitionName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "table", new ArrayList<BytesRef>() {{
+                PartitionName.ident(new PartitionName(Schemas.DEFAULT_SCHEMA_NAME, "table", new ArrayList<BytesRef>() {{
                     add(null);
                 }}).stringValue()),
                 is("0400")
@@ -308,7 +308,7 @@ public class PartitionNameTest extends CrateUnitTest {
                         new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
         assertTrue(
                 new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
-                        new PartitionName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
+                        new PartitionName(Schemas.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
         assertFalse(
                 new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
                         new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));

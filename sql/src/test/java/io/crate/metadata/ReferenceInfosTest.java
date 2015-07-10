@@ -75,8 +75,8 @@ public class ReferenceInfosTest {
         SchemaInfo schemaInfo = schemaInfoMock(tableIdent);
         when(schemaInfo.systemSchema()).thenReturn(true);
 
-        ReferenceInfos referenceInfos = getReferenceInfos(schemaInfo);
-        referenceInfos.getWritableTable(tableIdent);
+        Schemas schemas = getReferenceInfos(schemaInfo);
+        schemas.getWritableTable(tableIdent);
     }
 
     @Test
@@ -88,8 +88,8 @@ public class ReferenceInfosTest {
         SchemaInfo schemaInfo = schemaInfoMock(tableIdent);
         when(schemaInfo.systemSchema()).thenReturn(false);
 
-        ReferenceInfos referenceInfos = getReferenceInfos(schemaInfo);
-        referenceInfos.getWritableTable(tableIdent);
+        Schemas schemas = getReferenceInfos(schemaInfo);
+        schemas.getWritableTable(tableIdent);
     }
 
     private SchemaInfo schemaInfoMock(TableIdent tableIdent) {
@@ -103,7 +103,7 @@ public class ReferenceInfosTest {
         return schemaInfo;
     }
 
-    private ReferenceInfos getReferenceInfos(SchemaInfo schemaInfo) {
+    private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 

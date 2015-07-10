@@ -52,7 +52,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +64,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
     private Injector injector;
     private ReferenceResolver resolver;
-    private ReferenceInfos referenceInfos;
+    private Schemas schemas;
 
     private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
     private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
@@ -81,7 +80,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
                 new MetaDataSysModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
-        referenceInfos = injector.getInstance(ReferenceInfos.class);
+        schemas = injector.getInstance(Schemas.class);
     }
 
     @After
@@ -131,7 +130,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     @Test
     public void testInfoLookup() throws Exception {
         ReferenceIdent ident = LOAD_INFO.ident();
-        TableInfo sysNodesTableInfo = referenceInfos.getTableInfo(SysNodesTableInfo.IDENT);
+        TableInfo sysNodesTableInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT);
         assertEquals(LOAD_INFO, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
 
         ident = LOAD1_INFO.ident();

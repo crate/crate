@@ -29,10 +29,8 @@ import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
@@ -227,9 +225,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                Iterable<ReferenceInfos> referenceInfosIterable = internalCluster().getInstances(ReferenceInfos.class);
-                for (ReferenceInfos referenceInfos : referenceInfosIterable) {
-                    TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
+                Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
+                for (Schemas schemas : referenceInfosIterable) {
+                    TableInfo tableInfo = schemas.getTableInfo(tableIdent);
                     assertThat(tableInfo, Matchers.notNullValue());
                     for (String fieldName : fieldNames) {
                         ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);

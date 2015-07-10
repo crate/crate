@@ -23,25 +23,24 @@ package io.crate.analyze;
 
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private final Set<TableInfo> tableInfos = new HashSet<>();
     private final Map<TableInfo, PartitionName> partitions = new HashMap<>();
 
-    protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos){
-        this.referenceInfos = referenceInfos;
+    protected RefreshTableAnalyzedStatement(Schemas schemas){
+        this.schemas = schemas;
     }
 
     public TableInfo table(TableIdent tableIdent) {
-        TableInfo tableInfo = referenceInfos.getWritableTable(tableIdent);
+        TableInfo tableInfo = schemas.getWritableTable(tableIdent);
         tableInfos.add(tableInfo);
         return tableInfo;
     }

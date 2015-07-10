@@ -21,7 +21,7 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
@@ -41,7 +41,7 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
         } catch (IllegalArgumentException e) {
             // no partition
         }
-        Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(tableName);
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(tableName);
         if (matcher.matches()) {
             tableName = matcher.group(2);
         }

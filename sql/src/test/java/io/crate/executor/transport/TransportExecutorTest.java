@@ -309,14 +309,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Reference id_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(
-                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
+                        new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "searchf"),
                         "id"),
                 RowGranularity.DOC,
                 DataTypes.INTEGER
         ));
         Reference date_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(
-                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
+                        new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "searchf"),
                         "date"),
                 RowGranularity.DOC,
                 DataTypes.TIMESTAMP

@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.sql.tree.AlterBlobTable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -30,16 +30,16 @@ import org.elasticsearch.common.inject.Singleton;
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    public AlterBlobTableAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public AlterBlobTableAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     @Override
     public AlterBlobTableAnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis analysis) {
-        AlterBlobTableAnalyzedStatement statement = new AlterBlobTableAnalyzedStatement(referenceInfos);
+        AlterBlobTableAnalyzedStatement statement = new AlterBlobTableAnalyzedStatement(schemas);
 
         statement.table(tableToIdent(node.table()));
 

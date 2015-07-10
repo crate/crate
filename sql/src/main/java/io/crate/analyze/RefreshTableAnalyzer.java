@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.*;
@@ -33,11 +33,11 @@ import java.util.List;
 @Singleton
 public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAnalyzedStatement, Analysis> {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    public RefreshTableAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public RefreshTableAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     public RefreshTableAnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -47,7 +47,7 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
 
     @Override
     public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
-        RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(referenceInfos);
+        RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(schemas);
         for (Table nodeTable : node.tables()) {
             TableIdent tableIdent = TableIdent.of(nodeTable, analysis.parameterContext().defaultSchema());
             TableInfo tableInfo = statement.table(tableIdent);

@@ -21,9 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -38,7 +35,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 import static org.hamcrest.Matchers.contains;
@@ -71,7 +67,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(docSchemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
 
-            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
         }
     }
 

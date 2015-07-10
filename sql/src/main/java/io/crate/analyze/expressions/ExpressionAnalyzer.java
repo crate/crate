@@ -87,7 +87,7 @@ public class ExpressionAnalyzer {
     private final EvaluatingNormalizer normalizer;
     private final FieldProvider fieldProvider;
     private final Functions functions;
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private final ParameterContext parameterContext;
     private boolean forWrite = false;
 
@@ -95,7 +95,7 @@ public class ExpressionAnalyzer {
                               ParameterContext parameterContext,
                               FieldProvider fieldProvider) {
         functions = analysisMetaData.functions();
-        referenceInfos = analysisMetaData.referenceInfos();
+        schemas = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
@@ -259,7 +259,7 @@ public class ExpressionAnalyzer {
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
-            TableInfo tableInfo = referenceInfos.getTableInfo(info.ident().tableIdent());
+            TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
             ReferenceInfo nestedInfo = tableInfo.getReferenceInfo(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {

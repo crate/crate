@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DropTable;
@@ -32,16 +32,16 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTableAnalyzedStatement, Analysis> {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    protected DropTableStatementAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    protected DropTableStatementAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     @Override
     public DropTableAnalyzedStatement visitDropTable(DropTable node, Analysis context) {
-        DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(referenceInfos, node.ignoreNonExistentTable());
+        DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
         statement.table(TableIdent.of(node.table(), context.parameterContext().defaultSchema()));
         return statement;
     }

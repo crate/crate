@@ -83,7 +83,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
     }
 
     public String fqn() {
-        if (schema == null || schema.equalsIgnoreCase(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
+        if (schema == null || schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
             return name;
         }
         return String.format("%s.%s", schema, name);

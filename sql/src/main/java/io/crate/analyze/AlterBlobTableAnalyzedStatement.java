@@ -21,23 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private TableInfo tableInfo;
 
-    public AlterBlobTableAnalyzedStatement(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public AlterBlobTableAnalyzedStatement(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     public void table(TableIdent tableIdent) {
         assert BlobSchemaInfo.NAME.equals(tableIdent.schema());
-        tableInfo = referenceInfos.getTableInfo(tableIdent);
+        tableInfo = schemas.getTableInfo(tableIdent);
     }
 
     public TableInfo table() {

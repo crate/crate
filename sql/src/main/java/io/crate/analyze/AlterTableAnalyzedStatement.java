@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
@@ -31,17 +31,17 @@ import javax.annotation.Nullable;
 
 public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
     private boolean excludePartitions = false;
 
-    public AlterTableAnalyzedStatement(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public AlterTableAnalyzedStatement(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     public void table(TableIdent tableIdent) {
-        tableInfo = referenceInfos.getWritableTable(tableIdent);
+        tableInfo = schemas.getWritableTable(tableIdent);
     }
 
     public TableInfo table() {

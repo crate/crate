@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
@@ -32,11 +32,11 @@ import org.elasticsearch.common.inject.Singleton;
 public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedStatement, Analysis> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    public AlterTableAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public AlterTableAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     @Override
@@ -51,7 +51,7 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
     @Override
     public AlterTableAnalyzedStatement visitAlterTable(AlterTable node, Analysis analysis) {
 
-        AlterTableAnalyzedStatement statement = new AlterTableAnalyzedStatement(referenceInfos);
+        AlterTableAnalyzedStatement statement = new AlterTableAnalyzedStatement(schemas);
         setTableAndPartitionName(node.table(), statement, analysis);
 
         TableParameterInfo tableParameterInfo = statement.table().tableParameterInfo();

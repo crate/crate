@@ -155,7 +155,7 @@ public class PlannerTest extends CrateUnitTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            TableIdent userTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "users");
+            TableIdent userTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
@@ -165,16 +165,16 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(userTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
-            TableIdent charactersTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "characters");
+            when(userTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
+            TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(charactersTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
-            TableIdent partedTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted");
+            when(charactersTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
+            TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
@@ -188,8 +188,8 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(partedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
-            TableIdent emptyPartedTableIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "empty_parted");
+            when(partedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
+            TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
@@ -198,7 +198,7 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            TableIdent multiplePartitionedTableIdent= new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "multi_parted");
+            TableIdent multiplePartitionedTableIdent= new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
             TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
                     multiplePartitionedTableIdent, RowGranularity.DOC, new Routing())
                     .add("id", DataTypes.INTEGER, null)
@@ -212,7 +212,7 @@ public class PlannerTest extends CrateUnitTest {
                             new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
                             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
                     .build();
-            TableIdent clusteredByParitionedIdent = new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "clustered_parted");
+            TableIdent clusteredByParitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
             TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
                     multiplePartitionedTableIdent, RowGranularity.DOC, clusteredPartedRouting)
                     .add("id", DataTypes.INTEGER, null)
@@ -223,7 +223,7 @@ public class PlannerTest extends CrateUnitTest {
                             new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
                             new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue())
                     .build();
-            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
@@ -231,7 +231,7 @@ public class PlannerTest extends CrateUnitTest {
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
             when(schemaInfo.getTableInfo(clusteredByParitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
             when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
-            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(mockBlobSchemaInfo());
         }
@@ -282,17 +282,17 @@ public class PlannerTest extends CrateUnitTest {
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+                new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     private Plan plan(String statement, Object[] args) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(args, new Object[0][], ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+                new ParameterContext(args, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     private Plan plan(String statement, Object[][] bulkArgs) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, ReferenceInfos.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     @Test
@@ -1440,7 +1440,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(toCollect.get(0), isFunction("toLong"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
         assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
+                new ReferenceIdent(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
     }
 
     @Test

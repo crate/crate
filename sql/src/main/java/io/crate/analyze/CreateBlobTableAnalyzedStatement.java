@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 
 public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
@@ -42,9 +42,9 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
         return tableIdent;
     }
 
-    public void table(TableIdent tableIdent, ReferenceInfos referenceInfos) {
+    public void table(TableIdent tableIdent, Schemas schemas) {
         tableIdent.validate();
-        if (referenceInfos.tableExists(tableIdent)) {
+        if (schemas.tableExists(tableIdent)) {
             throw new TableAlreadyExistsException(tableIdent);
         }
         this.tableIdent = tableIdent;

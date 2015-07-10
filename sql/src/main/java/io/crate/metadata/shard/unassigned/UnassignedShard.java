@@ -2,7 +2,7 @@ package io.crate.metadata.shard.unassigned;
 
 import io.crate.metadata.PartitionName;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
@@ -44,12 +44,12 @@ public class UnassignedShard {
                 orphanedPartition = true;
             }
         } else {
-            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(index);
+            Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
             if (matcher.matches()) {
                 this.schemaName = matcher.group(1);
                 tableName = matcher.group(2);
             } else {
-                this.schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
+                this.schemaName = Schemas.DEFAULT_SCHEMA_NAME;
                 tableName = index;
             }
         }

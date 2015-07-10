@@ -43,7 +43,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     @Inject
     public ShardReferenceResolver(Index index,
-                                  ReferenceInfos referenceInfos,
+                                  Schemas schemas,
                                   ClusterService clusterService,
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
@@ -55,7 +55,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
             // check if alias exists
             if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
-                TableInfo info = referenceInfos.getTableInfo(tableIdent);
+                TableInfo info = schemas.getTableInfo(tableIdent);
                 assert info.isPartitioned();
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();

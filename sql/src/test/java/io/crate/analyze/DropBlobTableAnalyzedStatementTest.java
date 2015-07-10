@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateUnitTest;
@@ -38,22 +38,22 @@ public class DropBlobTableAnalyzedStatementTest extends CrateUnitTest {
 
     public static final String IRRELEVANT = "Irrelevant";
 
-    private ReferenceInfos referenceInfos;
+    private Schemas schemas;
 
     private DropBlobTableAnalyzedStatement dropBlobTableAnalyzedStatement;
 
 
     @Before
     public void prepare() {
-        referenceInfos = mock(ReferenceInfos.class);
+        schemas = mock(Schemas.class);
     }
 
     @Test
     public void testDeletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
         TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
-        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
-        dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(referenceInfos, true);
+        dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(schemas, true);
         dropBlobTableAnalyzedStatement.table(tableIdent);
         assertThat(dropBlobTableAnalyzedStatement.noop(), is(true));
     }
@@ -63,9 +63,9 @@ public class DropBlobTableAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expect(TableUnknownException.class);
         expectedException.expectMessage("Table 'blob.Irrelevant' unknown");
         TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
-        when(referenceInfos.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
-        dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(referenceInfos, false);
+        dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(schemas, false);
         dropBlobTableAnalyzedStatement.table(tableIdent);
     }
 }

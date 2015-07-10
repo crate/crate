@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.Constants;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
@@ -35,18 +35,18 @@ import org.elasticsearch.common.inject.Singleton;
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
 
     @Inject
-    public CreateBlobTableStatementAnalyzer(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    public CreateBlobTableStatementAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     @Override
     public CreateBlobTableAnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis analysis) {
         CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
         TableIdent tableIdent = tableToIdent(node.name());
-        statement.table(tableIdent, referenceInfos);
+        statement.table(tableIdent, schemas);
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();

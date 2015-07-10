@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.Schemas;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -34,15 +34,15 @@ import javax.annotation.concurrent.ThreadSafe;
 public class AnalysisMetaData {
 
     private final Functions functions;
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private final ReferenceResolver referenceResolver;
 
     @Inject
     public AnalysisMetaData(Functions functions,
-                            ReferenceInfos referenceInfos,
+                            Schemas schemas,
                             ReferenceResolver referenceResolver) {
         this.functions = functions;
-        this.referenceInfos = referenceInfos;
+        this.schemas = schemas;
         this.referenceResolver = referenceResolver;
     }
 
@@ -50,8 +50,8 @@ public class AnalysisMetaData {
         return functions;
     }
 
-    public ReferenceInfos referenceInfos() {
-        return referenceInfos;
+    public Schemas referenceInfos() {
+        return schemas;
     }
 
     public ReferenceResolver referenceResolver() {

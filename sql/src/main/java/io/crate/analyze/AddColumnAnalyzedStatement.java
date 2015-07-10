@@ -21,23 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
 public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
+    private final Schemas schemas;
     private TableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
 
-    protected AddColumnAnalyzedStatement(ReferenceInfos referenceInfos) {
-        this.referenceInfos = referenceInfos;
+    protected AddColumnAnalyzedStatement(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     public void table(TableIdent tableIdent) {
-        tableInfo = referenceInfos.getWritableTable(tableIdent);
+        tableInfo = schemas.getWritableTable(tableIdent);
     }
 
     public TableInfo table() {

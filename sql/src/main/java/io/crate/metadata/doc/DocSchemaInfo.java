@@ -38,7 +38,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -73,7 +73,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             if (BlobIndices.isBlobIndex(input)) {
                 return false;
             }
-            return !ReferenceInfos.SCHEMA_PATTERN.matcher(input).matches();
+            return !Schemas.SCHEMA_PATTERN.matcher(input).matches();
         }
     };
 
@@ -103,7 +103,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                          ThreadPool threadPool,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
-        schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
+        schemaName = Schemas.DEFAULT_SCHEMA_NAME;
         this.clusterService = clusterService;
         clusterService.add(this);
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -136,7 +136,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Nullable
             @Override
             public TableInfo apply(String input) {
-                Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(input);
+                Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
                 if (matcher.matches()) {
                     input = matcher.group(2);
                 }
@@ -150,7 +150,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (BlobIndices.isBlobIndex(input)) {
                     return false;
                 }
-                Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(input);
+                Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
                 return (matcher.matches() && matcher.group(1).equals(schemaName)) ;
             }
         };

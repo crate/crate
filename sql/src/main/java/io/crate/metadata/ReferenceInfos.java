@@ -47,17 +47,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
-public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
+public class ReferenceInfos implements ClusterStateListener, Schemas {
 
     private final static ESLogger LOGGER = Loggers.getLogger(ReferenceInfos.class);
-
-    public static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
-    public static final String DEFAULT_SCHEMA_NAME = "doc";
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -79,6 +75,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
         clusterService.add(this);
     }
 
+    @Override
     public TableInfo getWritableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
         if ((tableInfo.schemaInfo().systemSchema() && !tableInfo.schemaInfo().name().equals(BlobSchemaInfo.NAME))) {
@@ -101,6 +98,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
      * @throws io.crate.exceptions.TableUnknownException if table given in <code>ident</code> does
      *         not exist in the given schema
      */
+    @Override
     public TableInfo getTableInfo(TableIdent ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info;
@@ -196,6 +194,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
         return true;
     }
 
+    @Override
     public boolean tableExists(TableIdent tableIdent) {
         SchemaInfo schemaInfo = schemas.get(firstNonNull(tableIdent.schema(), DEFAULT_SCHEMA_NAME));
         if (schemaInfo == null) {

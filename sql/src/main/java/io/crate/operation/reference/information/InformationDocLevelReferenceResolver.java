@@ -41,7 +41,7 @@ import java.util.Map;
 public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
 
     private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
-    private final BytesRef DOC_SCHEMA_INFO = new BytesRef(ReferenceInfos.DEFAULT_SCHEMA_NAME);
+    private final BytesRef DOC_SCHEMA_INFO = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
 
     @Inject
     public InformationDocLevelReferenceResolver() {

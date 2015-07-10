@@ -49,7 +49,7 @@ public class InformationSchemaCollectService implements CollectService {
 
     @Inject
     protected InformationSchemaCollectService(Functions functions,
-                                              ReferenceInfos referenceInfos,
+                                              Schemas schemas,
                                               InformationDocLevelReferenceResolver refResolver,
                                               FulltextAnalyzerResolver ftResolver,
                                               ClusterService clusterService) {
@@ -57,7 +57,7 @@ public class InformationSchemaCollectService implements CollectService {
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
 
-        Iterable<TableInfo> tablesIterable = FluentIterable.from(referenceInfos)
+        Iterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
                     @Nullable
                     @Override
@@ -103,7 +103,7 @@ public class InformationSchemaCollectService implements CollectService {
                 .put("information_schema.table_constraints", tableConstraintsIterable)
                 .put("information_schema.table_partitions", tablePartitionsIterable)
                 .put("information_schema.routines", routinesIterable)
-                .put("information_schema.schemata", referenceInfos).build();
+                .put("information_schema.schemata", schemas).build();
     }
 
     class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
