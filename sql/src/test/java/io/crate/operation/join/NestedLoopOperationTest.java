@@ -23,6 +23,7 @@ package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.operation.Input;
@@ -70,6 +71,27 @@ public class NestedLoopOperationTest extends CrateUnitTest {
             result.add(new Row1(row));
         }
         return result;
+    }
+
+    @Test
+    public void testRightSideFinishesBeforeLeftSideStarts() throws Exception {
+        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
+        CollectingProjector collectingProjector = new CollectingProjector();
+        nestedLoopOperation.downstream(collectingProjector);
+
+        RowUpstream dummyUpstream = new RowUpstream() {};
+
+        final RowDownstreamHandle left = nestedLoopOperation.registerUpstream(dummyUpstream);
+        final RowDownstreamHandle right = nestedLoopOperation.registerUpstream(dummyUpstream);
+
+        right.setNextRow(new Row1(1));
+        right.finish();
+
+        left.setNextRow(new Row1(10));
+        left.setNextRow(new Row1(20));
+        left.finish();
+
+        assertThat(Buckets.materialize(collectingProjector.result().get()).length, is(2));
     }
 
     @Test
