@@ -57,7 +57,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     private final CombinedRow combinedRow = new CombinedRow();
     private final RowDownstreamHandle leftDownstreamHandle;
     private final RowDownstreamHandle rightDownstreamHandle;
-    private final ArrayBlockingQueue<Row> innerRowsQ = new ArrayBlockingQueue<>(1);
+    private final ArrayBlockingQueue<Row> innerRowsQ = new ArrayBlockingQueue<>(10);
     private final Object finishedLock = new Object();
     private final AtomicInteger numUpstreams = new AtomicInteger(0);
 
@@ -114,6 +114,14 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
             System.arraycopy(right, 0, newRow, left.length, right.length);
             return newRow;
         }
+
+        @Override
+        public String toString() {
+            return "CombinedRow{" +
+                    " outer=" + outerRow +
+                    ", inner=" + innerRow +
+                    '}';
+        }
     }
 
     private class LeftDownstreamHandle implements RowDownstreamHandle {
@@ -123,39 +131,27 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
         @Override
         public boolean setNextRow(Row row) {
             LOGGER.trace("left downstream received a row {}", row);
+
             if (innerRowsQ.isEmpty() && rightFinished) {
                 return loopInnerRowAndEmit(row);
             } else {
-                Row innerRow;
-                while (true) {
-                    if (rightFinished) {
-                        while ((innerRow = innerRowsQ.poll()) != null) {
-                            if (innerRow == SENTINEL) {
-                                break;
-                            }
-                            boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
-                            if (!shouldContinue) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-
-                    try {
-                        innerRow = innerRowsQ.take();
+                try {
+                    while (true) {
+                        Row innerRow = innerRowsQ.take();
                         if (innerRow == SENTINEL) {
-                            continue;
+                            break;
                         }
-                        boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
-                        if (!shouldContinue) {
+                        boolean wantMore = emitAndSaveInnerRow(innerRow, row);
+                        if (!wantMore) {
                             return false;
                         }
-                    } catch (InterruptedException e) {
-                        fail(e);
-                        return false;
                     }
+                } catch (InterruptedException e) {
+                    fail(e);
+                    return false;
                 }
             }
+            return true;
         }
 
         private boolean emitAndSaveInnerRow(Row innerRow, Row outerRow) {
@@ -206,9 +202,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 Row materializedRow = new RowN(row.materialize());
                 while (true) {
                     boolean added = innerRowsQ.offer(materializedRow, 100, TimeUnit.MICROSECONDS);
-                    if (added) {
-                        return true;
-                    } else if (leftFinished) {
+                    if (added || leftFinished) {
                         return true;
                     }
                 }
@@ -223,7 +217,11 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
             LOGGER.trace("right downstream finished");
             synchronized (finishedLock) {
                 rightFinished = true;
-                innerRowsQ.offer(SENTINEL); // unblock .take() in case of race condition
+                try {
+                    innerRowsQ.put(SENTINEL); // unblock .take() in LeftDownstreamHandle
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 if (leftFinished) {
                     downstream.finish();
                 }
