@@ -1524,7 +1524,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testInsertToPartitionFromQuery() throws Exception {
         this.setup.setUpLocations();
-        execute("refresh table locations");
 
         execute("select name from locations order by id");
         assertThat(response.rowCount(), is(13L));
@@ -1535,6 +1534,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 " name string primary key," +
                 " date timestamp" +
                 ") clustered by(id) into 2 shards partitioned by(name) with(number_of_replicas=0)");
+        waitNoPendingTasksOnAll();
 
         execute("insert into locations_parted (id, name, date) (select id, name, date from locations)");
         assertThat(response.rowCount(), is(13L));
@@ -1816,6 +1816,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testAlterTableAfterDeleteDoesNotAttemptToAlterDeletedPartitions() throws Exception {
         execute("create table t (name string, p string) partitioned by (p)");
         ensureYellow();
+        waitNoPendingTasksOnAll();
 
         execute("insert into t (name, p) values (?, ?)", new Object[][]{
                 new Object[]{"Arthur", "1"},
