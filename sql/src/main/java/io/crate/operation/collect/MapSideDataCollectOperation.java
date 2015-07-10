@@ -217,11 +217,13 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     @Override
                     public void onSuccess(@Nullable List<Void> result) {
                         jobCollectContext.close();
+                        LOGGER.error(">>>>>> close onSuccess MapSideDataCollectOperation");
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         jobCollectContext.close();
+                        LOGGER.error(">>>>>> close onFailure MapSideDataCollectOperation");
                     }
                 });
 

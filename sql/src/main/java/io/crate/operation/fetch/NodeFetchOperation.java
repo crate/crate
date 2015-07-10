@@ -128,7 +128,8 @@ public class NodeFetchOperation implements RowUpstream {
             resultProvider.result().addListener(new Runnable() {
                 @Override
                 public void run() {
-                    jobCollectContext.close();
+                    jobCollectContext.close();  // -> JobExecutionContext is closed
+                    LOGGER.error(">>>>>> NodeFetchOperation close");
                 }
             }, MoreExecutors.directExecutor());
         }

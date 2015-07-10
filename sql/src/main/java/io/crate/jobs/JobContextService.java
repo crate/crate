@@ -193,6 +193,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         @Override
         public void run() {
             final long time = threadPool.estimatedTimeInMillis();
+            LOGGER.error(">>>>>>>> REAPER");
             for (Map.Entry<UUID, JobExecutionContext> entry : activeContexts.entrySet()) {
                 JobExecutionContext context = entry.getValue();
                 // Use the same value for both checks since lastAccessTime can

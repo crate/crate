@@ -185,7 +185,7 @@ public class JobExecutionContext {
 
     public void close() {
         if (!closed.getAndSet(true)) {
-            LOGGER.trace("close called on JobExecutionContext {}", jobId);
+            LOGGER.error("close called on JobExecutionContext {}", jobId);
             if (activeSubContexts.get() == 0) {
                 callContextCallback();
             } else {
