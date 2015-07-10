@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
@@ -59,6 +60,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private volatile boolean isKilled = false;
 
@@ -130,8 +132,14 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                 contextCallback.onClose(throwable, bytesUsed);
             }
             queryPhaseRamAccountingContext.close();
+            closeFuture.set(null);
         } else {
             LOGGER.trace("close called on an already closed JobCollectContext: {}", id);
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
+            }
         }
     }
 

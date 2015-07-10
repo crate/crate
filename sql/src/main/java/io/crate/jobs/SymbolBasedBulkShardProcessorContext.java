@@ -21,8 +21,11 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -31,10 +34,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext {
 
+    private final static ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessorContext.class);
+
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final SymbolBasedBulkShardProcessor bulkShardProcessor;
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     public SymbolBasedBulkShardProcessorContext(SymbolBasedBulkShardProcessor bulkShardProcessor) {
         this.bulkShardProcessor = bulkShardProcessor;
@@ -61,6 +67,13 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
                 callback.onClose(t, -1L);
+            }
+            closeFuture.set(null);
+        } else {
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
             }
         }
     }

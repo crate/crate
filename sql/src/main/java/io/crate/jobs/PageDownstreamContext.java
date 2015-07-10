@@ -55,6 +55,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private volatile boolean isKilled = false;
     @Nullable
     private final FlatProjectorChain projectorChain;
@@ -172,15 +173,34 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
 
     public void finish() {
         LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
+        doFinish(false);
+    }
+
+
+    private void doFinish(boolean killed) {
         if (!closed.getAndSet(true)) {
-            for (ContextCallback contextCallback : callbacks) {
-                contextCallback.onClose(null, -1L);
+            CancellationException cancellationException = null;
+            if (killed) {
+                cancellationException = new CancellationException();
             }
-            pageDownstream.finish();
+            for (ContextCallback contextCallback : callbacks) {
+                contextCallback.onClose(cancellationException, -1L);
+            }
+            if (killed) {
+                pageDownstream.fail(cancellationException);
+            } else {
+                pageDownstream.finish();
+            }
             ramAccountingContext.close();
+            closeFuture.set(null);
         } else {
-            LOGGER.warn("called finish on an already closed PageDownstreamContext");
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
+            }
         }
+
     }
 
     public void addCallback(ContextCallback contextCallback) {
@@ -203,16 +223,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     @Override
     public void kill() {
         isKilled = true;
-        if (!closed.getAndSet(true)) {
-            CancellationException cancellationException = new CancellationException();
-            for (ContextCallback contextCallback : callbacks) {
-                contextCallback.onClose(cancellationException, -1L);
-            }
-            pageDownstream.fail(cancellationException);
-            ramAccountingContext.close();
-        } else {
-            LOGGER.warn("called kill on an already closed PageDownstreamContext");
-        }
+        doFinish(true);
     }
 
     @Override
