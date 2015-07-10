@@ -1091,11 +1091,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testRefresh() throws Exception {
-        execute("create table test (id int primary key, name string)");
+        execute("create table test (id int primary key, name string) with (refresh_interval = 0)");
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], lessThan(3L));
+        assertThat((Long) response.rows()[0][0], is(0L));
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
