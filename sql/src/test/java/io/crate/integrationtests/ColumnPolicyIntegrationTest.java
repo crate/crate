@@ -204,6 +204,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         execute("insert into dynamic_table (new) values({nest={}, new={}})");
 
+        waitNoPendingTasksOnAll();
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.inner.type")), is("string"));
