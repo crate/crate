@@ -223,7 +223,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table dynamic_table");
-        waitNoPendingTasksOnAll();
+
+        waitForMappingUpdateOnAll("dynamic_table", "meta.meta.a");
         execute("insert into dynamic_table (meta) values({meta={a=['c','d']}})");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
@@ -240,7 +241,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
         execute("refresh table dynamic_table");
 
-        waitForMappingUpdateOnAll("dynamic_table", "my_object.a");
+        waitForMappingUpdateOnAll("dynamic_table", "my_object.a", "my_object.b");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.inner.type")), is("string"));

@@ -21,8 +21,10 @@
 
 package io.crate.testing;
 
+import com.google.common.base.MoreObjects;
 import io.crate.action.sql.*;
 import io.crate.test.integration.CrateTestCluster;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
@@ -33,6 +35,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
 import org.hamcrest.Matchers;
 
 import java.util.concurrent.TimeUnit;
@@ -42,9 +45,12 @@ import static org.junit.Assert.assertThat;
 
 public class SQLTransportExecutor {
 
+    private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
+
     private static final ESLogger logger = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
-    private static final Long REQUEST_TIMEOUT = 5L;
+    private static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
     public static SQLTransportExecutor create(final CrateTestCluster testCluster) {
         return new SQLTransportExecutor(new ClientProvider() {
@@ -60,23 +66,33 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return execute(statement, new Object[0]).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
+        return exec(new SQLRequest(statement));
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return execute(statement, params).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
-    }
-
-    public SQLResponse exec(SQLRequest request) {
-        return execute(request).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
+        return exec(new SQLRequest(statement, params));
     }
 
     public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
-        return execute(statement, bulkArgs).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
+        return exec(new SQLBulkRequest(statement, bulkArgs));
+    }
+
+    public SQLResponse exec(SQLRequest request) {
+        try {
+            return execute(request).actionGet(REQUEST_TIMEOUT);
+        } catch (ElasticsearchTimeoutException e) {
+            logger.error("Timeout on SQL statement: {}", e, request.stmt());
+            throw e;
+        }
     }
 
     public SQLBulkResponse exec(SQLBulkRequest request) {
-        return execute(request).actionGet(REQUEST_TIMEOUT, TimeUnit.SECONDS);
+        try {
+            return execute(request).actionGet(REQUEST_TIMEOUT);
+        } catch (ElasticsearchTimeoutException e) {
+            logger.error("Timeout on SQL statement: {}", e, request.stmt());
+            throw e;
+        }
     }
 
     public ActionFuture<SQLResponse> execute(String statement, Object[] params) {
