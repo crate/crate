@@ -165,6 +165,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                     // if the result is pushed to a downstream, the Bucket might be null here.
                     if ((result != null && result.size() == 0) || !collectNode.keepContextForFetcher()) {
                         close();
+                        LOGGER.error(">>>>>>>>>> JobCollectContext close");
                     }
                 }
 
