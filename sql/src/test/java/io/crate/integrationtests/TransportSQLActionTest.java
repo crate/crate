@@ -1095,7 +1095,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat((long)response.rows()[0][0], lessThanOrEqualTo(3L));
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
