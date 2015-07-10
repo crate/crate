@@ -21,11 +21,14 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,8 +48,12 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
     private final List<? extends Future<TaskResult>> resultFutures;
     private final TransportAction transportAction;
     private volatile boolean iskilled = false;
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
     @Nullable
     private final FlatProjectorChain projectorChain;
+
+    private final static ESLogger LOGGER = Loggers.getLogger(ESJobContext.class);
+
 
     public ESJobContext(String operationName,
                         List<? extends ActionRequest> requests,
@@ -87,6 +94,13 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
                 callback.onClose(t, -1L);
+            }
+            closeFuture.set(null);
+        } else {
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
             }
         }
     }

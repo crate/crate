@@ -24,12 +24,15 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -48,8 +51,11 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final RowDownstreamHandle rowDownstreamHandle;
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private ListenableFuture<Long> countFuture;
+
+    private final static ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
     public CountContext(CountOperation countOperation,
                         RowDownstream rowDownstream,
@@ -111,6 +117,13 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
                 callback.onClose(throwable, -1L);
+            }
+            closeFuture.set(null);
+        } else {
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
             }
         }
     }

@@ -48,6 +48,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
 
@@ -123,6 +124,13 @@ public class UpsertByIdContext implements ExecutionSubContext {
         if (!closed.getAndSet(true)) {
             for (ContextCallback callback : callbacks) {
                 callback.onClose(t, -1L);
+            }
+            closeFuture.set(null);
+        } else {
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                logger.warn("Error while waiting for already running close {}", e);
             }
         }
     }
