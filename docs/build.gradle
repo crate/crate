@@ -27,8 +27,13 @@ task buildout (type:Exec, dependsOn: bootstrap) {
 }
 
 task itest (type:Exec) {
-  commandLine "$projectDir/bin/test", '-1'
+    commandLine "$projectDir/bin/test", '-1', '-t', '!process_test'
 }
+
+task gtest (type:Exec) {
+    commandLine "$projectDir/bin/test", '-1', '-t', 'process_test'
+}
+
 
 task lessLogging (dependsOn: unpackDistTar) << {
     def file = new File("$projectDir/tmp/crate/config/logging.yml")
@@ -44,6 +49,7 @@ task ignoreDiskThreshold (dependsOn: unpackDistTar) << {
 }
 
 itest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
+gtest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
 
 task clean << {
     FileCollection toDelete = files(crateDist,

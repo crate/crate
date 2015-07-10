@@ -7,15 +7,14 @@ import shutil
 import re
 import process_test
 from .paths import crate_path, project_path
-from .ports import PortPool
+from .ports import GLOBAL_PORT_POOL
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
 
-random_ports = PortPool()
 
-CRATE_HTTP_PORT = random_ports.get()
-CRATE_TRANSPORT_PORT = random_ports.get()
+CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
 
 class CrateTestCmd(CrateCmd):
@@ -195,15 +194,20 @@ def setUp(test):
 
 def test_suite():
     suite = unittest.TestSuite()
-    processSuite = unittest.TestLoader().loadTestsFromModule(process_test)
-    suite.addTest(processSuite)
+
+    # Graceful stop tests
+    process_suite = unittest.TestLoader().loadTestsFromModule(process_test)
+    suite.addTest(process_suite)
+
+    # Documentation tests
+    docs_suite = unittest.TestSuite()
     s = doctest.DocFileSuite('../../blob.txt',
                              parser=bash_parser,
                              setUp=setUp,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS)
     s.layer = empty_layer
-    suite.addTest(s)
+    docs_suite.addTest(s)
     for fn in ('sql/rest.txt',):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
@@ -212,7 +216,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('sql/ddl.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
@@ -233,7 +237,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('sql/dml.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsQuotesAndUserVisits,
@@ -241,7 +245,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
@@ -249,7 +253,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
         path = os.path.join('..', '..', 'best_practice', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
@@ -257,5 +261,6 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
+    suite.addTests(docs_suite)
     return suite

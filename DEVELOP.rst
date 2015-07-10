@@ -100,7 +100,7 @@ Other common tasks are:
 
  - Running tests during development::
 
-    ./gradlew --parallel :sql:test -PtestForks=2 itest
+    ./gradlew --parallel :sql:test -PtestForks=2 itest gtest
 
  - Run a single test::
 
