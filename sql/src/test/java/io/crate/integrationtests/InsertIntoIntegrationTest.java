@@ -462,7 +462,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromQueryGlobalAggregate() throws Exception {
         this.setup.setUpLocations();
-        execute("refresh table locations");
 
         execute("create table aggs (" +
                 " c long," +
@@ -483,7 +482,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromQueryCount() throws Exception {
         this.setup.setUpLocations();
-        execute("refresh table locations");
 
         execute("create table aggs (" +
                 " c long" +
@@ -502,7 +500,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromQuery() throws Exception {
         this.setup.setUpLocations();
-        execute("refresh table locations");
 
         execute("select * from locations order by id");
         Object[][] rowsOriginal = response.rows();

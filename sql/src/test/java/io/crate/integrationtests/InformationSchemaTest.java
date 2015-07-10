@@ -662,13 +662,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         });
         execute("refresh table t4");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        int numRetries = 0;
-        while (response.rowCount() < 5 && numRetries < 10) {
-            // mapping still being updated - retry
-            execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-            Thread.sleep(10 * numRetries);
-            numRetries++;
-        }
+
+        waitForMappingUpdateOnAll("t4", "stuff.middle_name");
+        execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
 
 

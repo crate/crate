@@ -1375,7 +1375,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectFormatFunction() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
 
         execute("select format('%s is a %s', name, kind) as sentence from locations order by name");
         assertThat(response.rowCount(), is(13L));
@@ -1755,7 +1754,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereMultiColumnMatchDifferentTypesDifferentScore() throws Exception {
         this.setup.setUpLocations();
-        refresh();
         execute("select name, description, kind, _score from locations " +
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
         assertThat(response.rowCount(), is(5L));
@@ -1805,7 +1803,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocations();
-        refresh();
         execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
@@ -1830,7 +1827,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testMatchOptions() throws Exception {
         this.setup.setUpLocations();
-        refresh();
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (analyzer='english') order by _score desc");
@@ -1867,7 +1863,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testWhereColumnEqColumnAndFunctionEqFunction() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
 
         execute("select name from locations where name = name");
         assertThat(response.rowCount(), is(13L));
@@ -1887,7 +1882,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testESGetSourceColumns() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
 
         execute("select _id, _version from locations where id=2");
         assertNotNull(response.rows()[0][0]);

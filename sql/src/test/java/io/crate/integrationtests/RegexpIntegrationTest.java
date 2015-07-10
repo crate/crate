@@ -95,7 +95,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     public void testRegexpMatchQueryOperatorFast() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
         execute("select distinct name from locations where name ~ '[A-Z][a-z0-9]+' order by name");
         assertThat(response.rowCount(), is(5L));
         assertThat((String) response.rows()[0][0], is("Aldebaran"));
@@ -130,7 +129,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     public void testRegexpMatchQueryOperatorWithCaseInsensitivity() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
         execute("select distinct name from locations where name ~* 'aldebaran'");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Aldebaran"));
@@ -159,7 +157,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     public void testRegexpMatchQueryOperatorWithPcre() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
 
         // character class shortcut aliases
         execute("select distinct name from locations where name ~ 'Alpha\\sCentauri'");
@@ -196,7 +193,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
 
         execute("select count(*) from locations where name ~ '(?i).*centauri.*'");
         assertThat(response.rowCount(), is(1L));
@@ -221,7 +217,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
 
         execute("delete from locations where name ~ '(?i).*centauri.*'");
         assertThat(response.rowCount(), is(-1L));
@@ -236,7 +231,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
 
         execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS'");
         assertThat(response.rowCount(), is(2L));
@@ -249,7 +243,6 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
 
         execute("select * from sys.shards where table_name ~* 'LOCATIONS'");
         assertThat(response.rowCount(), is(2L));

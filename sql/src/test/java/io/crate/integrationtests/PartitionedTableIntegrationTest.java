@@ -1524,7 +1524,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testInsertToPartitionFromQuery() throws Exception {
         this.setup.setUpLocations();
-        execute("refresh table locations");
 
         execute("select name from locations order by id");
         assertThat(response.rowCount(), is(13L));
