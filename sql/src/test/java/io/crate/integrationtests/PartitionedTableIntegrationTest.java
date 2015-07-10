@@ -226,6 +226,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 is(1L)
         );
 
+        waitForMappingUpdateOnAll("parted");
         execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(1));
@@ -284,6 +285,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
+        waitForMappingUpdateOnAll("parted");
         validateInsertPartitionedTable();
     }
 
@@ -1802,6 +1804,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         String templateName = PartitionName.templateName(null, "foo");
         client().admin().indices().prepareDeleteTemplate(templateName).execute().actionGet();
+
         waitNoPendingTasksOnAll();
         execute("select * from sys.shards where table_name = 'foo'");
         assertThat(response.rowCount(), CoreMatchers.is(5L));
