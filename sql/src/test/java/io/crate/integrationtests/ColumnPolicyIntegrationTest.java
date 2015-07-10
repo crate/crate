@@ -204,6 +204,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         execute("insert into dynamic_table (new) values({nest={}, new={}})");
 
+        waitForMappingUpdateOnAll("dynamic_table", "new");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.inner.type")), is("string"));
@@ -238,8 +239,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
         execute("refresh table dynamic_table");
-        waitNoPendingTasksOnAll();
 
+        waitForMappingUpdateOnAll("dynamic_table", "my_object.a");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.inner.type")), is("string"));
@@ -486,7 +487,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), arrayContaining("num", "odd", "perfect", "prime"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "6| true| NULL| false\n" +
-                "28| true| true| false\n"));
+                        "28| true| true| false\n"));
 
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response.rowCount(), is(1L));
@@ -497,12 +498,12 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             @Override
             public boolean apply(@Nullable Object input) {
                 execute("select * from numbers order by num");
-                return     response.rowCount() == 2L
+                return response.rowCount() == 2L
                         && response.cols().length == 6
                         && Joiner.on(", ").join(Arrays.asList(response.cols()))
-                            .equals("author, changed, num, odd, perfect, prime")
+                        .equals("author, changed, num, odd, perfect, prime")
                         && TestingHelpers.printedTable(response.rows()).equals(
-                                "NULL| NULL| 6| true| NULL| false\n" +
+                        "NULL| NULL| 6| true| NULL| false\n" +
                                 "troll| 1414059600000| 28| true| true| true\n");
             }
         });

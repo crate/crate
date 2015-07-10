@@ -28,6 +28,10 @@ import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -46,6 +50,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.hamcrest.Matchers;
 import org.junit.After;
 
 import java.io.IOException;
@@ -179,6 +184,27 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
     public SQLResponse execute(String stmt) {
         response = sqlExecutor.exec(stmt, new Object[0]);
         return response;
+    }
+
+    public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception{
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                Iterable<ReferenceInfos> referenceInfosIterable = cluster().getInstances(ReferenceInfos.class);
+                for (ReferenceInfos referenceInfos : referenceInfosIterable) {
+                    TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
+                    assertThat(tableInfo, Matchers.notNullValue());
+                    for (String fieldName : fieldNames) {
+                        ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
+                        assertThat(tableInfo.getReferenceInfo(columnIdent), Matchers.notNullValue());
+                    }
+                }
+            }
+        });
+    }
+
+    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
+        waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
     }
 
     /**
