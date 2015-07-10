@@ -59,6 +59,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     private final List<ReferenceInfo> partitionedByColumns;
     private final Map<ColumnIdent, IndexReferenceInfo> indexColumns;
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
+    private final ImmutableMap<ColumnIdent, String> analyzers;
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKeys;
     private final ColumnIdent clusteredBy;
@@ -87,6 +88,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
                         List<ReferenceInfo> partitionedByColumns,
                         ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
                         ImmutableMap<ColumnIdent, ReferenceInfo> references,
+                        ImmutableMap<ColumnIdent, String> analyzers,
                         List<ColumnIdent> primaryKeys,
                         ColumnIdent clusteredBy,
                         boolean isAlias,
@@ -101,11 +103,13 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
                         ColumnPolicy columnPolicy,
                         ExecutorService executorService) {
         super(schemaInfo);
+        assert (partitionedBy.size() == partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.clusterService = clusterService;
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;
         this.references = references;
+        this.analyzers = analyzers;
         this.ident = ident;
         this.primaryKeys = primaryKeys;
         this.clusteredBy = clusteredBy;
@@ -346,6 +350,10 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
         return indexColumns.get(ident);
     }
 
+    public Iterator<IndexReferenceInfo> indexColumns() {
+        return indexColumns.values().iterator();
+    }
+
     @Override
     public Iterator<ReferenceInfo> iterator() {
         return references.values().iterator();
@@ -364,6 +372,10 @@ public class DocTableInfo extends AbstractDynamicTableInfo {
     @Override
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    public String getAnalyzerForColumnIdent(ColumnIdent ident) {
+        return analyzers.get(ident);
     }
 
     private class FetchRoutingListener implements ClusterStateObserver.Listener {

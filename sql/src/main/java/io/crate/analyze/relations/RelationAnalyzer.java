@@ -31,7 +31,9 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Path;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
@@ -127,7 +129,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 querySpec
         );
     }
-
 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());

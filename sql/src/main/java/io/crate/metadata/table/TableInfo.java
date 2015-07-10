@@ -33,6 +33,7 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public interface TableInfo extends Iterable<ReferenceInfo> {

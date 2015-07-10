@@ -472,6 +472,12 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
+    public R visitShowCreateTable(ShowCreateTable node, C context) {
+        process(node.table(), context);
+        return null;
+    }
+
+    @Override
     public R visitRefreshStatement(RefreshStatement node, C context) {
         for (Table nodeTable : node.tables()) {
             process(nodeTable, context);
