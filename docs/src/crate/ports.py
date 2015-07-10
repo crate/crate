@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import socket
+from threading import Lock
+
 
 def public_ipv4():
     """
@@ -14,10 +16,35 @@ def public_ipv4():
             return addrinfo[4][0]
 
 
-def random_available_port():
-    """return some available port reported by the kernel"""
-    sock = socket.socket()
-    sock.bind(('', 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    return port
+class PortPool(object):
+    """
+    Pool that returns a unique available port
+    reported by the kernel.
+    """
+
+    MAX_RETRIES = 10
+
+    def __init__(self):
+        self.ports = set()
+        self.lock = Lock()
+
+    def random_available_port(self):
+        sock = socket.socket()
+        sock.bind(('', 0))
+        port = sock.getsockname()[1]
+        sock.close()
+        return port
+
+    def get(self):
+        retries = 0
+        port = self.random_available_port()
+
+        with self.lock:
+            while port in self.ports:
+                port = self.random_available_port()
+                retries += 1
+                if retries > self.MAX_RETRIES:
+                    raise OSError("Could not get free port. Max retries exceeded.")
+            self.ports.add(port)
+        return port
+
