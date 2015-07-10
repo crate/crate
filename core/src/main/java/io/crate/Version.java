@@ -39,12 +39,6 @@ public class Version {
 
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
-
-        //noinspection PointlessBooleanExpression,ConstantConditions
-        if (!SNAPSHOT) {
-            //noinspection PointlessBooleanExpression
-            assert !Constants.DEBUG_MODE : "debug mode must be disabled for non-snapshot!";
-        }
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
                 "upgraded to [" + org.elasticsearch.Version.CURRENT + "] is still set to [" +
                 CURRENT.esVersion + "]";

@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 
 public class Constants {
 
-    public static final boolean DEBUG_MODE = false;
     /**
      * Mapping Type that contains table definitions
      */

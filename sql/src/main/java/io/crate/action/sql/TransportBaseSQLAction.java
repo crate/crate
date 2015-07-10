@@ -412,34 +412,20 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             restStatus = RestStatus.BAD_REQUEST;
         }
 
-        if (e instanceof NullPointerException && message == null) {
-            StackTraceElement[] stackTrace1 = e.getStackTrace();
-            if (stackTrace1.length > 0) {
-                message = String.format("NPE in %s", stackTrace1[0]);
-            }
-        } else if (e instanceof ArrayIndexOutOfBoundsException) {
-            // in case of ArrayIndexOutOfBoundsExceptions the message is just the index number ...
-            StackTraceElement[] stackTrace1 = e.getStackTrace();
-            if (stackTrace1.length > 0) {
-                message = String.format("ArrayIndexOutOfBoundsException in %s", stackTrace1[0]);
-            }
-        }
         if (logger.isTraceEnabled()) {
-            message = firstNonNull(message, stackTrace.toString());
-        } else if (Constants.DEBUG_MODE) {
-            // will be optimized/removed at compile time
-            Throwable t;
+            message = stackTrace.toString();
+        }
+
+        if (message == null) {
             if (e instanceof CrateException && e.getCause() != null) {
-                // CrateException stackTrace will most likely just show a stackTrace which leads to some kind of transport execution
-                // the cause will probably have a more helpful stackTrace;
-                t = e.getCause();
-            } else {
-                t = e;
+                e = e.getCause();   // use cause because it contains a more meaningful error in most cases
             }
-            StringWriter stringWriter = new StringWriter();
-            t.printStackTrace(new PrintWriter(stringWriter));
-            stackTrace = stringWriter;
-            message = firstNonNull(message, stackTrace.toString());
+            StackTraceElement[] stackTraceElements = e.getStackTrace();
+            if (stackTraceElements.length > 0) {
+                message = String.format("%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
+            } else {
+                message = "Error in " + e.getClass().getSimpleName();
+            }
         }
         return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
     }
