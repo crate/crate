@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
@@ -98,6 +99,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 500)
     public void testPushBasedQTFWithPaging() throws Exception {
         Constants.PAGE_SIZE = 10;
         // insert more docs than PAGE_SIZE and query at least 2 times of it to trigger push of
