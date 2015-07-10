@@ -69,12 +69,11 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
 
 
     public NestedLoopOperation() {
-        LOGGER.setLevel("trace");
         leftDownstreamHandle = new RowDownstreamHandle() {
             @Override
             public boolean setNextRow(Row row) {
                 LOGGER.trace("left downstream received a row {}", row);
-                if (rightFinished.get()) {
+                if (innerRowsQ.isEmpty() && rightFinished.get()) {
                     return loopInnerRowAndEmit(row);
                 } else {
                     Row innerRow;
