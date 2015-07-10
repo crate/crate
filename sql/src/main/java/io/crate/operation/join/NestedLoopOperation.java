@@ -32,20 +32,9 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NestedLoopOperation implements RowUpstream, RowDownstream {
-
-    private final ArrayList<Row> innerRows = new ArrayList<>();
-    private final CombinedRow combinedRow = new CombinedRow();
-    private final RowDownstreamHandle leftDownstreamHandle;
-    private final RowDownstreamHandle rightDownstreamHandle;
-    private final AtomicBoolean leftFinished = new AtomicBoolean(false);
-    private final AtomicBoolean rightFinished = new AtomicBoolean(false);
-    private final ArrayBlockingQueue<Row> innerRowsQ = new ArrayBlockingQueue<>(1);
-    private final Object finishedLock = new Object();
-    private final AtomicInteger numUpstreams = new AtomicInteger(0);
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
     private final static Row SENTINEL = new Row() {
@@ -65,115 +54,21 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
         }
     };
 
+    private final CombinedRow combinedRow = new CombinedRow();
+    private final RowDownstreamHandle leftDownstreamHandle;
+    private final RowDownstreamHandle rightDownstreamHandle;
+    private final ArrayBlockingQueue<Row> innerRowsQ = new ArrayBlockingQueue<>(1);
+    private final Object finishedLock = new Object();
+    private final AtomicInteger numUpstreams = new AtomicInteger(0);
+
     private RowDownstreamHandle downstream;
+    private volatile boolean leftFinished = false;
+    private volatile boolean rightFinished = false;
 
 
     public NestedLoopOperation() {
-        leftDownstreamHandle = new RowDownstreamHandle() {
-            @Override
-            public boolean setNextRow(Row row) {
-                LOGGER.trace("left downstream received a row {}", row);
-                if (innerRowsQ.isEmpty() && rightFinished.get()) {
-                    return loopInnerRowAndEmit(row);
-                } else {
-                    Row innerRow;
-                    while (true) {
-                        if (rightFinished.get()) {
-                            while ((innerRow = innerRowsQ.poll()) != null) {
-                                if (innerRow == SENTINEL) {
-                                    break;
-                                }
-                                boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
-                                if (!shouldContinue) {
-                                    return false;
-                                }
-                            }
-                            return true;
-                        }
-
-                        try {
-                            innerRow = innerRowsQ.take();
-                            if (innerRow == SENTINEL) {
-                                continue;
-                            }
-                            boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
-                            if (!shouldContinue) {
-                                return false;
-                            }
-                        } catch (InterruptedException e) {
-                            fail(e);
-                            return false;
-                        }
-                    }
-                }
-            }
-
-            private boolean loopInnerRowAndEmit(Row row) {
-                for (Row innerRow : innerRows) {
-                    combinedRow.outerRow = row;
-                    combinedRow.innerRow = innerRow;
-                    boolean shouldContinue = downstream.setNextRow(combinedRow);
-                    if (!shouldContinue) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public void finish() {
-                LOGGER.trace("left downstream finished");
-                synchronized (finishedLock) {
-                    leftFinished.set(true);
-                    if (rightFinished.get()) {
-                        downstream.finish();
-                    }
-                }
-            }
-
-            @Override
-            public void fail(Throwable throwable) {
-                downstream.fail(throwable);
-            }
-        };
-
-        rightDownstreamHandle = new RowDownstreamHandle() {
-            @Override
-            public boolean setNextRow(Row row) {
-                LOGGER.trace("right downstream received a row {}", row);
-                try {
-                    Row materializedRow = new RowN(row.materialize());
-                    while (true) {
-                        boolean added = innerRowsQ.offer(materializedRow, 100, TimeUnit.MICROSECONDS);
-                        if (added) {
-                            return true;
-                        } else if (leftFinished.get()) {
-                            return true;
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    fail(e);
-                    return false;
-                }
-            }
-
-            @Override
-            public void finish() {
-                LOGGER.trace("right downstream finished");
-                synchronized (finishedLock) {
-                    rightFinished.set(true);
-                    innerRowsQ.offer(SENTINEL); // unblock .take() in case of race condition
-                    if (leftFinished.get()) {
-                        downstream.finish();
-                    }
-                }
-            }
-
-            @Override
-            public void fail(Throwable throwable) {
-                downstream.fail(throwable);
-            }
-        };
+        leftDownstreamHandle = new LeftDownstreamHandle();
+        rightDownstreamHandle = new RightDownstreamHandle();
     }
 
 
@@ -190,18 +85,6 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
     }
-
-    private boolean emitAndSaveInnerRow(Row innerRow, Row outerRow) {
-        if (innerRow instanceof RowN) {
-            innerRows.add(innerRow);
-        } else {
-            innerRows.add(new RowN(innerRow.materialize()));
-        }
-        combinedRow.outerRow = outerRow;
-        combinedRow.innerRow = innerRow;
-        return downstream.setNextRow(combinedRow);
-    }
-
 
     static class CombinedRow implements Row {
 
@@ -230,6 +113,126 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
             System.arraycopy(left, 0, newRow, 0, left.length);
             System.arraycopy(right, 0, newRow, left.length, right.length);
             return newRow;
+        }
+    }
+
+    private class LeftDownstreamHandle implements RowDownstreamHandle {
+
+        private final ArrayList<Row> innerRows = new ArrayList<>();
+
+        @Override
+        public boolean setNextRow(Row row) {
+            LOGGER.trace("left downstream received a row {}", row);
+            if (innerRowsQ.isEmpty() && rightFinished) {
+                return loopInnerRowAndEmit(row);
+            } else {
+                Row innerRow;
+                while (true) {
+                    if (rightFinished) {
+                        while ((innerRow = innerRowsQ.poll()) != null) {
+                            if (innerRow == SENTINEL) {
+                                break;
+                            }
+                            boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
+                            if (!shouldContinue) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+
+                    try {
+                        innerRow = innerRowsQ.take();
+                        if (innerRow == SENTINEL) {
+                            continue;
+                        }
+                        boolean shouldContinue = emitAndSaveInnerRow(innerRow, row);
+                        if (!shouldContinue) {
+                            return false;
+                        }
+                    } catch (InterruptedException e) {
+                        fail(e);
+                        return false;
+                    }
+                }
+            }
+        }
+
+        private boolean emitAndSaveInnerRow(Row innerRow, Row outerRow) {
+            if (innerRow instanceof RowN) {
+                innerRows.add(innerRow);
+            } else {
+                innerRows.add(new RowN(innerRow.materialize()));
+            }
+            combinedRow.outerRow = outerRow;
+            combinedRow.innerRow = innerRow;
+            return downstream.setNextRow(combinedRow);
+        }
+
+        private boolean loopInnerRowAndEmit(Row row) {
+            for (Row innerRow : innerRows) {
+                combinedRow.outerRow = row;
+                combinedRow.innerRow = innerRow;
+                boolean shouldContinue = downstream.setNextRow(combinedRow);
+                if (!shouldContinue) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public void finish() {
+            LOGGER.trace("left downstream finished");
+            synchronized (finishedLock) {
+                leftFinished = true;
+                if (rightFinished) {
+                    downstream.finish();
+                }
+            }
+        }
+
+        @Override
+        public void fail(Throwable throwable) {
+            downstream.fail(throwable);
+        }
+    }
+
+    private class RightDownstreamHandle implements RowDownstreamHandle {
+        @Override
+        public boolean setNextRow(Row row) {
+            LOGGER.trace("right downstream received a row {}", row);
+            try {
+                Row materializedRow = new RowN(row.materialize());
+                while (true) {
+                    boolean added = innerRowsQ.offer(materializedRow, 100, TimeUnit.MICROSECONDS);
+                    if (added) {
+                        return true;
+                    } else if (leftFinished) {
+                        return true;
+                    }
+                }
+            } catch (InterruptedException e) {
+                fail(e);
+                return false;
+            }
+        }
+
+        @Override
+        public void finish() {
+            LOGGER.trace("right downstream finished");
+            synchronized (finishedLock) {
+                rightFinished = true;
+                innerRowsQ.offer(SENTINEL); // unblock .take() in case of race condition
+                if (leftFinished) {
+                    downstream.finish();
+                }
+            }
+        }
+
+        @Override
+        public void fail(Throwable throwable) {
+            downstream.fail(throwable);
         }
     }
 }
