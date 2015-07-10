@@ -37,5 +37,4 @@ public class QueriedTable extends QueriedTableRelation<TableRelation> {
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedTable(this, context);
     }
-
 }
