@@ -100,7 +100,7 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
             if (jobExecutionContext != null) {
                 ExecutionSubContext subContext = jobExecutionContext.getSubContextOrNull(request.executionPhaseId());
                 if (subContext != null) {
-                    LOGGER.trace("Received CloseContextRequest, closing ExecutionSubContext {}/{}",
+                    LOGGER.error("Received CloseContextRequest, closing ExecutionSubContext {}/{}",
                             request.jobId(), request.executionPhaseId());
                     subContext.close();
                 } else if (LOGGER.isInfoEnabled()) {
