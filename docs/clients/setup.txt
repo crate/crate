@@ -67,8 +67,7 @@ application.
 .. note::
 
     It is not supported to load the client jar and the crate server jars in one
-application,
-    as this will result in conflicts.
+    application, as this will result in conflicts.
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/

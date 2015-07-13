@@ -476,9 +476,10 @@
 # discovery.zen.fd.ping_retries: 3
 # discovery.zen.fd.ping_interval: 1s
 #
-############################# Discovery via DNS #############################
+############################## Discovery via DNS #############################
 
-# Service discovery allows Crate to discovery nodes via SRV DNS records.
+# Service discovery allows Crate to look up hosts for unicast discovery via
+# SRV DNS records.
 
 # To enable SRV discovery you need to set the discovery type to 'srv'.
 #
@@ -488,6 +489,61 @@
 # this is usually in the format _service._protocol.fqdn
 #
 # discovery.srv.query: _crate._srv.example.com
+
+
+############################## EC2 Discovery #################################
+
+# EC2 discovery allows Crate to look up hosts for unicast discovery via the
+# AWS EC2 API.
+
+# To enable EC2 discovery you need to set the discovery type to 'ec2'.
+#
+# discovery.type: ec2
+
+# There are multiple ways to filter EC2 instances:
+#
+# Filter by security groups, either by id or name. Only instances with the
+# given group will be used for unicast host discovery.
+#
+# discovery.ec2.groups: sg-example-1, sg-example-2
+#
+# Control whether all (`false`) or just any (`true`) security group must
+# be present for the instance to be used for discovery.
+#
+# discovery.ec2.any_group: true
+#
+# Filter by availability zones. Only instances within the given availability
+# zone will be used for unicast host discovery.
+#
+# discovery.ec2.availability_zones:
+#   - us-east-1
+#   - us-west-1
+#   - us-west-2
+#   - ap-southeast-1
+#   - ap-southeast-2
+#   - ap-northeast-1
+#   - eu-west-1
+#   - eu-central-1
+#   - sa-east-1
+#   - cn-north-1
+#
+# EC2 instances for discovery can also be filtered by tags using the
+# `discovery.ec2.tag.` prefix plus the tag name.
+# E.g. to filter instances that have the `environment` tags with the value
+# `dev` your setting will look like:
+#
+# discovery.ec2.tag.environment: dev
+# discovery.ec2.tag.<name>: <value>
+#
+# If you have your own compatible implementation of the EC2 API service you can
+# set the enpoint that should be used.
+#
+# cloud.aws.ec2.endpoind: http://example.com/endpoint
+#
+# Timeout for pings of existing EC2 instances during discovery.
+#
+# discovery.ec2.ping_timeout: 3s
+
 
 ############################# Routing Allocation #############################
 
