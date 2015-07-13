@@ -7,10 +7,8 @@ import socket
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
-from .ports import public_ipv4, PortPool
+from .ports import public_ipv4, GLOBAL_PORT_POOL
 from lovely.testlayers.layer import CascadedLayer
-
-random_ports = PortPool()
 
 
 class GracefulStopCrateLayer(CrateLayer):
@@ -50,8 +48,8 @@ class GracefulStopTest(unittest.TestCase):
             layer = GracefulStopCrateLayer(self.node_name(i),
                            crate_path(),
                            host=public_ipv4(),
-                           port=random_ports.get(),
-                           transport_port=random_ports.get(),
+                           port=GLOBAL_PORT_POOL.get(),
+                           transport_port=GLOBAL_PORT_POOL.get(),
                            multicast=True,
                            cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
@@ -231,5 +229,4 @@ class TestGracefulStopNone(GracefulStopTest):
     def tearDown(self):
         client = self.clients[1]
         client.sql("drop table t1")
-
 

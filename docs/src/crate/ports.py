@@ -48,3 +48,6 @@ class PortPool(object):
             self.ports.add(port)
         return port
 
+
+GLOBAL_PORT_POOL = PortPool()
+
