@@ -28,7 +28,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -39,8 +40,6 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CancellationException;
 
 public class InformationSchemaCollectService implements CollectService {
 
@@ -147,60 +146,6 @@ public class InformationSchemaCollectService implements CollectService {
 
     }
 
-    static class InformationSchemaCollector<R> implements CrateCollector, RowUpstream {
-
-        private final List<RowCollectExpression<R, ?>> collectorExpressions;
-        private final InputRow row;
-        private final RowDownstreamHandle downstream;
-        private final Iterable<R> rows;
-        private final Input<Boolean> condition;
-
-        private volatile boolean killed = false;
-
-        protected InformationSchemaCollector(List<Input<?>> inputs,
-                                             List<RowCollectExpression<R, ?>> collectorExpressions,
-                                             RowDownstream downstream,
-                                             Iterable<R> rows,
-                                             Input<Boolean> condition) {
-            this.downstream = downstream.registerUpstream(this);
-            this.row = new InputRow(inputs);
-            this.collectorExpressions = collectorExpressions;
-            this.rows = rows;
-            this.condition = condition;
-        }
-
-        @Override
-        public void doCollect() {
-            try {
-                for (R row : rows) {
-                    if (killed) {
-                        throw new CancellationException();
-                    }
-                    for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
-                        collectorExpression.setNextRow(row);
-                    }
-                    Boolean match = condition.value();
-                    if (match == null || !match) {
-                        // no match
-                        continue;
-                    }
-                    if (!downstream.setNextRow(this.row)) {
-                        // no more rows required, we can stop here
-                        break;
-                    }
-                }
-                downstream.finish();
-            } catch (Throwable t) {
-                downstream.fail(t);
-            }
-        }
-
-        @Override
-        public void kill() {
-            killed = true;
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
         if (collectNode.whereClause().noMatch()) {
@@ -221,7 +166,7 @@ public class InformationSchemaCollectService implements CollectService {
             condition = Literal.newLiteral(true);
         }
 
-        return new InformationSchemaCollector(
+        return new RowsCollector<>(
                 ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
     }
 }

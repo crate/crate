@@ -28,12 +28,9 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -49,7 +46,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 
 public class UnassignedShardsCollectService implements CollectService {
 
@@ -181,63 +177,7 @@ public class UnassignedShardsCollectService implements CollectService {
             condition = Literal.newLiteral(true);
         }
 
-        return new UnassignedShardsCollector(
+        return new RowsCollector<>(
                 context.topLevelInputs(), context.docLevelExpressions(), downstream, iterable, condition);
-    }
-
-    private static class UnassignedShardsCollector implements CrateCollector {
-
-        private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
-        private final InputRow row;
-        private final RowDownstreamHandle downstream;
-        private final Iterable<UnassignedShard> rows;
-        private final Input<Boolean> condition;
-        private volatile boolean killed = false;
-
-        public UnassignedShardsCollector(List<Input<?>> inputs,
-                                         List<UnassignedShardCollectorExpression<?>> collectorExpressions,
-                                         RowDownstream downstream,
-                                         Iterable<UnassignedShard> rows,
-                                         Input<Boolean> condition) {
-            this.row = new InputRow(inputs);
-            this.collectorExpressions = collectorExpressions;
-            this.rows = rows;
-            this.condition = condition;
-            this.downstream = downstream.registerUpstream(this);
-        }
-
-        @Override
-        public void doCollect() {
-            try {
-                for (UnassignedShard row : rows) {
-                    if (killed) {
-                        downstream.fail(new CancellationException());
-                        return;
-                    }
-
-                    for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
-                        collectorExpression.setNextRow(row);
-                    }
-                    Boolean match = condition.value();
-                    if (match == null || !match) {
-                        // no match
-                        continue;
-                    }
-
-                    if (!downstream.setNextRow(this.row)) {
-                        // no more rows required, we can stop here
-                        break;
-                    }
-                }
-                downstream.finish();
-            } catch (Throwable t) {
-                downstream.fail(t);
-            }
-        }
-
-        @Override
-        public void kill() {
-            killed = true;
-        }
     }
 }
