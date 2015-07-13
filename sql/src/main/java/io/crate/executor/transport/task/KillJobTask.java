@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeAction;
-import io.crate.executor.transport.kill.KillAllRequest;
+import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
@@ -41,27 +41,31 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class KillTask extends JobTask {
+public class KillJobTask extends JobTask {
 
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> results;
     private ClusterService clusterService;
+    private UUID jobToKill;
     private NodeAction nodeAction;
 
-    public KillTask(ClusterService clusterService,
-                    NodeAction nodeAction,
-                    UUID jobId) {
+
+    public KillJobTask(ClusterService clusterService,
+                        NodeAction nodeAction,
+                        UUID jobId,
+                        UUID jobToKill) {
         super(jobId);
         this.clusterService = clusterService;
         this.nodeAction = nodeAction;
         result = SettableFuture.create();
         results = ImmutableList.of((ListenableFuture<TaskResult>) result);
+        this.jobToKill = jobToKill;
     }
 
     @Override
     public void start() {
         DiscoveryNodes nodes = clusterService.state().nodes();
-        KillAllRequest request = new KillAllRequest();
+        KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
         final AtomicInteger counter = new AtomicInteger(nodes.size());
         final AtomicLong numKilled = new AtomicLong(0);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
@@ -101,6 +105,5 @@ public class KillTask extends JobTask {
 
     @Override
     public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        // ignore
     }
 }

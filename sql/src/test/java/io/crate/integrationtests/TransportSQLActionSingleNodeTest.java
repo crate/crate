@@ -35,10 +35,11 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.StringContains.containsString;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
@@ -284,7 +285,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
 
     @Test
-    public void testKilledJobLog() throws Exception {
+    public void testKilledAllLog() throws Exception {
         execute("create table likes (" +
                 "   event_id string," +
                 "   item_id string" +
@@ -320,6 +321,66 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"KILLED", stmt});
             assertThat(response.rowCount(), is(1L));
         }
+    }
+
+    @Test
+    public void testKilledJobLog() throws Exception {
+        execute("create table likes (" +
+                "   event_id string," +
+                "   item_id string" +
+                ") clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("SET GLOBAL stats.enabled = true");
+
+        final String stmt = "insert into likes (event_id, item_id) values (?, ?)";
+        final Object[][] bulkArgs = new Object[500][];
+        for(int i = 0; i < bulkArgs.length; i++) {
+            bulkArgs[i] = new Object[]{"event1", "item1"};
+        }
+        final SettableFuture<SQLBulkResponse> res = SettableFuture.create();
+        Thread insertThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    res.set(execute(stmt, bulkArgs));
+                } catch (SQLActionException e) {
+                    res.setException(e);
+                }
+            }
+        });
+        insertThread.start();
+        Thread.sleep(10);
+        SQLResponse logResponse = null;
+        for (int i = 0; i < 10; i++) {
+            logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{stmt});
+            if (logResponse.rows().length > 0) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertThat(logResponse.rows().length, not(0));
+        String jobId = (String) logResponse.rows()[0][0];
+        execute(String.format("KILL '%s'", jobId));
+        insertThread.join();
+        try {
+            res.get();
+        } catch (ExecutionException e) {
+            SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?",
+                    new Object[]{"KILLED", stmt});
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0].toString(), containsString(jobId));
+        }
+    }
+
+    @Test
+    public void testKillNonExisitingJob() throws Exception {
+        execute("SET GLOBAL stats.enabled = true");
+        UUID id = UUID.randomUUID();
+
+        SQLResponse response = execute(String.format("KILL '%s'", id.toString()));
+        assertThat(response.rowCount(), is(0L));
+        SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
+        assertThat(logResponse.rowCount(), is(0L));
     }
 
     @After
