@@ -10,4 +10,5 @@ include 'es',
         'sql-parser',
         'stresstest',
         'udc',
-        'dns-discovery'
+        'dns-discovery',
+        'ec2-discovery'
