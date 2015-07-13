@@ -61,11 +61,6 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=1)");
         ensureYellow();
         assertGotCancelled("insert into new_employees (select * from employees)", null);
-
-        // if the insert is killed there will still be pending insert operations,
-        // the refresh seems to block long enough that those operations can be finished,
-        // otherwise the test would be flaky.
-        refresh();
     }
 
     private void assertGotCancelled(final String statement, @Nullable final Object[] params) throws Exception {
