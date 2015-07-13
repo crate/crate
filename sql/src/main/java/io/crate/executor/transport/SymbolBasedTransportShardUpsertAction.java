@@ -24,6 +24,11 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
@@ -75,10 +80,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class SymbolBasedTransportShardUpsertAction
@@ -91,7 +99,7 @@ public class SymbolBasedTransportShardUpsertAction
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
     private final Functions functions;
-    private volatile long lastKillAll = System.nanoTime();
+    private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
     public SymbolBasedTransportShardUpsertAction(Settings settings,
@@ -153,9 +161,32 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
-        ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, shardRequest.request);
-        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+        KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
+
+            private AtomicBoolean killed = new AtomicBoolean(false);
+
+            @Override
+            public void kill() {
+                killed.getAndSet(true);
+            }
+
+            @Override
+            public PrimaryResponse call() throws Exception {
+                ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, shardRequest.request, killed);
+                return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+            }
+        };
+        activeOperations.put(shardRequest.request.jobId(), callable);
+        PrimaryResponse response;
+        try {
+            response = callable.call();
+        } catch (Throwable e) {
+            throw Throwables.propagate(e);
+        } finally {
+            activeOperations.remove(shardRequest.request.jobId(), callable);
+        }
+        return response;
     }
 
     @Override
@@ -163,13 +194,13 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     protected ShardUpsertResponse processRequestItems(ShardId shardId,
-                                                      SymbolBasedShardUpsertRequest request) {
-        long startTime = System.nanoTime();
+                                                      SymbolBasedShardUpsertRequest request,
+                                                      AtomicBoolean killed) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
-            if (startTime <= lastKillAll) {
+            if (killed.get()) {
                 throw new CancellationException();
             }
             try {
@@ -200,10 +231,10 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     protected IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
-                          SymbolBasedShardUpsertRequest.Item item,
-                          ShardId shardId,
-                          boolean tryInsertFirst,
-                          int retryCount) throws ElasticsearchException {
+                                      SymbolBasedShardUpsertRequest.Item item,
+                                      ShardId shardId,
+                                      boolean tryInsertFirst,
+                                      int retryCount) throws ElasticsearchException {
 
         try {
             IndexRequest indexRequest;
@@ -344,8 +375,24 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    public void killAllCalled(long timestamp) {
-        lastKillAll = timestamp;
+    public void killAllJobs(long timestamp) {
+        synchronized (activeOperations) {
+            for(KillableCallable callable : activeOperations.values()) {
+                callable.kill();
+            }
+            activeOperations.clear();
+        }
+    }
+
+    @Override
+    public void killJob(UUID jobId) {
+        synchronized (activeOperations) {
+            Collection<KillableCallable> operations = activeOperations.get(jobId);
+            for(KillableCallable callable : operations) {
+                callable.kill();
+            }
+            activeOperations.removeAll(jobId);
+        }
     }
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {

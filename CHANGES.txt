@@ -5,12 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
- - Added support for unicast host discovery via EC2 API
-
+ - Added the ``KILL 'job_id'`` statement
+ 
  - BREAKING CHANGE
    Connections to AWS S3 for ``COPY FROM`` and ``COPY TO`` are now using HTTPS.
    If you have previously blocked outgoing connections on ``443``, please update
    your firewall settings!
+
+ - Enable HTTPS for S3 connections for ``COPY FROM/TO``
 
  - Fixed a rare bug which could cause a MapperParsingException if one creates
    a new dynamic array concurrently

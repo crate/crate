@@ -42,8 +42,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequest<SymbolBasedShardUpsertRequest> implements Iterable<SymbolBasedShardUpsertRequest.Item>, BulkProcessorRequest {
+
+    private UUID jobId;
 
     /**
      * A single update item.
@@ -204,7 +207,9 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
     public SymbolBasedShardUpsertRequest(ShardId shardId,
                                          @Nullable
                                          String[] updateColumns,
-                                         @Nullable Reference[] insertColumns) {
+                                         @Nullable Reference[] insertColumns,
+                                         UUID jobId) {
+        this.jobId = jobId;
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
         this.index = shardId.getIndex();
@@ -266,6 +271,10 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return this;
     }
 
+    public UUID jobId() {
+        return jobId;
+    }
+
     public boolean continueOnError() {
         return continueOnError;
     }
@@ -284,6 +293,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         shardId = in.readInt();
+        jobId = new UUID(in.readLong(), in.readLong());
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
             updateColumns = new String[assignmentsColumnsSize];
@@ -315,6 +325,8 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeInt(shardId);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
         // Stream References
         if (updateColumns != null) {
             out.writeVInt(updateColumns.length);
@@ -349,22 +361,25 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         private final String[] assignmentsColumns;
         @Nullable
         private final Reference[] missingAssignmentsColumns;
+        private final UUID jobId;
 
         public Builder(TimeValue timeout,
                        boolean overwriteDuplicates,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns) {
+                       @Nullable Reference[] missingAssignmentsColumns,
+                       UUID jobId) {
             this.timeout = timeout;
             this.overwriteDuplicates = overwriteDuplicates;
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
+            this.jobId = jobId;
         }
 
         @Override
         public SymbolBasedShardUpsertRequest newRequest(ShardId shardId) {
-            return new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns)
+            return new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, jobId)
                     .timeout(timeout).continueOnError(continueOnError).overwriteDuplicates(overwriteDuplicates);
         }
 

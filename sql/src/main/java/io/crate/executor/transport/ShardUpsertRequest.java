@@ -72,6 +72,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     private Map<Reference, Symbol> insertAssignments;
 
     private Rows rows;
+    private UUID jobId;
 
     public ShardUpsertRequest() {
     }
@@ -79,17 +80,20 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public ShardUpsertRequest(ShardId shardId,
                               DataType[] dataTypes,
                               List<Integer> columnIndicesToStream,
+                              UUID jobId,
                               @Nullable Map<Reference, Symbol> updateAssignments,
                               @Nullable Map<Reference, Symbol> insertAssignments) {
-        this(shardId, dataTypes, columnIndicesToStream, updateAssignments, insertAssignments, null);
+        this(shardId, dataTypes, columnIndicesToStream, jobId, updateAssignments, insertAssignments, null);
     }
 
     public ShardUpsertRequest(ShardId shardId,
                               DataType[] dataTypes,
                               List<Integer> columnIndicesToStream,
+                              UUID jobId,
                               @Nullable Map<Reference, Symbol> updateAssignments,
                               @Nullable Map<Reference, Symbol> insertAssignments,
                               @Nullable String routing) {
+        this.jobId = jobId;
         assert updateAssignments != null || insertAssignments != null
                 : "Missing assignments, whether for update nor for insert given";
         this.index = shardId.getIndex();
@@ -138,6 +142,10 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
     public int shardId() {
         return shardId;
+    }
+
+    public UUID jobId() {
+        return jobId;
     }
 
     @Nullable
@@ -197,6 +205,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         super.readFrom(in);
         shardId = in.readInt();
         routing = in.readOptionalString();
+        jobId = new UUID(in.readLong(), in.readLong());
         int updateAssignmentsSize = in.readVInt();
         if (updateAssignmentsSize > 0) {
             updateAssignments = new HashMap<>();
@@ -232,6 +241,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         super.writeTo(out);
         out.writeInt(shardId);
         out.writeOptionalString(routing);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
         // Stream assignment symbols
         if (updateAssignments != null) {
             out.writeVInt(updateAssignments.size());
@@ -309,6 +320,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         private final TimeValue timeout;
         private final boolean continueOnErrors;
         private final boolean overWriteDuplicates;
+        private final UUID jobId;
 
         public Builder(DataType[] dataTypes,
                        List<Integer> columnIndicesToStream,
@@ -317,12 +329,14 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                        boolean overWriteDuplicates,
                        @Nullable Map<Reference, Symbol> updateAssignments,
                        @Nullable Map<Reference, Symbol> insertAssignments,
-                       @Nullable String routing) {
+                       @Nullable String routing,
+                       UUID jobId) {
             this.dataTypes = dataTypes;
             this.columnIndicesToStream = columnIndicesToStream;
             this.updateAssignments = updateAssignments;
             this.insertAssignments = insertAssignments;
             this.routing = routing;
+            this.jobId = jobId;
 
             this.timeout = timeout;
             this.continueOnErrors = continueOnErrors;
@@ -331,8 +345,10 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         @Override
         public ShardUpsertRequest newRequest(ShardId shardId) {
-            return new ShardUpsertRequest(shardId, dataTypes,
+            return new ShardUpsertRequest(shardId,
+                    dataTypes,
                     columnIndicesToStream,
+                    jobId,
                     updateAssignments,
                     insertAssignments,
                     routing)

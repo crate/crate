@@ -56,6 +56,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -126,6 +128,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 shardId,
                 dataTypes,
                 rowIndicesToStream,
+                UUID.randomUUID(),
                 null,
                 insertAssignments);
         request.add(1, "1", new RowN(new Object[]{1}), null, null);
@@ -135,7 +138,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 request,
                 mock(TransportShardUpsertAction.SymbolToFieldExtractorContext.class),
                 mock(TransportShardUpsertAction.SymbolToInputContext.class),
-                System.nanoTime() + 10);
+                new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(), is("IndexMissingException[[characters] missing]"));

@@ -43,7 +43,7 @@ import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class ProjectionToProjectorVisitor
-        extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory{
+        extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
     private ThreadPool threadPool;
@@ -258,7 +258,8 @@ public class ProjectionToProjectorVisitor
                 projection.includes(),
                 projection.excludes(),
                 projection.autoCreateIndices(),
-                projection.overwriteDuplicates()
+                projection.overwriteDuplicates(),
+                context.jobId
         );
     }
 
@@ -285,7 +286,8 @@ public class ProjectionToProjectorVisitor
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.onDuplicateKeyAssignments(),
                 projection.bulkActions(),
-                projection.autoCreateIndices()
+                projection.autoCreateIndices(),
+                context.jobId
         );
     }
 
@@ -324,7 +326,8 @@ public class ProjectionToProjectorVisitor
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
                 projection.assignmentsColumns(),
                 projection.assignments(),
-                projection.requiredVersion());
+                projection.requiredVersion(),
+                context.jobId);
     }
 
     @Override

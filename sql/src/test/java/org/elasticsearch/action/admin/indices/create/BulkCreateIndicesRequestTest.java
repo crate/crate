@@ -26,16 +26,19 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 
 public class BulkCreateIndicesRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
+        UUID jobId = UUID.randomUUID();
+        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
@@ -43,8 +46,10 @@ public class BulkCreateIndicesRequestTest {
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        assertThat(requestDeserialized.jobId(), is(jobId));
 
-        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
+        jobId = UUID.randomUUID();
+        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
         out = new BytesStreamOutput();
         request.writeTo(out);
         in = new BytesStreamInput(out.bytes());
@@ -52,17 +57,7 @@ public class BulkCreateIndicesRequestTest {
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        assertThat(requestDeserialized.jobId(), is(jobId));
     }
 
-    @Test
-    public void testSerializationEmpty() throws Exception {
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest();
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
-        requestDeserialized.readFrom(in);
-
-        assertThat(requestDeserialized.indices().size(), is(0));
-    }
 }

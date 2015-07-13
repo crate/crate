@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,16 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.executor.transport.kill;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportResponse;
+import java.util.concurrent.Callable;
 
-public interface NodeAction<TRequest extends TransportRequest, TResponse extends TransportResponse> {
-
-    String actionName();
-    String executorName();
-    void nodeOperation(TRequest request, ActionListener<TResponse> listener);
-
+public interface KillableCallable<T> extends Callable<T> {
+    void kill();
 }
