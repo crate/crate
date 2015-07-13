@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause queries with a high limit to fail
+   due to a missing job context.
+
  - Updated crate-admin to 0.14.2 which includes the following changes:
     
     - added support for line breaks in console result table

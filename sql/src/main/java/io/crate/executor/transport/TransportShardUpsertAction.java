@@ -81,7 +81,6 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
