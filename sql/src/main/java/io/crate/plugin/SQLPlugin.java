@@ -88,6 +88,10 @@ public class SQLPlugin extends AbstractPlugin {
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
 
+        // Never allow implicit creation of an index, even on partitioned tables we are creating
+        // partitions explicitly
+        settingsBuilder.put("action.auto_create_index", false);
+
         return settingsBuilder.build();
     }
 

@@ -33,6 +33,7 @@ import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.ShardingProjector;
 import org.elasticsearch.ExceptionsHelper;
@@ -44,6 +45,7 @@ import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -121,11 +123,16 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         this.bulkSize = bulkSize;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
 
-        this.autoCreateIndex = new AutoCreateIndex(settings);
+        Settings autoCreateIndexSettings = ImmutableSettings.builder()
+                .put("action.auto_create_index", true).build();
+        this.autoCreateIndex = new AutoCreateIndex(autoCreateIndexSettings);
         this.shouldAutocreateIndexPredicate = new Predicate<String>() {
             @Override
             public boolean apply(@Nullable String input) {
                 assert input != null;
+                if (!PartitionName.isPartition(input)) {
+                    return false;
+                }
                 return autoCreateIndex.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
             }
         };
