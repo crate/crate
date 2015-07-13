@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.14.2 which includes the following changes:
+    
+    - added support for line breaks in console result table
+
  - Added SHOW CREATE TABLE statement to dump the schema of a user created table
 
  - Updated crash to 0.13.1 which contains following changes:
