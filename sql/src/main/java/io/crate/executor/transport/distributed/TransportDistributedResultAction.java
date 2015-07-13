@@ -35,8 +35,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
@@ -95,11 +93,6 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     public void nodeOperation(DistributedResultRequest request,
                               ActionListener<DistributedResultResponse> listener) {
         nodeOperation(request, listener, 0);
-    }
-
-    @Override
-    public void execute(String id, DistributedResultRequest transportRequest, ActionListener<DistributedResultResponse> actionListener) {
-        throw new UnsupportedOperationException();
     }
 
     private void nodeOperation(final DistributedResultRequest request,

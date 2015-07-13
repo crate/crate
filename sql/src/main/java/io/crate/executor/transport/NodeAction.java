@@ -30,5 +30,5 @@ public interface NodeAction<TRequest extends TransportRequest, TResponse extends
     String actionName();
     String executorName();
     void nodeOperation(TRequest request, ActionListener<TResponse> listener);
-    void execute(String id, TRequest transportRequest, ActionListener<TResponse> actionListener);
+
 }
