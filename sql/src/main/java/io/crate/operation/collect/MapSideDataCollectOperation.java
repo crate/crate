@@ -63,6 +63,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -231,8 +232,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
-                        jobCollectContext.close();
+                    public void onFailure(@Nonnull Throwable t) {
+                        jobCollectContext.closeDueToFailure(t);
                     }
                 });
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause queries with a high limit to fail
+   due to a missing job context.
+
  - Fixed an issue which could cause an error if a ``group by`` query was killed
 
  - Fixed an issue that caused COPY TO `s3` statements to get stuck
