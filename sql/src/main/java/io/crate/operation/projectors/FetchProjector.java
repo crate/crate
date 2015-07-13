@@ -146,8 +146,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        collectDocIdExpression.startCollect();
-
         if (remainingUpstreams.get() <= 0) {
             finish();
         } else {

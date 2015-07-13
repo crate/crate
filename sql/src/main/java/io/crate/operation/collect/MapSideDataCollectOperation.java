@@ -333,8 +333,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             );
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
-            return new SimpleOneRowCollector(
-                    ctx.topLevelInputs(), ctx.collectExpressions(), downstream);
+            return new SimpleOneRowCollector(ctx.topLevelInputs(), downstream);
         }
     }
 
@@ -533,8 +532,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             // resolve Implementations
             ImplementationSymbolVisitor.Context ctx = clusterImplementationSymbolVisitor.extractImplementations(node);
             List<Input<?>> inputs = ctx.topLevelInputs();
-            Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
-            return new SimpleOneRowCollector(inputs, collectExpressions, downstream);
+            return new SimpleOneRowCollector(inputs, downstream);
         }
     }
 }

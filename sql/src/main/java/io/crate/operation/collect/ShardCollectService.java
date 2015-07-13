@@ -139,7 +139,7 @@ public class ShardCollectService {
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.extractImplementations(normalizedCollectNode);
-                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
+                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
         }

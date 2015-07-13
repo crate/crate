@@ -28,7 +28,6 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -45,11 +44,7 @@ public class SimpleOneRowCollectorTest extends CrateUnitTest {
 
         Mockito.when(downstream.registerUpstream(any(RowUpstream.class))).thenReturn(handle);
 
-        SimpleOneRowCollector collector = new SimpleOneRowCollector(
-                inputs,
-                Collections.<CollectExpression<?>>emptySet(),
-                downstream
-        );
+        SimpleOneRowCollector collector = new SimpleOneRowCollector(inputs, downstream);
         collector.doCollect();
         verify(handle, times(1)).setNextRow(any(InputRow.class));
         verify(handle, times(1)).finish();

@@ -69,9 +69,6 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
-            collectExpression.startCollect();
-        }
     }
 
     @Override

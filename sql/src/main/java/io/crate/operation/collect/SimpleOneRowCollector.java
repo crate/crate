@@ -27,7 +27,6 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 
 /**
@@ -35,25 +34,19 @@ import java.util.concurrent.CancellationException;
  */
 public class SimpleOneRowCollector implements CrateCollector {
 
-    private final Set<CollectExpression<?>> collectExpressions;
     private final InputRow row;
     private final RowDownstreamHandle downstream;
     private volatile boolean killed = false;
 
     public SimpleOneRowCollector(List<Input<?>> inputs,
-                                 Set<CollectExpression<?>> collectExpressions,
                                  RowDownstream downstream) {
         this.row = new InputRow(inputs);
-        this.collectExpressions = collectExpressions;
         this.downstream = downstream.registerUpstream(this);
     }
 
     @Override
     public void doCollect() {
         try {
-            for (CollectExpression<?> collectExpression : collectExpressions) {
-                collectExpression.startCollect();
-            }
             downstream.setNextRow(row);
             if (killed) {
                 downstream.fail(new CancellationException());

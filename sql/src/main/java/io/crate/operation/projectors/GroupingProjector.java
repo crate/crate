@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class GroupingProjector implements Projector, RowDownstreamHandle {
 
-    private final CollectExpression[] collectExpressions;
 
     private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
@@ -67,7 +66,6 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
                              RamAccountingContext ramAccountingContext) {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
-        this.collectExpressions = collectExpressions;
         this.ramAccountingContext = ramAccountingContext;
 
         Aggregator[] aggregators = new Aggregator[aggregations.length];
@@ -105,9 +103,6 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        for (CollectExpression collectExpression : collectExpressions) {
-            collectExpression.startCollect();
-        }
         grouper.prepare(executionState);
     }
 

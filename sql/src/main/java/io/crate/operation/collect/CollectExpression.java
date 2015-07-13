@@ -26,13 +26,6 @@ import io.crate.operation.Input;
 
 public abstract class CollectExpression<ReturnType> implements Input<ReturnType> {
 
-    /**
-     * An expression which gets evaluated in the collect phase
-     */
-
-    public void startCollect() {
-    }
-
     public abstract boolean setNextRow(Row row);
 }
 
