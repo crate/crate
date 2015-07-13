@@ -1,0 +1,12 @@
+apply plugin: 'java'
+
+archivesBaseName = 'crate-ec2-discovery'
+group = 'io.crate'
+
+dependencies {
+    compile project(':es')
+    compile project(':core')
+    compile 'com.amazonaws:aws-java-sdk:1.9.34'
+    testCompile project(':testing')
+}
+
