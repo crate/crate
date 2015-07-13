@@ -60,6 +60,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardId shardId = new ShardId("test", 1);
         DataType[] dataTypes = new DataType[]{ IntegerType.INSTANCE, StringType.INSTANCE };
         List<Integer> rowIndicesToStream = new ArrayList();
+        UUID jobId = UUID.randomUUID();
+
         rowIndicesToStream.add(0);
         rowIndicesToStream.add(1);
         Map<Reference, Symbol> insertAssignments = new HashMap<Reference, Symbol>(){{
@@ -70,6 +72,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 shardId,
                 dataTypes,
                 rowIndicesToStream,
+                jobId,
                 null,
                 insertAssignments);
 
@@ -86,6 +89,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
 
         assertThat(request2.index(), is(shardId.getIndex()));
         assertThat(request2.shardId(), is(shardId.id()));
+        assertThat(request2.jobId(), is(jobId));
         assertThat(request2.routing(), is("99"));
         assertNull(request2.updateAssignments());
         assertThat(request2.insertAssignments(), is(insertAssignments));
@@ -110,6 +114,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardId shardId = new ShardId("test", 1);
         DataType[] dataTypes = new DataType[]{ StringType.INSTANCE };
         List<Integer> rowIndicesToStream = new ArrayList();
+        UUID jobId = UUID.randomUUID();
         rowIndicesToStream.add(0);
         Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{ put(nameRef, new InputColumn(1)); }};
 
@@ -117,6 +122,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 shardId,
                 dataTypes,
                 rowIndicesToStream,
+                jobId,
                 updateAssignments,
                 null,
                 "99");
@@ -158,6 +164,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardId shardId = new ShardId("test", 1);
         DataType[] dataTypes = new DataType[]{ IntegerType.INSTANCE, StringType.INSTANCE };
         List<Integer> rowIndicesToStream = new ArrayList();
+        UUID jobId = UUID.randomUUID();
         rowIndicesToStream.add(0);
         rowIndicesToStream.add(1);
         Map<Reference, Symbol> updateAssignments = new HashMap<Reference, Symbol>(){{
@@ -171,6 +178,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 shardId,
                 dataTypes,
                 rowIndicesToStream,
+                jobId,
                 updateAssignments,
                 insertAssignments,
                 "99");
@@ -189,6 +197,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
 
         assertThat(request2.index(), is(shardId.getIndex()));
         assertThat(request2.shardId(), is(shardId.id()));
+        assertThat(request2.jobId(), is(jobId));
         assertThat(request2.routing(), is("99"));
         assertThat(request2.updateAssignments(), is(updateAssignments));
         assertThat(request2.insertAssignments(), is(insertAssignments));

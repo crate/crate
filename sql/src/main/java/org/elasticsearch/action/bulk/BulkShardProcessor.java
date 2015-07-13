@@ -77,6 +77,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     private final boolean autoCreateIndices;
     private final int bulkSize;
+    private final UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();
@@ -113,7 +114,8 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               BulkRequestBuilder<Request> bulkRequestBuilder,
-                              BulkRequestExecutor<Request, Response> bulkRequestExecutor) {
+                              BulkRequestExecutor<Request, Response> bulkRequestExecutor,
+                              UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
 
@@ -121,6 +123,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         this.bulkRequestExecutor = bulkRequestExecutor;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
+        this.jobId = jobId;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
 
         if (autoCreateIndices) {
@@ -338,7 +341,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices...", indices.size());
             TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
-            final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+            final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId)
                     .timeout(timeout);
             final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override

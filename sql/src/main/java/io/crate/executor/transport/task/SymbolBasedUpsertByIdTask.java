@@ -143,7 +143,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 item.routing()
         ).shardId();
 
-        SymbolBasedShardUpsertRequest upsertRequest = new SymbolBasedShardUpsertRequest(shardId, node.updateColumns(), node.insertColumns());
+        SymbolBasedShardUpsertRequest upsertRequest = new SymbolBasedShardUpsertRequest(shardId, node.updateColumns(), node.insertColumns(), jobId());
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
@@ -166,7 +166,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 false, // do not overwrite duplicates
                 node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
                 node.updateColumns(),
-                node.insertColumns()
+                node.insertColumns(),
+                jobId()
         );
         SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
@@ -176,7 +177,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.isPartitionedTable(),
                 node.items().size(),
                 builder,
-                transportShardUpsertActionDelegate);
+                transportShardUpsertActionDelegate,
+                jobId());
         bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(bulkShardProcessor);
         registerContext(bulkShardProcessorContext);
 

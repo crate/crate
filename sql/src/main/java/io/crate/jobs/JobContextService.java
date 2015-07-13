@@ -136,7 +136,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         long now = System.nanoTime();
         writeLock.lock();
         for (KillAllListener killAllListener : killAllListeners) {
-            killAllListener.killAllCalled(now);
+            killAllListener.killAllJobs(now);
         }
         try {
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
@@ -156,6 +156,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         // TODO: when this is exposed some Actions should be stopped like it's done in killAll using the killAllListeners
         long numKilled = 0L;
         writeLock.lock();
+        for (KillAllListener killAllListener : killAllListeners) {
+            for (UUID job : toKill) {
+                killAllListener.killJob(job);
+            }
+        }
         try {
             for (UUID jobId : toKill) {
                 JobExecutionContext ctx = activeContexts.get(jobId);

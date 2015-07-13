@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``KILL 'job_id'`` statement
+
  - Enable HTTPS for S3 connections for ``COPY FROM/TO``
 
  - Fixed a rare bug which could cause a MapperParsingException if one creates

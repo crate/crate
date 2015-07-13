@@ -48,6 +48,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -88,7 +89,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                UUID.randomUUID()
         );
         indexWriter.registerUpstream(null);
         indexWriter.startProjection(mock(ExecutionState.class));
