@@ -24,24 +24,19 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -85,63 +80,7 @@ public class SystemCollectService implements CollectService {
             condition = Literal.newLiteral(true);
         }
 
-        return new SystemTableCollector(
+        return new RowsCollector<>(
                 ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterableGetter.getIterable(), condition);
-    }
-
-    static class SystemTableCollector<R> implements CrateCollector {
-
-        private final InputRow row;
-        private final List<RowContextCollectorExpression<R, ?>> collectorExpressions;
-        private final RowDownstreamHandle downstream;
-        private final Iterable<R> rows;
-        private final Input<Boolean> condition;
-        private volatile boolean killed = false;
-
-        protected SystemTableCollector(List<Input<?>> inputs,
-                                       List<RowContextCollectorExpression<R, ?>> collectorExpressions,
-                                       RowDownstream downstream,
-                                       Iterable<R> rows,
-                                       Input<Boolean> condition) {
-            this.row = new InputRow(inputs);
-            this.collectorExpressions = collectorExpressions;
-            this.rows = rows;
-            this.condition = condition;
-            assert downstream != null;
-            this.downstream = downstream.registerUpstream(this);
-        }
-
-        @Override
-        public void doCollect() {
-            try {
-                for (R row : rows) {
-                    if (killed) {
-                        downstream.fail(new CancellationException());
-                        return;
-                    }
-                    for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
-                        collectorExpression.setNextRow(row);
-                    }
-                    Boolean match = condition.value();
-                    if (match == null || !match) {
-                        // no match
-                        continue;
-                    }
-
-                    if (!downstream.setNextRow(this.row)) {
-                        // no more rows required, we can stop here
-                        break;
-                    }
-                }
-                downstream.finish();
-            } catch (Throwable t) {
-                downstream.fail(t);
-            }
-        }
-
-        @Override
-        public void kill() {
-            killed = true;
-        }
     }
 }
