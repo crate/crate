@@ -257,10 +257,10 @@ public final class SqlFormatter {
         public Void visitClusteredBy(ClusteredBy node, Integer indent) {
             append(indent, "CLUSTERED");
             if (node.column().isPresent()) {
-                builder.append(String.format(" BY (%s)", node.column().get().toString()));
+                builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().get().toString()));
             }
             if (node.numberOfShards().isPresent()) {
-                builder.append(String.format(" INTO %s SHARDS", node.numberOfShards().get()));
+                builder.append(String.format(Locale.ENGLISH, " INTO %s SHARDS", node.numberOfShards().get()));
             }
             return null;
         }
@@ -276,7 +276,7 @@ public final class SqlFormatter {
                     builder.append(indentString(indent + 1));
                     String key = propertyEntry.getKey();
                     if (propertyEntry.getKey().contains(".")) {
-                        key = String.format("\"%s\"", key);
+                        key = String.format(Locale.ENGLISH, "\"%s\"", key);
                     }
                     builder.append(key).append(" = ");
                     propertyEntry.getValue().accept(this, indent);
@@ -290,13 +290,13 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitLongLiteral(LongLiteral node, Integer indent) {
-            builder.append(String.format("%d", node.getValue()));
+            builder.append(String.format(Locale.ENGLISH, "%d", node.getValue()));
             return null;
         }
 
         @Override
         protected Void visitStringLiteral(StringLiteral node, Integer indent) {
-            builder.append(String.format("'%s'", node.getValue()));
+            builder.append(String.format(Locale.ENGLISH, "'%s'", node.getValue()));
             return null;
         }
 
@@ -325,7 +325,7 @@ public final class SqlFormatter {
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             builder.append("OBJECT");
             if (node.objectType().isPresent()) {
-                builder.append(String.format(" (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
+                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
@@ -478,7 +478,7 @@ public final class SqlFormatter {
         private String quoteIdentifierIfNeeded(String identifier) {
             List<String> quoted = new ArrayList<>();
             for (String part : Splitter.on(".").split(identifier)) {
-                quoted.add(String.format("\"%s\"", part));
+                quoted.add(String.format(Locale.ENGLISH, "\"%s\"", part));
             }
             return Joiner.on(".").join(quoted);
         }
