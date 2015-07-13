@@ -154,9 +154,18 @@ public class SymbolBasedTransportShardUpsertAction
 
     @Override
     protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
+        ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, shardRequest.request);
+        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+    }
+
+    @Override
+    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    }
+
+    protected ShardUpsertResponse processRequestItems(ShardId shardId,
+                                                      SymbolBasedShardUpsertRequest request) {
         long startTime = System.nanoTime();
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
-        SymbolBasedShardUpsertRequest request = shardRequest.request;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
@@ -167,16 +176,16 @@ public class SymbolBasedTransportShardUpsertAction
                 indexItem(
                         request,
                         item,
-                        shardRequest.shardId,
+                        shardId,
                         item.insertValues() != null, // try insert first
                         0);
                 shardUpsertResponse.add(location,
                         new ShardUpsertResponse.Response());
             } catch (Throwable t) {
-                if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
+                if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
                     throw t;
                 } else {
-                    logger.debug("{} failed to execute update for [{}]/[{}]",
+                    logger.debug("{} failed to execute upsert for [{}]/[{}]",
                             t, request.shardId(), request.type(), item.id());
                     shardUpsertResponse.add(location,
                             new ShardUpsertResponse.Failure(
@@ -186,16 +195,11 @@ public class SymbolBasedTransportShardUpsertAction
                 }
             }
         }
-        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+
+        return shardUpsertResponse;
     }
 
-
-    @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-
-    }
-
-    public IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
+    protected IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
                           SymbolBasedShardUpsertRequest.Item item,
                           ShardId shardId,
                           boolean tryInsertFirst,

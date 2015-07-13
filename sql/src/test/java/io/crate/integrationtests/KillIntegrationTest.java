@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.Exceptions;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -49,19 +47,6 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        builder.put(super.nodeSettings(nodeOrdinal));
-
-        // disable auto-creation of indexes because this can lead to flaky killAll tests
-        // if a insert is killed, pending insert operations could still exists and
-        // would re-create the table after it was dropped by test cleanUp routines
-        builder.put("action.auto_create_index", false);
-
-        return builder.build();
-    }
 
     @Test
     public void testKillInsertFromSubQuery() throws Exception {

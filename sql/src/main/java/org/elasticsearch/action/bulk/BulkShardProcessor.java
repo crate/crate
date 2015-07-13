@@ -23,6 +23,7 @@ package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -44,6 +45,7 @@ import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -67,8 +69,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class BulkShardProcessor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
+    public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
+            .put("action.auto_create_index", true).build());
+
+    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
     private final Predicate<String> shouldAutocreateIndexPredicate;
 
@@ -90,7 +95,6 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     private final ClusterService clusterService;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
-    private final AutoCreateIndex autoCreateIndex;
 
     private final AtomicInteger pendingNewIndexRequests = new AtomicInteger(0);
     private final Map<String, List<PendingRequest>> requestsForNewIndices = new HashMap<>();
@@ -107,7 +111,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                               Settings settings,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                               ShardingProjector shardingProjector,
-                              boolean autoCreateIndices,
+                              final boolean autoCreateIndices,
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               BulkRequestBuilder<Request> bulkRequestBuilder,
@@ -121,14 +125,17 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         this.bulkSize = bulkSize;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
 
-        this.autoCreateIndex = new AutoCreateIndex(settings);
-        this.shouldAutocreateIndexPredicate = new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                assert input != null;
-                return autoCreateIndex.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
-            }
-        };
+        if (autoCreateIndices) {
+            shouldAutocreateIndexPredicate = new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    assert input != null;
+                    return AUTO_CREATE_INDEX.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
+                }
+            };
+        } else {
+            shouldAutocreateIndexPredicate = Predicates.alwaysFalse();
+        }
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.shardingProjector = shardingProjector;
 

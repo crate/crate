@@ -24,14 +24,12 @@ package io.crate.client;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
 import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
 import io.crate.types.DataType;
-import io.crate.types.StringType;
+import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
@@ -82,30 +80,26 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testCreateClient() throws Exception {
-        client().prepareIndex("test", "default", "1")
-            .setRefresh(true)
-            .setSource("{}")
-            .execute()
-            .actionGet();
-        ensureGreen();
+        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
+        ensureYellow();
+        client.sql("insert into test (id) values (1)").actionGet();
+        refresh();
 
-        SQLResponse r = client.sql("select \"_id\" from test").actionGet();
+        SQLResponse r = client.sql("select id from test").actionGet();
 
         assertEquals(1, r.rows().length);
-        assertEquals("_id", r.cols()[0]);
-        assertEquals("1", r.rows()[0][0]);
+        assertEquals("id", r.cols()[0]);
+        assertEquals(1, r.rows()[0][0]);
 
         assertThat(r.columnTypes(), is(new DataType[0]));
     }
 
     @Test
     public void testAsyncRequest() throws Throwable {
-        client().prepareIndex("test", "default", "1")
-                .setRefresh(true)
-                .setSource("{}")
-                .execute()
-                .actionGet();
-        ensureGreen();
+        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
+        ensureYellow();
+        client.sql("insert into test (id) values (1)").actionGet();
+        refresh();
 
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
         final SettableFuture<Boolean> future = SettableFuture.create();
@@ -116,8 +110,8 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
             public void onResponse(SQLResponse r) {
                 try {
                     assertEquals(1, r.rows().length);
-                    assertEquals("_id", r.cols()[0]);
-                    assertEquals("1", r.rows()[0][0]);
+                    assertEquals("id", r.cols()[0]);
+                    assertEquals(1, r.rows()[0][0]);
 
                     assertThat(r.columnTypes(), is(new DataType[0]));
                 } catch (AssertionError e) {
@@ -133,7 +127,7 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
                 assertionError.set(e);
             }
         };
-        client.sql("select \"_id\" from test", listener);
+        client.sql("select id from test", listener);
 
         // this will block until timeout is thrown if listener is not called
         assertThat(future.get(5L, TimeUnit.SECONDS), is(true));
@@ -145,22 +139,20 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testRequestWithTypes() throws Exception {
-        client().prepareIndex("test", "default", "1")
-            .setRefresh(true)
-            .setSource("{}")
-            .execute()
-            .actionGet();
-        ensureGreen();
+        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
+        ensureYellow();
+        client.sql("insert into test (id) values (1)").actionGet();
+        refresh();
 
-        SQLRequest request =  new SQLRequest("select \"_id\" from test");
+        SQLRequest request =  new SQLRequest("select id from test");
         request.includeTypesOnResponse(true);
         SQLResponse r = client.sql(request).actionGet();
 
         assertEquals(1, r.rows().length);
-        assertEquals("_id", r.cols()[0]);
-        assertEquals("1", r.rows()[0][0]);
+        assertEquals("id", r.cols()[0]);
+        assertEquals(1, r.rows()[0][0]);
 
-        assertThat(r.columnTypes()[0], instanceOf(StringType.class));
+        assertThat(r.columnTypes()[0], instanceOf(IntegerType.class));
     }
 
     @Test

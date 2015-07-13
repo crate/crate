@@ -165,7 +165,6 @@ public class TransportShardUpsertAction
     protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
         long startTime = System.nanoTime();
 
-        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         ShardUpsertRequest request = shardRequest.request;
         SymbolToFieldExtractorContext extractorContextUpdate = null;
         SymbolToInputContext implContextInsert = null;
@@ -183,6 +182,21 @@ public class TransportShardUpsertAction
             }
         }
 
+        ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, request,
+                extractorContextUpdate, implContextInsert, startTime);
+        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+    }
+
+    @Override
+    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    }
+
+    protected ShardUpsertResponse processRequestItems(ShardId shardId,
+                                                      ShardUpsertRequest request,
+                                                      SymbolToFieldExtractorContext extractorContextUpdate,
+                                                      SymbolToInputContext implContextInsert,
+                                                      long startTime) {
+        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         for (ShardUpsertRequest.Item item : request) {
             if (startTime <= lastKillAll) {
                 throw new CancellationException();
@@ -190,14 +204,14 @@ public class TransportShardUpsertAction
             try {
                 indexItem(
                         request,
-                        item, shardRequest.shardId,
+                        item, shardId,
                         extractorContextUpdate,
                         implContextInsert,
                         request.insertAssignments() != null, // try insert first
                         0);
                 shardUpsertResponse.add(item.location(), new ShardUpsertResponse.Response());
             } catch (Throwable t) {
-                if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
+                if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
                     throw t;
                 } else {
                     logger.debug("{} failed to execute update for [{}]/[{}]",
@@ -210,16 +224,10 @@ public class TransportShardUpsertAction
                 }
             }
         }
-        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+        return shardUpsertResponse;
     }
 
-
-    @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-
-    }
-
-    public IndexResponse indexItem(ShardUpsertRequest request,
+    protected IndexResponse indexItem(ShardUpsertRequest request,
                                    ShardUpsertRequest.Item item,
                                    ShardId shardId,
                                    SymbolToFieldExtractorContext extractorContextUpdate,

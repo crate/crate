@@ -44,6 +44,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -98,4 +99,13 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         executor = null;
         docSchemaInfo = null;
     }
+
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
+        return newGetNode(tableName, outputs, Collections.singletonList(singleStringKey), executionNodeId);
+    }
+
+    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys, executionNodeId);
+    }
+
 }

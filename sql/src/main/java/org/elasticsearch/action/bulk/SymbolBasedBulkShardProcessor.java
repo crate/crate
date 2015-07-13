@@ -23,6 +23,7 @@ package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -38,7 +39,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -87,7 +87,6 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
 
     private final ClusterService clusterService;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
-    private final AutoCreateIndex autoCreateIndex;
 
     private final AtomicInteger pendingNewIndexRequests = new AtomicInteger(0);
     private final Map<String, List<PendingRequest>> requestsForNewIndices = new HashMap<>();
@@ -102,9 +101,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
 
     public SymbolBasedBulkShardProcessor(ClusterService clusterService,
                                          TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                                         Settings settings,
+                                         final Settings settings,
                                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                         boolean autoCreateIndices,
+                                         final boolean autoCreateIndices,
                                          int bulkSize,
                                          BulkRequestBuilder<Request> requestBuilder,
                                          BulkRequestExecutor<Request, Response> requestExecutor) {
@@ -113,17 +112,22 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
-        this.autoCreateIndex = new AutoCreateIndex(settings);
+
+
+        if (autoCreateIndices) {
+            shouldAutocreateIndexPredicate = new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    assert input != null;
+                    return BulkShardProcessor.AUTO_CREATE_INDEX.shouldAutoCreate(input,
+                            SymbolBasedBulkShardProcessor.this.clusterService.state());
+                }
+            };
+        } else {
+            shouldAutocreateIndexPredicate = Predicates.alwaysFalse();
+        }
+
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
-        this.shouldAutocreateIndexPredicate = new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                assert input != null;
-                return autoCreateIndex.shouldAutoCreate(input, SymbolBasedBulkShardProcessor.this.clusterService.state());
-            }
-        };
-
-
         responses = new BitSet();
         result = SettableFuture.create();
 
