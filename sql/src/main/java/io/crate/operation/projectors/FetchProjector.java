@@ -196,6 +196,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         if (remainingUpstreams.decrementAndGet() == 0) {
             // flush all remaining buckets
             Iterator<NodeBucket> it = nodeBuckets.values().iterator();
+            remainingRequests.set(nodeBuckets.size());
             while (it.hasNext()) {
                 flushNodeBucket(it.next());
                 it.remove();
@@ -244,7 +245,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private void flushNodeBucket(final NodeBucket nodeBucket) {
         // every request must increase downstream upstream counter
         downstream.registerUpstream(this);
-        remainingRequests.incrementAndGet();
 
         NodeFetchRequest request = new NodeFetchRequest();
         request.jobId(jobId);
