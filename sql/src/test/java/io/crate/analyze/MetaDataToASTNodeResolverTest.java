@@ -62,7 +62,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                 List<ColumnIdent> primaryKeys,
                                 ColumnIdent clusteredBy,
                                 ImmutableMap<String, Object> tableParameters,
-                                List<ColumnIdent> partitionedBy) {
+                                List<ColumnIdent> partitionedBy,
+                                ColumnPolicy policy) {
             super(schemaInfo,
                     ident,
                     columns,
@@ -80,7 +81,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                     tableParameters,
                     partitionedBy,
                     Collections.EMPTY_LIST,
-                    ColumnPolicy.DYNAMIC,
+                    policy,
                     mock(ExecutorService.class));
         }
     }
@@ -156,7 +157,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ImmutableList.<ColumnIdent>of(),
                 null,
                 ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of());
+                ImmutableList.<ColumnIdent>of(),
+                ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
@@ -183,6 +185,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ")\n" +
                 "CLUSTERED INTO 5 SHARDS\n" +
                 "WITH (\n" +
+                "   column_policy = 'dynamic',\n" +
                 "   number_of_replicas = '0-all'\n" +
                 ")",
                 SqlFormatter.formatSql(node));
@@ -212,7 +215,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 primaryKeys,
                 null,
                 ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of());
+                ImmutableList.<ColumnIdent>of(),
+                ColumnPolicy.STRICT);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -222,6 +226,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ")\n" +
                 "CLUSTERED INTO 5 SHARDS\n" +
                 "WITH (\n" +
+                "   column_policy = 'strict',\n" +
                 "   number_of_replicas = '0-all'\n" +
                 ")",
                 SqlFormatter.formatSql(node));
@@ -254,7 +259,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ImmutableList.<ColumnIdent>of(),
                 null,
                 tableParameters.build(),
-                ImmutableList.<ColumnIdent>of());
+                ImmutableList.<ColumnIdent>of(),
+                ColumnPolicy.IGNORED);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -262,6 +268,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ")\n" +
                 "CLUSTERED INTO 5 SHARDS\n" +
                 "WITH (\n" +
+                "   column_policy = 'ignored',\n" +
                 "   \"index.translog.flush_interval\" = 100,\n" +
                 "   number_of_replicas = '5',\n" +
                 "   param_array = ['foo','bar'],\n" +
@@ -292,7 +299,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ImmutableList.<ColumnIdent>of(),
                 new ColumnIdent("cluster_column"),
                 ImmutableMap.<String, Object>of(),
-                ImmutableList.of(columns.get(1).ident().columnIdent()));
+                ImmutableList.of(columns.get(1).ident().columnIdent()),
+                ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -303,6 +311,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "CLUSTERED BY (\"cluster_column\") INTO 5 SHARDS\n" +
                 "PARTITIONED BY (\"partition_column\")\n" +
                 "WITH (\n" +
+                "   column_policy = 'dynamic',\n" +
                 "   number_of_replicas = '0-all'\n" +
                 ")",
                 SqlFormatter.formatSql(node));
@@ -348,7 +357,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ImmutableList.<ColumnIdent>of(),
                 null,
                 ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of());
+                ImmutableList.<ColumnIdent>of(),
+                ColumnPolicy.DYNAMIC);
 
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
@@ -369,6 +379,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ")\n" +
                 "CLUSTERED INTO 5 SHARDS\n" +
                 "WITH (\n" +
+                "   column_policy = 'dynamic',\n" +
                 "   number_of_replicas = '0-all'\n" +
                 ")",
                 SqlFormatter.formatSql(node));

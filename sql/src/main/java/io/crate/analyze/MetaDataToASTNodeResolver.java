@@ -179,6 +179,10 @@ public class MetaDataToASTNodeResolver {
                         )
                 );
             }
+            properties.add(new GenericProperty(
+                    "column_policy",
+                    new StringLiteral(tableInfo.columnPolicy().value())
+            ));
             return properties;
         }
 
