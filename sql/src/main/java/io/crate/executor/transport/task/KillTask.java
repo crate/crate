@@ -27,9 +27,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -46,10 +46,10 @@ public class KillTask extends JobTask {
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> results;
     private ClusterService clusterService;
-    private NodeAction nodeAction;
+    private TransportKillAllNodeAction nodeAction;
 
     public KillTask(ClusterService clusterService,
-                    NodeAction nodeAction,
+                    TransportKillAllNodeAction nodeAction,
                     UUID jobId) {
         super(jobId);
         this.clusterService = clusterService;
