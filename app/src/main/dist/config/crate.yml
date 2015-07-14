@@ -466,7 +466,9 @@
 # If you want to debug the discovery process, you can set a logger in
 # 'config/logging.yml' to help you doing so.
 #
-# discovery.zen.ping.unicast.hosts: ["host1", "host2:port"]
+# discovery.zen.ping.unicast.hosts:
+#   - host1:port
+#   - host2:port
 
 # Ping configuration
 #
