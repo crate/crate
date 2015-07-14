@@ -55,6 +55,7 @@ public class InformationTableInfo extends AbstractTableInfo {
         public static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
         public static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
         public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
+        public static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
                 ImmutableList.of("blocks"));

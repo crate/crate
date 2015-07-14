@@ -46,6 +46,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final ReferenceInfo CLUSTERED_BY = info(Columns.CLUSTERED_BY, DataTypes.STRING);
         public static final ReferenceInfo PARTITIONED_BY = info(Columns.PARTITIONED_BY, new ArrayType(DataTypes.STRING));
         public static final ReferenceInfo BLOBS_PATH = info(Columns.BLOBS_PATH, DataTypes.STRING);
+        public static final ReferenceInfo COLUMN_POLICY = info(Columns.COLUMN_POLICY, DataTypes.STRING);
 
         public static final ReferenceInfo TABLE_SETTINGS = info(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
@@ -120,6 +121,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     put(Columns.CLUSTERED_BY, ReferenceInfos.CLUSTERED_BY);
                     put(Columns.PARTITIONED_BY, ReferenceInfos.PARTITIONED_BY);
                     put(Columns.BLOBS_PATH, ReferenceInfos.BLOBS_PATH);
+                    put(Columns.COLUMN_POLICY, ReferenceInfos.COLUMN_POLICY);
                     put(Columns.TABLE_SETTINGS, ReferenceInfos.TABLE_SETTINGS);
                     put(Columns.TABLE_SETTINGS_BLOCKS, ReferenceInfos.TABLE_SETTINGS_BLOCKS);
                     put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY);
@@ -153,6 +155,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                         ReferenceInfos.CLUSTERED_BY,
                         ReferenceInfos.PARTITIONED_BY,
                         ReferenceInfos.BLOBS_PATH,
+                        ReferenceInfos.COLUMN_POLICY,
                         ReferenceInfos.TABLE_SETTINGS
                 )
         );
