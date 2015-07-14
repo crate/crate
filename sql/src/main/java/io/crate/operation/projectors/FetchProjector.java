@@ -48,6 +48,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector implements Projector, RowDownstreamHandle {
 
@@ -79,6 +80,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
     private int inputCursor = 0;
     private boolean consumedRows = false;
@@ -201,22 +203,32 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 it.remove();
             }
 
-            // projector registered itself as an upstream to prevent downstream of
-            // flushing rows before all requests finished.
-            // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
-            downstream.finish();
 
             // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
             if (!consumedRows) {
                 closeContextsIfRequired();
+            }
+
+            // projector registered itself as an upstream to prevent downstream of
+            // flushing rows before all requests finished.
+            // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
+            Throwable throwable = failure.get();
+            if (throwable == null) {
+                downstream.finish();
+            } else {
+                downstream.fail(throwable);
             }
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        closeContexts();
-        downstream.fail(throwable);
+        if (remainingUpstreams.decrementAndGet() == 0) {
+            closeContexts();
+            downstream.fail(throwable);
+        } else {
+            failure.set(throwable);
+        }
     }
 
     @Nullable
