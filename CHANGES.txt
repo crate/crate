@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added column policy as column to ``information_schema.tables`` table
+
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
    get stuck
 

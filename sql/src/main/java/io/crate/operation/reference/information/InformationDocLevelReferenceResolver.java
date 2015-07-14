@@ -328,6 +328,18 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
                         };
                     }
                 })
+                .put(InformationTablesTableInfo.Columns.COLUMN_POLICY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                return new BytesRef(row.columnPolicy().value());
+                            }
+                        };
+                    }
+                })
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {

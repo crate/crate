@@ -118,7 +118,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         System.out.println(TestingHelpers.printedTable(result));
-        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
+        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| strict| NULL\n", TestingHelpers.printedTable(result));
     }
 
 
