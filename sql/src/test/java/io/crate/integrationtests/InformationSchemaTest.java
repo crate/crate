@@ -665,12 +665,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 }}
         });
         execute("refresh table t4");
-        execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
 
-        waitForMappingUpdateOnAll("t4", "stuff.middle_name");
+        waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
-
 
         assertEquals("stuff", response.rows()[0][0]);
         ordinal_position = 1;
