@@ -23,13 +23,12 @@ package io.crate.planner.consumer;
 
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.ESGetNode;
 
@@ -45,22 +44,19 @@ public class ESGetConsumer implements Consumer {
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (context.rootRelation() != table) {
                 return null;
             }
 
-            if (table.querySpec().hasAggregates() || table.querySpec().groupBy() != null) {
-                return null;
-            }
-            TableInfo tableInfo = table.tableRelation().tableInfo();
-            if (tableInfo.isAlias()
-                    || tableInfo.schemaInfo().systemSchema()
-                    || tableInfo.rowGranularity() != RowGranularity.DOC) {
+            if (table.querySpec().hasAggregates()
+                    || table.querySpec().groupBy() != null
+                    || !table.querySpec().where().docKeys().isPresent()) {
                 return null;
             }
 
-            if (!table.querySpec().where().docKeys().isPresent()) {
+            DocTableInfo tableInfo = table.tableRelation().tableInfo();
+            if (tableInfo.isAlias()) {
                 return null;
             }
 

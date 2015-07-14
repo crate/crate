@@ -21,14 +21,23 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.List;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 @Singleton
 public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAnalyzedStatement, Analysis> {
@@ -47,30 +56,28 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
 
     @Override
     public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
-        RefreshTableAnalyzedStatement statement = new RefreshTableAnalyzedStatement(schemas);
+        Set<String> indexNames = new HashSet<>(node.tables().size());
         for (Table nodeTable : node.tables()) {
-            TableIdent tableIdent = TableIdent.of(nodeTable, analysis.parameterContext().defaultSchema());
-            TableInfo tableInfo = statement.table(tableIdent);
-
-            if (!nodeTable.partitionProperties().isEmpty()) {
-                setPartitionIdent(tableInfo, nodeTable.partitionProperties(), statement, analysis.parameterContext());
+            TableInfo tableInfo = schemas.getTableInfo(
+                    TableIdent.of(nodeTable, analysis.parameterContext().defaultSchema()));
+            Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
+                    "table '%s' cannot be refreshed",
+                    tableInfo.ident().fqn());
+            if (nodeTable.partitionProperties().isEmpty()) {
+                indexNames.addAll(Arrays.asList(((DocTableInfo) tableInfo).concreteIndices()));
+            } else {
+                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+                PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                        docTableInfo,
+                        nodeTable.partitionProperties(),
+                        analysis.parameterContext().parameters()
+                );
+                if (!docTableInfo.partitions().contains(partitionName)) {
+                    throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
+                }
+                indexNames.add(partitionName.stringValue());
             }
         }
-
-        return statement;
+        return new RefreshTableAnalyzedStatement(indexNames);
     }
-
-    private void setPartitionIdent(TableInfo tableInfo, List<Assignment> properties,
-                                  RefreshTableAnalyzedStatement statement,
-                                  ParameterContext parameterContext) {
-
-
-        String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                    tableInfo,
-                    properties,
-                    parameterContext.parameters()
-            );
-        statement.partitionIdent(tableInfo, partitionIdent);
-    }
-
 }

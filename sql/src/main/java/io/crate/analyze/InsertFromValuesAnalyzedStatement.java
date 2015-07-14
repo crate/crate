@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -46,7 +46,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     private final List<String> routingValues = new ArrayList<>();
     private final boolean isBulkRequest;
 
-    public InsertFromValuesAnalyzedStatement(TableInfo tableInfo, boolean isBulkRequest) {
+    public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, boolean isBulkRequest) {
         this.isBulkRequest = isBulkRequest;
         super.tableInfo(tableInfo);
         if (tableInfo.isPartitioned()) {

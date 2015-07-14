@@ -38,7 +38,6 @@ import java.util.*;
 public class SysJobsLogTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs_log");
-    private static final String[] INDICES = new String[] { IDENT.name() };
 
     private final Map<ColumnIdent, ReferenceInfo> infos = new LinkedHashMap<>();
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -101,11 +100,6 @@ public class SysJobsLogTableInfo extends SysTableInfo {
     @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKeys;
-    }
-
-    @Override
-    public String[] concreteIndices() {
-        return INDICES;
     }
 
     @Override

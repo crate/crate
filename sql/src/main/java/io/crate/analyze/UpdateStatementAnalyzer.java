@@ -34,6 +34,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -98,9 +99,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new UnsupportedOperationException(String.format(
                     "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
         }
-        assert analyzedRelation instanceof TableRelation : "sourceRelation must be a TableRelation";
-        TableRelation tableRelation = ((TableRelation) analyzedRelation);
-        TableInfo tableInfo = tableRelation.tableInfo();
+        assert analyzedRelation instanceof DocTableRelation : "sourceRelation must be a DocTableRelation";
+        DocTableRelation tableRelation = ((DocTableRelation) analyzedRelation);
 
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer =
@@ -143,7 +143,6 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                         assignment,
                         nestedAnalyzedStatement,
                         tableRelation,
-                        tableInfo,
                         expressionAnalyzer,
                         columnExpressionAnalyzer,
                         expressionAnalysisContext
@@ -151,13 +150,12 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
         }
-        return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
+        return new UpdateAnalyzedStatement(tableRelation, nestedAnalyzedStatements);
     }
 
     public void analyzeAssignment(Assignment node,
                                   UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
-                                  TableRelation tableRelation,
-                                  TableInfo tableInfo,
+                                  DocTableRelation tableRelation,
                                   ExpressionAnalyzer expressionAnalyzer,
                                   ExpressionAnalyzer columnExpressionAnalyzer,
                                   ExpressionAnalysisContext expressionAnalysisContext) {
@@ -170,7 +168,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new IllegalArgumentException("Updating system columns is not allowed");
         }
 
-        if (hasMatchingParent(tableInfo, reference.info(), IS_OBJECT_ARRAY)) {
+        if (hasMatchingParent(tableRelation.tableInfo(), reference.info(), IS_OBJECT_ARRAY)) {
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
@@ -178,7 +176,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
         try {
             value = expressionAnalyzer.normalizeInputForReference(value, reference, expressionAnalysisContext);
-            ensureUpdateIsAllowed(tableInfo, ident, value);
+            ensureUpdateIsAllowed(tableRelation.tableInfo(), ident, value);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }
@@ -186,7 +184,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         nestedAnalyzedStatement.addAssignment(reference, value);
     }
 
-    public static void ensureUpdateIsAllowed(TableInfo tableInfo, ColumnIdent column, Symbol value) {
+    public static void ensureUpdateIsAllowed(DocTableInfo tableInfo, ColumnIdent column, Symbol value) {
         if (tableInfo.clusteredBy() != null) {
             ensureNotUpdated(column, value, tableInfo.clusteredBy(),
                     "Updating a clustered-by column is not supported");

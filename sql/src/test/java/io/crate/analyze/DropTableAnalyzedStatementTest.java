@@ -26,7 +26,6 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,7 +72,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
 
     @Test
     public void knownTableDoesNotSetNoop() {
-        TableInfo tableInfo = mock(DocTableInfo.class);
+        DocTableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.isPartitioned()).thenReturn(false);
         when(tableInfo.isAlias()).thenReturn(false);
 

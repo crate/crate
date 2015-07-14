@@ -21,13 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -54,7 +53,7 @@ public class PartitionPropertiesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
-        TableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"), RowGranularity.DOC, new Routing(null))
+        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"), new Routing(null))
                 .add("name", DataTypes.STRING, null, true)
                 .addPrimaryKey("name").build();
 

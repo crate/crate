@@ -22,10 +22,9 @@
 package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.PartitionName;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -55,7 +54,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
             // check if alias exists
             if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
-                TableInfo info = schemas.getTableInfo(tableIdent);
+                DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
                 assert info.isPartitioned();
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();

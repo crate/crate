@@ -25,7 +25,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
-import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -56,8 +55,4 @@ public abstract class SysTableInfo extends AbstractTableInfo {
         return new Routing(builder.map());
     }
 
-    @Override
-    public ColumnPolicy columnPolicy() {
-        return ColumnPolicy.STRICT;
-    }
 }

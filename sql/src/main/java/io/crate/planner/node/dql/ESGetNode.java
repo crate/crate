@@ -31,7 +31,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -49,7 +49,7 @@ import java.util.UUID;
 
 public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
-    private final TableInfo tableInfo;
+    private final DocTableInfo tableInfo;
     private final QuerySpec querySpec;
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
@@ -64,7 +64,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     private final List<DataType> outputTypes;
 
     public ESGetNode(int executionPhaseId,
-                     TableInfo tableInfo,
+                     DocTableInfo tableInfo,
                      QuerySpec querySpec,
                      UUID jobId) {
 
@@ -101,7 +101,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         return outputTypes;
     }
 
-    public TableInfo tableInfo() {
+    public DocTableInfo tableInfo() {
         return tableInfo;
     }
 

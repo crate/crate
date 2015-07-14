@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
@@ -64,7 +64,7 @@ public class DocReferenceConverter {
      *
      * won't be converted: partition columns or non-doc-schema columns
      */
-    public static Symbol convertIfPossible(Symbol symbol, TableInfo tableInfo) {
+    public static Symbol convertIfPossible(Symbol symbol, DocTableInfo tableInfo) {
         final List<ReferenceInfo> partitionedByColumns = tableInfo.partitionedByColumns();
         Predicate<Reference> predicate = new Predicate<Reference>() {
             @Override

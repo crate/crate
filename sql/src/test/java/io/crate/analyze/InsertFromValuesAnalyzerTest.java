@@ -33,7 +33,6 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
@@ -56,13 +55,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static final TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_ALIAS_TABLE_IDENT, new Routing())
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
     private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(null, "nested_clustered");
     private static final TableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
-            NESTED_CLUSTERED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            NESTED_CLUSTERED_TABLE_IDENT, new Routing())
             .add("o", DataTypes.OBJECT, null)
             .add("o", DataTypes.STRING, Arrays.asList("c"))
             .clusteredBy("o.c")

@@ -15,10 +15,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -43,6 +40,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -50,6 +48,10 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.ImmutableShardRouting;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -156,7 +158,7 @@ public class PlannerTest extends CrateUnitTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
+            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
                     .add("date", DataTypes.TIMESTAMP, null)
@@ -167,7 +169,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             when(userTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
-            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
+            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
@@ -175,7 +177,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             when(charactersTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
-            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
+            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, partedRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -190,7 +192,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             when(partedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
-            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -200,7 +202,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             TableIdent multiplePartitionedTableIdent= new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
             TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, RowGranularity.DOC, new Routing())
+                    multiplePartitionedTableIdent, new Routing())
                     .add("id", DataTypes.INTEGER, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .add("num", DataTypes.LONG, null)
@@ -214,7 +216,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             TableIdent clusteredByParitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
             TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, RowGranularity.DOC, clusteredPartedRouting)
+                    multiplePartitionedTableIdent, clusteredPartedRouting)
                     .add("id", DataTypes.INTEGER, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .add("city", DataTypes.STRING, null)
@@ -245,38 +247,25 @@ public class PlannerTest extends CrateUnitTest {
         }
 
         private SchemaInfo mockSysSchemaInfo() {
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.name()).thenReturn(SysSchemaInfo.NAME);
-            when(schemaInfo.systemSchema()).thenReturn(true);
 
-            TableInfo sysClusterTableInfo = TestingTableInfo.builder(
-                    SysClusterTableInfo.IDENT,
-                    // granularity < DOC is already handled different
-                    // here we want a table with handlerSideRouting and DOC granularity.
-                    RowGranularity.DOC,
-                    SysClusterTableInfo.ROUTING
-            ).schemaInfo(schemaInfo).add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
-            when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
+            DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder();
+            nodeBuilder.put(new DiscoveryNode("nodeOne", null, Version.CURRENT));
+            nodeBuilder.put(new DiscoveryNode("nodeTwo", null, Version.CURRENT));
 
-            TableInfo sysNodesTableInfo = TestingTableInfo.builder(
-                    SysNodesTableInfo.IDENT,
-                    RowGranularity.NODE,
-                    nodesRouting)
-                    .schemaInfo(schemaInfo)
-                    .add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
+            List<ShardRouting> routings = ImmutableList.<ShardRouting>builder()
+                    .add(new ImmutableShardRouting("parted", 1, "nodeOne", true, ShardRoutingState.STARTED, 0L))
+                    .add(new ImmutableShardRouting("parted", 2, "nodeTwo", true, ShardRoutingState.STARTED, 0L))
+                    .build();
 
-            when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
+            ClusterService clusterService = mock(ClusterService.class);
+            ClusterState clusterState = mock(ClusterState.class);
+            when(clusterService.state()).thenReturn(clusterState);
+            when(clusterState.nodes()).thenReturn(nodeBuilder.build());
 
-            TableInfo sysShardsTableInfo = TestingTableInfo.builder(
-                    SysShardsTableInfo.IDENT,
-                    RowGranularity.SHARD,
-                    nodesRouting
-            ).add("id", DataTypes.INTEGER, null)
-             .add("table_name", DataTypes.STRING, null)
-             .schemaInfo(schemaInfo).build();
-            when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
-            when(schemaInfo.systemSchema()).thenReturn(true);
-            return schemaInfo;
+            RoutingTable routingTable = mock(RoutingTable.class);
+            when(clusterState.routingTable()).thenReturn(routingTable);
+            when(routingTable.allShards()).thenReturn(routings);
+            return new SysSchemaInfo(clusterService);
         }
     }
 
@@ -1828,13 +1817,13 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testIndices() throws Exception {
         TableIdent custom = new TableIdent("custom", "table");
-        String[] indices = Planner.indices(TestingTableInfo.builder(custom, RowGranularity.DOC, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom.table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), RowGranularity.DOC, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(custom, RowGranularity.DOC, shardRouting)
+        indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting)
                 .add("id", DataTypes.INTEGER, null)
                 .add("date", DataTypes.TIMESTAMP, null, true)
                 .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).stringValue())

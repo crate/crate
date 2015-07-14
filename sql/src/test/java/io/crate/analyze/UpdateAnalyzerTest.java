@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -32,7 +32,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
@@ -62,7 +61,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     private final static TableIdent NESTED_CLUSTERED_BY_TABLE_IDENT = new TableIdent("doc", "nestedclustered");
     private final static TableInfo NESTED_CLUSTERED_BY_TABLE_INFO = TestingTableInfo.builder(
-            NESTED_CLUSTERED_BY_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+            NESTED_CLUSTERED_BY_TABLE_IDENT, shardRouting)
             .add("obj", DataTypes.OBJECT, null)
             .add("obj", DataTypes.STRING, Arrays.asList("name"))
             .add("other_obj", DataTypes.OBJECT, null)
@@ -70,7 +69,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "alias");
     private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            TEST_ALIAS_TABLE_IDENT, new Routing())
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
@@ -192,7 +191,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalyzedStatement statement = analyze("update users set name='Trillian'");
         UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
         assertThat(statement1.assignments().size(), is(1));
-        assertThat(((TableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users")));
+        assertThat(((DocTableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users")));
 
         Reference ref = statement1.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));

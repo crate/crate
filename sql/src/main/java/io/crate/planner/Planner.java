@@ -27,13 +27,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.consumer.ConsumerContext;
@@ -207,7 +208,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         IterablePlan plan = new IterablePlan(context.jobId());
-        TableRelation tableRelation = analyzedStatement.analyzedRelation();
+        DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
@@ -303,7 +304,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
          *    -> insert into es index (partition determined by partition by value)
          */
 
-        TableInfo table = analysis.table();
+        DocTableInfo table = analysis.table();
         int clusteredByPrimaryKeyIdx = table.primaryKey().indexOf(analysis.table().clusteredBy());
         List<String> partitionedByNames;
         String partitionIdent = null;
@@ -494,7 +495,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return new KillPlan(context.jobId());
     }
 
-    private void createESDeleteByQueryNode(TableInfo tableInfo,
+    private void createESDeleteByQueryNode(DocTableInfo tableInfo,
                                            List<WhereClause> whereClauses,
                                            IterablePlan plan,
                                            Context context) {
@@ -568,7 +569,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     /**
      * return the ES index names the query should go to
      */
-    public static String[] indices(TableInfo tableInfo, WhereClause whereClause) {
+    public static String[] indices(DocTableInfo tableInfo, WhereClause whereClause) {
         String[] indices;
 
         if (whereClause.noMatch()) {

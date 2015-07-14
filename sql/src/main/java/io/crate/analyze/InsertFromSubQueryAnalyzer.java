@@ -27,14 +27,17 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Singleton
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
@@ -43,10 +46,10 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
     private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
 
-        private final TableRelation targetTableRelation;
+        private final DocTableRelation targetTableRelation;
         private final List<Reference> targetColumns;
 
-        public ValuesResolver(TableRelation targetTableRelation, List<Reference> targetColumns) {
+        public ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
             this.targetTableRelation = targetTableRelation;
             this.targetColumns = targetColumns;
         }
@@ -73,9 +76,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
@@ -131,7 +134,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    private void processUpdateAssignments(TableRelation tableRelation,
+    private void processUpdateAssignments(DocTableRelation tableRelation,
                                           InsertFromSubQueryAnalyzedStatement statement,
                                           Analysis analysis,
                                           FieldProvider fieldProvider,

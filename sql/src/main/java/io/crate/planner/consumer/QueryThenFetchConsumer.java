@@ -24,17 +24,13 @@ package io.crate.planner.consumer;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -83,7 +79,7 @@ public class QueryThenFetchConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (context.rootRelation() != table) {
                 return null;
             }
@@ -91,11 +87,6 @@ public class QueryThenFetchConsumer implements Consumer {
             if (querySpec.hasAggregates() || querySpec.groupBy()!=null) {
                 return null;
             }
-            TableInfo tableInfo = table.tableRelation().tableInfo();
-            if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
-                return null;
-            }
-
             if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
@@ -111,6 +102,8 @@ public class QueryThenFetchConsumer implements Consumer {
             List<Projection> mergeProjections = new ArrayList<>();
             List<Symbol> collectSymbols = new ArrayList<>();
             List<Symbol> outputSymbols = new ArrayList<>();
+
+            DocTableInfo tableInfo = table.tableRelation().tableInfo();
             ReferenceInfo docIdRefInfo = tableInfo.getReferenceInfo(DOC_ID_COLUMN_IDENT);
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);

@@ -26,10 +26,10 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ReferenceToTrueVisitor;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Literal;
@@ -43,11 +43,11 @@ import java.util.*;
 public class WhereClauseAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
-    private final TableInfo tableInfo;
+    private final DocTableInfo tableInfo;
     private final EvaluatingNormalizer normalizer;
     private final EqualityExtractor eqExtractor;
 
-    public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, TableRelation tableRelation) {
+    public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, DocTableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
         this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
@@ -144,7 +144,7 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
     }
 
-    public static WhereClause resolvePartitions(WhereClause whereClause, TableInfo tableInfo, AnalysisMetaData analysisMetaData) {
+    public static WhereClause resolvePartitions(WhereClause whereClause, DocTableInfo tableInfo, AnalysisMetaData analysisMetaData) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert whereClause.partitions().isEmpty(): "partitions must not be analyzed twice";
         if (tableInfo.partitions().isEmpty()) {

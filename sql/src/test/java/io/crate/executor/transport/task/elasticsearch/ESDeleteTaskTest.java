@@ -29,7 +29,6 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.symbol.Literal;
@@ -55,7 +54,7 @@ public class ESDeleteTaskTest extends CrateUnitTest {
 
     static {
         TableIdent tableIdent = new TableIdent("doc", "dummy");
-        TableInfo tableInfo = mock(DocTableInfo.class);
+        DocTableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.ident()).thenReturn(tableIdent);
         node = new ESDeleteNode(
                 1,

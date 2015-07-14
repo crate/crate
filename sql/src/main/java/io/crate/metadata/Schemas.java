@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
@@ -31,7 +32,7 @@ public interface Schemas extends Iterable<SchemaInfo> {
     Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
     String DEFAULT_SCHEMA_NAME = "doc";
 
-    TableInfo getWritableTable(TableIdent tableIdent);
+    DocTableInfo getWritableTable(TableIdent tableIdent);
 
     TableInfo getTableInfo(TableIdent ident);
 

@@ -82,8 +82,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
 
@@ -225,6 +223,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId) {
         final Plan plan = planner.plan(analysis, jobId);
+        assert plan != null;
         tracePlan(plan);
         executePlan(analysis, plan, listener, request, attempt);
     }

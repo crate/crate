@@ -88,8 +88,9 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureGreen();
 
-        TableInfo terminatorTable = schemas.getTableInfo(new TableIdent(null, "terminator"));
-        TableInfo entsafterTable = schemas.getTableInfo(new TableIdent(null, "entsafter"));
+        DocTableInfo terminatorTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "terminator"));
+        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"));
+
         assertNotNull(terminatorTable);
         assertFalse(terminatorTable.isAlias());
 
@@ -107,7 +108,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        TableInfo entsafterTable = schemas.getTableInfo(new TableIdent(null, "entsafter"));
+        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"));
+
         assertNotNull(entsafterTable);
         assertThat(entsafterTable.concreteIndices().length, is(2));
         assertThat(Arrays.asList(entsafterTable.concreteIndices()), containsInAnyOrder("terminator", "transformer"));

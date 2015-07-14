@@ -25,15 +25,12 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.*;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -78,9 +75,10 @@ public class UpdateConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
-            assert statement.sourceRelation() instanceof TableRelation : "sourceRelation of update statement must be a TableRelation";
-            TableRelation tableRelation = (TableRelation) statement.sourceRelation();
-            TableInfo tableInfo = tableRelation.tableInfo();
+
+            assert statement.sourceRelation() instanceof DocTableRelation : "sourceRelation of update statement must be a DocTableRelation";
+            DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
+            DocTableInfo tableInfo = tableRelation.tableInfo();
 
             if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
                 return null;
@@ -116,7 +114,7 @@ public class UpdateConsumer implements Consumer {
 
         private Plan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                    ConsumerContext consumerContext,
-                                   TableInfo tableInfo,
+                                   DocTableInfo tableInfo,
                                    WhereClause whereClause) {
 
             Symbol versionSymbol = null;
@@ -167,7 +165,7 @@ public class UpdateConsumer implements Consumer {
         }
 
         private void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
-                                             TableInfo tableInfo,
+                                             DocTableInfo tableInfo,
                                              WhereClause whereClause,
                                              SymbolBasedUpsertByIdNode upsertByIdNode) {
             String[] indices = Planner.indices(tableInfo, whereClause);

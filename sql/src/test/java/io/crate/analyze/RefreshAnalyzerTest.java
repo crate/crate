@@ -84,35 +84,34 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshSystemTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         analyze("refresh table sys.shards");
     }
 
     @Test
     public void testRefreshBlobTable() throws Exception {
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table blob.blobs");
-
-        assertThat(analysis.tables().iterator().next().ident().name(), is("blobs"));
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("refresh table blob.blobs");
     }
 
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted PARTITION (date=1395874800000)");
-
-        assertThat(analysis.tables(), contains(Matchers.hasToString("doc.parted")));
+        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test(expected = TableUnknownException.class)
     public void testRefreshMultipleTablesUnknown() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted, foo, bar");
 
-        assertThat(analysis.tables().size(), is(1));
-        assertThat(analysis.tables(),contains(Matchers.hasToString("doc.parted")));
+        assertThat(analysis.indexNames().size(), is(1));
+        assertThat(analysis.indexNames(),contains(Matchers.hasToString("doc.parted")));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRefreshInvalidPartitioned() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
     }
 
@@ -124,21 +123,20 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshSysPartitioned() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         analyze("refresh table sys.shards partition (id='n')");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRefreshBlobPartitioned() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
         analyze("refresh table blob.blobs partition (n='n')");
     }
 
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
-
-        assertThat(analysis.partitions().values(),
-                contains(Matchers.hasToString(".partitioned.parted.0400"))
+        assertThat(analysis.indexNames(), contains(Matchers.hasToString(".partitioned.parted.0400"))
         );
     }
 }

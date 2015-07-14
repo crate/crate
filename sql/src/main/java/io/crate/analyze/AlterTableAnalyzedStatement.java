@@ -25,14 +25,14 @@ import com.google.common.base.Optional;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
 
 public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final Schemas schemas;
-    private TableInfo tableInfo;
+    private DocTableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
     private boolean excludePartitions = false;
 
@@ -44,7 +44,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         tableInfo = schemas.getWritableTable(tableIdent);
     }
 
-    public TableInfo table() {
+    public DocTableInfo table() {
         return tableInfo;
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -72,7 +73,12 @@ public class ReferenceInfosTest {
         expectedException.expectMessage("The table foo.bar is read-only. Write, Drop or Alter operations are not supported");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
-        SchemaInfo schemaInfo = schemaInfoMock(tableIdent);
+        SchemaInfo schemaInfo = mock(SchemaInfo.class);
+        TableInfo tableInfo = mock(TableInfo.class);
+        when(tableInfo.schemaInfo()).thenReturn(schemaInfo);
+        when(tableInfo.ident()).thenReturn(tableIdent);
+        when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
+        when(schemaInfo.name()).thenReturn(tableIdent.schema());
         when(schemaInfo.systemSchema()).thenReturn(true);
 
         Schemas schemas = getReferenceInfos(schemaInfo);
@@ -85,22 +91,18 @@ public class ReferenceInfosTest {
         expectedException.expectMessage("foo.bar is an alias. Write, Drop or Alter operations are not supported");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
-        SchemaInfo schemaInfo = schemaInfoMock(tableIdent);
-        when(schemaInfo.systemSchema()).thenReturn(false);
-
-        Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getWritableTable(tableIdent);
-    }
-
-    private SchemaInfo schemaInfoMock(TableIdent tableIdent) {
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
-        TableInfo tableInfo = mock(TableInfo.class);
+        DocTableInfo tableInfo = mock(DocTableInfo.class);
         when(tableInfo.schemaInfo()).thenReturn(schemaInfo);
         when(tableInfo.ident()).thenReturn(tableIdent);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
         when(tableInfo.isAlias()).thenReturn(true);
-        return schemaInfo;
+
+        when(schemaInfo.systemSchema()).thenReturn(false);
+
+        Schemas schemas = getReferenceInfos(schemaInfo);
+        schemas.getWritableTable(tableIdent);
     }
 
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {

@@ -21,11 +21,11 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
@@ -57,13 +57,9 @@ public class CountConsumer implements Consumer {
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             if (!querySpec.hasAggregates() || querySpec.groupBy()!=null) {
-                return null;
-            }
-            TableInfo tableInfo = table.tableRelation().tableInfo();
-            if (tableInfo.schemaInfo().systemSchema()) {
                 return null;
             }
             if (!hasOnlyGlobalCount(querySpec.outputs())) {
@@ -79,6 +75,7 @@ public class CountConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
+            TableInfo tableInfo = table.tableRelation().tableInfo();
             Routing routing = tableInfo.getRouting(querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
             CountPhase countNode = new CountPhase(plannerContext.jobId(), plannerContext.nextExecutionPhaseId(), routing, querySpec.where());

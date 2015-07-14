@@ -22,47 +22,15 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
-import io.crate.sql.tree.QualifiedName;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class QueriedTable implements QueriedRelation {
+public class QueriedTable extends QueriedTableRelation<TableRelation> {
 
-    private final TableRelation tableRelation;
-    private final QuerySpec querySpec;
-    private final ArrayList<Field> fields;
-
-    public QueriedTable(QualifiedName name, TableRelation tableRelation, List<OutputName> outputNames,
-                        QuerySpec querySpec) {
-        this.tableRelation = tableRelation;
-        this.querySpec = querySpec;
-        this.fields = new ArrayList<>(outputNames.size());
-        for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, outputNames.get(i), querySpec.outputs().get(i).valueType()));
-        }
-    }
-
-    public QuerySpec querySpec() {
-        return querySpec;
-    }
-
-    public TableRelation tableRelation() {
-        return tableRelation;
-    }
-
-    public QueriedTable normalize(AnalysisMetaData analysisMetaData){
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
-        querySpec().normalize(normalizer);
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-        querySpec().where(whereClauseAnalyzer.analyze(querySpec().where()));
-        return this;
+    public QueriedTable(TableRelation tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
+        super(tableRelation, outputNames, querySpec);
     }
 
     @Override
@@ -70,18 +38,4 @@ public class QueriedTable implements QueriedRelation {
         return visitor.visitQueriedTable(this, context);
     }
 
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
-    }
-
-    @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
-    }
-
-    @Override
-    public List<Field> fields() {
-        return fields;
-    }
 }

@@ -22,29 +22,18 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 
 import java.util.List;
-import java.util.Map;
 
 public class GroupByConsumer {
 
     private static final GroupByValidator GROUP_BY_VALIDATOR = new GroupByValidator();
 
-    public static boolean requiresDistribution(TableInfo tableInfo, Routing routing) {
-        if (tableInfo.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) return false;
-        if (!routing.hasLocations()) return false;
-        Map<String, Map<String, List<Integer>>> locations = routing.locations();
-        return (locations != null && locations.size() > 1);
-    }
-
-    public static boolean groupedByClusteredColumnOrPrimaryKeys(TableRelation tableRelation, WhereClause whereClause, List<Symbol> groupBySymbols) {
+    public static boolean groupedByClusteredColumnOrPrimaryKeys(DocTableRelation tableRelation, WhereClause whereClause, List<Symbol> groupBySymbols) {
         if (groupBySymbols.size() > 1) {
             return groupedByPrimaryKeys(tableRelation, groupBySymbols);
         }
@@ -66,7 +55,7 @@ public class GroupByConsumer {
                     .equals(tableRelation.tableInfo().clusteredBy()));
     }
 
-    private static boolean groupedByPrimaryKeys(TableRelation tableRelation, List<Symbol> groupBy) {
+    private static boolean groupedByPrimaryKeys(DocTableRelation tableRelation, List<Symbol> groupBy) {
         List<ColumnIdent> primaryKeys = tableRelation.tableInfo().primaryKey();
         if (groupBy.size() != primaryKeys.size()) {
             return false;
@@ -86,16 +75,16 @@ public class GroupByConsumer {
         return true;
     }
 
-    public static void validateGroupBySymbols(TableRelation tableRelation, List<Symbol> groupBySymbols) {
+    public static void validateGroupBySymbols(DocTableRelation tableRelation, List<Symbol> groupBySymbols) {
         for (Symbol symbol : groupBySymbols) {
             GROUP_BY_VALIDATOR.process(symbol, tableRelation);
         }
     }
 
-    private static class GroupByValidator extends SymbolVisitor<TableRelation, Void> {
+    private static class GroupByValidator extends SymbolVisitor<DocTableRelation, Void> {
 
         @Override
-        public Void visitFunction(Function symbol, TableRelation context) {
+        public Void visitFunction(Function symbol, DocTableRelation context) {
             for (Symbol arg : symbol.arguments()) {
                 process(arg, context);
             }
@@ -103,7 +92,7 @@ public class GroupByConsumer {
         }
 
         @Override
-        public Void visitReference(Reference symbol, TableRelation context) {
+        public Void visitReference(Reference symbol, DocTableRelation context) {
             if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
                         String.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible",
@@ -117,7 +106,7 @@ public class GroupByConsumer {
         }
 
         @Override
-        public Void visitField(Field field, TableRelation context) {
+        public Void visitField(Field field, DocTableRelation context) {
             return process(context.resolveField(field), context);
         }
     }

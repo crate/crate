@@ -25,11 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
@@ -80,13 +76,13 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (table.querySpec().groupBy() == null) {
                 return null;
             }
-
+            DocTableRelation tableRelation = table.tableRelation();
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                    table.tableRelation(), table.querySpec().where(), table.querySpec().groupBy())) {
+                    tableRelation, table.querySpec().where(), table.querySpec().groupBy())) {
                 return null;
             }
 
@@ -94,7 +90,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return optimizedReduceOnCollectorGroupBy(table, table.tableRelation(), context);
+            return optimizedReduceOnCollectorGroupBy(table, tableRelation, context);
         }
 
 
@@ -113,7 +109,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
          */
-        private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedTable table, TableRelation tableRelation, ConsumerContext context) {
+        private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                     tableRelation, table.querySpec().where(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
             TableInfo tableInfo = tableRelation.tableInfo();

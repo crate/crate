@@ -24,8 +24,11 @@ package io.crate.operation.reference.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.information.*;
+import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
@@ -223,130 +226,151 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
 
     private void addInformationSchemaTablesFactories(ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder) {
         builder.put(InformationTablesTableInfo.IDENT, ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-                .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
-
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                        .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
 
                             @Override
-                            public BytesRef value() {
-                                String schema = row.ident().schema();
-                                if (schema == null) {
-                                    return DOC_SCHEMA_INFO;
+                            public RowCollectExpression create() {
+                                return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                                    @Override
+                                    public BytesRef value() {
+                                        String schema = row.ident().schema();
+                                        if (schema == null) {
+                                            return DOC_SCHEMA_INFO;
+                                        }
+                                        return new BytesRef(schema);
+                                    }
+                                };
+                            }
+                        })
+                        .put(InformationTablesTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+                            @Override
+                            public RowCollectExpression create() {
+                                return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                                    @Override
+                                    public BytesRef value() {
+                                        return new BytesRef(row.ident().name());
+                                    }
+                                };
+                            }
+                        })
+                        .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, new RowCollectExpressionFactory() {
+                            @Override
+                            public RowCollectExpression create() {
+                                return new RowContextCollectorExpression<TableInfo, Integer>() {
+
+                                    @Override
+                                    public Integer value() {
+                                        if (row instanceof ShardedTable) {
+                                            return ((ShardedTable) row).numberOfShards();
+                                        }
+                                        return 1;
+                                    }
+                                };
+                            }
+                        })
+                        .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS, new RowCollectExpressionFactory() {
+                            @Override
+                            public RowCollectExpression create() {
+                                return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                                    private final BytesRef ZERO_REPLICAS = new BytesRef("0");
+
+                                    @Override
+                                    public BytesRef value() {
+                                        if (row instanceof ShardedTable) {
+                                            return ((ShardedTable) row).numberOfReplicas();
+                                        }
+                                        return ZERO_REPLICAS;
+                                    }
+                                };
+                            }
+                        })
+                        .put(InformationTablesTableInfo.Columns.CLUSTERED_BY, new RowCollectExpressionFactory() {
+                                    @Override
+                                    public RowCollectExpression create() {
+                                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                                            @Override
+                                            public BytesRef value() {
+                                                if (row instanceof ShardedTable) {
+                                                    ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
+                                                    if (clusteredBy == null) {
+                                                        return null;
+                                                    }
+                                                    return new BytesRef(clusteredBy.fqn());
+                                                }
+                                                return null;
+                                            }
+                                        };
+                                    }
                                 }
-                                return new BytesRef(schema);
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                        )
+                        .put(InformationTablesTableInfo.Columns.PARTITIONED_BY, new RowCollectExpressionFactory() {
+                                    @Override
+                                    public RowCollectExpression create() {
+                                        return new RowContextCollectorExpression<TableInfo, BytesRef[]>() {
 
-                            @Override
-                            public BytesRef value() {
-                                return new BytesRef(row.ident().name());
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, Integer>() {
+                                            @Override
+                                            public BytesRef[] value() {
+                                                if (row instanceof DocTableInfo) {
+                                                    List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
+                                                    if (partitionedBy == null || partitionedBy.isEmpty()) {
+                                                        return null;
+                                                    }
 
-                            @Override
-                            public Integer value() {
-                                return row.numberOfShards();
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
-
-                            @Override
-                            public BytesRef value() {
-                                return row.numberOfReplicas();
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.CLUSTERED_BY, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
-
-                            @Override
-                            public BytesRef value() {
-                                ColumnIdent clusteredBy = row.clusteredBy();
-                                if (clusteredBy == null) {
-                                    return null;
+                                                    BytesRef[] partitions = new BytesRef[partitionedBy.size()];
+                                                    for (int i = 0; i < partitions.length; i++) {
+                                                        partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
+                                                    }
+                                                    return partitions;
+                                                }
+                                                return null;
+                                            }
+                                        };
+                                    }
                                 }
-                                return new BytesRef(clusteredBy.fqn());
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.PARTITIONED_BY, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef[]>() {
-
+                        )
+                        .put(InformationTablesTableInfo.Columns.COLUMN_POLICY, new RowCollectExpressionFactory() {
                             @Override
-                            public BytesRef[] value() {
-                                List<ColumnIdent> partitionedBy = row.partitionedBy();
-                                if (partitionedBy == null || partitionedBy.isEmpty()) {
-                                    return null;
-                                }
+                            public RowCollectExpression create() {
+                                return new RowContextCollectorExpression<TableInfo, BytesRef>() {
 
-                                BytesRef[] partitions = new BytesRef[partitionedBy.size()];
-                                for (int i = 0; i < partitions.length; i++) {
-                                    partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
-                                }
-                                return partitions;
+                                    @Override
+                                    public BytesRef value() {
+                                        if (row instanceof DocTableInfo){
+                                            return new BytesRef(((DocTableInfo)row).columnPolicy().value());
+                                        }
+                                        return new BytesRef(ColumnPolicy.STRICT.value());
+                                    }
+                                };
                             }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.BLOBS_PATH, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                        })
+                        .put(InformationTablesTableInfo.Columns.BLOBS_PATH, new RowCollectExpressionFactory() {
+                                    @Override
+                                    public RowCollectExpression create() {
+                                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
 
-                            @Override
-                            public BytesRef value() {
-                                if (row instanceof BlobTableInfo) {
-                                    return ((BlobTableInfo) row).blobsPath();
+                                            @Override
+                                            public BytesRef value() {
+                                                if (row instanceof BlobTableInfo) {
+                                                    return ((BlobTableInfo) row).blobsPath();
+                                                }
+                                                return null;
+                                            }
+                                        };
+                                    }
                                 }
-                                return null;
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.COLUMN_POLICY, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<TableInfo, BytesRef>() {
-
-                            @Override
-                            public BytesRef value() {
-                                return new BytesRef(row.columnPolicy().value());
-                            }
-                        };
-                    }
-                })
-                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
-                    @Override
-                    public RowCollectExpression create() {
-                        return new TablesSettingsExpression();
-                    }
-                })
-                .build());
+                        )
+                        .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
+                                            @Override
+                                            public RowCollectExpression create() {
+                                                return new TablesSettingsExpression();
+                                            }
+                                        }
+                                )
+                        .build()
+        );
     }
 
     @Override

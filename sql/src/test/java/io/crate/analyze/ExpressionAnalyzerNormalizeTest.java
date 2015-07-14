@@ -71,7 +71,7 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
     private static final TableIdent TEST_TABLE_IDENT = new TableIdent(null, "test1");
     private static final FunctionInfo TEST_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.DOUBLE);
-    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT, RowGranularity.DOC, new Routing())
+    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT, new Routing())
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("d", DataTypes.DOUBLE, null)

@@ -32,7 +32,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.Literal;
@@ -76,7 +76,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference partedDateRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(partedTable, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP));
 
-    public static ESGetNode newGetNode(TableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+    public static ESGetNode newGetNode(DocTableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.outputs(outputs);
         List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());

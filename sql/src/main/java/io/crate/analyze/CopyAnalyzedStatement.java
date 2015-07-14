@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -32,7 +32,7 @@ import java.util.List;
 public class CopyAnalyzedStatement implements AnalyzedStatement {
 
     private Settings settings = ImmutableSettings.EMPTY;
-    private TableInfo table;
+    private DocTableInfo table;
 
     private Symbol uri;
     private Mode mode;
@@ -57,11 +57,11 @@ public class CopyAnalyzedStatement implements AnalyzedStatement {
         return uri;
     }
 
-    public void table(TableInfo tableInfo) {
+    public void table(DocTableInfo tableInfo) {
         table = tableInfo;
     }
 
-    public TableInfo table() {
+    public DocTableInfo table() {
         return table;
     }
 

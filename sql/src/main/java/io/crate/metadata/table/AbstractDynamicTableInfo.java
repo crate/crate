@@ -35,7 +35,6 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
     }
 
     @Nullable
-    @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
@@ -76,5 +75,7 @@ public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
         }
         return reference;
     }
+
+    protected abstract ColumnPolicy columnPolicy();
 
 }

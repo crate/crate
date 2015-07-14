@@ -23,12 +23,13 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
@@ -63,10 +64,10 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     @Override
     public CopyAnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         statement.table(tableInfo);
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
@@ -84,7 +85,6 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         if (node.genericProperties().isPresent()) {
             statement.settings(settingsFromProperties(
                     node.genericProperties().get(),
-                    tableRelation,
                     expressionAnalyzer,
                     expressionAnalysisContext));
         }
@@ -104,15 +104,15 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     public CopyAnalyzedStatement visitCopyTo(CopyTo node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
         statement.mode(CopyAnalyzedStatement.Mode.TO);
+
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-
-        if (tableInfo.schemaInfo().systemSchema()) {
+        if (!(tableInfo instanceof DocTableInfo)){
             throw new UnsupportedOperationException(String.format(
-                    "Cannot COPY %s TO. COPY TO doesn't support system tables", tableInfo.ident()));
+                    "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
-        statement.table(tableInfo);
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        statement.table((DocTableInfo) tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(statement.table());
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
@@ -123,18 +123,17 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         if (node.genericProperties().isPresent()) {
             statement.settings(settingsFromProperties(
                     node.genericProperties().get(),
-                    tableRelation,
                     expressionAnalyzer,
                     expressionAnalysisContext));
         }
 
         if (!node.table().partitionProperties().isEmpty()) {
             String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                    tableInfo,
+                    statement.table(),
                     node.table().partitionProperties(),
                     analysis.parameterContext().parameters());
 
-            if (!partitionExists(tableInfo, partitionIdent)){
+            if (!partitionExists(statement.table(), partitionIdent)){
                 throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionIdent);
             }
             statement.partitionIdent(partitionIdent);
@@ -151,7 +150,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         return statement;
     }
 
-    private boolean partitionExists(TableInfo table, @Nullable String partitionIdent) {
+    private boolean partitionExists(DocTableInfo table, @Nullable String partitionIdent) {
         if (table.isPartitioned() && partitionIdent != null) {
             return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), partitionIdent));
         }
@@ -159,7 +158,6 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     }
 
     private Settings settingsFromProperties(GenericProperties properties,
-                                            TableRelation tableRelation,
                                             ExpressionAnalyzer expressionAnalyzer,
                                             ExpressionAnalysisContext expressionAnalysisContext) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
@@ -176,7 +174,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
                         ((QualifiedNameReference) expression).getName().toString()));
             }
 
-            Symbol v = tableRelation.resolve(expressionAnalyzer.convert(expression, expressionAnalysisContext));
+            Symbol v = expressionAnalyzer.convert(expression, expressionAnalysisContext);
             if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }

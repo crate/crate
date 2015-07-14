@@ -51,7 +51,7 @@ public class DropBlobTableAnalyzedStatementTest extends CrateUnitTest {
     @Test
     public void testDeletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
         TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
-        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getTableInfo(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(schemas, true);
         dropBlobTableAnalyzedStatement.table(tableIdent);
@@ -63,7 +63,7 @@ public class DropBlobTableAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expect(TableUnknownException.class);
         expectedException.expectMessage("Table 'blob.Irrelevant' unknown");
         TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
-        when(schemas.getWritableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getTableInfo(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropBlobTableAnalyzedStatement = new DropBlobTableAnalyzedStatement(schemas, false);
         dropBlobTableAnalyzedStatement.table(tableIdent);

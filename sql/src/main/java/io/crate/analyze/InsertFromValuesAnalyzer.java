@@ -23,15 +23,15 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Literal;
@@ -58,12 +58,12 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private static class ValuesResolver implements io.crate.analyze.ValuesAwareExpressionAnalyzer.ValuesResolver {
 
-        private final TableRelation tableRelation;
+        private final DocTableRelation tableRelation;
         public List<Reference> columns;
         public List<String> assignmentColumns;
         public Object[] insertValues;
 
-        public ValuesResolver(TableRelation tableRelation) {
+        public ValuesResolver(DocTableRelation tableRelation) {
             this.tableRelation = tableRelation;
         }
 
@@ -90,9 +90,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =
@@ -123,7 +123,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         return statement;
     }
 
-    private void analyzeValues(TableRelation tableRelation,
+    private void analyzeValues(DocTableRelation tableRelation,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
                                ValuesResolver valuesResolver,
@@ -172,7 +172,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    private void addValues(TableRelation tableRelation,
+    private void addValues(DocTableRelation tableRelation,
                            ExpressionAnalyzer expressionAnalyzer,
                            ExpressionAnalysisContext expressionAnalysisContext,
                            ValuesResolver valuesResolver,

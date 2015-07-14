@@ -69,8 +69,4 @@ public class BlobTableInfoTest extends CrateUnitTest {
         assertEquals(new ColumnIdent("digest"), info.clusteredBy());
     }
 
-    @Test
-    public void testAlias() throws Exception {
-        assertFalse(info.isAlias());
-    }
 }
