@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
+   get stuck
+
  - Fixed a race condition that could cause queries with a high limit to fail
    due to a missing job context.
 

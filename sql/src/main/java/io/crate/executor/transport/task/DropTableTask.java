@@ -121,7 +121,9 @@ public class DropTableTask extends AbstractChainedTask {
                             "Some orphaned partitions might still exist, " +
                             "but are not accessible.", e, tableInfo.ident().fqn());
                 }
-                if (! (ifExists && e instanceof IndexMissingException)) {
+                if (ifExists && e instanceof IndexMissingException) {
+                    result.set(TaskResult.ZERO);
+                } else {
                     result.setException(e);
                 }
             }
