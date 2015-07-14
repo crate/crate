@@ -843,6 +843,7 @@ already existing user-created doc tables in the cluster::
     |    "blocks.read" = false,                           |
     |    "blocks.read_only" = false,                      |
     |    "blocks.write" = false,                          |
+    |    column_policy = 'dynamic',                       |
     |    "gateway.local.sync" = 5000,                     |
     |    number_of_replicas = '1',                        |
     |    "recovery.initial_shards" = 'quorum',            |
