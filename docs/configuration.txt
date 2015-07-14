@@ -474,17 +474,49 @@ Discovery
   Time a node is waiting for responses from other nodes to a published
   cluster state.
 
-.. _conf_srv_discovery:
+.. _conf_discovery:
 
-Service Discovery via DNS
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Unicast Host Discovery
+~~~~~~~~~~~~~~~~~~~~~~
 
-Crate has built-in support for service discovery via DNS.
-When a node starts up with SRV discovery enabled, it performs a DNS lookup using
-the settings below. The hosts and ports from the retrieved SRV records will be
-used to generate a list of unicast hosts for node discovery.
+**discovery.zen.ping.multicast.enabled**
+  | *Default:*  ``true``
+  | *Runtime:*  ``no``
+
+  Boolean value whether discovery via multicast is enabled or not.
+
+Crate has built-in support for several different mechanisms how unicast hosts
+for node discovery are obtained. The simplest mechanism is to specify the list
+of hosts in the configuration file.
+
+**discovery.zen.ping.unicast.hosts**
+  | *Default:*  ``not set``
+  | *Runtime:*  ``no``
+
+Currently there are two other discovery types: via DNS and via EC2 API.
+
+When a node starts up with one of these discovery types enabled, it performs
+a lookup using the settings for the specified mechanism listed below.
+The hosts and ports retrieved from the mechanism will be used to generate a
+list of unicast hosts for node discovery.
+
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
+
+**disovery.type**
+  | *Default:*   ``not set``
+  | *Runtime:*   ``no``
+  | *Allowed Values:*  ``srv``, ``ec2``
+
+See also: :ref:`best_practice_node_discovery`.
+
+.. _conf_dns_discovery:
+
+Discovery via DNS
+*****************
+
+Crate has built-in support for discovery via DNS. To enable DNS discovery
+the ``discovery.type`` setting needs to be set to ``srv``.
 
 The order of the unicast hosts is defined by the priority, weight and name
 of each host defined in the SRV record. For example::
@@ -496,14 +528,6 @@ of each host defined in the SRV record. For example::
 would result in a list of discovery nodes ordered like::
 
     crate2.example.com:4300, crate3.example.com:4300, crate1.example.com:4300
-
-
-**disovery.type**
-  | *Default:*   ``not set``
-  | *Runtime:*   ``no``
-  | *Allowed Values:*  ``srv``
-
-  To enable SRV discovery the type needs to be set to ``srv``.
 
 **discovery.srv.query**
   | *Runtime:*  ``no``
@@ -520,6 +544,78 @@ would result in a list of discovery nodes ordered like::
   If this is not set, or the specified hostname/IP is not resolvable,
   the default (system) resolver is used.
   Optionally a custom port can be specified using the format ``hostname:port``.
+
+.. _conf_ec2_discovery:
+
+Discovery via EC2
+*****************
+
+Crate has built-in support for discovery via the EC2 API. To enable EC2
+discovery the ``discovery.type`` setting needs to be set to ``ec2``.
+
+**cloud.aws.access_key**
+  | *Runtime:*  ``no``
+
+  The access key id to identify the API calls.
+
+**cloud.aws.secret_key**
+  | *Runtime:*  ``no``
+
+  The secret key to identify the API calls.
+
+Note that the AWS credentials can also be provided by environment variables
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY`` or via system properties
+``aws.accessKeyId`` and ``aws.secretKey``.
+
+Following settings control the discovery:
+
+**discovery.ec2.groups**
+  | *Runtime:*  ``no``
+
+  A list of security groups; either by id or name. Only instances with the
+  given group will be used for unicast host discovery.
+
+**discovery.ec2.any_group**
+  | *Runtime:*  ``no``
+  | *Default:*  ``true``
+
+  Defines whether all (``false``) or just any (``true``) security group must
+  be present for the instance to be used for discovery.
+
+**discovery.ec2.host_type**
+  | *Runtime:*  ``no``
+  | *Default:*  ``private_ip``
+  | *Allowed Values:*  ``private_ip``, ``public_ip``, ``private_dns``, ``public_dns``
+
+  Defines via which host type to communicate with other instances.
+
+**discovery.ec2.availability_zones**
+  | *Runtime:*  ``no``
+
+  A list of availability zones. Only instances within the given availability
+  zone will be used for unicast host discovery.
+
+**discovery.ec2.ping_timeout**
+  | *Runtime:*  ``no``
+  | *Default:*  ``3s``
+
+  The timeout for pings of existing EC2 instances during discovery. If no time
+  suffix is specified, milliseconds are used.
+
+**discovery.ec2.tag.<name>**
+  | *Runtime:*  ``no``
+
+  EC2 instances for discovery can also be filtered by tags using the
+  ``discovery.ec2.tag.`` prefix plus the tag name.
+  E.g. to filter instances that have the ``environment`` tags with the value
+  ``dev`` your setting will look like: ``discovery.ec2.tag.environment: dev``.
+
+**cloud.aws.ec2.endpoint**
+  | *Runtime:*  ``no``
+
+  If you have your own compatible implementation of the EC2 API service you can
+  set the enpoint that should be used.
+
 
 .. _conf_routing:
 
