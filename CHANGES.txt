@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
+   get stuck
+
  - Fix: column policy property was missing in SHOW CREATE TABLE result
 
  - Fixed a race condition that could cause queries with a high limit to fail
