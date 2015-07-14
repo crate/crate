@@ -32,7 +32,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
@@ -112,7 +114,8 @@ public class SortingBucketMerger implements BucketMerger {
         assert page.buckets().size() == numBuckets :
                 "number of buckets received in merge call must match the number given in the constructor";
         final AtomicBoolean listenerNotified = new AtomicBoolean(false);
-        Futures.addCallback(Futures.allAsList(page.buckets()), new FutureCallback<List<Bucket>>() {
+
+        FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 try {
@@ -137,6 +140,13 @@ public class SortingBucketMerger implements BucketMerger {
                 }
             }
 
+            @Override
+            public void onFailure(Throwable t) {
+                wantMore.set(false);
+                fail(t);
+                notifyListener();
+            }
+
             private void notifyListener() {
                 if (!listenerNotified.getAndSet(true)) {
                     if (wantMore.get()) {
@@ -146,14 +156,13 @@ public class SortingBucketMerger implements BucketMerger {
                     }
                 }
             }
+        };
 
-            @Override
-            public void onFailure(Throwable t) {
-                wantMore.set(false);
-                fail(t);
-                notifyListener();
-            }
-        }, executor.isPresent() ? executor.get() : MoreExecutors.directExecutor());
+        Executor executor = this.executor.or(MoreExecutors.directExecutor());
+        MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), finalCallback);
+        for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
+            Futures.addCallback(bucketFuture, multiFutureCallback, executor);
+        }
     }
 
     /**

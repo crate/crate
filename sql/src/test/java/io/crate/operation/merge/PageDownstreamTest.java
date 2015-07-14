@@ -34,19 +34,20 @@ import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class PageDownstreamTest {
 
     public static interface PageDownstreamBuilder <T extends PageDownstream> {
 
-        T create();
+        T create(RowDownstream downstream);
     }
 
-    public static <T extends BucketMerger> void verifyNoSetNextRowAfterFinished(PageDownstreamBuilder<T> builder) throws Throwable{
+    public static <T extends PageDownstream> void verifyNoSetNextRowAfterFinished(PageDownstreamBuilder<T> builder) throws Throwable{
         final AtomicReference<Throwable> t = new AtomicReference();
-        final T pageDownstream = builder.create();
-        pageDownstream.downstream(new RowDownstream() {
+        final T pageDownstream = builder.create(new RowDownstream() {
             @Override
             public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
 
@@ -113,8 +114,8 @@ public class PageDownstreamTest {
     public void testFinishNonSortingBucketMerger() throws Throwable {
         verifyNoSetNextRowAfterFinished(new PageDownstreamBuilder<NonSortingBucketMerger>() {
             @Override
-            public NonSortingBucketMerger create() {
-                return new NonSortingBucketMerger();
+            public NonSortingBucketMerger create(RowDownstream downstream) {
+                return new NonSortingBucketMerger(downstream);
             }
         });
     }
@@ -122,10 +123,13 @@ public class PageDownstreamTest {
 
     @Test
     public void testFinishSortingBucketMerger() throws Throwable {
-        verifyNoSetNextRowAfterFinished(new PageDownstreamBuilder<SortingBucketMerger>() {
+        verifyNoSetNextRowAfterFinished(new PageDownstreamBuilder<PageDownstream>() {
             @Override
-            public SortingBucketMerger create() {
-                return new SortingBucketMerger(1, new int[0], new boolean[0], new Boolean[0], Optional.<Executor>absent());
+            public SortingBucketMerger create(RowDownstream downstream) {
+                SortingBucketMerger sortingBucketMerger =
+                        new SortingBucketMerger(1, new int[0], new boolean[0], new Boolean[0], Optional.<Executor>absent());
+                sortingBucketMerger.downstream(downstream);
+                return sortingBucketMerger;
             }
         });
     }

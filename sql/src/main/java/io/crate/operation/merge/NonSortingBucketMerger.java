@@ -24,93 +24,78 @@ package io.crate.operation.merge;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.projectors.NoOpProjector;
+import io.crate.operation.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * BucketMerger implementation that does not care about sorting
  * and just emits a stream of rows, whose order is undeterministic
  * as it is not guaranteed which row from which bucket ends up in the stream at which position.
  */
-public class NonSortingBucketMerger implements BucketMerger {
+public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
-    private RowDownstreamHandle downstream;
-    private final AtomicBoolean wantMore;
+    private final RowDownstreamHandle downstream;
     private final AtomicBoolean alreadyFinished;
     private final Optional<Executor>  executor;
 
-    public NonSortingBucketMerger() {
-        this(Optional.<Executor>absent());
+    public NonSortingBucketMerger(RowDownstream rowDownstream) {
+        this(rowDownstream, Optional.<Executor>absent());
     }
 
-    public NonSortingBucketMerger(Optional<Executor> executor) {
-        this.downstream = NoOpProjector.INSTANCE;
-        this.wantMore = new AtomicBoolean(true);
+    public NonSortingBucketMerger(RowDownstream rowDownstream, Optional<Executor> executor) {
+        this.downstream = rowDownstream.registerUpstream(this);
         this.alreadyFinished = new AtomicBoolean(false);
         this.executor = executor;
     }
 
     @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
-        final AtomicBoolean listenerNotified = new AtomicBoolean(false);
-        FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
+        final FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
             @Override
-            public void onSuccess(@Nullable List<Bucket> result) {
+            public void onSuccess(List<Bucket> buckets) {
                 LOGGER.trace("received bucket");
-                if (result != null && wantMore.get() && !listenerNotified.get()) {
-                    for (Bucket rows : result) {
-                        for (Row row : rows) {
-                            try {
-                                if (alreadyFinished.get()) {
-                                    listener.finish();
-                                    return;
-                                }
-                                if (!emitRow(row)) {
-                                    wantMore.set(false);
-                                    notifyListener();
-                                    break;
-                                }
-                            } catch (Throwable t) {
-                                onFailure(t);
+                for (Bucket bucket : buckets) {
+                    for (Row row : bucket) {
+                        try {
+                            if (alreadyFinished.get()) {
+                                listener.finish();
+                                return;
                             }
+                            boolean needMore = downstream.setNextRow(row);
+                            if (!needMore) {
+                                listener.finish();
+                                return;
+                            }
+                        } catch (Throwable t) {
+                            onFailure(t);
+                            return;
                         }
                     }
                 }
-                notifyListener();
-            }
-
-            private void notifyListener() {
-                if (!listenerNotified.getAndSet(true)) {
-                    if (wantMore.get()) {
-                        listener.needMore();
-                    } else {
-                        listener.finish();
-                    }
-                }
+                listener.needMore();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                LOGGER.trace("error in {}", t, NonSortingBucketMerger.this.getClass().getSimpleName());
-                wantMore.set(false);
                 fail(t);
-                notifyListener();
+                listener.finish();
             }
         };
 
@@ -120,33 +105,31 @@ public class NonSortingBucketMerger implements BucketMerger {
          * Otherwise there could be race condition.
          * E.g. if a FetchProjector finishes early with data from one node and wants to close the remaining contexts it
          * could be that one node doesn't even have a context to close yet and that context would remain open.
+         *
+         * NOTE: this doesn't use Futures.allAsList because in the case of failures it should still wait for the other
+         * upstreams before taking any action
          */
-        Futures.addCallback(Futures.allAsList(page.buckets()), callback, executor);
+
+        MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), callback);
+        for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
+            Futures.addCallback(bucketFuture, multiFutureCallback, executor);
+        }
     }
 
     @Override
     public void finish() {
         if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("{} finished.", hashCode());
+            LOGGER.trace("NonSortingBucketMerger {} finished.", hashCode());
             downstream.finish();
         }
     }
 
-    private synchronized boolean emitRow(Row row) {
-        return downstream.setNextRow(row);
-    }
 
     @Override
     public void fail(Throwable t) {
         if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("{} failed.", t, hashCode());
+            LOGGER.trace("NonSortingBucketMerger {} failed.", t, hashCode());
             downstream.fail(t);
         }
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        assert downstream != null : "downstream must not be null";
-        this.downstream = downstream.registerUpstream(this);
     }
 }

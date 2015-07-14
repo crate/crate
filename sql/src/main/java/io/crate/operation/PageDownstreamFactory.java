@@ -75,19 +75,6 @@ public class PageDownstreamFactory {
                                                                                    RowDownstream rowDownstream,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
-        BucketMerger bucketMerger;
-        if (mergeNode.sortedInputOutput()) {
-            bucketMerger = new SortingBucketMerger(
-                    mergeNode.numUpstreams(),
-                    mergeNode.orderByIndices(),
-                    mergeNode.reverseFlags(),
-                    mergeNode.nullsFirst(),
-                    executorOptional
-            );
-        } else {
-            bucketMerger = new NonSortingBucketMerger(executorOptional);
-        }
-
         FlatProjectorChain projectorChain = null;
         if (!mergeNode.projections().isEmpty()) {
             projectorChain = FlatProjectorChain.withAttachedDownstream(
@@ -100,7 +87,20 @@ public class PageDownstreamFactory {
             rowDownstream = projectorChain.firstProjector();
         }
 
-        bucketMerger.downstream(rowDownstream);
-        return new Tuple<PageDownstream, FlatProjectorChain>(bucketMerger, projectorChain);
+        PageDownstream pageDownstream;
+        if (mergeNode.sortedInputOutput()) {
+            SortingBucketMerger sortingBucketMerger = new SortingBucketMerger(
+                    mergeNode.numUpstreams(),
+                    mergeNode.orderByIndices(),
+                    mergeNode.reverseFlags(),
+                    mergeNode.nullsFirst(),
+                    executorOptional
+            );
+            sortingBucketMerger.downstream(rowDownstream);
+            pageDownstream = sortingBucketMerger;
+        } else {
+            pageDownstream = new NonSortingBucketMerger(rowDownstream, executorOptional);
+        }
+        return new Tuple<>(pageDownstream, projectorChain);
     }
 }

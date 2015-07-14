@@ -53,8 +53,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger();
-        merger.downstream(collectingProjector);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(collectingProjector);
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
         if (pageIter.hasNext()) {
             merger.nextPage(pageIter.next(), new PageConsumeListener() {
@@ -223,8 +222,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                 2,
                 0);
         final CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger();
-        merger.downstream(topNProjector);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(topNProjector);
         topNProjector.downstream(collectingProjector);
 
         final SettableFuture<Bucket> bucketFuture1 = SettableFuture.create();
