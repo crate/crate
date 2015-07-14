@@ -61,6 +61,8 @@ native Java client, which uses the transport port because it uses the Crate
 transport protocol.
 
 
+.. _best_practice_node_discovery:
+
 Node Discovery
 ==============
 
