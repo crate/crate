@@ -333,14 +333,9 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices...", indices.size());
             TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
-            if (timeout.millis() == 0L) {
-                // apply default
-                // wait up to 10 seconds for every single create index request
-                timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
-            }
             final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
-                    .timeout(timeout); // wait up to 10 seconds for every create index request
-            FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
+                    .timeout(timeout);
+            final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     RowN row = null;
