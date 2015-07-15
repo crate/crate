@@ -33,7 +33,6 @@ import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
@@ -52,7 +51,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -327,7 +325,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
                     .timeout(timeout);
 
-            FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
+            final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     if (failure.get() != null) {
@@ -355,19 +353,16 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
             if (indices.isEmpty()) {
                 indicesCreatedCallback.onSuccess(null);
             } else {
-                // initialize callback for when all indices are created
-                IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, indicesCreatedCallback, timeout);
-                // initiate the request
                 transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
                     @Override
                     public void onResponse(BulkCreateIndicesResponse response) {
                         indicesCreated.addAll(indices);
+                        indicesCreatedCallback.onSuccess(null);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        LOGGER.error("error when creating pending indices in bulk", t);
-                        setFailure(ExceptionsHelper.unwrapCause(t));
+                        indicesCreatedCallback.onFailure(t);
                     }
                 });
             }
