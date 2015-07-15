@@ -22,9 +22,7 @@
 package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobIndices;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -32,8 +30,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.settings.IndexSettings;
-
-import java.util.Map;
 
 public class BlobShardExpressionModule extends AbstractModule {
 
@@ -50,17 +46,16 @@ public class BlobShardExpressionModule extends AbstractModule {
                 .newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
         if (settings.getAsBoolean(BlobIndices.SETTING_INDEX_BLOBS_ENABLED, false)){
 
-            Map<ColumnIdent, ReferenceInfo> infos = SysShardsTableInfo.INFOS;
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardIdExpression.NAME)).ident()).to(BlobShardIdExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardNumDocsExpression.NAME)).ident()).to(BlobShardNumDocsExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardPrimaryExpression.NAME)).ident()).to(BlobShardPrimaryExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardRelocatingNodeExpression.NAME)).ident()).to(BlobShardRelocatingNodeExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardSchemaNameExpression.NAME)).ident()).to(BlobShardSchemaNameExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardSizeExpression.NAME)).ident()).to(BlobShardSizeExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardStateExpression.NAME)).ident()).to(BlobShardStateExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardTableNameExpression.NAME)).ident()).to(BlobShardTableNameExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardPartitionIdentExpression.NAME)).ident()).to(BlobShardPartitionIdentExpression.class).asEagerSingleton();
-            binder.addBinding(infos.get(new ColumnIdent(BlobShardPartitionOrphanedExpression.NAME)).ident()).to(BlobShardPartitionOrphanedExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.ID).to(BlobShardIdExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.NUM_DOCS).to(BlobShardNumDocsExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.PRIMARY).to(BlobShardPrimaryExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE).to(BlobShardRelocatingNodeExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME).to(BlobShardSchemaNameExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.SIZE).to(BlobShardSizeExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.STATE).to(BlobShardStateExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.TABLE_NAME).to(BlobShardTableNameExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT).to(BlobShardPartitionIdentExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION).to(BlobShardPartitionOrphanedExpression.class).asEagerSingleton();
 
         }
     }

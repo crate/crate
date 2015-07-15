@@ -29,54 +29,82 @@ import io.crate.types.*;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
+@Singleton
 public class SysShardsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
     private static final String[] CONCRETE_INDICES = new String[]{IDENT.esName()};
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
+    private final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
+    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        public static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
+        public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
+        public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
+        public static final ColumnIdent SIZE = new ColumnIdent("size");
+        public static final ColumnIdent STATE = new ColumnIdent("state");
+        public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+    }
+
+    public static class ReferenceIdents {
+        public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
+        public static final ReferenceIdent SCHEMA_NAME = new ReferenceIdent(IDENT, Columns.SCHEMA_NAME);
+        public static final ReferenceIdent TABLE_NAME = new ReferenceIdent(IDENT, Columns.TABLE_NAME);
+        public static final ReferenceIdent PARTITION_IDENT = new ReferenceIdent(IDENT, Columns.PARTITION_IDENT);
+        public static final ReferenceIdent NUM_DOCS = new ReferenceIdent(IDENT, Columns.NUM_DOCS);
+        public static final ReferenceIdent PRIMARY = new ReferenceIdent(IDENT, Columns.PRIMARY);
+        public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
+        public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
+        public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
+        public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
+    }
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
-            new ColumnIdent("schema_name"),
-            new ColumnIdent("table_name"),
-            new ColumnIdent("id"),
-            new ColumnIdent("partition_ident"));
+            Columns.SCHEMA_NAME,
+            Columns.TABLE_NAME,
+            Columns.ID,
+            Columns.PARTITION_IDENT
+    );
 
-    static {
-        register(primaryKey.get(0).fqn(), StringType.INSTANCE, null);
-        register(primaryKey.get(1).fqn(), StringType.INSTANCE, null);
-        register(primaryKey.get(2).fqn(), IntegerType.INSTANCE, null);
-        register(primaryKey.get(3).fqn(), StringType.INSTANCE, null);
-        register("num_docs", LongType.INSTANCE, null);
-        register("primary", BooleanType.INSTANCE, null);
-        register("relocating_node", StringType.INSTANCE, null);
-        register("size", LongType.INSTANCE, null);
-        register("state", StringType.INSTANCE, null);
-        register("orphan_partition", BooleanType.INSTANCE, null);
+    private final TableColumn nodesTableColumn;
+
+    @Inject
+    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo, SysNodesTableInfo sysNodesTableInfo) {
+        super(service, sysSchemaInfo);
+        nodesTableColumn = sysNodesTableInfo.tableColumn();
+
+        register(Columns.SCHEMA_NAME, StringType.INSTANCE);
+        register(Columns.TABLE_NAME, StringType.INSTANCE);
+        register(Columns.ID, IntegerType.INSTANCE);
+        register(Columns.PARTITION_IDENT, StringType.INSTANCE);
+        register(Columns.NUM_DOCS, LongType.INSTANCE);
+        register(Columns.PRIMARY, BooleanType.INSTANCE);
+        register(Columns.RELOCATING_NODE, StringType.INSTANCE);
+        register(Columns.SIZE, LongType.INSTANCE);
+        register(Columns.STATE, StringType.INSTANCE);
+        register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE);
 
         INFOS.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
     }
 
-    private final TableColumn nodesTableColumn;
-
-    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo, SysNodesTableInfo sysNodesTableInfo) {
-        super(service, sysSchemaInfo);
-        nodesTableColumn = sysNodesTableInfo.tableColumn();
-    }
-
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.SHARD, type);
-        if (info.ident().isColumn()) {
+    private void register(ColumnIdent column, DataType type) {
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.SHARD, type);
+        if (column.isColumn()){
             columns.add(info);
         }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
+        INFOS.put(column, info);
     }
 
     @Override

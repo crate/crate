@@ -68,12 +68,48 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
                     } catch (AssertionError e) {
                         lastAssertionError.set(e);
                     }
-                    latch.countDown();;
+                    latch.countDown();
                 }
             });
             t.start();
         }
 
+        latch.await();
+        AssertionError assertionError = lastAssertionError.get();
+        if (assertionError != null) {
+            throw assertionError;
+        }
+    }
+
+    @Test
+    public void testConcurrentUnassignedShardsReferenceResolver() throws Exception {
+        cluster().ensureAtMostNumNodes(1);
+        execute("create table t1 (col1 integer) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=8)");
+        execute("create table t2 (col1 integer) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=8)");
+        ensureYellow();
+
+        final SQLResponse response = execute("select * from sys.shards where table_name in ('t1', 't2') and state='UNASSIGNED' order by schema_name, table_name, id");
+        final CountDownLatch latch = new CountDownLatch(40);
+        final AtomicReference<AssertionError> lastAssertionError = new AtomicReference<>();
+        for (int i = 0; i < 40; i++) {
+            final Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    SQLResponse resp = execute("select * from sys.shards where table_name in ('t1', 't2') and state='UNASSIGNED' order by schema_name, table_name, id");
+                    try {
+                        assertThat(resp.rows(), Matchers.equalTo(response.rows()));
+                    } catch (AssertionError e) {
+                        lastAssertionError.set(e);
+                    }
+                    latch.countDown();
+                }
+            });
+            t.start();
+        }
         latch.await();
         AssertionError assertionError = lastAssertionError.get();
         if (assertionError != null) {

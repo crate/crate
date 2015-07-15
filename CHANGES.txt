@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause concurrent queries on sys tables to
+   return inconsistent results if the table contains unassigned shards
+
  - Fixed an issue that could cause a `SELECT` statement to cause a missleading
    error if the table was deleted concurrently.
 

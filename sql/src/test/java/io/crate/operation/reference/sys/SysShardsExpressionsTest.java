@@ -26,11 +26,12 @@ import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.*;
+import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -156,8 +157,8 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testShardInfoLookup() throws Exception {
-        ReferenceInfo info = SysShardsTableInfo.INFOS.get(new ColumnIdent("id"));
-        assertEquals(info, referenceInfos.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(info.ident().columnIdent()));
+        ReferenceInfo info = new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
+        assertEquals(info, referenceInfos.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(SysShardsTableInfo.Columns.ID));
     }
 
     @Test

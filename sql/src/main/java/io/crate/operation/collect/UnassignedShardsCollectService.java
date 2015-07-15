@@ -27,8 +27,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
@@ -143,14 +143,14 @@ public class UnassignedShardsCollectService implements CollectService {
 
     private static class UnassignedShardsCollector implements CrateCollector {
 
-        private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
+        private final List<RowContextCollectorExpression<UnassignedShard, ?>> collectorExpressions;
         private final InputRow row;
         private final RowDownstreamHandle downstream;
         private final Iterable<UnassignedShard> rows;
         private final Input<Boolean> condition;
 
         public UnassignedShardsCollector(List<Input<?>> inputs,
-                                         List<UnassignedShardCollectorExpression<?>> collectorExpressions,
+                                         List<RowContextCollectorExpression<UnassignedShard, ?>> collectorExpressions,
                                          RowDownstream downstream,
                                          Iterable<UnassignedShard> rows,
                                          Input<Boolean> condition) {
@@ -164,7 +164,7 @@ public class UnassignedShardsCollectService implements CollectService {
         @Override
         public void doCollect(RamAccountingContext ramAccountingContext) {
             for (UnassignedShard row : rows) {
-                for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
+                for (RowContextCollectorExpression<UnassignedShard, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
                 Boolean match = condition.value();

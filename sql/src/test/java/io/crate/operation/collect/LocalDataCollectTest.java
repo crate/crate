@@ -59,6 +59,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -190,7 +191,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
     private static Reference testNodeReference = new Reference(
             SysNodesTableInfo.INFOS.get(new ColumnIdent("os", ImmutableList.of("cpu", "stolen")))
     );
-    private static Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
+    private static Reference testShardIdReference = new Reference(new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE));
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
@@ -308,7 +309,7 @@ public class LocalDataCollectTest extends CrateUnitTest {
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
-            binder.addBinding(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")).ident()).toInstance(shardIdExpression);
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.ID).toInstance(shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
             bind(AllocationDecider.class).to(DiskThresholdDecider.class);
             bind(ShardCollectService.class).asEagerSingleton();
