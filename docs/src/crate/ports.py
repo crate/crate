@@ -28,20 +28,25 @@ class PortPool(object):
         self.ports = set()
         self.lock = Lock()
 
-    def random_available_port(self):
+    def random_available_port(self, addr):
         sock = socket.socket()
-        sock.bind(('', 0))
+        sock.bind((addr, 0))
         port = sock.getsockname()[1]
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except:
+            # ok, at least we know that the socket is not connected
+            pass
         sock.close()
         return port
 
-    def get(self):
+    def get(self, addr='127.0.0.1'):
         retries = 0
-        port = self.random_available_port()
+        port = self.random_available_port(addr)
 
         with self.lock:
             while port in self.ports:
-                port = self.random_available_port()
+                port = self.random_available_port(addr)
                 retries += 1
                 if retries > self.MAX_RETRIES:
                     raise OSError("Could not get free port. Max retries exceeded.")

@@ -45,10 +45,11 @@ class GracefulStopTest(unittest.TestCase):
         self.clients = []
         self.node_names = []
         for i in range(num_servers):
+            host = public_ipv4()
             layer = GracefulStopCrateLayer(self.node_name(i),
                            crate_path(),
-                           host=public_ipv4(),
-                           port=GLOBAL_PORT_POOL.get(),
+                           host=host,
+                           port=GLOBAL_PORT_POOL.get(host),
                            transport_port=GLOBAL_PORT_POOL.get(),
                            multicast=True,
                            cluster_name=self.__class__.__name__)
