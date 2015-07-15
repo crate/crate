@@ -1,145 +1,170 @@
 package io.crate.operation.reference.sys.shard.unassigned;
 
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
-import io.crate.metadata.sys.SysClusterTableInfo;
+import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.*;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.operation.reference.sys.shard.*;
+import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.Map;
 
-public class UnassignedShardsReferenceResolver implements DocLevelReferenceResolver<UnassignedShardCollectorExpression<?>> {
+public class UnassignedShardsReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
 
-    private static final Map<ReferenceInfo, UnassignedShardCollectorExpression<?>> IMPLEMENTATIONS = new HashMap<>();
-    private final Map<ReferenceIdent, ReferenceImplementation> referenceImplementations;
-
-    private static void register(UnassignedShardCollectorExpression<?> collectorExpression) {
-        IMPLEMENTATIONS.put(collectorExpression.info(), collectorExpression);
-    }
-
-    static {
-        register(new UnassignedShardCollectorExpression<BytesRef>(ShardSchemaNameExpression.NAME) {
-            @Override
-            public BytesRef value() {
-                return new BytesRef(this.row.schemaName());
-            }
-        });
-        register(new UnassignedShardCollectorExpression<BytesRef>(ShardTableNameExpression.NAME) {
-            @Override
-            public BytesRef value() {
-                return new BytesRef(this.row.tableName());
-            }
-        });
-        register(new UnassignedShardCollectorExpression<BytesRef>(ShardPartitionIdentExpression.NAME) {
-            @Override
-            public BytesRef value() {
-                return new BytesRef(this.row.partitionIdent());
-            }
-        });
-        register(new UnassignedShardCollectorExpression<Integer>(ShardIdExpression.NAME) {
-            @Override
-            public Integer value() {
-                return this.row.id();
-            }
-        });
-        register(new UnassignedShardCollectorExpression<Long>(ShardNumDocsExpression.NAME) {
-            @Override
-            public Long value() {
-                return 0L;
-            }
-        });
-        register(new UnassignedShardCollectorExpression<Boolean>(ShardPrimaryExpression.NAME) {
-            @Override
-            public Boolean value() {
-                return row.primary();
-            }
-        });
-        register(new UnassignedShardCollectorExpression<BytesRef>(ShardRelocatingNodeExpression.NAME) {
-            @Override
-            public BytesRef value() {
-                return null;
-            }
-        });
-        register(new UnassignedShardCollectorExpression<Long>(ShardSizeExpression.NAME) {
-            @Override
-            public Long value() {
-                return 0L;
-            }
-        });
-        register(new UnassignedShardCollectorExpression<BytesRef>(ShardStateExpression.NAME) {
-            @Override
-            public BytesRef value() {
-                return row.state();
-            }
-        });
-        register(new UnassignedShardCollectorExpression<Boolean>(ShardPartitionOrphanedExpression.NAME) {
-            @Override
-            public Boolean value() {
-                return this.row.orphanedPartition();
-            }
-        });
-        register(new UnassignedShardCollectorExpression(SysNodesTableInfo.SYS_COL_NAME) {
-            @Override
-            public Object value() {
-                return null;
-            }
-        });
-
-        for (ReferenceInfo referenceInfo : SysNodesTableInfo.INFOS.values()) {
-            register(nullExpression(referenceInfo));
-        }
-    }
+    private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
 
     @Inject
-    public UnassignedShardsReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> referenceImplementations) {
-        this.referenceImplementations = referenceImplementations;
+    public UnassignedShardsReferenceResolver() {
+        ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder = ImmutableMap.builder();
+        builder.put(SysShardsTableInfo.IDENT, getSysShardsTableInfoFactories());
+        factoryMap = builder.build();
     }
+
+    private Map<ColumnIdent, RowCollectExpressionFactory> getSysShardsTableInfoFactories() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(SysShardsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return new BytesRef(this.row.schemaName());
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.TABLE_NAME, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return new BytesRef(this.row.tableName());
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.PARTITION_IDENT, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return new BytesRef(this.row.partitionIdent());
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.ID, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, Integer>() {
+                            @Override
+                            public Integer value() {
+                                return this.row.id();
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.NUM_DOCS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, Long>() {
+                            @Override
+                            public Long value() {
+                                return 0L;
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.PRIMARY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, Boolean>() {
+                            @Override
+                            public Boolean value() {
+                                return row.primary();
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.RELOCATING_NODE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return null;
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.SIZE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, Long>() {
+                            @Override
+                            public Long value() {
+                                return 0L;
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.STATE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return row.state();
+                            }
+                        };
+                    }
+                })
+                .put(SysShardsTableInfo.Columns.ORPHAN_PARTITION, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, Boolean>() {
+                            @Override
+                            public Boolean value() {
+                                return this.row.orphanedPartition();
+                            }
+                        };
+                    }
+                })
+                .put(SysNodesTableInfo.SYS_COL_IDENT, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression() {
+                            @Override
+                            public Object value() {
+                                return null;
+                            }
+                        };
+                    }
+                })
+                .build();
+    }
+
 
     @Nullable
     @Override
-    public UnassignedShardCollectorExpression<?> getImplementation(ReferenceInfo info) {
-        UnassignedShardCollectorExpression<?> expression = IMPLEMENTATIONS.get(info);
-        if (expression == null) {
-            if (info.ident().tableIdent().equals(SysClusterTableInfo.IDENT)) {
-                final ReferenceImplementation referenceImplementation = referenceImplementations.get(info.ident());
-                if (referenceImplementation == null) {
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
+        RowCollectExpression expression =  RowContextDocLevelReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, info);
+        if (expression == null && info.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
+            return new RowContextCollectorExpression<UnassignedShard, Object>() {
+                @Override
+                public Object value() {
                     return null;
                 }
-                assert referenceImplementation instanceof SimpleObjectExpression;
-                return new UnassignedShardCollectorExpression<Object>(info) {
-                    @Override
-                    public Object value() {
-                        return (referenceImplementation).value();
-                    }
-                };
-            } else if (info.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
-                return nullExpression(info);
-            }
+            };
         }
         return expression;
-    }
-
-    private static <T> NullUnassignedShardCollectorExpression<T> nullExpression(ReferenceInfo info) {
-        return new NullUnassignedShardCollectorExpression<>(info);
-    }
-
-    static class NullUnassignedShardCollectorExpression<T> extends UnassignedShardCollectorExpression<T> {
-
-        protected NullUnassignedShardCollectorExpression(ReferenceInfo info) {
-            super(info);
-        }
-
-        @Override
-        public T value() {
-            return null;
-        }
     }
 }
