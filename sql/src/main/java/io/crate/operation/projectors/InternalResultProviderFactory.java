@@ -23,7 +23,8 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.executor.transport.distributed.DistributingDownstream;
+import io.crate.executor.transport.distributed.BroadcastDistributingDownstream;
+import io.crate.executor.transport.distributed.ModuloDistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.operation.NodeOperation;
@@ -65,7 +66,20 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
             Collections.sort(server);
             int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
 
-            return new DistributingDownstream(
+            if (nodeOperation.downstreamNodes().size() == 1) {
+                // using modulo based distribution does not make sense if distributing to 1 node only
+                // lets use the broadcast distribution which simply passes every bucket to every node
+                return new BroadcastDistributingDownstream(
+                        jobId,
+                        nodeOperation.downstreamExecutionPhaseId(),
+                        bucketIdx,
+                        nodeOperation.downstreamNodes(),
+                        transportDistributedResultAction,
+                        streamers
+                );
+            }
+
+            return new ModuloDistributingDownstream(
                     jobId,
                     nodeOperation.downstreamExecutionPhaseId(),
                     bucketIdx,
