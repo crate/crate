@@ -26,7 +26,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -83,7 +82,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -325,6 +323,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
         final SettableFuture<Long> future = SettableFuture.create();
         RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
                 new String[analysis.indexNames().size()]));
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
         transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
             @Override
