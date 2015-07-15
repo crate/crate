@@ -31,6 +31,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
@@ -398,8 +399,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 projectorVisitor,
                 jobCollectContext.queryPhaseRamAccountingContext()
         );
-        TableUnknownException lastException = null;
         int jobSearchContextId = normalizedCollectNode.routing().jobSearchContextIdBase();
+
         // get shardCollectors from single shards
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedCollectNode.routing().locations().entrySet()) {
@@ -411,8 +412,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     try {
                         indexService = indicesService.indexServiceSafe(indexName);
                     } catch (IndexMissingException e) {
-                        lastException = new TableUnknownException(entry.getKey(), e);
-                        continue;
+                        if (PartitionName.isPartition(indexName)) {
+                            continue;
+                        }
+                        throw new TableUnknownException(entry.getKey(), e);
                     }
 
                     for (Integer shardId : entry.getValue()) {
@@ -457,12 +460,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 }
             }
         }
-        assert shardCollectors.size() == numShards : "invalid number of shardcollectors";
 
-        if (lastException != null
-                && jobSearchContextId == collectNode.routing().jobSearchContextIdBase()) {
-            // all collectors threw an table unknown exception, re-throw it
-            throw lastException;
+        if (shardCollectors.isEmpty()) {
+            downstream.registerUpstream(this).finish();
+            return IMMEDIATE_LIST;
         }
 
         // start the projection

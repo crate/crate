@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause a `SELECT` statement to cause a missleading
+   error if the table was deleted concurrently.
+
+ - Fixed an issue that could cause a `SELECT` statement on partitioned tables
+   to cause an error if all partitions were deleted concurrently.
+
  - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
    on partitioned tables
 
