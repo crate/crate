@@ -24,6 +24,8 @@ package io.crate.operation.projectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.*;
@@ -208,28 +210,30 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
             // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
             if (!consumedRows) {
-                closeContextsIfRequired();
-            }
-
-            // projector registered itself as an upstream to prevent downstream of
-            // flushing rows before all requests finished.
-            // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
-            Throwable throwable = failure.get();
-            if (throwable == null) {
-                downstream.finish();
+                closeContextsIfRequiredAndFinish();
             } else {
-                downstream.fail(throwable);
+                finishDownstream();
+                // projector registered itself as an upstream to prevent downstream of
+                // flushing rows before all requests finished.
+                // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
             }
+        }
+    }
+
+    private void finishDownstream() {
+        Throwable throwable = failure.get();
+        if (throwable == null) {
+            downstream.finish();
+        } else {
+            downstream.fail(throwable);
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
+        failure.set(throwable);
         if (remainingUpstreams.decrementAndGet() == 0) {
-            closeContexts();
-            downstream.fail(throwable);
-        } else {
-            failure.set(throwable);
+            closeContextsAndFinish();
         }
     }
 
@@ -293,9 +297,10 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                     consumingRows.set(false);
                 }
                 if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
-                    closeContextsIfRequired();
+                    closeContextsIfRequiredAndFinish();
+                } else {
+                    downstream.finish();
                 }
-                downstream.finish();
             }
 
             @Override
@@ -308,27 +313,44 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     }
 
     /**
-     * close job contexts on all affected nodes, just fire & forget, they will timeout anyway
+     * close job contexts on all affected nodes
      */
-    private void closeContextsIfRequired() {
+    private void closeContextsIfRequiredAndFinish() {
         if (closeContexts) {
-            closeContexts();
+            closeContextsAndFinish();
+        } else {
+            finishDownstream();
         }
     }
 
-    private void closeContexts() {
+    private void closeContextsAndFinish() {
         LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
+        final SettableFuture<Void> allClosed = SettableFuture.create();
+        allClosed.addListener(new Runnable() {
+            @Override
+            public void run() {
+                finishDownstream();
+            }
+        }, MoreExecutors.directExecutor());
+
+        final AtomicInteger pendingRequests = new AtomicInteger(executionNodes.size());
         for (final String nodeId : executionNodes) {
             transportCloseContextNodeAction.execute(nodeId,
                     new NodeCloseContextRequest(jobId, executionPhaseId),
                     new ActionListener<NodeCloseContextResponse>() {
                 @Override
                 public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                    if (pendingRequests.decrementAndGet() == 0) {
+                        allClosed.set(null);
+                    }
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
                     LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                    if (pendingRequests.decrementAndGet() == 0) {
+                        allClosed.set(null);
+                    }
                 }
             });
         }

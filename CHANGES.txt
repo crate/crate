@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
+   was closed because of relocation
+
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
    get stuck
 
