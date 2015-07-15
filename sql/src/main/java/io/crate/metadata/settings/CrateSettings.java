@@ -1123,7 +1123,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return new TimeValue(0, TimeUnit.SECONDS);
+            return new TimeValue(10, TimeUnit.SECONDS);
         }
 
         @Override
