@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
+   was closed because of relocation
+
  - Added column policy as column to ``information_schema.tables`` table
 
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
@@ -37,8 +40,6 @@ Unreleased
     - fix: number of underreplicated shards were fetched and displayed incorrectly
 
  - Expose missing refresh_interval table setting in information_schema.tables.
-
- - Fixed a bug which prevented a retry if a shard was closed because of relocation
 
  - Added support for multiple tables in refresh statement.
 
