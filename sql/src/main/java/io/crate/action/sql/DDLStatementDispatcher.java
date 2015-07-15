@@ -323,18 +323,20 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
             return Futures.immediateFuture(null);
         }
         final SettableFuture<Long> future = SettableFuture.create();
-            RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
-                    new String[analysis.indexNames().size()]));
-            transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
-                @Override
-                public void onResponse(RefreshResponse refreshResponse) {
-                    future.set(null); // no row count
-                }
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
+        RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
+                new String[analysis.indexNames().size()]));
+
+        transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
+            @Override
+            public void onResponse(RefreshResponse refreshResponse) {
+                future.set(null); // no row count
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                future.setException(e);
+            }
+        });
         return future;
     }
 
