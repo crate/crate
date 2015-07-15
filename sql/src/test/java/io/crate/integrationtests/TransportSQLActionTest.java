@@ -23,14 +23,16 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
+import io.crate.planner.Plan;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -42,7 +44,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
-import java.security.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -81,6 +82,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
         assertEquals(1, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
+    }
+
+    @Test
+    public void testTableUnknownExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
+        expectedException.expect(TableUnknownException.class);
+
+        execute("create table t (name string)");
+        ensureYellow();
+
+        Plan plan = plan("select * from t");
+        execute("drop table t");
+        ListenableFuture<List<TaskResult>> future = execute(plan);
+        try {
+            future.get();
+        } catch (Throwable t) {
+            throw Exceptions.unwrap(t);
+        }
     }
 
     @Test

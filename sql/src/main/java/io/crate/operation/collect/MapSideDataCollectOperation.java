@@ -32,6 +32,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstream;
@@ -307,7 +308,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 ramAccountingContext
         );
         int jobSearchContextId = collectNode.routing().jobSearchContextIdBase();
-        TableUnknownException lastException = null;
         // get shardCollectors from single shards
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : collectNode.routing().locations().entrySet()) {
@@ -319,8 +319,10 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     try {
                         indexService = indicesService.indexServiceSafe(indexName);
                     } catch (IndexMissingException e) {
-                        lastException = new TableUnknownException(entry.getKey(), e);
-                        continue;
+                        if (PartitionName.isPartition(indexName)) {
+                            continue;
+                        }
+                        throw new TableUnknownException(entry.getKey(), e);
                     }
 
                     for (Integer shardId : entry.getValue()) {
@@ -354,10 +356,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
             }
         }
 
-        if (lastException != null
-                && jobSearchContextId == collectNode.routing().jobSearchContextIdBase()) {
-            // all collectors threw an table unknown exception, re-throw it
-            throw lastException;
+        if (shardCollectors.isEmpty()) {
+            downstream.registerUpstream(this).finish();
+            return;
         }
 
         // start the projection
