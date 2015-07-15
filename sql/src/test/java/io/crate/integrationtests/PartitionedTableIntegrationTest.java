@@ -21,12 +21,16 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
+import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
@@ -118,6 +122,20 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is("04732d1g60qj0dpl6csjicpo"));
         assertThat((String) response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
+    }
+
+    @Test
+    public void testRefreshDuringPartitionDeletion() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p)");
+        execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
+        execute("refresh table t");
+
+        Plan plan = plan("refresh table t"); // create a plan in which the partitions exist
+        execute("delete from t");
+
+        ListenableFuture<List<TaskResult>> future = execute(plan); // execute now that the partitions are gone
+        // shouldn't throw an exception:
+        future.get();
     }
 
     @Test
@@ -304,10 +322,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
         ensureYellow();
-        execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][] {
-                new Object[]{ 1, "Ford", 13959981214861L },
-                new Object[]{ 2, "Trillian", 0L },
-                new Object[]{ 3, "Zaphod", null }
+        execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][]{
+                new Object[]{1, "Ford", 13959981214861L},
+                new Object[]{2, "Trillian", 0L},
+                new Object[]{3, "Zaphod", null}
         });
         ensureYellow();
         refresh();
@@ -588,7 +606,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{ 1395874800123L });
+        execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{1395874800123L});
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
@@ -608,7 +626,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
-                new Object[]{ 1395874800123L, "Don't panic" });
+                new Object[]{1395874800123L, "Don't panic"});
         assertThat(response.rowCount(), is(0L));
         refresh();
 
@@ -629,7 +647,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("update quotes set quote='now panic' where not timestamp = ? and quote=?",
-                new Object[]{ 1395874800000L, "Don't panic" });
+                new Object[]{1395874800000L, "Don't panic"});
         refresh();
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount(), is(1L));
@@ -695,8 +713,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "where table_name='parted' and schema_name='doc'" +
                 "order by partition_ident");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
-        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
+        assertThat((String) response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
+        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
@@ -728,8 +746,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "order by partition_ident");
         assertThat(response.rowCount(), is(3L));
         assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395874800000"))).ident()));
-        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
-        assertThat((String)response.rows()[2][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1396303200000"))).ident()));
+        assertThat((String) response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
+        assertThat((String) response.rows()[2][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1396303200000"))).ident()));
 
         execute("delete from quotes where quote = 'Don''t panic'");
         refresh();

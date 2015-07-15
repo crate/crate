@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
+   on partitioned tables
+
  - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
    was closed because of relocation
 
