@@ -71,7 +71,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 dataTypes,
                 rowIndicesToStream,
                 null,
-                insertAssignments);
+                insertAssignments, null);
 
         request.add(123, "99",
                 new RowN(new Object[]{99, new BytesRef("Marvin")}),
@@ -119,7 +119,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 rowIndicesToStream,
                 updateAssignments,
                 null,
-                "99");
+                "99", null);
 
         request.add(123, "99",
                 new RowN(new Object[]{ new BytesRef("Marvin") }),
@@ -173,7 +173,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 rowIndicesToStream,
                 updateAssignments,
                 insertAssignments,
-                "99");
+                "99", null);
 
         request.add(123, "99",
                 new RowN(new Object[]{ 99, new BytesRef("Marvin") }),

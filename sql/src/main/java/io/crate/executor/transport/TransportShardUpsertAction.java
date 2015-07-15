@@ -80,10 +80,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 @Singleton
@@ -403,6 +400,11 @@ public class TransportShardUpsertAction
     @Override
     public void killAllCalled(long timestamp) {
         lastKillAll = timestamp;
+    }
+
+    @Override
+    public void kill(UUID job) {
+        throw new UnsupportedOperationException();
     }
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {

@@ -21,7 +21,10 @@
 
 package io.crate.jobs;
 
+import java.util.UUID;
+
 public interface KillAllListener {
 
     void killAllCalled(long timestamp);
+    void kill(UUID job);
 }

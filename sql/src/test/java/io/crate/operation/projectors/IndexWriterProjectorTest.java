@@ -88,8 +88,10 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                null
         );
+        fail("id");
         indexWriter.registerUpstream(null);
         indexWriter.startProjection(mock(ExecutionState.class));
         indexWriter.downstream(collectingProjector);

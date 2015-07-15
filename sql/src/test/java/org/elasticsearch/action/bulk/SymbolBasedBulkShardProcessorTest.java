@@ -101,8 +101,10 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardBulkActionDelegate
+                transportShardBulkActionDelegate,
+                null
         );
+        fail("id");
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
 
         ActionListener<ShardUpsertResponse> listener = ref.get();
@@ -162,9 +164,10 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardUpsertActionDelegate
+                transportShardUpsertActionDelegate,
+                null
         );
-
+        fail("id");
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
@@ -242,9 +245,10 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardUpsertActionDelegate
+                transportShardUpsertActionDelegate,
+                null
         );
-
+        fail("id");
         assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
         bulkShardProcessor.kill();
         // A CancellationException is thrown

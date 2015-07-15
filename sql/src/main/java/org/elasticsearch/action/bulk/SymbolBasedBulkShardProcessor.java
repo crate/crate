@@ -71,6 +71,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     private final Predicate<String> shouldAutocreateIndexPredicate;
 
     private final int bulkSize;
+    private UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();
@@ -107,11 +108,13 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                                          boolean autoCreateIndices,
                                          int bulkSize,
                                          BulkRequestBuilder<Request> requestBuilder,
-                                         BulkRequestExecutor<Request, Response> requestExecutor) {
+                                         BulkRequestExecutor<Request, Response> requestExecutor,
+                                         UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
+        this.jobId = jobId;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
         this.autoCreateIndex = new AutoCreateIndex(settings);
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
@@ -329,7 +332,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                 // wait up to 10 seconds for every single create index request
                 timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
             }
-            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId)
                     .timeout(timeout);
 
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {

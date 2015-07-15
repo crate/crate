@@ -74,6 +74,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     private final boolean autoCreateIndices;
     private final int bulkSize;
+    private UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();
@@ -111,7 +112,8 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               BulkRequestBuilder<Request> bulkRequestBuilder,
-                              BulkRequestExecutor<Request, Response> bulkRequestExecutor) {
+                              BulkRequestExecutor<Request, Response> bulkRequestExecutor,
+                              UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
 
@@ -119,6 +121,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         this.bulkRequestExecutor = bulkRequestExecutor;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
+        this.jobId = jobId;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
 
         this.autoCreateIndex = new AutoCreateIndex(settings);
@@ -338,7 +341,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 // wait up to 10 seconds for every single create index request
                 timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
             }
-            final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
+            final BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId)
                     .timeout(timeout); // wait up to 10 seconds for every create index request
             FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override

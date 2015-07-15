@@ -29,13 +29,15 @@ import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.fail;
 
 
 public class BulkCreateIndicesRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
+        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), null);
+        fail("id");
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
@@ -44,7 +46,8 @@ public class BulkCreateIndicesRequestTest {
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
 
-        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"));
+        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), null);
+        fail("id");
         out = new BytesStreamOutput();
         request.writeTo(out);
         in = new BytesStreamInput(out.bytes());
@@ -52,6 +55,7 @@ public class BulkCreateIndicesRequestTest {
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        fail("add uuid into serialization");
     }
 
     @Test
@@ -64,5 +68,7 @@ public class BulkCreateIndicesRequestTest {
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices().size(), is(0));
+        fail("add uuid into serialization");
     }
+
 }

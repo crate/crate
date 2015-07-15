@@ -72,6 +72,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     private Map<Reference, Symbol> insertAssignments;
 
     private Rows rows;
+    private UUID jobId;
 
     public ShardUpsertRequest() {
     }
@@ -80,8 +81,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                               DataType[] dataTypes,
                               List<Integer> columnIndicesToStream,
                               @Nullable Map<Reference, Symbol> updateAssignments,
-                              @Nullable Map<Reference, Symbol> insertAssignments) {
-        this(shardId, dataTypes, columnIndicesToStream, updateAssignments, insertAssignments, null);
+                              @Nullable Map<Reference, Symbol> insertAssignments,
+                              UUID jobId) {
+        this(shardId, dataTypes, columnIndicesToStream, updateAssignments, insertAssignments,null, jobId);
     }
 
     public ShardUpsertRequest(ShardId shardId,
@@ -89,7 +91,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                               List<Integer> columnIndicesToStream,
                               @Nullable Map<Reference, Symbol> updateAssignments,
                               @Nullable Map<Reference, Symbol> insertAssignments,
-                              @Nullable String routing) {
+                              @Nullable String routing,
+                              UUID jobId) {
+        this.jobId = jobId;
         assert updateAssignments != null || insertAssignments != null
                 : "Missing assignments, whether for update nor for insert given";
         this.index = shardId.getIndex();
@@ -309,6 +313,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         private final TimeValue timeout;
         private final boolean continueOnErrors;
         private final boolean overWriteDuplicates;
+        private final UUID jobId;
 
         public Builder(DataType[] dataTypes,
                        List<Integer> columnIndicesToStream,
@@ -317,12 +322,14 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                        boolean overWriteDuplicates,
                        @Nullable Map<Reference, Symbol> updateAssignments,
                        @Nullable Map<Reference, Symbol> insertAssignments,
-                       @Nullable String routing) {
+                       @Nullable String routing,
+                       UUID jobId) {
             this.dataTypes = dataTypes;
             this.columnIndicesToStream = columnIndicesToStream;
             this.updateAssignments = updateAssignments;
             this.insertAssignments = insertAssignments;
             this.routing = routing;
+            this.jobId = jobId;
 
             this.timeout = timeout;
             this.continueOnErrors = continueOnErrors;
@@ -335,7 +342,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                     columnIndicesToStream,
                     updateAssignments,
                     insertAssignments,
-                    routing)
+                    routing,
+                    jobId)
                         .timeout(timeout)
                         .overwriteDuplicates(overWriteDuplicates)
                         .continueOnError(continueOnErrors);

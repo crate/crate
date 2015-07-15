@@ -645,10 +645,23 @@ public class TransportBulkCreateIndicesAction
     @Override
     public void killAllCalled(long timestamp) {
         lastKillAllEvent = timestamp;
+        // todo also provide with id
+        // if job id does match then raise newCancellation to in listener listener.
         synchronized (pendingLock) {
             PendingOperation pendingOperation;
-            while ( (pendingOperation = pendingOperations.poll()) != null) {
+            while ( (pendingOperation = pendingOperations.poll()) != null) { // pendigngOperation.request.id() == jobIdtoKill !!!
                 pendingOperation.responseListener.onFailure(new CancellationException());
+            }
+        }
+    }
+
+    public void kill(UUID jobId) {
+        synchronized (pendingLock) {
+            PendingOperation pendingOperation;
+            while ( (pendingOperation = pendingOperations.poll()) != null) { // pendigngOperation.request.id() == jobIdtoKill !!!
+                if (pendingOperation.request.jobId().equals(jobId)) {
+                    pendingOperation.responseListener.onFailure(new CancellationException());
+                }
             }
         }
     }
@@ -664,6 +677,7 @@ public class TransportBulkCreateIndicesAction
 
         private final BulkCreateIndicesRequest request;
         private final ActionListener<BulkCreateIndicesResponse> responseListener;
+        // todo add job id here
 
         public PendingOperation(BulkCreateIndicesRequest request, ActionListener<BulkCreateIndicesResponse> responseListener) {
             this.request = request;

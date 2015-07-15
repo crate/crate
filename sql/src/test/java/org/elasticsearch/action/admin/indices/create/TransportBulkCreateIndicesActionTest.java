@@ -36,6 +36,7 @@ import org.mockito.MockitoAnnotations;
 import java.lang.reflect.Field;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
@@ -63,20 +64,42 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
                 (ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation>)pendingOperations.get(action);
 
         operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of()), responseActionListener));
+                new BulkCreateIndicesRequest(ImmutableList.<String>of(), null), responseActionListener));
         operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of()), responseActionListener));
-
+                new BulkCreateIndicesRequest(ImmutableList.<String>of(), null), responseActionListener));
+        fail("id");
         action.killAllCalled(System.nanoTime());
 
         assertThat(operations.size(), is(0));
     }
 
+    @Test void testKillSinglePendingOperation() throws NoSuchFieldException, IllegalAccessException {
+        Field pendingOperation = TransportBulkCreateIndicesAction.class.getDeclaredField("pedningOperation");
+        pendingOperation.setAccessible(true);
+        ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation> operations =
+                (ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation>) pendingOperation.get(action);
+
+
+        UUID firtsOperation = UUID.randomUUID();
+        UUID secondOperation = UUID.randomUUID();
+        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
+                new BulkCreateIndicesRequest(ImmutableList.<String>of(), null), responseActionListener));
+        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
+                new BulkCreateIndicesRequest(ImmutableList.<String>of(), null), responseActionListener));
+        action.kill(firtsOperation); //todo
+        fail("id");
+        // todo expect new canclellation exception
+        assertThat(operations.size(), is(1));
+    }
+
+
+
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"))
+                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"), null)
         ).actionGet();
+        fail("id");
         assertThat(response.isAcknowledged(), is(true));
         ensureYellow();
 
@@ -89,8 +112,8 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
-        ).actionGet();
+                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), null)
+        ).actionGet();fail("id");
         assertThat(response.isAcknowledged(), is(true));
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
@@ -99,15 +122,17 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         assertThat(indicesExistsResponse.isExists(), is(true));
 
         BulkCreateIndicesResponse response2 = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"))
+                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), null)
         ).actionGet();
+        fail("id");
         assertThat(response2.isAcknowledged(), is(true));
     }
 
     @Test
     public void testEmpty() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of())).actionGet();
+                new BulkCreateIndicesRequest(ImmutableList.<String>of(), null)).actionGet();
+        fail("id");
         assertThat(response.isAcknowledged(), is(true));
     }
 
@@ -116,7 +141,8 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         expectedException.expect(InvalidIndexNameException.class);
         expectedException.expectMessage("[invalid/#haha] Invalid index name [invalid/#haha], must not contain the following characters [\\, /, *, ?, \", <, >, |,  , ,]");
 
-        BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(Arrays.asList("valid", "invalid/#haha"));
+        BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(Arrays.asList("valid", "invalid/#haha"), null);
+        fail("id");
         try {
             action.execute(bulkCreateIndicesRequest).actionGet();
             fail("no exception thrown");

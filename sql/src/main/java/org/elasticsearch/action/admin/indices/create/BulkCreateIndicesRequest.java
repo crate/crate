@@ -31,16 +31,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndicesRequest> {
 
     private Collection<String> indices = ImmutableList.of();
+    private UUID jobId;
 
     /**
      * Constructs a new request to create indices with the specified names.
      */
-    public BulkCreateIndicesRequest(Collection<String> indices) {
+    public BulkCreateIndicesRequest(Collection<String> indices, UUID jobId) {
         this.indices = indices;
+        this.jobId = jobId;
     }
 
     BulkCreateIndicesRequest() {}
@@ -72,5 +75,9 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
         for (String index : indices) {
             out.writeString(index);
         }
+    }
+
+    public UUID jobId() {
+        return jobId;
     }
 }

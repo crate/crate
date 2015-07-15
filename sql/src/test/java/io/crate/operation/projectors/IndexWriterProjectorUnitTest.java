@@ -90,8 +90,10 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                null
         );
+        fail("id");
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
         indexWriter.fail(new IllegalStateException("my dummy exception"));
@@ -131,8 +133,10 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 20,
                 null, null,
                 false,
-                false
+                false,
+                null
         );
+        fail("id");
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
         indexWriter.startProjection(mock(ExecutionState.class));

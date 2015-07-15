@@ -176,7 +176,8 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.isPartitionedTable(),
                 node.items().size(),
                 builder,
-                transportShardUpsertActionDelegate);
+                transportShardUpsertActionDelegate,
+                jobId());
         bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(bulkShardProcessor);
         registerContext(bulkShardProcessorContext);
 

@@ -119,7 +119,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 false,
                 null,
                 insertAssignments,
-                null
+                null, null
         );
 
         final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
@@ -131,8 +131,10 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 1,
                 coordinatorPool,
                 builder,
-                transportShardBulkActionDelegate
+                transportShardBulkActionDelegate,
+                null
         );
+        fail("id");
         try {
             bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
 
@@ -193,7 +195,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 false,
                 null,
                 insertAssignments,
-                null
+                null, null
         );
 
         final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
@@ -205,9 +207,10 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 1,
                 coordinatorPool,
                 builder,
-                transportShardUpsertActionDelegate
+                transportShardUpsertActionDelegate,
+                null
         );
-
+        fail("id");
         bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
