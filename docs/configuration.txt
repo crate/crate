@@ -569,6 +569,8 @@ Note that the AWS credentials can also be provided by environment variables
 
 Following settings control the discovery:
 
+.. _discovery_ec2_groups:
+
 **discovery.ec2.groups**
   | *Runtime:*  ``no``
 
@@ -582,12 +584,16 @@ Following settings control the discovery:
   Defines whether all (``false``) or just any (``true``) security group must
   be present for the instance to be used for discovery.
 
+.. _discovery_ec2_host_type:
+
 **discovery.ec2.host_type**
   | *Runtime:*  ``no``
   | *Default:*  ``private_ip``
   | *Allowed Values:*  ``private_ip``, ``public_ip``, ``private_dns``, ``public_dns``
 
   Defines via which host type to communicate with other instances.
+
+.. _discovery_ec2_zones:
 
 **discovery.ec2.availability_zones**
   | *Runtime:*  ``no``
@@ -601,6 +607,8 @@ Following settings control the discovery:
 
   The timeout for pings of existing EC2 instances during discovery. If no time
   suffix is specified, milliseconds are used.
+
+.. _discovery_ec2_tags:
 
 **discovery.ec2.tag.<name>**
   | *Runtime:*  ``no``
