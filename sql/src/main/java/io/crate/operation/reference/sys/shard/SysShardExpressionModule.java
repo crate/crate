@@ -22,9 +22,7 @@
 package io.crate.operation.reference.sys.shard;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -34,17 +32,17 @@ import java.util.Map;
 
 public class SysShardExpressionModule extends AbstractModule {
 
-    static Map<ColumnIdent, Class> SHARD_COLUMNS = ImmutableMap.<ColumnIdent, Class>builder()
-            .put(new ColumnIdent(ShardIdExpression.NAME), ShardIdExpression.class)
-            .put(new ColumnIdent(ShardSizeExpression.NAME), ShardSizeExpression.class)
-            .put(new ColumnIdent(ShardNumDocsExpression.NAME), ShardNumDocsExpression.class)
-            .put(new ColumnIdent(ShardPrimaryExpression.NAME), ShardPrimaryExpression.class)
-            .put(new ColumnIdent(ShardStateExpression.NAME), ShardStateExpression.class)
-            .put(new ColumnIdent(ShardRelocatingNodeExpression.NAME), ShardRelocatingNodeExpression.class)
-            .put(new ColumnIdent(ShardTableNameExpression.NAME), ShardTableNameExpression.class)
-            .put(new ColumnIdent(ShardSchemaNameExpression.NAME), ShardSchemaNameExpression.class)
-            .put(new ColumnIdent(ShardPartitionIdentExpression.NAME), ShardPartitionIdentExpression.class)
-            .put(new ColumnIdent(ShardPartitionOrphanedExpression.NAME), ShardPartitionOrphanedExpression.class)
+    static Map<ReferenceIdent, Class> SHARD_COLUMNS = ImmutableMap.<ReferenceIdent, Class>builder()
+            .put(SysShardsTableInfo.ReferenceIdents.ID, ShardIdExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.SIZE, ShardSizeExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, ShardNumDocsExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.PRIMARY, ShardPrimaryExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.STATE, ShardStateExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE, ShardRelocatingNodeExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, ShardTableNameExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME, ShardSchemaNameExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, ShardPartitionIdentExpression.class)
+            .put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION, ShardPartitionOrphanedExpression.class)
             .build();
 
 
@@ -53,10 +51,8 @@ public class SysShardExpressionModule extends AbstractModule {
         MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
-        Map<ColumnIdent, ReferenceInfo> infos = SysShardsTableInfo.INFOS;
-
-        for (Map.Entry<ColumnIdent, Class> entry : SHARD_COLUMNS.entrySet()) {
-            b.addBinding(infos.get(entry.getKey()).ident()).to(entry.getValue()).asEagerSingleton();
+        for (Map.Entry<ReferenceIdent, Class> entry : SHARD_COLUMNS.entrySet()) {
+            b.addBinding(entry.getKey()).to(entry.getValue()).asEagerSingleton();
         }
 
     }
