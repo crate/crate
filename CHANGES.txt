@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
+   on partitioned tables
+
  - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
    get stuck
 

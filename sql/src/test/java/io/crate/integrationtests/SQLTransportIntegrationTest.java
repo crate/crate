@@ -23,15 +23,25 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
+import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParameterContext;
+import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportExecutor;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -55,6 +65,7 @@ import org.junit.After;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -139,6 +150,21 @@ public abstract class SQLTransportIntegrationTest extends CrateIntegrationTest {
     public SQLResponse execute(String stmt, Object[] args) {
         response = sqlExecutor.exec(stmt, args);
         return response;
+    }
+
+    public Plan plan(String stmt) {
+        Analyzer analyzer = cluster().getInstance(Analyzer.class);
+        Planner planner = cluster().getInstance(Planner.class);
+
+        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext));
+    }
+
+    public ListenableFuture<List<TaskResult>> execute(Plan plan) {
+        TransportExecutor transportExecutor = cluster().getInstance(TransportExecutor.class);
+        Job job = transportExecutor.newJob(plan);
+        List<? extends ListenableFuture<TaskResult>> futures = transportExecutor.execute(job);
+        return Futures.allAsList(futures);
     }
 
     /**

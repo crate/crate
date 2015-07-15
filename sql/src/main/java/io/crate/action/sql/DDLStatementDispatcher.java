@@ -327,6 +327,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         } else {
             final SettableFuture<Long> future = SettableFuture.create();
             RefreshRequest request = new RefreshRequest(indexNames);
+            request.indicesOptions(IndicesOptions.lenientExpandOpen());
             transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
                 @Override
                 public void onResponse(RefreshResponse refreshResponse) {

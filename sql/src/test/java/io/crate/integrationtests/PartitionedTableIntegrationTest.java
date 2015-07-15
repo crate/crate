@@ -23,10 +23,13 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
+import io.crate.planner.Plan;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -107,6 +110,20 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is("04732d1g60qj0dpl6csjicpo"));
         assertThat((String) response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
+    }
+
+    @Test
+    public void testRefreshDuringPartitionDeletion() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p)");
+        execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
+        execute("refresh table t");
+
+        Plan plan = plan("refresh table t"); // create a plan in which the partitions exist
+        execute("delete from t");
+
+        ListenableFuture<List<TaskResult>> future = execute(plan); // execute now that the partitions are gone
+        // shouldn't throw an exception:
+        future.get();
     }
 
     @Test
