@@ -79,7 +79,7 @@ public class ShardProjectorChain {
 
 
     public ShardProjectorChain(UUID jobId,
-                               int numShards,
+                               int numShardsEstimate,
                                List<Projection> projections,
                                RowDownstream finalDownstream,
                                ProjectorFactory projectorFactory,
@@ -121,7 +121,7 @@ public class ShardProjectorChain {
 
         if (shardProjectionsIndex >= 0) {
             // shardProjector will be created later
-            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShards);
+            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShardsEstimate);
         } else {
             shardProjectors = ImmutableList.of();
         }

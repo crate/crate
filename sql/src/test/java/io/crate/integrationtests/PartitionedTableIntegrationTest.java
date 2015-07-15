@@ -125,6 +125,19 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p)");
+        execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
+        ensureYellow();
+
+        Plan plan = plan("select * from t");
+        execute("delete from t");
+        ListenableFuture<List<TaskResult>> future = execute(plan);
+        TaskResult taskResult = future.get().get(0);
+        assertThat(taskResult.rows().size(), is(0));
+    }
+
+    @Test
     public void testRefreshDuringPartitionDeletion() throws Exception {
         execute("create table t (name string, p string) partitioned by (p)");
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
