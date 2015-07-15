@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Corrected the default value of the `bulk.partition_creation_timeout`
+   setting. It was incorrectly reported as `0s` instead of `10s`.
+
  - Fixed an issue that could cause concurrent queries on sys tables to
    return inconsistent results if the table contains unassigned shards
 

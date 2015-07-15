@@ -328,11 +328,6 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices in bulk...", indices.size());
             TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
-            if (timeout.millis() == 0L) {
-                // apply default
-                // wait up to 10 seconds for every single create index request
-                timeout = new TimeValue(indices.size() * 10L, TimeUnit.SECONDS);
-            }
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices)
                     .timeout(timeout);
 
