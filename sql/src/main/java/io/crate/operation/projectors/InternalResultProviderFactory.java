@@ -34,6 +34,7 @@ import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,12 +45,15 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final Settings settings;
 
     @Inject
     public InternalResultProviderFactory(ClusterService clusterService,
-                                         TransportDistributedResultAction transportDistributedResultAction) {
+                                         TransportDistributedResultAction transportDistributedResultAction,
+                                         Settings settings) {
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
+        this.settings = settings;
     }
 
     public ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId) {
@@ -75,7 +79,8 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                         bucketIdx,
                         nodeOperation.downstreamNodes(),
                         transportDistributedResultAction,
-                        streamers
+                        streamers,
+                        settings
                 );
             }
 
@@ -85,7 +90,8 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     bucketIdx,
                     nodeOperation.downstreamNodes(),
                     transportDistributedResultAction,
-                    streamers
+                    streamers,
+                    settings
             );
         }
     }

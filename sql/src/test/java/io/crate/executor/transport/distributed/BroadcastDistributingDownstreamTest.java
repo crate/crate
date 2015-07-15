@@ -28,6 +28,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -65,7 +66,8 @@ public class BroadcastDistributingDownstreamTest extends CrateUnitTest {
                 0,
                 downstreamNodes,
                 distributedResultAction,
-                streamers
+                streamers,
+                ImmutableSettings.EMPTY
         );
         downstream.registerUpstream(null);
     }

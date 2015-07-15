@@ -38,6 +38,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +55,8 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
     public void before() {
         resultProviderFactory = new InternalResultProviderFactory(
                 new NoopClusterService(),
-                mock(TransportDistributedResultAction.class));
+                mock(TransportDistributedResultAction.class),
+                ImmutableSettings.EMPTY);
     }
 
     private ResultProvider createDownstream(Set<String> downstreamExecutionNodes) {

@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.Row;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -41,8 +42,10 @@ public class ModuloDistributingDownstream extends DistributingDownstream {
                                         int bucketIdx,
                                         Collection<String> downstreamNodeIds,
                                         TransportDistributedResultAction transportDistributedResultAction,
-                                        Streamer<?>[] streamers) {
-        super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds, transportDistributedResultAction, streamers);
+                                        Streamer<?>[] streamers,
+                                        Settings settings) {
+        super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds,
+                transportDistributedResultAction, streamers, settings);
 
         bucketBuilder = new MultiBucketBuilder(streamers, downstreams.length);
     }

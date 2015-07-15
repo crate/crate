@@ -28,6 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -43,8 +44,10 @@ public class BroadcastDistributingDownstream extends DistributingDownstream {
                                            int bucketIdx,
                                            Collection<String> downstreamNodeIds,
                                            TransportDistributedResultAction transportDistributedResultAction,
-                                           Streamer<?>[] streamers) {
-        super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds, transportDistributedResultAction, streamers);
+                                           Streamer<?>[] streamers,
+                                           Settings settings) {
+        super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds,
+                transportDistributedResultAction, streamers, settings);
 
         bucketBuilder = new StreamBucket.Builder(streamers);
     }

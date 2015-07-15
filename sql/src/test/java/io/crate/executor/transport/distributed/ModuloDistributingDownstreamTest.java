@@ -31,6 +31,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
@@ -119,7 +120,8 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
                 0,
                 downstreamNodes,
                 useFailingTransport ? failingDistributedResultAction : distributedResultAction,
-                streamers
+                streamers,
+                ImmutableSettings.EMPTY
         );
         downstream.registerUpstream(null);
     }

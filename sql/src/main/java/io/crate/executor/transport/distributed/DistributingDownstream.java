@@ -28,6 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,7 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class DistributingDownstream extends ResultProviderBase {
 
-    private static final int MAX_PAGES_TO_CONSUME_BEFORE_BLOCK = 1;
+    public static final String PAGES_BUFFER_SIZE = "node.downstream.pages_buffer_size";
+    public static final int DEFAULT_PAGES_BUFFER_SIZE = 1;
 
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
@@ -57,7 +59,8 @@ public abstract class DistributingDownstream extends ResultProviderBase {
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
-                                  Streamer<?>[] streamers) {
+                                  Streamer<?>[] streamers,
+                                  Settings settings) {
         this.transportDistributedResultAction = transportDistributedResultAction;
 
         downstreams = new Downstream[downstreamNodeIds.size()];
@@ -69,7 +72,8 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             idx++;
         }
 
-        rowQueue = new ArrayBlockingQueue<>(Constants.PAGE_SIZE * MAX_PAGES_TO_CONSUME_BEFORE_BLOCK);
+        int pagesBufferSize = settings.getAsInt(PAGES_BUFFER_SIZE, DEFAULT_PAGES_BUFFER_SIZE);
+        rowQueue = new ArrayBlockingQueue<>(Constants.PAGE_SIZE * pagesBufferSize);
     }
 
     @Override
