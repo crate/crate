@@ -259,20 +259,22 @@ public class TransportBulkCreateIndicesAction
                 @Override
                 public void run() {
                     try {
-                        long elapsed = timeStart - System.nanoTime();
-                        if (elapsed >= request.masterNodeTimeout().nanos()) {
-                            stateUpdateListener.onFailure(new ProcessClusterEventTimeoutException(request.masterNodeTimeout(), "acquire index lock"));
+                        long elapsed = System.nanoTime() - timeStart;
+                        long timeout = request.timeout().nanos();
+                        if (elapsed >= timeout) {
+                            stateUpdateListener.onFailure(new ProcessClusterEventTimeoutException(request.timeout(), "acquire index lock"));
                             return;
                         }
                         tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked, 0);
                         if (locked.isEmpty() && !unlocked.isEmpty()) {
-                            tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked,
-                                    request.masterNodeTimeout().nanos() - elapsed);
+                            long remainingTimeout = timeout - elapsed;
+                            tryAcquireLocksAndRemoveExistingIndices(state, finalResponse, locked, unlocked, remainingTimeout);
                         } else {
                             createIndices(request, locked, stateUpdateListener, finalResponse);
                         }
                     } catch (InterruptedException e) {
-                        stateUpdateListener.onFailure(e);
+                        stateUpdateListener.onFailure(
+                                new ProcessClusterEventTimeoutException(request.timeout(), "acquire index lock"));
                     } finally {
                         unlockIndices(locked);
                     }
@@ -319,17 +321,18 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private boolean lockAcquired(long timeout, Semaphore lock) throws InterruptedException {
-        if (timeout == 0) {
-            return lock.tryAcquire();
-        }
-        return lock.tryAcquire(timeout, TimeUnit.NANOSECONDS);
-    }
-
     private void unlockIndices(Map<Semaphore, Collection<String>> lockedIndices) {
         for (Semaphore semaphore : lockedIndices.keySet()) {
             semaphore.release();
         }
+    }
+
+    private boolean lockAcquired(long timeout, Semaphore lock) throws InterruptedException {
+        boolean b = lock.tryAcquire(timeout, TimeUnit.NANOSECONDS);
+        if (!b && timeout > 0) {
+            throw new InterruptedException();
+        }
+        return b;
     }
 
     private void createIndices(final BulkCreateIndicesRequest request,

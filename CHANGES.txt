@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue due to which bulk partition creation operations wouldn't
+   timeout correctly
+
  - Corrected the default value of the `bulk.partition_creation_timeout`
    setting. It was incorrectly reported as `0s` instead of `10s`.
 

@@ -23,6 +23,8 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.cluster.metadata.MetaDataService;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,7 +34,10 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class BulkSettingsTest extends SQLTransportIntegrationTest {
@@ -57,13 +62,23 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
         execute("set global transient bulk.partition_creation_timeout='1ms'");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("waiting for partitions to be created timed out after 1ms");
+        expectedException.expectMessage("failed to process cluster event (acquire index lock) within 1ms");
+
+        // locks are acquired here to make sure that the indices operation cannot finish within 1ms
+        MetaDataService metaDataService = cluster().getInstance(MetaDataService.class);
+        Map<Semaphore, Collection<String>> semaphoreCollectionMap = metaDataService.indexMetaDataLocks(Arrays.asList(
+                ".partitioned.ttt.04134", ".partitioned.ttt.04136", ".partitioned.ttt.04132"));
+        for (Semaphore semaphore : semaphoreCollectionMap.keySet()) {
+            semaphore.acquire();
+        }
 
         try {
             execute("copy ttt from ?", new Object[]{file.getAbsolutePath()});
         } finally {
-            // wait until indices creation has been finished (with timeout)
-            waitNoPendingTasksOnAll();
+            execute("reset global bulk.partition_creation_timeout");
+            for (Semaphore semaphore : semaphoreCollectionMap.keySet()) {
+                semaphore.release();
+            }
         }
     }
 }

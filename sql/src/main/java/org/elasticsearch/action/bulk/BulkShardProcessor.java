@@ -35,7 +35,6 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.ShardingProjector;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
@@ -53,7 +52,6 @@ import org.elasticsearch.indices.IndexMissingException;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -357,17 +355,17 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 indicesCreatedCallback.onSuccess(null);
             } else {
                 // initialize callback for when all indices are created
-                IndicesCreatedObserver.waitForIndicesCreated(clusterService, LOGGER, indices, indicesCreatedCallback, timeout);
                 transportBulkCreateIndicesAction.execute(bulkCreateIndicesRequest, new ActionListener<BulkCreateIndicesResponse>() {
                     @Override
                     public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesResponse) {
                         trace("%d of %d indices already created", bulkCreateIndicesResponse.alreadyExisted(), indices.size());
                         indicesCreated.addAll(indices);
+                        indicesCreatedCallback.onSuccess(null);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
-                        setFailure(ExceptionsHelper.unwrapCause(e));
+                        indicesCreatedCallback.onFailure(e);
                     }
                 });
             }
