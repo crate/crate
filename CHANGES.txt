@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which caused `array (string)` types to be interpreted as
+   `string` if an analyzer was also used
+
  - Fixed an issue due to which bulk partition creation operations wouldn't
    timeout correctly
 

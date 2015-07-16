@@ -184,7 +184,8 @@ public class AnalyzedColumnDefinition {
         }
         if (dataType().equals("string") && analyzer != null) {
             mapping.put("analyzer", analyzer());
-        } else if ("array".equals(collectionType)) {
+        }
+        if ("array".equals(collectionType)) {
             Map<String, Object> outerMapping = new HashMap<String, Object>(){{
                 put("type", "array");
             }};

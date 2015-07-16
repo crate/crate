@@ -1174,6 +1174,15 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     }
 
     @Test
+    public void testStringArrayWithFulltextIndex() throws Exception {
+        DocIndexMetaData metaData = getDocIndexMetaDataFromStatement(
+                "create table t (tags array(string) index using fulltext)");
+
+        ReferenceInfo referenceInfo = metaData.columns().get(0);
+        assertThat(referenceInfo.type(), equalTo((DataType) new ArrayType(DataTypes.STRING)));
+    }
+
+    @Test
     public void testSchemaEquals() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
         DocIndexMetaData mdSame = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
