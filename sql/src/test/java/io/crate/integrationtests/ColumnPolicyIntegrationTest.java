@@ -158,10 +158,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (column_policy='dynamic', number_of_replicas=0)");
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
-        execute("refresh table dynamic_table");
+        waitForMappingUpdateOnAll("dynamic_table", "new");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
-        refresh();
-        waitNoPendingTasksOnAll();
+
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("string"));
