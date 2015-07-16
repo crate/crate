@@ -22,6 +22,7 @@
 package io.crate.jobs;
 
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.PageDownstream;
@@ -39,7 +40,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,6 +58,7 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
     private final RamAccountingContext ramAccountingContext;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ThreadPool threadPool;
+    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private final NestedLoopOperation nestedLoopOperation;
 
@@ -111,34 +112,13 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
 
     @Override
     public void close() {
-        if (!closed.getAndSet(true)) {
-            if (activeSubContexts.get() == 0) {
-                callContextCallback();
-            } else {
-                if (leftDownstreamContext != null) {
-                    leftDownstreamContext.close();
-                }
-                if (rightDownstreamContext != null) {
-                    rightDownstreamContext.close();
-                }
-            }
-        }
+        doClose(false);
     }
 
     @Override
     public void kill() {
-        if (!killed.getAndSet(true)) {
-            if (activeSubContexts.get() == 0) {
-                callContextCallback();
-            } else {
-                if (leftDownstreamContext != null) {
-                    leftDownstreamContext.kill();
-                }
-                if (rightDownstreamContext != null) {
-                    rightDownstreamContext.kill();
-                }
-            }
-        }
+        killed.set(true);
+        doClose(true);
     }
 
     @Override
@@ -158,6 +138,36 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
             return leftDownstreamContext;
         }
         return rightDownstreamContext;
+    }
+
+    private void doClose(boolean kill) {
+        if (!closed.getAndSet(true)) {
+            if (activeSubContexts.get() == 0) {
+                callContextCallback();
+            } else {
+                if (leftDownstreamContext != null) {
+                    if (kill) {
+                        leftDownstreamContext.kill();
+                    } else {
+                        leftDownstreamContext.close();
+                    }
+                }
+                if (rightDownstreamContext != null) {
+                    if (kill) {
+                        rightDownstreamContext.kill();
+                    } else {
+                        rightDownstreamContext.close();
+                    }
+                }
+            }
+            closeFuture.set(null);
+        } else {
+            try {
+                closeFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running close {}", e);
+            }
+        }
     }
 
     private void callContextCallback() {
