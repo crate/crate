@@ -5,39 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed an issue which caused `array (string)` types to be interpreted as
-   `string` if an analyzer was also used
-
- - Fixed an issue due to which bulk partition creation operations wouldn't
-   timeout correctly
-
- - Corrected the default value of the `bulk.partition_creation_timeout`
-   setting. It was incorrectly reported as `0s` instead of `10s`.
-
- - Fixed an issue that could cause concurrent queries on sys tables to
-   return inconsistent results if the table contains unassigned shards
-
- - Fixed an issue that could cause a `SELECT` statement to cause a missleading
-   error if the table was deleted concurrently.
-
- - Fixed an issue that could cause a `SELECT` statement on partitioned tables
-   to cause an error if all partitions were deleted concurrently.
-
- - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
-   on partitioned tables
-
  - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
    was closed because of relocation
 
  - Added column policy as column to ``information_schema.tables`` table
 
- - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
-   get stuck
-
  - Fix: column policy property was missing in SHOW CREATE TABLE result
-
- - Fixed a race condition that could cause queries with a high limit to fail
-   due to a missing job context.
 
  - Updated crate-admin to 0.14.2 which includes the following changes:
 
@@ -50,11 +23,6 @@ Unreleased
     - added multiline support for tabular output format
 
  - Fixed an issue which could cause an error if a ``group by`` query was killed
-
- - Fixed an issue that caused COPY TO `s3` statements to get stuck
-
- - Fixed an issue which results in _id queries not matching on
-   partitioned and clustered tables without primary key columns.
 
  - Updated crate-admin to 0.14.1 which includes following changes:
 
@@ -82,6 +50,43 @@ Unreleased
       when viewing table info on admin ui of different nodes
 
     - fix: automatically refresh load history chart on overview page
+
+
+2015/07/16 0.49.6
+=================
+
+ - Fixed an issue which caused `array (string)` types to be interpreted as
+   `string` if an analyzer was also used
+
+ - Fixed an issue due to which bulk partition creation operations wouldn't
+   timeout correctly
+
+ - Corrected the default value of the `bulk.partition_creation_timeout`
+   setting. It was incorrectly reported as `0s` instead of `10s`.
+
+ - Fixed an issue that could cause concurrent queries on sys tables to
+   return inconsistent results if the table contains unassigned shards
+
+ - Fixed an issue that could cause a `SELECT` statement to cause a missleading
+   error if the table was deleted concurrently.
+
+ - Fixed an issue that could cause a `SELECT` statement on partitioned tables
+   to cause an error if all partitions were deleted concurrently.
+
+ - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
+   on partitioned tables
+
+ - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
+   get stuck
+
+ - Fixed a race condition that could cause queries with a high limit to fail
+   due to a missing job context.
+
+ - Fixed an issue that caused COPY TO `s3` statements to get stuck
+
+ - Fixed an issue which results in _id queries not matching on
+   partitioned and clustered tables without primary key columns.
+
 
 2015/07/07 0.49.5
 =================
@@ -2744,4 +2749,3 @@ NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 ================
 
  - added NOTICE file
-
