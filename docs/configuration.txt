@@ -157,6 +157,7 @@ Allocation
 **routing.allocation.enable**
   | *Default:*    ``all``
   | *Runtime:*   ``yes``
+  | *Allowed Values:*   ``all | primaries | new_primaries | none``
 
   Controls shard allocation for a specific table.
 
@@ -1081,4 +1082,3 @@ example::
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
-
