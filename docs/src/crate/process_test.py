@@ -7,11 +7,21 @@ import socket
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
-from .ports import public_ipv4, random_available_port
+from .ports import GLOBAL_PORT_POOL
 from lovely.testlayers.layer import CascadedLayer
 
 
 class GracefulStopCrateLayer(CrateLayer):
+
+    MAX_RETRIES = 3
+
+    def start(self, retry=0):
+        if retry >= self.MAX_RETRIES:
+            raise SystemError('Could not start Crate server. Max retries exceeded!')
+        try:
+            super(GracefulStopCrateLayer, self).start()
+        except Exception as e:
+            self.start(retry=retry+1)
 
     def stop(self):
         """do not care if process already died"""
@@ -37,9 +47,9 @@ class GracefulStopTest(unittest.TestCase):
         for i in range(num_servers):
             layer = GracefulStopCrateLayer(self.node_name(i),
                            crate_path(),
-                           host=public_ipv4(),
-                           port=random_available_port(),
-                           transport_port=random_available_port(),
+                           host='0.0.0.0',
+                           port=GLOBAL_PORT_POOL.get(),
+                           transport_port=GLOBAL_PORT_POOL.get(),
                            multicast=True,
                            cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
@@ -106,20 +116,21 @@ class TestGracefulStopPrimaries(GracefulStopTest):
 
     NUM_SERVERS = 2
 
+    def setUp(self):
+        super(TestGracefulStopPrimaries, self).setUp()
+        client = self.clients[0]
+        client.sql("create table t1 (id int, name string) "
+                   "clustered into 4 shards "
+                   "with (number_of_replicas=0)")
+        client.sql("insert into t1 (id, name) values (?, ?), (?, ?)",
+                   (1, "Ford", 2, "Trillian"))
+        client.sql("refresh table t1")
+
     def test_graceful_stop_primaries(self):
         """
         test min_availability: primaries
         """
-
-        client1 = self.clients[0]
         client2 = self.clients[1]
-
-        client1.sql("create table t1 (id int, name string) "
-                    "clustered into 4 shards "
-                    "with (number_of_replicas=0)")
-        client1.sql("insert into t1 (id, name) values (?, ?), (?, ?)",
-                    (1, "Ford", 2, "Trillian"))
-        client1.sql("refresh table t1")
         self.settings({
             "cluster.graceful_stop.min_availability": "primaries",
             "cluster.routing.allocation.enable": "new_primaries"
@@ -131,24 +142,31 @@ class TestGracefulStopPrimaries(GracefulStopTest):
         # assert that all shards are assigned
         self.assertEqual(response.get("rowcount", -1), 0)
 
+    def tearDown(self):
+        client = self.clients[1]
+        client.sql("drop table t1")
+
 
 class TestGracefulStopFull(GracefulStopTest):
 
     NUM_SERVERS = 3
 
+    def setUp(self):
+        super(TestGracefulStopFull, self).setUp()
+        client = self.clients[0]
+        client.sql("create table t1 (id int, name string) "
+                    "clustered into 4 shards "
+                    "with (number_of_replicas=1)")
+        client.sql("insert into t1 (id, name) values (?, ?), (?, ?)",
+                    (1, "Ford", 2, "Trillian"))
+        client.sql("refresh table t1")
+
     def test_graceful_stop_full(self):
         """
         min_availability: full moves all shards
         """
-        crate1, crate2, crate3 = self.crates[0], self.crates[1], self.crates[2]
-        client1, client2, client3 = self.clients[0], self.clients[1], self.clients[2]
-
-        client1.sql("create table t1 (id int, name string) "
-                    "clustered into 4 shards "
-                    "with (number_of_replicas=1)")
-        client1.sql("insert into t1 (id, name) values (?, ?), (?, ?)",
-                    (1, "Ford", 2, "Trillian"))
-        client1.sql("refresh table t1")
+        crate1, crate2, crate3 = self.crates
+        client1, client2, client3 = self.clients
         self.settings({
             "cluster.graceful_stop.min_availability": "full",
             "cluster.routing.allocation.enable": "new_primaries"
@@ -160,29 +178,36 @@ class TestGracefulStopFull(GracefulStopTest):
         # assert that all shards are assigned
         self.assertEqual(response.get("rowcount", -1), 0)
 
+    def tearDown(self):
+        client = self.clients[2]
+        client.sql("drop table t1")
+
 
 class TestGracefulStopNone(GracefulStopTest):
 
     NUM_SERVERS = 2
 
+    def setUp(self):
+        super(TestGracefulStopNone, self).setUp()
+        client = self.clients[0]
+
+        client.sql("create table t1 (id int, name string) "
+                   "clustered into 8 shards "
+                   "with (number_of_replicas=0)")
+        client.sql("refresh table t1")
+        names = ("Ford", "Trillian", "Zaphod", "Jeltz")
+        for i in range(16):
+            client.sql("insert into t1 (id, name) "
+                       "values (?, ?)",
+                       (i, random.choice(names)))
+        client.sql("refresh table t1")
+
     def test_graceful_stop_none(self):
         """
         test min_availability: none
         """
-
-        client1 = self.clients[0]
         client2 = self.clients[1]
 
-        client1.sql("create table t1 (id int, name string) "
-                    "clustered into 8 shards "
-                    "with (number_of_replicas=0)")
-        client1.sql("refresh table t1")
-        names = ("Ford", "Trillian", "Zaphod", "Jeltz")
-        for i in range(16):
-            client1.sql("insert into t1 (id, name) "
-                        "values (?, ?)",
-                        (i, random.choice(names)))
-        client1.sql("refresh table t1")
         self.settings({
             "cluster.graceful_stop.min_availability": "none",
             "cluster.routing.allocation.enable": "none"
@@ -200,3 +225,8 @@ class TestGracefulStopNone(GracefulStopTest):
             unassigned_shards > 0,
             "{0} unassigned shards, expected more than 0".format(unassigned_shards)
         )
+
+    def tearDown(self):
+        client = self.clients[1]
+        client.sql("drop table t1")
+
