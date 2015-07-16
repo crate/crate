@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/07/16 0.50.1
+=================
+
  - Fixed an issue which caused `array (string)` types to be interpreted as
    `string` if an analyzer was also used
 
@@ -2719,4 +2722,3 @@ NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
 ================
 
  - added NOTICE file
-
