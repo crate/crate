@@ -7,10 +7,14 @@ import shutil
 import re
 import process_test
 from .paths import crate_path, project_path
-from .ports import random_available_port
+from .ports import GLOBAL_PORT_POOL
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
+
+
+CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
 
 class CrateTestCmd(CrateCmd):
@@ -18,7 +22,7 @@ class CrateTestCmd(CrateCmd):
     def __init__(self, **kwargs):
         super(CrateTestCmd, self).__init__(**kwargs)
         doctest_print = PrintWrapper()
-        self.logger = ColorPrinter(False, stream=doctest_print, line_end='')
+        self.logger = ColorPrinter(False, stream=doctest_print, line_end='\n')
 
     def stmt(self, stmt):
         stmt = stmt.replace('\n', ' ')
@@ -28,10 +32,6 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 cmd = CrateTestCmd(is_tty=False)
-
-
-CRATE_HTTP_PORT = random_available_port()
-CRATE_TRANSPORT_PORT = random_available_port()
 
 
 def wait_for_schema_update(schema, table, column):
@@ -82,11 +82,18 @@ class ConnectingCrateLayer(CrateLayer):
         super(ConnectingCrateLayer, self).start()
         cmd._connect(self.crate_servers[0])
 
-empty_layer = ConnectingCrateLayer('crate',
-                         crate_home=crate_path(),
-                         crate_exec=crate_path('bin', 'crate'),
-                         port=CRATE_HTTP_PORT,
-                         transport_port=CRATE_TRANSPORT_PORT)
+empty_layer = ConnectingCrateLayer(
+    'crate',
+    crate_home=crate_path(),
+    crate_exec=crate_path('bin', 'crate'),
+    port=CRATE_HTTP_PORT,
+    transport_port=CRATE_TRANSPORT_PORT,
+    settings={
+        'gateway.type': 'none',
+        'index.store.type': 'memory',
+        'cluster.routing.schedule': '30ms'
+    }
+)
 
 
 def setUpLocations(test):
@@ -114,11 +121,13 @@ def setUpLocations(test):
     cmd.stmt("""copy locations from '{0}'""".format(locations_file))
     cmd.stmt("""refresh table locations""")
 
+def tearDownLocations(test):
+    cmd.stmt("""drop table locations""")
 
 def setUpUserVisits(test):
     test.globs['cmd'] = cmd
     cmd.stmt("""
-        create table uservisits(
+        create table uservisits (
           id integer primary key,
           name string,
           visits integer,
@@ -129,6 +138,8 @@ def setUpUserVisits(test):
     cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
     cmd.stmt("""refresh table uservisits""")
 
+def tearDownUserVisits(test):
+    cmd.stmt("""drop table uservisits""")
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
@@ -144,16 +155,24 @@ def setUpQuotes(test):
     shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
                 os.path.join(import_dir, "quotes.json"))
 
+def tearDownQuotes(test):
+    cmd.stmt("""drop table quotes""")
 
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
 
+def tearDownLocationsAndQuotes(test):
+    tearDownLocations(test)
+    tearDownQuotes(test)
 
 def setUpLocationsQuotesAndUserVisits(test):
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
 
+def tearDownLocationsQuotesAndUserVisits(test):
+    tearDownLocationsAndQuotes(test)
+    tearDownUserVisits(test)
 
 def setUpTutorials(test):
     setUp(test)
@@ -168,36 +187,36 @@ def setUpTutorials(test):
     shutil.copy(project_path(source_dir, 'data_import_1408312800.json'),
                 os.path.join(import_dir, "users_1408312800.json"))
 
-
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
 
 
-def tearDownDropQuotes(test):
-    cmd.stmt("drop table quotes")
-
-
 def test_suite():
     suite = unittest.TestSuite()
-    processSuite = unittest.TestLoader().loadTestsFromModule(process_test)
-    suite.addTest(processSuite)
+
+    # Graceful stop tests
+    process_suite = unittest.TestLoader().loadTestsFromModule(process_test)
+    suite.addTest(process_suite)
+
+    # Documentation tests
+    docs_suite = unittest.TestSuite()
     s = doctest.DocFileSuite('../../blob.txt',
                              parser=bash_parser,
                              setUp=setUp,
-                             tearDown=tearDownDropQuotes,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS)
     s.layer = empty_layer
-    suite.addTest(s)
+    docs_suite.addTest(s)
     for fn in ('sql/rest.txt',):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
                                  setUp=setUpLocations,
+                                 tearDown=tearDownLocations,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('sql/ddl.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
@@ -214,17 +233,19 @@ def test_suite():
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
+                                 tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('sql/dml.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsQuotesAndUserVisits,
+                                 tearDown=tearDownLocationsQuotesAndUserVisits,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
@@ -232,7 +253,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
         path = os.path.join('..', '..', 'best_practice', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
@@ -240,5 +261,6 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
-        suite.addTest(s)
+        docs_suite.addTest(s)
+    suite.addTests(docs_suite)
     return suite
