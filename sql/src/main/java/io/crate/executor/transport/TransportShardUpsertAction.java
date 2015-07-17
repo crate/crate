@@ -230,12 +230,10 @@ public class TransportShardUpsertAction
         try {
             response = callable.call();
         } catch (Throwable e) {
-            if (e instanceof CancellationException) {
-                throw new CancellationException();
-            }
             throw Throwables.propagate(e);
+        } finally {
+            activeOperations.removeAll(shardRequest.request.jobId());
         }
-        activeOperations.removeAll(shardRequest.request.jobId());
         return response;
     }
 
