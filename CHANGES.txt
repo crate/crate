@@ -5,32 +5,46 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
-   was closed because of relocation
+ - Updated crate-admin to 0.14.2 which includes the following changes:
+
+   - added support for line breaks in console result table
 
  - Added column policy as column to ``information_schema.tables`` table
 
  - Fix: column policy property was missing in SHOW CREATE TABLE result
 
- - Updated crate-admin to 0.14.2 which includes the following changes:
-
-    - added support for line breaks in console result table
-
  - Added SHOW CREATE TABLE statement to dump the schema of a user created table
 
  - Updated crash to 0.13.1 which contains following changes:
 
-    - added multiline support for tabular output format
-
- - Fixed an issue which could cause an error if a ``group by`` query was killed
-
- - Updated crate-admin to 0.14.1 which includes following changes:
-
-    - fix: number of underreplicated shards were fetched and displayed incorrectly
+   - added multiline support for tabular output format
 
  - Expose missing refresh_interval table setting in information_schema.tables.
 
  - Added support for multiple tables in refresh statement.
+
+ - Added ``date_format`` scalar function
+
+2015/07/16 0.50.1
+=================
+
+ - Updated crate-admin to 0.14.1 which includes following changes:
+
+   - fix: number of underreplicated shards were fetched and displayed incorrectly
+
+   - load plugins.json that can inject additional modules on app start
+     the "Get Started" tutorial is now implemented as a plugin
+
+   - fix: approximate number of underreplicated and missing records per table was
+     calculated incorrectly, which could have lead to different results
+     when viewing table info on admin ui of different nodes
+
+   - fix: automatically refresh load history chart on overview page
+
+ - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
+   was closed because of relocation
+
+ - Fixed an issue which could cause an error if a ``group by`` query was killed
 
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
    attempting to do so will result in a more meaningful error.
@@ -38,19 +52,7 @@ Unreleased
  - Fixed bulk delete for partitioned tables where partition column was part
    of the where clause
 
- - Added ``date_format`` scalar function
-
- - Updated crate-admin to 0.14.0 which includes following changes:
-
-    - load plugins.json that can inject additional modules on app start
-      the "Get Started" tutorial is now implemented as a plugin
-
-    - fix: approximate number of underreplicated and missing records per table was
-      calculated incorrectly, which could have lead to different results
-      when viewing table info on admin ui of different nodes
-
-    - fix: automatically refresh load history chart on overview page
-
+ - Fixed an issue that could lead to unclosed contexts when issuing bulk requests
 
 2015/07/16 0.49.6
 =================
