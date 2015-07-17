@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -164,7 +165,7 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) throws Exception {
+    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
 
         KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
             private volatile boolean killed = false;
@@ -232,7 +233,7 @@ public class TransportShardUpsertAction
             if (e instanceof CancellationException) {
                 throw new CancellationException();
             }
-            throw e;
+            throw Throwables.propagate(e);
         }
         activeOperations.removeAll(shardRequest.request.jobId());
         return response;

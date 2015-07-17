@@ -248,7 +248,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 1,
                 builder,
                 transportShardUpsertActionDelegate,
-                null
+                UUID.randomUUID()
         );
         assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
         bulkShardProcessor.kill();

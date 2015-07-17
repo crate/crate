@@ -31,7 +31,6 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 
 public class BulkCreateIndicesRequestTest {
@@ -59,19 +58,6 @@ public class BulkCreateIndicesRequestTest {
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
         assertThat(requestDeserialized.jobId(), is(jobId));
-    }
-
-    @Test
-    public void testSerializationEmpty() throws Exception {
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest();
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
-        requestDeserialized.readFrom(in);
-
-        assertThat(requestDeserialized.indices().size(), is(0));
-        assertThat(requestDeserialized.jobId(), nullValue());
     }
 
 }
