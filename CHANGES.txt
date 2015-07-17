@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved handling of /_blobs REST URIs to prevent invalid URIs from being
+   passed to main handler where they raise missleading error messages
+
  - Updated crate-admin to 0.14.2 which includes the following changes:
 
    - added support for line breaks in console result table

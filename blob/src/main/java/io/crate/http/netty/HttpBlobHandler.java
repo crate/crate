@@ -61,7 +61,8 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     public static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     public static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
-    public static final Pattern pattern = Pattern.compile("^/_blobs/([^_/][^/]*)/([0-9a-f]{40})$");
+    public static final String BLOBS_ENDPOINT = "/_blobs";
+    public static final Pattern pattern = Pattern.compile(String.format("^%s/([^_/][^/]*)/([0-9a-f]{40})$", BLOBS_ENDPOINT));
     private static final ESLogger logger = Loggers.getLogger(HttpBlobHandler.class);
 
     private static final ChannelBuffer CONTINUE = ChannelBuffers.copiedBuffer(
@@ -125,11 +126,17 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             }
 
             Matcher matcher = pattern.matcher(uri.getPath());
-            if (!matcher.matches()){
+            if (uri.getPath().startsWith(BLOBS_ENDPOINT)) {
+                if (!matcher.matches()) {
+                    simpleResponse(HttpResponseStatus.NOT_FOUND, null);
+                    return;
+                }
+            } else {
                 this.currentMessage = null;
                 ctx.sendUpstream(e);
                 return;
             }
+
             String index = matcher.group(1);
             String digest = matcher.group(2);
 
