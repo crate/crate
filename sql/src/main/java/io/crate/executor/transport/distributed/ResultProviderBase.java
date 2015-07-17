@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
@@ -57,7 +58,7 @@ public abstract class ResultProviderBase implements ResultProvider {
      *
      * @return a Bucket to be set on the result.
      */
-    public abstract Bucket doFinish();
+    protected abstract Bucket doFinish();
 
     /**
      * Do the cleanup necessary on failure.
@@ -66,7 +67,7 @@ public abstract class ResultProviderBase implements ResultProvider {
      * @param t the exception caused the upstream to fail
      * @return a Throwable to be set on the result
      */
-    public abstract Throwable doFail(Throwable t);
+    protected abstract Throwable doFail(Throwable t);
 
     @Override
     public void finish() {
@@ -82,7 +83,7 @@ public abstract class ResultProviderBase implements ResultProvider {
     }
 
     @Override
-    public SettableFuture<Bucket> result() {
+    public ListenableFuture<Bucket> result() {
         return result;
     }
 
