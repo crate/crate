@@ -80,19 +80,19 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public ShardUpsertRequest(ShardId shardId,
                               DataType[] dataTypes,
                               List<Integer> columnIndicesToStream,
+                              UUID jobId,
                               @Nullable Map<Reference, Symbol> updateAssignments,
-                              @Nullable Map<Reference, Symbol> insertAssignments,
-                              UUID jobId) {
-        this(shardId, dataTypes, columnIndicesToStream, updateAssignments, insertAssignments,null, jobId);
+                              @Nullable Map<Reference, Symbol> insertAssignments) {
+        this(shardId, dataTypes, columnIndicesToStream, jobId, updateAssignments, insertAssignments, null);
     }
 
     public ShardUpsertRequest(ShardId shardId,
                               DataType[] dataTypes,
                               List<Integer> columnIndicesToStream,
+                              UUID jobId,
                               @Nullable Map<Reference, Symbol> updateAssignments,
                               @Nullable Map<Reference, Symbol> insertAssignments,
-                              @Nullable String routing,
-                              UUID jobId) {
+                              @Nullable String routing) {
         this.jobId = jobId;
         assert updateAssignments != null || insertAssignments != null
                 : "Missing assignments, whether for update nor for insert given";
@@ -144,6 +144,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return shardId;
     }
 
+    public UUID jobId() {
+        return jobId;
+    }
     @Nullable
     public Map<Reference, Symbol> updateAssignments() {
         return updateAssignments;
@@ -201,6 +204,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         super.readFrom(in);
         shardId = in.readInt();
         routing = in.readOptionalString();
+        jobId = new UUID(in.readLong(), in.readLong());
         int updateAssignmentsSize = in.readVInt();
         if (updateAssignmentsSize > 0) {
             updateAssignments = new HashMap<>();
@@ -236,6 +240,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         super.writeTo(out);
         out.writeInt(shardId);
         out.writeOptionalString(routing);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
         // Stream assignment symbols
         if (updateAssignments != null) {
             out.writeVInt(updateAssignments.size());
@@ -338,12 +344,13 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         @Override
         public ShardUpsertRequest newRequest(ShardId shardId) {
-            return new ShardUpsertRequest(shardId, dataTypes,
+            return new ShardUpsertRequest(shardId,
+                    dataTypes,
                     columnIndicesToStream,
+                    jobId,
                     updateAssignments,
                     insertAssignments,
-                    routing,
-                    jobId)
+                    routing)
                         .timeout(timeout)
                         .overwriteDuplicates(overWriteDuplicates)
                         .continueOnError(continueOnErrors);

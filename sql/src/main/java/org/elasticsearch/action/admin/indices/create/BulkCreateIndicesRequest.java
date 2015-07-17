@@ -37,6 +37,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
 
     private Collection<String> indices = ImmutableList.of();
     private UUID jobId;
+    private boolean emptyRequest;
 
     /**
      * Constructs a new request to create indices with the specified names.
@@ -46,10 +47,16 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
         this.jobId = jobId;
     }
 
-    BulkCreateIndicesRequest() {}
+    BulkCreateIndicesRequest() {
+        emptyRequest = true;
+    }
 
     public Collection<String> indices() {
         return indices;
+    }
+
+    public UUID jobId() {
+        return jobId;
     }
 
     @Override
@@ -60,6 +67,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        jobId = in.readBoolean() ? null : new UUID(in.readLong(), in.readLong());
         int numIndices = in.readVInt();
         List<String> indicesList = new ArrayList<>(numIndices);
         for (int i = 0; i < numIndices; i++) {
@@ -71,13 +79,15 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeBoolean(emptyRequest);
+        if(!emptyRequest) {
+            out.writeLong(jobId.getMostSignificantBits());
+            out.writeLong(jobId.getLeastSignificantBits());
+        }
         out.writeVInt(indices.size());
         for (String index : indices) {
             out.writeString(index);
         }
     }
 
-    public UUID jobId() {
-        return jobId;
-    }
 }
