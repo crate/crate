@@ -31,8 +31,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
@@ -142,8 +140,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         }
     }
 
-
-    public void runJobContextReapers() throws Exception{
+    public void runJobContextReapers() throws Exception {
         long defaultKeepAlive = JobContextService.KEEP_ALIVE;
         try {
             // The estimateTimeThread is updated in a 200ms interval only, so Reaper time and lastAccessTime has the same

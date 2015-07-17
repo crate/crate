@@ -93,7 +93,7 @@ public class SymbolBasedTransportShardUpsertAction
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
     private final Functions functions;
-    private Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
+    private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
     public SymbolBasedTransportShardUpsertAction(Settings settings,
@@ -155,25 +155,24 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) throws Exception {
 
         KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
 
-            private volatile boolean cancel = false;
+            private volatile boolean killed = false;
             @Override
             public void kill() {
-                cancel = true;
+                killed = true;
             }
 
             @Override
             public PrimaryResponse call() throws Exception {
-                long startTime = System.nanoTime();
                 ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
                 SymbolBasedShardUpsertRequest request = shardRequest.request;
                 for (int i = 0; i < request.itemIndices().size(); i++) {
                     int location = request.itemIndices().get(i);
                     SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
-                    if (cancel) {
+                    if (killed) {
                         throw new CancellationException();
                     }
                     try {
@@ -202,14 +201,17 @@ public class SymbolBasedTransportShardUpsertAction
                 return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
             }
         };
-
         activeOperations.put(shardRequest.request.jobId(), callable);
-        PrimaryResponse response = null;
+        PrimaryResponse response;
         try {
             response = callable.call();
-        } catch (Exception e) {
-            throw new CancellationException();
+        } catch (Throwable e) {
+            if (e instanceof CancellationException) {
+                throw new CancellationException();
+            }
+            throw e;
         }
+        activeOperations.removeAll(shardRequest.request.jobId());
         return response;
     }
 
@@ -374,13 +376,13 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    public void killJob(UUID job) {
+    public void killJob(UUID jobId) {
         synchronized (activeOperations) {
-            Collection<KillableCallable> operations = activeOperations.get(job);
+            Collection<KillableCallable> operations = activeOperations.get(jobId);
             for(KillableCallable callable : operations) {
                 callable.kill();
             }
-            operations.remove(job);
+            activeOperations.removeAll(jobId);
         }
     }
 

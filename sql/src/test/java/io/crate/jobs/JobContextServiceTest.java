@@ -230,7 +230,6 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder.addSubContext(1, new DummySubContext());
         jobContextService.createContext(builder);
         assertThat(jobContextService.killJobs(jobsToKill), is(1L));
-        fail("pending...");
     }
 
     @Test

@@ -84,10 +84,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 @Singleton
@@ -103,7 +100,6 @@ public class TransportShardUpsertAction
     private final Functions functions;
     private final AssignmentSymbolVisitor assignmentSymbolVisitor;
     private final SymbolToInputVisitor symbolToInputVisitor;
-    private volatile long lastKillAll = System.nanoTime();
     private Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
@@ -168,19 +164,18 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) throws Exception {
 
         KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
-            private volatile boolean cancel = false;
+            private volatile boolean killed = false;
 
             @Override
             public void kill() {
-                cancel = true;
+                killed = true;
             }
+
             @Override
             public PrimaryResponse call() throws Exception {
-                long startTime = System.nanoTime();
-
                 ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
                 ShardUpsertRequest request = shardRequest.request;
                 SymbolToFieldExtractorContext extractorContextUpdate = null;
@@ -200,7 +195,7 @@ public class TransportShardUpsertAction
                 }
 
                 for (ShardUpsertRequest.Item item : request) {
-                    if (cancel || startTime <= lastKillAll) {
+                    if (killed) {
                         throw new CancellationException();
                     }
                     try {
@@ -230,29 +225,42 @@ public class TransportShardUpsertAction
             }
         };
         activeOperations.put(shardRequest.request.jobId(), callable);
-
         PrimaryResponse response;
         try {
             response = callable.call();
-        } catch (Exception e) {
-            throw new CancellationException();
+        } catch (Throwable e) {
+            if (e instanceof CancellationException) {
+                throw new CancellationException();
+            }
+            throw e;
         }
+        activeOperations.removeAll(shardRequest.request.jobId());
         return response;
     }
 
     @Override
-    public void killJob(UUID job) {
+    public void killAllJobs(long timestamp) {
         synchronized (activeOperations) {
-            for (KillableCallable operation : activeOperations.get(job)) {
+            for (KillableCallable operation : activeOperations.values()) {
                 operation.kill();
             }
-            activeOperations.removeAll(job);
+            activeOperations.clear();
+        }
+    }
+
+    @Override
+    public void killJob(UUID jobId) {
+        synchronized (activeOperations) {
+            Collection<KillableCallable> operations = activeOperations.get(jobId);
+            for(KillableCallable callable : operations) {
+                callable.kill();
+            }
+            activeOperations.removeAll(jobId);
         }
     }
 
     @Override
     protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-
     }
 
     public IndexResponse indexItem(ShardUpsertRequest request,
@@ -430,16 +438,6 @@ public class TransportShardUpsertAction
                 // overwrite or insert the field
                 source.put(changesEntry.getKey().name(), changesEntry.getValue());
             }
-        }
-    }
-
-    @Override
-    public void killAllJobs(long timestamp) {
-        synchronized (activeOperations) {
-            for (KillableCallable operation : activeOperations.values()) {
-                operation.kill();
-            }
-            activeOperations.clear();
         }
     }
 

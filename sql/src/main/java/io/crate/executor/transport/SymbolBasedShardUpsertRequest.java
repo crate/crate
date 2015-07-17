@@ -374,7 +374,6 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
-
             this.jobId = jobId;
         }
 

@@ -71,7 +71,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     private final Predicate<String> shouldAutocreateIndexPredicate;
 
     private final int bulkSize;
-    private UUID jobId;
+    private final UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();

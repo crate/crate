@@ -91,8 +91,6 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         assertThat(operations.size(), is(1));
     }
 
-
-
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
         BulkCreateIndicesResponse response = action.execute(

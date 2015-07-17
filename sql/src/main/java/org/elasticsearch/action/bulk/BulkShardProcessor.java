@@ -74,7 +74,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     private final boolean autoCreateIndices;
     private final int bulkSize;
-    private UUID jobId;
+    private final UUID jobId;
     private final int createIndicesBulkSize;
 
     private final Map<ShardId, Request> requestsByShard = new HashMap<>();
