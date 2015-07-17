@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,12 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.jobs;
+package io.crate.executor.transport.kill;
 
-import java.util.UUID;
+import java.util.concurrent.Callable;
 
-public interface KillAllListener {
-
-    void killAllJobs(long timestamp);
-    void killJob(UUID job);
+public interface KillableCallable<T> extends Callable<T> {
+    void kill();
 }

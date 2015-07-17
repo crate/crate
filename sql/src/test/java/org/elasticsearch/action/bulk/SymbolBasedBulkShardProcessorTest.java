@@ -44,6 +44,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,7 +92,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 false,
                 null,
-                new Reference[]{fooRef}
+                new Reference[]{fooRef},
+                UUID.randomUUID()
         );
         final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
@@ -102,9 +104,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 1,
                 builder,
                 transportShardBulkActionDelegate,
-                null
+                UUID.randomUUID()
         );
-        fail("id");
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
 
         ActionListener<ShardUpsertResponse> listener = ref.get();
@@ -153,7 +154,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 false,
                 null,
-                new Reference[]{fooRef}
+                new Reference[]{fooRef},
+                UUID.randomUUID()
         );
 
         final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
@@ -165,9 +167,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 1,
                 builder,
                 transportShardUpsertActionDelegate,
-                null
+                UUID.randomUUID()
         );
-        fail("id");
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
         final ActionListener<ShardUpsertResponse> listener = ref.get();
 
@@ -234,7 +235,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 false,
                 null,
-                new Reference[]{fooRef}
+                new Reference[]{fooRef},
+                UUID.randomUUID()
         );
 
         final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
@@ -248,7 +250,6 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 transportShardUpsertActionDelegate,
                 null
         );
-        fail("id");
         assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
         bulkShardProcessor.kill();
         // A CancellationException is thrown

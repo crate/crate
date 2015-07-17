@@ -22,6 +22,10 @@
 package io.crate.executor.transport;
 
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
@@ -80,7 +84,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
 @Singleton
@@ -97,6 +104,7 @@ public class TransportShardUpsertAction
     private final AssignmentSymbolVisitor assignmentSymbolVisitor;
     private final SymbolToInputVisitor symbolToInputVisitor;
     private volatile long lastKillAll = System.nanoTime();
+    private Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -160,57 +168,87 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest) {
-        long startTime = System.nanoTime();
+    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
 
-        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
-        ShardUpsertRequest request = shardRequest.request;
-        SymbolToFieldExtractorContext extractorContextUpdate = null;
-        SymbolToInputContext implContextInsert = null;
-        if (request.updateAssignments() != null) {
-            AssignmentSymbolVisitor.Context implContextUpdate = assignmentSymbolVisitor.process(request.updateAssignments().values());
-            extractorContextUpdate = new SymbolToFieldExtractorContext(
-                    functions,
-                    request.updateAssignments().size(),
-                    implContextUpdate);
-        }
-        if (request.insertAssignments() != null) {
-            implContextInsert = new SymbolToInputContext(request.insertAssignments().size());
-            for (Map.Entry<Reference, Symbol> entry : request.insertAssignments().entrySet()) {
-                implContextInsert.referenceInputMap.put(entry.getKey(), symbolToInputVisitor.process(entry.getValue(), implContextInsert));
-            }
-        }
+        KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
+            private volatile boolean cancel = false;
 
-        for (ShardUpsertRequest.Item item : request) {
-            if (startTime <= lastKillAll) {
-                throw new CancellationException();
+            @Override
+            public void kill() {
+                cancel = true;
             }
-            try {
-                indexItem(
-                        request,
-                        item, shardRequest.shardId,
-                        extractorContextUpdate,
-                        implContextInsert,
-                        request.insertAssignments() != null, // try insert first
-                        0);
-                shardUpsertResponse.add(item.location(), new ShardUpsertResponse.Response());
-            } catch (Throwable t) {
-                if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
-                    throw t;
-                } else {
-                    logger.debug("{} failed to execute update for [{}]/[{}]",
-                            t, request.shardId(), request.type(), item.id());
-                    shardUpsertResponse.add(item.location(),
-                            new ShardUpsertResponse.Failure(
-                                    item.id(),
-                                    ExceptionsHelper.detailedMessage(t),
-                                    (t instanceof VersionConflictEngineException)));
+            @Override
+            public PrimaryResponse call() throws Exception {
+                long startTime = System.nanoTime();
+
+                ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
+                ShardUpsertRequest request = shardRequest.request;
+                SymbolToFieldExtractorContext extractorContextUpdate = null;
+                SymbolToInputContext implContextInsert = null;
+                if (request.updateAssignments() != null) {
+                    AssignmentSymbolVisitor.Context implContextUpdate = assignmentSymbolVisitor.process(request.updateAssignments().values());
+                    extractorContextUpdate = new SymbolToFieldExtractorContext(
+                            functions,
+                            request.updateAssignments().size(),
+                            implContextUpdate);
                 }
+                if (request.insertAssignments() != null) {
+                    implContextInsert = new SymbolToInputContext(request.insertAssignments().size());
+                    for (Map.Entry<Reference, Symbol> entry : request.insertAssignments().entrySet()) {
+                        implContextInsert.referenceInputMap.put(entry.getKey(), symbolToInputVisitor.process(entry.getValue(), implContextInsert));
+                    }
+                }
+
+                for (ShardUpsertRequest.Item item : request) {
+                    if (cancel || startTime <= lastKillAll) {
+                        throw new CancellationException();
+                    }
+                    try {
+                        indexItem(
+                                request,
+                                item, shardRequest.shardId,
+                                extractorContextUpdate,
+                                implContextInsert,
+                                request.insertAssignments() != null, // try insert first
+                                0);
+                        shardUpsertResponse.add(item.location(), new ShardUpsertResponse.Response());
+                    } catch (Throwable t) {
+                        if (TransportActions.isShardNotAvailableException(t) || !request.continueOnError()) {
+                            throw t;
+                        } else {
+                            logger.debug("{} failed to execute update for [{}]/[{}]",
+                                    t, request.shardId(), request.type(), item.id());
+                            shardUpsertResponse.add(item.location(),
+                                    new ShardUpsertResponse.Failure(
+                                            item.id(),
+                                            ExceptionsHelper.detailedMessage(t),
+                                            (t instanceof VersionConflictEngineException)));
+                        }
+                    }
+                }
+                return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
             }
+        };
+        activeOperations.put(shardRequest.request.jobId(), callable);
+
+        PrimaryResponse response;
+        try {
+            response = callable.call();
+        } catch (Exception e) {
+            throw new CancellationException();
         }
-        return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+        return response;
     }
 
+    @Override
+    public void killJob(UUID job) {
+        synchronized (activeOperations) {
+            for (KillableCallable operation : activeOperations.get(job)) {
+                operation.kill();
+            }
+            activeOperations.removeAll(job);
+        }
+    }
 
     @Override
     protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
@@ -251,8 +289,6 @@ public class TransportShardUpsertAction
             }
         }
     }
-
-
 
     /**
      * Prepares an update request by converting it into an index request.
@@ -398,13 +434,13 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    public void killAllCalled(long timestamp) {
-        lastKillAll = timestamp;
-    }
-
-    @Override
-    public void kill(UUID job) {
-        throw new UnsupportedOperationException();
+    public void killAllJobs(long timestamp) {
+        synchronized (activeOperations) {
+            for (KillableCallable operation : activeOperations.values()) {
+                operation.kill();
+            }
+            activeOperations.clear();
+        }
     }
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {

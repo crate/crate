@@ -157,7 +157,8 @@ public abstract class AbstractIndexWriterProjector implements
                 overwriteDuplicates,
                 updateAssignments,
                 insertAssignments,
-                null, jobId
+                null,
+                jobId
         );
         bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,

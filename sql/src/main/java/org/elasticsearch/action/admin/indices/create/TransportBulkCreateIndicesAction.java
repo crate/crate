@@ -643,7 +643,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     @Override
-    public void killAllCalled(long timestamp) {
+    public void killAllJobs(long timestamp) {
         lastKillAllEvent = timestamp;
         // todo also provide with id
         // if job id does match then raise newCancellation to in listener listener.
@@ -655,12 +655,15 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    public void kill(UUID jobId) {
+    @Override
+    public void killJob(UUID jobId) {
         synchronized (pendingLock) {
-            PendingOperation pendingOperation;
-            while ( (pendingOperation = pendingOperations.poll()) != null) { // pendigngOperation.request.id() == jobIdtoKill !!!
+            Iterator<PendingOperation> it = pendingOperations.iterator();
+            while (it.hasNext()) {
+                PendingOperation pendingOperation = it.next();
                 if (pendingOperation.request.jobId().equals(jobId)) {
                     pendingOperation.responseListener.onFailure(new CancellationException());
+                    it.remove();
                 }
             }
         }

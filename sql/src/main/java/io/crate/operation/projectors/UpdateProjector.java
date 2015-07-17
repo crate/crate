@@ -81,12 +81,13 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
         this.collectUidExpression = collectUidExpression;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
-        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder( // todo add id here
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false,
                 false,
                 assignmentsColumns,
-                null
+                null,
+                jobId
         );
         this.bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
