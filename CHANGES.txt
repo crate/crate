@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ -  Fixed a rare bug which could cause a MapperParsingException if one creates
+    a new dynamic array concurrently
+
 2015/07/16 0.49.6
 =================
 
