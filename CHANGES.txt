@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare bug which could cause a MapperParsingException if one creates
+   a new dynamic array concurrently
+
  - Improved handling of /_blobs REST URIs to prevent invalid URIs from being
    passed to main handler where they raise missleading error messages
 
