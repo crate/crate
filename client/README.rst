@@ -1,11 +1,19 @@
-======================
-Crate Data Java Client
-======================
+.. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
+    :width: 100px
+    :height: 100px
+    :alt: Crate
+    :target: https://crate.io
 
-.. highlight:: java
+=================
+Crate Java Client
+=================
 
-The client module exposes a very simple interface to query Crate using
-SQL.
+**For a more detailed documentation how to set up and use the Crate client
+please refer to the client documentation on `https://crate.io/docs/`_.**
+
+.. highlight:: xml
+
+The client module exposes a very simple interface to query Crate using SQL.
 
 Installation
 ============
@@ -14,21 +22,25 @@ Maven
 -----
 
 The easiest way to use the crate client is to include it as a dependency using
-maven::
+Maven::
 
     <dependency>
-        <groupId>io.crate<groupId>
+        <groupId>io.crate</groupId>
         <artifactId>crate-client</artifactId>
-        <version>0.38.0</version>
+        <version>...</version>
     </dependency>
 
-From source
+You can find the latest version of the client on Bintray_.
+
+From Source
 -----------
 
 See :ref:`Development <client_develop>` for further details.
 
 Usage
 =====
+
+.. highlight:: java
 
 A minimal example is just a few lines of code::
 
@@ -73,3 +85,8 @@ these, one must defined it at the `SQLRequest` object::
    Queries are executed asynchronous. `client.sql("")` will return a
    `Future<SQLResponse>` and code execution is only blocked if
    `.actionGet()` is called on it.
+
+
+.. _`https://crate.io/docs/`: https://crate.io/docs/projects/crate-java/stable/
+.. _Bintray: https://bintray.com/crate/crate/crate-client/view
+
