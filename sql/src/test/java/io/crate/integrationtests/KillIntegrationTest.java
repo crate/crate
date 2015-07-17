@@ -128,4 +128,10 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
         runJobContextReapers();
     }
 
+    @Test
+    public void testKillCrossJoin() throws Exception {
+        setup.setUpLocations();
+        setup.setUpEmployees();
+        assertGotCancelled("Select * from locations, employees", null);
+    }
 }
