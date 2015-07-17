@@ -1,17 +1,22 @@
-.. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
-    :width: 100px
-    :height: 100px
+.. image:: https://cdn.crate.io/web/2.0/img/crate-logo_330x72.png
+    :width: 165px
     :alt: Crate
     :target: https://crate.io
 
-==============================
-CRATE: Your Elastic Data Store
-==============================
+=================================
+CRATE: The Scalable SQL Database*
+=================================
 
-https://crate.io
-================
+\* with the NoSQL goodies
 
-``"Crate is a new breed of database to serve today’s mammoth data needs."``
+    Crate allows to query and compute data with SQL in real time by providing a
+    distributed aggregation engine, native search and super simple scalability.
+
+**https://crate.io**
+
+.. image:: https://travis-ci.org/crate/crate.svg?branch=master
+    :target: https://travis-ci.org/crate/crate
+
 
 Features include
 ----------------
