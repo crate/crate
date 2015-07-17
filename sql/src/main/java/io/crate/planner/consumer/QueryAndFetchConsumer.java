@@ -24,7 +24,10 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
@@ -44,6 +47,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -76,9 +80,22 @@ public class QueryAndFetchConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
+            OrderBy orderBy = table.querySpec().orderBy();
+            List<Symbol> orderBySymbols;
+            if (orderBy == null) {
+                orderBySymbols = Collections.emptyList();
+            } else {
+                orderBySymbols = orderBy.orderBySymbols();
+            }
             List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
             for (Symbol symbol : table.querySpec().outputs()) {
-                outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
+                if (!orderBySymbols.contains(symbol)) {
+                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
+                } else {
+                    // if symbol is used in orderBy, field must be loaded to cache anyway,
+                    // so do not rewrite it to source lookup
+                    outputSymbols.add(symbol);
+                }
             }
             return normalSelect(table, table.querySpec().where(), context, outputSymbols);
         }
