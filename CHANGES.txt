@@ -8,50 +8,23 @@ Unreleased
 2015/07/16 0.50.1
 =================
 
- - Fixed an issue which caused `array (string)` types to be interpreted as
-   `string` if an analyzer was also used
+ - Updated crate-admin to 0.14.1 which includes following changes:
 
- - Fixed an issue due to which bulk partition creation operations wouldn't
-   timeout correctly
+   - fix: number of underreplicated shards were fetched and displayed incorrectly
 
- - Corrected the default value of the `bulk.partition_creation_timeout`
-   setting. It was incorrectly reported as `0s` instead of `10s`.
+   - load plugins.json that can inject additional modules on app start
+     the "Get Started" tutorial is now implemented as a plugin
 
- - Fixed an issue that could cause concurrent queries on sys tables to
-   return inconsistent results if the table contains unassigned shards
+   - fix: approximate number of underreplicated and missing records per table was
+     calculated incorrectly, which could have lead to different results
+     when viewing table info on admin ui of different nodes
 
- - Fixed an issue that could cause a `SELECT` statement to cause a missleading
-   error if the table was deleted concurrently.
-
- - Fixed an issue that could cause a `SELECT` statement on partitioned tables
-   to cause an error if all partitions were deleted concurrently.
-
- - Fixed a race condition that could cause a `REFRESH TABLE` statement to fail
-   on partitioned tables
+   - fix: automatically refresh load history chart on overview page
 
  - Fixed a bug which prevented a retry, or caused a retry to fail if a shard
    was closed because of relocation
 
- - Fixed a race condition that could cause `DROP TABLE IF EXISTS` statements to
-   get stuck
-
- - Fixed a race condition that could cause queries with a high limit to fail
-   due to a missing job context.
-
  - Fixed an issue which could cause an error if a ``group by`` query was killed
-
- - Fixed an issue that caused COPY TO `s3` statements to get stuck
-
- - Fixed an issue which results in _id queries not matching on
-   partitioned and clustered tables without primary key columns.
-
- - Updated crate-admin to 0.14.1 which includes following changes:
-
-    - fix: number of underreplicated shards were fetched and displayed incorrectly
-
- - Fixed issue that could lead to a NullPointerException
-   caused by reporting row results to handler node before merge phase on handler
-   was started
 
  - Added a limitation notice that `COPY TO` doesn't work with system tables and
    attempting to do so will result in a more meaningful error.
@@ -59,63 +32,7 @@ Unreleased
  - Fixed bulk delete for partitioned tables where partition column was part
    of the where clause
 
- - Fixed a rare race condition that could cause some queries with offset + limit higher
-   than 1_000_000 to return too few rows
-
- - Fixed an issue that could cause concurrent queries on information_schema or
-   sys tables to return inconsistent results
-
- - Fix: IS NULL predicate in query could return records that have already been
-   marked for deletion
-
- - Fixed a possible race condition which leads to the execution of a
-   non-distributed group by instead of a distributed one.
-
- - Fixed hash collide in fetch requests to avoid collision of node identifiers
-
  - Fixed an issue that could lead to unclosed contexts when issuing bulk requests
-
- - Fixed an issue that could lead to deadlock and therefore freezing of a node
-   when there where too many queries asking for routing information in parallel.
-
- - Fix: Querying from information_schema while a table is created could
-   cause an error
-
- - only log amazon s3 client stuff on level ``WARN``
-
- - log failing uri on COPY FROM
-
- - Fixed a NPE that was thrown if a SELECT statement contained `_score` in the
-   result columns and an ORDER BY clause.
-
- - Fix: selecting error from sys.jobs_log caused a NPE in some cases
-
- - Fix: If a query would fail because a shard starts to relocate during
-   query time, the query is retried now
-
- - Updated crate-admin to 0.13.4 which includes following changes:
-
-    - fix: approximate number of underreplicated and missing records per table was
-      calculated incorrectly, which could have lead to different results
-      when viewing table info on admin ui of different nodes
-
- - Fix: load Crate plugins only once on node start
-
- - Updated crate-admin to 0.13.3 which includes following changes:
-
-    - fix: automatically refresh load history chart on overview page
-
- - Fixed an issue that caused `sys.shards` queries to omit unassigned shards
-   if the query was made against a node that has `node.data` set to false
-
- - Fix: Fixed a bug where some searchers were not properly closed
-
- - Fixed a race condition that could cause `DROP TABLE IF EXISTS` to fail if
-   the table was concurrently dropped.
-
- - Fixed a race condition in `ALTER TABLE <partitioned_table>` that could occur
-   if a `DELETE FROM <partitioned_table>` was invoked immediately before the
-    `ALTER TABLE` statement.
 
 2015/06/16 0.50.0
 =================
