@@ -977,7 +977,10 @@ optional settings.
 .. _threadpool.<threadpool>.size:
 
 **threadpool.<threadpool>.size**
-  | *Default:*  ``<number-of-cores> * 5``
+  | *Default index:*  ``<number-of-cores>``
+  | *Default search:*  ``<number-of-cores> * 3``
+  | *Default get:*  ``<number-of-cores>``
+  | *Default bulk:*  ``<number-of-cores>``
   | *Runtime:*  ``no``
 
   Number of threads.
