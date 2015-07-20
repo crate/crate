@@ -209,7 +209,7 @@ public class SymbolBasedTransportShardUpsertAction
         } catch (Throwable e) {
             throw Throwables.propagate(e);
         } finally {
-            activeOperations.removeAll(shardRequest.request.jobId());
+            activeOperations.remove(shardRequest.request.jobId(), callable);
         }
         return response;
     }
