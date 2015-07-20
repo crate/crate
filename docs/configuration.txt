@@ -1086,8 +1086,4 @@ example::
 
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 
-.. _PropertyConfigurator:
-
-
-
-https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+.. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
