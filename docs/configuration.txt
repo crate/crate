@@ -7,36 +7,35 @@ Configuration
 =============
 
 Since Crate has sensible defaults, there is no configuration
-needed at all for basic operation.
+needed for most basic operation.
 
-Crate is mainly configured via a configuration file, which is
-located at ``config/crate.yml``. The vanilla configuration file
+Crate is mainly configured via a configuration file, located at
+``config/crate.yml``. The vanilla configuration file
 distributed with the package has all available settings as comments
-in it along with the according default value.
+in it along with the relevant default value.
 
 The location of the config file can be specified upon startup like
 this::
 
     sh$ ./bin/crate -Des.config=/path/to/config.yml
 
-Any option can be configured either by the config file or as system
+Any option can be configured either by the config file or as a system
 property. If using system properties the required prefix 'es.' will be
 ignored.
 
-For example, configuring the cluster name by using system properties
-will work this way::
+For example, configuring the cluster name by using system properties works like
+this ::
 
     sh$ ./bin/crate -Des.cluster.name=cluster
 
 .. highlight:: yaml
 
-This is exactly the same as setting the cluster name in the config
-file::
+This is the same as setting the cluster name in the config file::
 
     cluster.name = cluster
 
-Settings will get applied in the following order where the latter one
-will overwrite the prior one:
+Settings will be applied in the following order where the latter will overwrite
+the prior:
 
  1. internal defaults
  2. system properties
@@ -46,7 +45,8 @@ will overwrite the prior one:
 Table Settings
 ==============
 
-For more info about table creating syntax please refer to :ref:`ref-create-table`
+For more info about table creation syntax please refer to
+:ref:`ref-create-table`
 
 **number_of_replicas**
   | *Default:*    ``1``
@@ -98,9 +98,10 @@ Translog
     (or updated) that change is appended both to an in-memory buffer **and** the
     translog. When the translog reaches a certain size
     (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
-    amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
-    after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
-    the translog is ``fsynced``, flushed to disk, and cleared.
+    amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`),
+    or after a certain interval (see :ref:`flush.threshold.period
+    <flush_threshold_period>`) the translog is ``fsynced``, flushed to disk, and
+    cleared.
 
 .. _flush_threshold_ops:
 
@@ -147,9 +148,9 @@ Gateway
   | *Runtime:*   ``no``
 
   Setting ``gateway.local.sync`` controls the period after which the translog
-  is ``fsynced`` to disk (defaults to 5 s). When setting this interval, please keep
-  in mind that changes logged during this interval and not synced to disk may get
-  lost in case of a failure.
+  is ``fsynced`` to disk (defaults to 5 s). When setting this interval, please
+  keep in mind that changes logged during this interval and not synced to disk
+  may get lost in case of a failure.
 
 Allocation
 ----------
@@ -176,8 +177,8 @@ Recovery
   | *Runtime:*   ``yes``
 
   When using local gateway a particular shard is recovered only if there can be
-  allocated quorum of it’s copies in the cluster. See :ref:`initial_shards_ref`
-  for more info on the option.
+  the allocated quorum of it’s copies in the cluster. See:
+  ref:`initial_shards_ref` for more information.
 
 Warmer
 ------
@@ -207,7 +208,7 @@ Node Specific Settings
   | *Default:*    ``crate``
   | *Runtime:*   ``no``
 
-  The name of the Crate cluster the node should join to.
+  The name of the Crate cluster the node should join with.
 
 .. _conf_hosts:
 
@@ -238,7 +239,7 @@ Hosts
   | *Runtime:*   ``no``
 
   This setting is used by a Crate node to publish its own address
-  to the rest of the cluster. Per default it is the first non local address.
+  to the rest of the cluster. By default it is the first non-local address.
 
   To explicitly bind crate to a specific interface use the interface
   name between underscores. For example ``_eth0_``. This resolves to
@@ -255,48 +256,51 @@ Ports
 **http.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the Crate HTTP service will be bound to.
-  It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
-  to an integer value it is considered as an explicit single port.
+  This defines the TCP port range to which the Crate HTTP service will be bound
+  to. It defaults to ``4200-4300``, using the first free port in this range. If
+  this is set to an integer value it is considered as an explicit single port.
 
-  The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
+  The HTTP protocol is used for the REST endpoint by all clients except the Java
+  client.
 
 .. _http.publish_port:
 
 **http.publish_port**
   | *Runtime:*   ``no``
 
-  The port HTTP clients should use to communicate with the node. It is necessary to
-  define this setting if the bound HTTP port (``http.port``)
-  of the node is not directly reachable from outside, e.g. running it
-  behind a firewall or inside a Docker container.
+  The port HTTP clients should use to communicate with the node. It is necessary
+  to define this setting if the bound HTTP port (``http.port``) of the node is
+  not directly reachable from outside, e.g. running it behind a firewall or
+  inside a Docker container.
 
 .. _transport.tcp.port:
 
 **transport.tcp.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the Crate transport service will be bound to.
-  It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
-  to an integer value it is considered as an explicit single port.
+  This defines the TCP port range to which the Crate transport service will be
+  bound to. It defaults to ``4300-4400``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
 
-  The transport protocol is used for internal node-to-node communication and also
-  by the Java client.
+  The transport protocol is used for internal node-to-node communication and
+  also by the Java client.
 
 .. _transport.publish_port:
 
 **transport.publish_port**
   | *Runtime:*   ``no``
 
-  The port that the node publishes to the cluster for its own discovery. It is necessary to
-  define this setting when the bound tranport port (``transport.tcp.port``)
-  of the node is not directly reachable from outside, e.g. running it
-  behind a firewall or inside a Docker container.
+  The port that the node publishes to the cluster for its own discovery. It is
+  necessary to define this setting when the bound tranport port
+  (``transport.tcp.port``) of the node is not directly reachable from outside,
+  e.g. running it behind a firewall or inside a Docker container.
 
   .. note::
 
-    It is also possible to alter settings of single partitions of a partitioned table.
-    To change table settings for a particular partitions please refer to :ref:`ref-alter-table-partition-clause`.
+    It is possible to alter settings of single partitions of a partitioned
+    table. To change table settings for a particular partitions please refer to
+    :ref:`ref-alter-table-partition-clause`.
 
 .. _conf-cluster-settings:
 
@@ -328,11 +332,11 @@ Collecting Stats
   | *Runtime:*  ``yes``
 
   The number of jobs kept in the ``sys.jobs_log`` table on each node
-  for performance analytics. Older entries will be deleted when the
-  ``jobs_log_size`` is reached. A single SQL statement results in a
-  job to be executed on the cluster. A higher number results in more
-  expressive results but also in more occupied RAM. Setting it to
-  ``0`` disables collecting job information.
+  for performance analytics. Older entries will be deleted when
+  ``jobs_log_size`` is reached. A single SQL statement results in a job to be
+  executed on the cluster. A higher number results in more expressive results
+  but also in more occupied RAM. Setting it to ``0`` disables collecting job
+  information.
 
 .. _stats.operations_log_size:
 
@@ -361,7 +365,7 @@ Graceful Stop
   ``none``: No minimum data availability is required. The node may
   shut down even if records are missing after shutdown.
 
-  ``primaries``: At least all primary shards need to be availabe after
+  ``primaries``: At least all primary shards need to be available after
   the node has shut down. Replicas may be missing.
 
   ``full``: All records and all replicas need to be available after
@@ -377,13 +381,13 @@ Graceful Stop
   | *Default:*   ``true``
   | *Runtime:*  ``yes``
 
-  ``true``: The ``graceful stop`` command allows shards to be
-  reallocated before shutting down the node in order to ensure minimum
-  data availability set with ``min_availability``.
+  ``true``: The ``graceful stop`` command allows shards to be reallocated
+  before shutting down the node to ensure minimum data availability set with\
+  ``min_availability``.
 
   ``false``: The ``graceful stop`` command will fail if the cluster
-  would need to reallocate shards in order to ensure the minimum data
-  availability set with ``min_availability``.
+  would need to reallocate shards to ensure the minimum data availability set
+  with ``min_availability``.
 
   .. note::
 
@@ -397,11 +401,11 @@ Graceful Stop
 
   Defines the maximum waiting time in milliseconds for the
   reallocation process to finish. The ``force`` setting will define
-  the behaviour when the shutdown process runs into this timeout.
+  the behavior when the shutdown process meets this timeout.
 
-  The timeout expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+  The timeout expects a time value either as a long, double or alternatively as
+  a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
+  ``w``)
 
 .. _cluster.graceful_stop.force:
 
@@ -410,7 +414,7 @@ Graceful Stop
   | *Runtime:*  ``yes``
 
   Defines whether ``graceful stop`` should force stopping of the node
-  if it runs into the timeout which is specified with the
+  if it runs into the timeout specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
 
@@ -419,10 +423,9 @@ Graceful Stop
 Bulk Operations
 ---------------
 
-SQL DML Statements involving a huge amount of rows
-like :ref:`copy_from`, :ref:`ref-insert` or :ref:`ref-update` can take an enormous
-amount of time and resources. The following settings change the behaviour of
-those queries.
+SQL DML Statements involving a large number of rows like :ref:`copy_from`,
+:ref:`ref-insert` or :ref:`ref-update` can take a lot of time and resources. The
+following settings change the behavior of those queries.
 
 .. _bulk.request_timeout:
 
@@ -431,17 +434,17 @@ those queries.
   | *Runtime:* ``yes``
 
   Defines the timeout of internal shard-based requests involved
-  in the execution of SQL DML Statements over a huge amount of rows.
+  in the execution of SQL DML Statements over a large amount of rows.
 
 **bulk.partition_creation_timeout**
   | *Default:* ``0s``
   | *Runtime:* ``yes``
 
   Timeout that applies to creating partitions while handling SQL DML Statements
-  over a huge amount of rows. If this value is set to ``0s``,
-  which is the default, a dynamic timeout of 10s per partition created in
-  bulk is applied. So, if 10 partitions are to be created at once,
-  a timeout of 100s applies to that operation.
+  over a large amount of rows. If this value is set to ``0s``, the default, a
+  dynamic timeout of 10s per partition created in bulk is applied. So, if 10
+  partitions are to be created at once, a timeout of 100s applies to that
+  operation.
 
 Discovery
 ---------
@@ -483,7 +486,7 @@ Crate has built-in support for service discovery via DNS.
 When a node starts up with SRV discovery enabled, it performs a DNS lookup using
 the settings below. The hosts and ports from the retrieved SRV records will be
 used to generate a list of unicast hosts for node discovery.
-The same lookup is also performed by all nodes in a cluster whenever the master
+The same lookup is performed by all nodes in a cluster whenever the master
 is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
 
 The order of the unicast hosts is defined by the priority, weight and name
@@ -493,7 +496,7 @@ of each host defined in the SRV record. For example::
     _crate._srv.example.com. 3600 IN SRV 1 10 4300 crate2.example.com.
     _crate._srv.example.com. 3600 IN SRV 2 10 4300 crate3.example.com.
 
-would result in a list of discovery nodes ordered like::
+would result in a list of discovery nodes ordered as::
 
     crate2.example.com:4300, crate3.example.com:4300, crate1.example.com:4300
 
@@ -508,10 +511,9 @@ would result in a list of discovery nodes ordered like::
 **discovery.srv.query**
   | *Runtime:*  ``no``
 
-  The DNS query that is used to look up SRV records,
-  usually in the format ``_service._protocol.fqdn``
-  If not set, the service discovery will not be able to look up any
-  SRV records.
+  The DNS query used to look up SRV records is usually in the format
+  ``_service._protocol.fqdn``. If not set, the service discovery will not be
+  able to look up any SRV records.
 
 **discovery.srv.resolver**
   | *Runtime:*  ``no``
@@ -541,13 +543,12 @@ Routing Allocation
   ``primaries`` only primaries can be moved or created. This includes existing
   primary shards.
 
-  ``new_primaries`` allows allocations for new primary shards
-  only. This means that for example a newly added node will not
-  allocate any replicas. However it is still possible to allocate new
-  primary shards for new indices. Whenever you want to perform a zero
-  downtime upgrade of your cluster you need to set this value before
-  gracefully stopping the first node and reset it to ``all`` after
-  starting the last updated node.
+  ``new_primaries`` allows allocations for new primary shards only. This means
+  that (for example) a newly added node will not allocate any replicas. However
+  it is still possible to allocate new primary shards for new indices. Whenever
+  you want to perform a zero downtime upgrade of your cluster you need to set
+  this value before gracefully stopping the first node and reset it to ``all``
+  after starting the last updated node.
 
 .. _cluster.routing.allocation.allow_rebalance:
 
@@ -574,10 +575,9 @@ Routing Allocation
   | *Default:*   ``4``
   | *Runtime:*  ``yes``
 
-  Define the number of initial recoveries of primaries that are
-  allowed per node. Since most times local gateway is used, those
-  should be fast and we can handle more of those per node without
-  creating load.
+  Define the number of initial recoveries of primaries that are allowed per
+  node. Since frequently a local gateway is used, those should be fast and we
+  can handle more per node without creating load.
 
 .. _cluster.routing.allocation.node_concurrent_recoveries:
 
@@ -596,7 +596,7 @@ allocation across generic attributes associated with nodes.
 **cluster.routing.allocation.awareness.attributes**
   | *Runtime:*  ``no``
 
-  Define node attributes which will be used to do awareness based on
+  Define node attributes which will be used for awareness based on
   the allocation of a shard and its replicas. For example, let's say
   we have defined an attribute ``rack_id`` and we start 2 nodes with
   ``node.rack_id`` set to rack_one, and deploy a single table with 5
@@ -623,7 +623,7 @@ allocation across generic attributes associated with nodes.
   set to ``zone1`` and create a table with 5 shards and 1
   replica. The table will be created, but only 5 shards will be
   allocated (with no replicas). Only when we start more shards with
-  ``node.zone`` set to ``zone2`` the replicas will be allocated.
+  ``node.zone`` set to ``zone2`` will the replicas be allocated.
 
 Balanced Shards
 ~~~~~~~~~~~~~~~
@@ -672,7 +672,7 @@ allowed, for instance, due to forced awareness or allocation filtering.
 
   Minimal optimization value of operations that should be performed
   (non negative float). Increasing this value will cause the cluster
-  to be less aggressive about optimising the shard balance.
+  to be less aggressive about optimizing the shard balance.
 
 Cluster-Wide Allocation Filtering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -726,9 +726,9 @@ Disk-based Shard Allocation
 
   Defines the lower disk threshold limit for shard allocations. New
   shards will not be allocated on nodes with disk usage greater
-  than this value. It can also be set to an absolute bytes value (like
-  e.g. ``500mb``) to prevent the cluster from allocating new shards on
-  node with less free disk space than this value.
+  than this value. It can also be set to an absolute bytes value (e.g.
+  ``500mb``) to prevent the cluster from allocating new shards on node
+  with less free disk space than this value.
 
 .. _cluster.routing.allocation.disk.watermark.high:
 
@@ -743,7 +743,7 @@ Disk-based Shard Allocation
   from nodes with less free disk space than this value.
 
 By default, the cluster will retrieve information about the disk usage
-of the nodes every 30 seconds. This can also be changed by setting the
+of the nodes every 30 seconds. This can be changed by setting the
 `cluster.info.update.interval`_ setting.
 
 Recovery
@@ -774,7 +774,7 @@ Recovery
 
   Specifies how many transaction log lines should be transfered
   between shards in a single request during the recovery process. If
-  `indices.recovery.translog_size`_ is reached first, value is ignored
+  `indices.recovery.translog_size`_ is reached first, the value is ignored
   for this request.
 
 .. _indices.recovery.translog_size:
@@ -784,9 +784,9 @@ Recovery
   | *Runtime:*  ``yes``
 
   Specifies how much data of the transaction log should be transfered
-  betweem shards in a single request during the recovery process. If
-  ``indices.recovery.translog_op`` is reached first, value is ignored
-  for this request.
+  between shards in a single request during the recovery process. If
+  ``indices.recovery.translog_op`` is reached first, the value is ignored for
+  this request.
 
 .. _indices.recovery.compress:
 
@@ -854,7 +854,8 @@ Recovery
 
   Defines the timeout for internal requests made as part of the
   recovery that are expected to take a long time. Defaults to twice
-  :ref:`retry_internal_action_timeout <indices.recovery.retry_internal_action_timeout>`.
+  :ref:`retry_internal_action_timeout
+  <indices.recovery.retry_internal_action_timeout>`.
 
 .. _indices.store.throttle:
 
@@ -1012,8 +1013,10 @@ Crate comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
 file is at ``config/logging.yml``.
 
-The yaml file is used to prepare a set of properties used for logging configuration
-using the `PropertyConfigurator`_ but without the tediously repeating ``log4j`` prefix.
+The yaml file is used to prepare a set of properties used for logging
+configuration
+using the `PropertyConfigurator`_ but without the tediously repeating ``log4j``
+prefix.
 Here is a small example of a working logging configuration::
 
     rootLogger: INFO, console
@@ -1030,7 +1033,8 @@ Here is a small example of a working logging configuration::
           type: consolePattern
           conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
 
-And here is a snippet of the generated properties ready for use with log4j. You get the point.
+And here is a snippet of the generated properties ready for use with log4j. You
+get the point.
 ::
 
    log4j.rootLogger=INFO, console
@@ -1039,7 +1043,8 @@ And here is a snippet of the generated properties ready for use with log4j. You 
 
    log4j.appender.console=org.elasticsearch.common.logging.log4j.ConsoleAppender
    log4j.appender.console.layout=org.apache.log4j.PatternLayout
-   log4j.appender.console.layout.conversionPattern=[%d{ISO8601}][%-5p][%-25c] %m%n
+   log4j.appender.console.layout.conversionPattern=[%d{ISO8601}][%-5p][%-25c]
+   %m%n
 
    ...
 
@@ -1081,4 +1086,8 @@ example::
 
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 
-.. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+.. _PropertyConfigurator:
+
+
+
+https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
