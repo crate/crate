@@ -27,9 +27,10 @@ import java.util.UUID;
 
 public class KillAnalyzedStatement implements AnalyzedStatement {
 
-    private Optional<UUID> jobId = Optional.absent();
+    final private Optional<UUID> jobId;
 
     public KillAnalyzedStatement() {
+        jobId = Optional.absent();
     }
 
     public KillAnalyzedStatement(UUID jobId) {

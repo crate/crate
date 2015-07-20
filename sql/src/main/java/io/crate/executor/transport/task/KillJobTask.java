@@ -31,31 +31,22 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class KillJobTask extends JobTask {
 
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> results;
-    private ClusterService clusterService;
     private UUID jobToKill;
     private TransportKillJobsNodeAction nodeAction;
 
 
-    public KillJobTask(ClusterService clusterService,
-                       TransportKillJobsNodeAction nodeAction,
+    public KillJobTask(TransportKillJobsNodeAction nodeAction,
                        UUID jobId,
                        UUID jobToKill) {
         super(jobId);
-        this.clusterService = clusterService;
         this.nodeAction = nodeAction;
         result = SettableFuture.create();
         results = ImmutableList.of((ListenableFuture<TaskResult>) result);
@@ -64,38 +55,19 @@ public class KillJobTask extends JobTask {
 
     @Override
     public void start() {
-        DiscoveryNodes nodes = clusterService.state().nodes();
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
-        final AtomicInteger counter = new AtomicInteger(nodes.size());
-        final AtomicLong numKilled = new AtomicLong(0);
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
-        for (DiscoveryNode node : nodes) {
-            nodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
-                @Override
-                public void onResponse(KillResponse killResponse) {
-                    numKilled.addAndGet(killResponse.numKilled());
-                    countdown();
-                }
+        nodeAction.executeKillOnAllNodes(request, new ActionListener<KillResponse>() {
+            @Override
+            public void onResponse(KillResponse killResponse) {
+                result.set(new RowCountResult(killResponse.numKilled()));
+            }
 
-                @Override
-                public void onFailure(Throwable e) {
-                    lastThrowable.set(e);
-                    countdown();
-                }
-
-                private void countdown() {
-                    if (counter.decrementAndGet() == 0) {
-                        Throwable throwable = lastThrowable.get();
-                        if (throwable == null) {
-                            result.set(new RowCountResult(numKilled.get()));
-                        } else {
-                            result.setException(throwable);
-                        }
-                    }
-                }
-            });
-        }
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
     }
 
     @Override

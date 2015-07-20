@@ -349,7 +349,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             }
         });
         insertThread.start();
-        Thread.sleep(10);
         SQLResponse logResponse = null;
         for (int i = 0; i < 10; i++) {
             logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{stmt});

@@ -631,6 +631,8 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(fetchProjection.bulkSize(), is(-1));
     }
 
+
+
     @Test
     public void testQueryThenFetchPlanPartitioned() throws Exception {
         Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
@@ -1910,10 +1912,5 @@ public class PlannerTest extends CrateUnitTest {
         KillPlan killJobsPlan = (KillPlan) plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
         assertThat(killJobsPlan.jobId(), notNullValue());
         assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testKillPlanJobsIdIsNotParsable() throws Exception {
-        plan("kill '6a3d6fb6-1401-4333-93'");
     }
 }

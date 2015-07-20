@@ -30,10 +30,11 @@ import java.util.UUID;
 public class KillPlan implements Plan {
 
     private final UUID id;
-    private Optional<UUID> jobToKill = Optional.absent();
+    private final Optional<UUID> jobToKill;
 
     public KillPlan(UUID id) {
         this.id = id;
+        this.jobToKill = Optional.absent();
     }
 
     public KillPlan(UUID id, UUID jobToKill) {
