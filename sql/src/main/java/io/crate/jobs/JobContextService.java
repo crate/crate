@@ -153,7 +153,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public long killJobs(Collection<UUID> toKill) {
-        // TODO: when this is exposed some Actions should be stopped like it's done in killAll using the killAllListeners
         long numKilled = 0L;
         writeLock.lock();
         for (KillAllListener killAllListener : killAllListeners) {

@@ -95,19 +95,16 @@ public class KillTaskTest extends CrateUnitTest {
     @Test
     public void testExecuteKillJobsIsCalledOnTransportForEachNode() throws Exception {
         TransportKillJobsNodeAction killNodeAction = startKillTaskAndGetTransportKillJobsNodeAction();
-
-        verify(killNodeAction, times(1)).execute(eq("n1"), any(KillJobsRequest.class), any(ActionListener.class));
-        verify(killNodeAction, times(1)).execute(eq("n2"), any(KillJobsRequest.class), any(ActionListener.class));
-        verify(killNodeAction, times(1)).execute(eq("n3"), any(KillJobsRequest.class), any(ActionListener.class));
+        verify(killNodeAction, times(1)).executeKillOnAllNodes(any(KillJobsRequest.class), any(ActionListener.class));
     }
 
     @Test
     public void testKillJobsRowCountIsAccumulated() throws Exception {
         TransportKillJobsNodeAction killJobsNodeAction = startKillTaskAndGetTransportKillJobsNodeAction();
-        verify(killJobsNodeAction, times(3)).execute(anyString(), any(KillJobsRequest.class), responseListener.capture());
+        verify(killJobsNodeAction, times(1)).executeKillOnAllNodes(any(KillJobsRequest.class), responseListener.capture());
 
         for (ActionListener<KillResponse> killAllResponseActionListener : responseListener.getAllValues()) {
-            killAllResponseActionListener.onResponse(new KillResponse(1));
+            killAllResponseActionListener.onResponse(new KillResponse(3));
         }
 
         Bucket rows = killJobsTask.result().get(0).get().rows();
@@ -128,8 +125,7 @@ public class KillTaskTest extends CrateUnitTest {
         when(clusterService.state()).thenReturn(state);
         when(state.nodes()).thenReturn(nodes);
 
-        killJobsTask = new KillJobTask(clusterService,
-                killNodeAction,
+        killJobsTask = new KillJobTask(killNodeAction,
                 UUID.randomUUID(),
                 UUID.randomUUID());
         killJobsTask.start();

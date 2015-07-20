@@ -25,10 +25,12 @@ import com.google.common.base.Optional;
 
 public class KillStatement extends Statement {
 
-    private Optional<String> jobId = Optional.absent();
+    final private Optional<String> jobId;
 
 
-    public KillStatement() {}
+    public KillStatement() {
+        this.jobId = Optional.absent();
+    }
 
     public KillStatement(String jobId) {
         this.jobId = Optional.of(jobId);
@@ -55,7 +57,7 @@ public class KillStatement extends Statement {
 
     @Override
     public String toString() {
-        return jobId == null ? "KILL ALL" : "KILL " + jobId.toString();
+        return jobId.isPresent() ? String.format("KILL '%s'", jobId.get()) : "KILL ALL";
     }
 
     @Override
