@@ -62,13 +62,14 @@ public class TransportKillJobsNodeActionTest {
 
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
                 jobContextService,
+                new NoopClusterService(),
                 new Transports(noopClusterService, transportService, threadPool),
                 transportService
         );
 
         final CountDownLatch latch = new CountDownLatch(1);
         List<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
-        transportKillJobsNodeAction.execute("noop_id", new KillJobsRequest(toKill), new ActionListener<KillResponse>() {
+        transportKillJobsNodeAction.executeKillOnAllNodes(new KillJobsRequest(toKill), new ActionListener<KillResponse>() {
             @Override
             public void onResponse(KillResponse killAllResponse) {
                 latch.countDown();

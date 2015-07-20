@@ -75,6 +75,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -262,20 +263,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
-                            killJobs(ImmutableList.of(plan.jobId()), new FutureCallback<Long>() {
-                                @Override
-                                public void onSuccess(@Nullable Long numJobsKilled) {
-                                    logger.debug("Killed {} jobs before Retry", numJobsKilled);
-                                    doExecute(request, listener, attempt + 1, plan.jobId());
-                                }
 
-                                @Override
-                                public void onFailure(Throwable throwable) {
-                                    logger.warn("Failed to kill job before Retry", throwable);
-                                    statsTables.jobFinished(plan.jobId(), Exceptions.messageOf(t));
-                                    sendResponse(listener, buildSQLActionException(t));
-                                }
-                            });
+                            killAndRetry(t);
                             return;
                         } else {
                             message = Exceptions.messageOf(t);
@@ -284,47 +273,28 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         statsTables.jobFinished(plan.jobId(), message);
                         sendResponse(listener, buildSQLActionException(t));
                     }
+
+                    private void killAndRetry(@Nonnull final Throwable t) {
+                        transportKillJobsNodeAction.executeKillOnAllNodes(
+                                new KillJobsRequest(Collections.singletonList(plan.jobId())), new ActionListener<KillResponse>() {
+                                    @Override
+                                    public void onResponse(KillResponse killResponse) {
+                                        logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
+                                        doExecute(request, listener, attempt + 1, plan.jobId());
+                                    }
+
+                                    @Override
+                                    public void onFailure(Throwable e) {
+                                        logger.warn("Failed to kill job before Retry", e);
+                                        statsTables.jobFinished(plan.jobId(), Exceptions.messageOf(t));
+                                        sendResponse(listener, buildSQLActionException(t));
+                                    }
+                                }
+                        );
+                    }
                 }
 
         );
-    }
-
-    private void killJobs(List<UUID> toKill, FutureCallback<Long> callback) {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        KillJobsRequest request = new KillJobsRequest(toKill);
-        final AtomicInteger counter = new AtomicInteger(nodes.size());
-        final AtomicLong numKilled = new AtomicLong(0);
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
-        final SettableFuture<Long> resultFuture = SettableFuture.create();
-        Futures.addCallback(resultFuture, callback);
-        for (DiscoveryNode node : nodes) {
-            transportKillJobsNodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
-
-                @Override
-                public void onResponse(KillResponse killResponse) {
-                    numKilled.addAndGet(killResponse.numKilled());
-                    countdown();
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    lastThrowable.set(e);
-                    countdown();
-                }
-
-                private void countdown() {
-                    if (counter.decrementAndGet() == 0) {
-                        Throwable throwable = lastThrowable.get();
-                        if (throwable == null) {
-                            resultFuture.set(numKilled.get());
-                        } else {
-                            resultFuture.setException(throwable);
-                        }
-                    }
-
-                }
-            });
-        }
     }
 
     private void tracePlan(Plan plan) {
