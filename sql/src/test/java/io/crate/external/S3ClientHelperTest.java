@@ -68,7 +68,7 @@ public class S3ClientHelperTest extends CrateUnitTest {
     public void testWithCredentials() throws Exception {
         AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://user:password@host/path"));
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
-        assertThat(url.toString(), is("http://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
+        assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }
 
 }
