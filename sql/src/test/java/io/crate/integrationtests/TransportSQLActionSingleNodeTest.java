@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.StringContains.containsString;
@@ -337,8 +338,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         for(int i = 0; i < bulkArgs.length; i++) {
             bulkArgs[i] = new Object[]{"event1", "item1"};
         }
+
+
         final SettableFuture<SQLBulkResponse> res = SettableFuture.create();
-        Thread insertThread = new Thread(new Runnable() {
+        Executors.newSingleThreadExecutor().submit(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -348,7 +351,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 }
             }
         });
-        insertThread.start();
+
         SQLResponse logResponse = null;
         for (int i = 0; i < 10; i++) {
             logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{stmt});
@@ -360,7 +363,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(logResponse.rows().length, not(0));
         String jobId = (String) logResponse.rows()[0][0];
         execute(String.format("KILL '%s'", jobId));
-        insertThread.join();
+
         try {
             res.get();
         } catch (ExecutionException e) {
