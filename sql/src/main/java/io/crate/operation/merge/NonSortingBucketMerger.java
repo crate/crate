@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -35,25 +36,30 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * BucketMerger implementation that does not care about sorting
  * and just emits a stream of rows, whose order is undeterministic
  * as it is not guaranteed which row from which bucket ends up in the stream at which position.
  */
-public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
+public class NonSortingBucketMerger implements PageDownstream, StoppableRowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
     private final RowDownstreamHandle downstream;
     private final AtomicBoolean alreadyFinished;
     private final Optional<Executor>  executor;
+
+
+    private final AtomicBoolean paused = new AtomicBoolean(false);
+
+    private volatile boolean pendingPause = false;
+    private volatile Iterator<Row> pausedRowIterator;
+    private volatile PageConsumeListener pausedListener;
 
     public NonSortingBucketMerger(RowDownstream rowDownstream) {
         this(rowDownstream, Optional.<Executor>absent());
@@ -66,30 +72,58 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
     }
 
     @Override
+    public void pause() {
+        pendingPause = true;
+    }
+
+    @Override
+    public void resume() {
+        if (paused.compareAndSet(true, false)) {
+            LOGGER.trace("resume sending rows to: {}", downstream);
+            processBuckets(pausedListener, pausedRowIterator);
+        } else {
+            LOGGER.debug("received resume but wasn't paused {}", downstream);
+        }
+    }
+
+    private void processBuckets(PageConsumeListener listener, Iterator<Row> rowIterator) {
+        while (rowIterator.hasNext()) {
+            Row row = rowIterator.next();
+            try {
+                if (alreadyFinished.get()) {
+                    listener.finish();
+                    return;
+                }
+                boolean needMore = downstream.setNextRow(row);
+                if (pendingPause) {
+                    pausedListener = listener;
+                    pausedRowIterator = rowIterator;
+                    paused.set(true);
+                    pendingPause = false;
+                    return;
+                }
+
+                if (!needMore) {
+                    listener.finish();
+                    return;
+                }
+            } catch (Throwable t) {
+                fail(t);
+                listener.finish();
+                return;
+            }
+        }
+        listener.needMore();
+    }
+
+    @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
         final FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 LOGGER.trace("received bucket");
-                for (Bucket bucket : buckets) {
-                    for (Row row : bucket) {
-                        try {
-                            if (alreadyFinished.get()) {
-                                listener.finish();
-                                return;
-                            }
-                            boolean needMore = downstream.setNextRow(row);
-                            if (!needMore) {
-                                listener.finish();
-                                return;
-                            }
-                        } catch (Throwable t) {
-                            onFailure(t);
-                            return;
-                        }
-                    }
-                }
-                listener.needMore();
+                Iterable<Row> rows = Iterables.concat(buckets);
+                processBuckets(listener, rows.iterator());
             }
 
             @Override
