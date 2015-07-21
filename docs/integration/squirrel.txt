@@ -27,7 +27,7 @@ setup step is required to run Crate with SQuirreL_:
 
  #. Choose the ``Aliases`` tab and add a new Alias,
     Choose your new driver (called crate in our example) and enter your database
-URL. Username and password are not supported, so leave them blank.
+    URL. Username and password are not supported, so leave them blank.
 
     .. image:: ../_static/squirrel_add_alias.png
        :alt: squirrel add alias dialogue
