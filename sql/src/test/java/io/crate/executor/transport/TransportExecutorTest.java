@@ -23,18 +23,20 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.KillJobTask;
+import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -53,14 +55,19 @@ import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.lang.reflect.Field;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -434,13 +441,54 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testKillJobsTask() throws Exception {
-        Job job = executor.newJob(new KillPlan(UUID.randomUUID(), UUID.randomUUID()));
-        assertThat(job.tasks(), hasSize(1));
-        assertThat(job.tasks().get(0), instanceOf(KillJobTask.class));
-        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
-        assertThat(results, hasSize(1));
-        results.get(0).get();
-    }
+    public void testKillJobTask() throws Exception {
+        execute("create table t (name string)");
+        refresh();
+        Statement statement = SqlParser.createStatement("select * from t");
+        Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
+        Planner planner = internalCluster().getInstance(Planner.class);
 
+        UUID jobId = UUID.randomUUID();
+
+        Analysis analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], new Object[0][], null));
+        QueryThenFetch plan = ((QueryThenFetch) planner.plan(analysis, jobId));
+
+        MergePhase mergePhase = plan.mergeNode();
+
+        MergePhase fishyMergePhase = new MergePhase(jobId,
+                mergePhase.executionPhaseId(),
+                mergePhase.name(),
+                mergePhase.numUpstreams() + 1,
+                mergePhase.inputTypes(),
+                mergePhase.projections()
+        );
+        QueryThenFetch brokenPlan = new QueryThenFetch(plan.collectNode(), fishyMergePhase, jobId);
+
+        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class);
+        Job job = transportExecutor.newJob(brokenPlan);
+        transportExecutor.execute(job);
+
+        execute(String.format("KILL '%s'", jobId));
+
+        final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
+        final Field activeOperations = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
+        final Field activeOperationsSb = SymbolBasedTransportShardUpsertAction.class.getDeclaredField("activeOperations");
+
+        activeContexts.setAccessible(true);
+        activeOperations.setAccessible(true);
+        activeOperationsSb.setAccessible(true);
+
+        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+            assertThat(contexts.containsKey(jobId), not(true));
+        }
+        for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
+            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperations.get(action);
+            assertThat(operations.containsKey(jobId), not(true));
+        }
+        for (SymbolBasedTransportShardUpsertAction action : internalCluster().getInstances(SymbolBasedTransportShardUpsertAction.class)) {
+            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+            assertThat(operations.containsKey(jobId), not(true));
+        }
+    }
 }
