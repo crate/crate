@@ -46,6 +46,7 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Symbol;
@@ -216,10 +217,10 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         QueryAndFetch leftPlan = (QueryAndFetch) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectNode();
         assertThat(collectPhase.projections().size(), is(1));
-        TopNProjection topN = ((TopNProjection) collectPhase.projections().get(0));
+        MergeProjection projection = ((MergeProjection) collectPhase.projections().get(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        assertThat(topN.orderBy().size(), is(1));
-        assertThat(topN.orderBy().get(0), isInputColumn(0));
+        assertThat(projection.orderBy().size(), is(1));
+        assertThat(projection.orderBy().get(0), isInputColumn(0));
     }
 
     @Test
