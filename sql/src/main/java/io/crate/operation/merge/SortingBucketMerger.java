@@ -116,20 +116,16 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 try {
-                    if (numBuckets == 1) {
-                        emitSingleBucket(buckets.get(0));
-                    } else {
-                        ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
-                        for (int i = 0; i < buckets.size(); i++) {
-                            Iterator<Row> remainingBucketIt = remainingBucketIts[i];
-                            if (remainingBucketIt == null) {
-                                bucketIts.add(buckets.get(i).iterator());
-                            } else {
-                                bucketIts.add(Iterators.concat(remainingBucketIt, buckets.get(i).iterator()));
-                            }
+                    ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
+                    for (int i = 0; i < buckets.size(); i++) {
+                        Iterator<Row> remainingBucketIt = remainingBucketIts[i];
+                        if (remainingBucketIt == null) {
+                            bucketIts.add(buckets.get(i).iterator());
+                        } else {
+                            bucketIts.add(Iterators.concat(remainingBucketIt, buckets.get(i).iterator()));
                         }
-                        emitBuckets(bucketIts);
                     }
+                    emitBuckets(bucketIts);
                 } catch (Throwable t) {
                     downstream.fail(t);
                 } finally {
@@ -305,15 +301,6 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
                 }
             }
             bi = (bi+1) % numBuckets;
-        }
-    }
-
-    private void emitSingleBucket(Bucket bucket) {
-        for (Row row : bucket) {
-            if (!emit(row)) {
-                wantMore.set(false);
-                return;
-            }
         }
     }
 

@@ -87,7 +87,7 @@ public class PageDownstreamFactory {
         }
 
         PageDownstream pageDownstream;
-        if (mergeNode.sortedInputOutput()) {
+        if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
             pageDownstream = new SortingBucketMerger(
                     rowDownstream,
                     mergeNode.numUpstreams(),
