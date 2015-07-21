@@ -23,7 +23,6 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.*;
@@ -31,7 +30,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
@@ -62,12 +60,7 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.Map;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -468,27 +461,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = transportExecutor.newJob(brokenPlan);
         transportExecutor.execute(job);
 
-        execute(String.format("KILL '%s'", jobId));
+        execute(String.format(Locale.ENGLISH, "KILL '%s'", jobId));
 
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        final Field activeOperations = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
-        final Field activeOperationsSb = SymbolBasedTransportShardUpsertAction.class.getDeclaredField("activeOperations");
-
         activeContexts.setAccessible(true);
-        activeOperations.setAccessible(true);
-        activeOperationsSb.setAccessible(true);
 
         for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
             Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
             assertThat(contexts.containsKey(jobId), not(true));
-        }
-        for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
-            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperations.get(action);
-            assertThat(operations.containsKey(jobId), not(true));
-        }
-        for (SymbolBasedTransportShardUpsertAction action : internalCluster().getInstances(SymbolBasedTransportShardUpsertAction.class)) {
-            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
-            assertThat(operations.containsKey(jobId), not(true));
         }
     }
 }
