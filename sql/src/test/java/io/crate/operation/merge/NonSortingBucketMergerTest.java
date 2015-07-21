@@ -29,8 +29,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
-import io.crate.operation.Input;
-import io.crate.operation.PageConsumeListener;
+import io.crate.core.collections.Row;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.SimpleTopNProjector;
@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.testing.TestingHelpers.createPage;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -84,6 +85,61 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     private void assertMerged(Bucket bucket, String ... rows) {
         assertThat(Arrays.asList(TestingHelpers.printedTable(bucket).split("\n")), containsInAnyOrder(rows));
+    }
+
+    @Test
+    public void testPauseAndResume() throws Exception {
+        final CollectingProjector collectingProjector = new CollectingProjector();
+        final AtomicInteger rowsReceived = new AtomicInteger();
+        NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(new RowDownstream() {
+            @Override
+            public RowDownstreamHandle registerUpstream(final RowUpstream upstream) {
+                return new RowDownstreamHandle() {
+                    @Override
+                    public boolean setNextRow(Row row) {
+                        if (rowsReceived.incrementAndGet() == 3) {
+                            collectingProjector.setNextRow(row);
+                            ((StoppableRowUpstream)upstream).pause();
+                            return true;
+                        }
+                        return collectingProjector.setNextRow(row);
+                    }
+
+                    @Override
+                    public void finish() {
+                        collectingProjector.finish();
+                    }
+
+                    @Override
+                    public void fail(Throwable throwable) {
+                        collectingProjector.fail(throwable);
+                    }
+                };
+            }
+        });
+        collectingProjector.registerUpstream(bucketMerger);
+
+        bucketMerger.nextPage(createPage(Arrays.asList(
+                new Object[]{"A"},
+                new Object[]{"B"},
+                new Object[]{"C"},
+                new Object[]{"D"},
+                new Object[]{"E"},
+                new Object[]{"F"})), new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                collectingProjector.finish();
+            }
+
+            @Override
+            public void finish() {
+                collectingProjector.finish();
+            }
+        });
+
+        bucketMerger.resume();
+        Bucket rows = collectingProjector.result().get();
+        assertThat(TestingHelpers.printedTable(rows), is("A\nB\nC\nD\nE\nF\n"));
     }
 
     @Test
