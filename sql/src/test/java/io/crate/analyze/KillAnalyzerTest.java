@@ -28,6 +28,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
@@ -50,9 +52,21 @@ public class KillAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testAnalyzeKillJobs() throws Exception {
-        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertThat(stmt.jobId().get().toString(),  is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
+    public void testAnalyzeKillJobWithParameter() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill $2", new Object[]{ 2, jobId });
+        assertThat(stmt.jobId().get(), is(jobId));
+        stmt = (KillAnalyzedStatement) analyze("kill $1", new Object[]{ jobId });
+        assertThat(stmt.jobId().get(), is(jobId));
+        stmt = (KillAnalyzedStatement) analyze("kill ?", new Object[]{ jobId });
+        assertThat(stmt.jobId().get(), is(jobId));
+    }
+
+    @Test
+    public void testAnalyzeKillJobWithLiteral() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze(String.format(Locale.ENGLISH, "kill '%s'", jobId.toString()));
+        assertThat(stmt.jobId().get(), is(jobId));
     }
 
     @Test(expected = IllegalArgumentException.class)

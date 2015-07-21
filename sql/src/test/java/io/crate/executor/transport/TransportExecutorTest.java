@@ -461,7 +461,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = transportExecutor.newJob(brokenPlan);
         transportExecutor.execute(job);
 
-        execute(String.format(Locale.ENGLISH, "KILL '%s'", jobId));
+        execute("KILL ?", new Object[] { jobId });
 
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);

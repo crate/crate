@@ -35,12 +35,9 @@ import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
 import static java.lang.String.format;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -509,10 +506,8 @@ public class TestStatementBuilder
 
     @Test
     public void testKillJob() {
-        Statement stmt = SqlParser.createStatement("KILL '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertTrue(stmt.equals(new KillStatement("6a3d6fb6-1401-4333-933d-b38c9322fca7")));
-        assertTrue(!stmt.equals(new KillStatement("6a3d6fb6-1401-4333-933d-b38c9322fca8")));
-        assertThat(new KillStatement("6a3d6fb6-1401-4333-933d-b38c9322fca8").toString(), containsString("6a3d6fb6-1401-4333-933d-b38c9322fca8"));
+        KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
+        assertThat(stmt.jobId().isPresent(), is(true));
     }
 
     @Test

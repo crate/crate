@@ -742,7 +742,7 @@ bool
     ;
 
 jobId
-    : STRING
+    : parameterOrLiteral
     ;
 
 integer
