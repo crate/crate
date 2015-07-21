@@ -103,6 +103,12 @@ Using a s3 URI will set the ``shared`` option implicitly.
    request. Encode a forward slash as %2F and equals as %3D. For a detailed
    explanation read the official `AWS documentation`_.
 
+.. note::
+
+  Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x these
+  connections are using the HTTPS protocol. Please make sure you update your
+  firewall rules to allow outgoing connections on port ``443``.
+
 Parameters
 ==========
 
