@@ -359,7 +359,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         }
         assertThat(logResponse.rows().length, not(0));
         String jobId = (String) logResponse.rows()[0][0];
-        execute(String.format("KILL '%s'", jobId));
+        execute("KILL ?", new Object[] { jobId });
         insertThread.join();
         try {
             res.get();
@@ -376,7 +376,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         execute("SET GLOBAL stats.enabled = true");
         UUID id = UUID.randomUUID();
 
-        SQLResponse response = execute(String.format("KILL '%s'", id.toString()));
+        SQLResponse response = execute("KILL ?", new Object[]{ id });
         assertThat(response.rowCount(), is(0L));
         SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
         assertThat(logResponse.rowCount(), is(0L));

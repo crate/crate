@@ -25,18 +25,18 @@ import com.google.common.base.Optional;
 
 public class KillStatement extends Statement {
 
-    final private Optional<String> jobId;
+    private final Optional<Expression> jobId;
 
 
     public KillStatement() {
         this.jobId = Optional.absent();
     }
 
-    public KillStatement(String jobId) {
+    public KillStatement(Expression jobId) {
         this.jobId = Optional.of(jobId);
     }
 
-    public Optional<String> jobId() {
+    public Optional<Expression> jobId() {
         return jobId;
     }
 

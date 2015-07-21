@@ -23,8 +23,6 @@ package io.crate.analyze;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.UUID;
-
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher;
@@ -61,6 +59,7 @@ public class Analyzer {
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+        private final KillStatementAnalyzer killStatementAnalyzer;
 
 
         @Inject
@@ -80,7 +79,8 @@ public class Analyzer {
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   CopyStatementAnalyzer copyStatementAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
-                                  DeleteStatementAnalyzer deleteStatementAnalyzer) {
+                                  DeleteStatementAnalyzer deleteStatementAnalyzer,
+                                  KillStatementAnalyzer killStatementAnalyzer) {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
@@ -98,6 +98,7 @@ public class Analyzer {
             this.copyStatementAnalyzer = copyStatementAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
+            this.killStatementAnalyzer = killStatementAnalyzer;
         }
 
         @Override
@@ -196,20 +197,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
-            KillAnalyzedStatement killAnalyzedStatement;
-            if (node.jobId().isPresent()) {
-                UUID jobId;
-                try {
-                    jobId = UUID.fromString(node.jobId().get());
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Can not parse job ID", e);
-                }
-                killAnalyzedStatement = new KillAnalyzedStatement(jobId);
-            } else {
-                killAnalyzedStatement = new KillAnalyzedStatement();
-            }
-            return killAnalyzedStatement;
+            return killStatementAnalyzer.analyze(node, context);
         }
 
         @Override
