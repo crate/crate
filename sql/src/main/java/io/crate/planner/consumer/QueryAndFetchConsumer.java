@@ -37,6 +37,7 @@ import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryAndFetch;
+import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
@@ -55,6 +56,8 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 @Singleton
 public class QueryAndFetchConsumer implements Consumer {
 
+    private static final CollectPhaseOrderedProjectionBuilder ORDERED_PROJECTION_BUILDER =
+            new CollectPhaseOrderedProjectionBuilder();
     private final Visitor visitor;
 
     @Inject
@@ -152,6 +155,7 @@ public class QueryAndFetchConsumer implements Consumer {
                  * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
                  * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
                  */
+
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
                 if (orderBy != null){
@@ -176,28 +180,30 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> allOutputs = toInputColumns(toCollect);
                 List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
-                // if we have an offset we have to get as much docs from every node as we have offset+limit
-                // otherwise results will be wrong
-                TopNProjection tnp;
                 int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
-                if (orderBy == null){
-                    tnp = new TopNProjection(querySpec.offset() + limit, 0);
+
+                CollectPhaseOrderedProjectionBuilderContext projectionBuilderContext =
+                        new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
+
+                Projection orderProjection = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
+                List<Projection> collectPhaseProjections;
+                if (orderProjection == null) {
+                    collectPhaseProjections = ImmutableList.of();
                 } else {
-                    tnp = new TopNProjection(querySpec.offset() + limit, 0,
-                            orderByInputColumns,
-                            orderBy.reverseFlags(),
-                            orderBy.nullsFirst()
-                    );
+                    collectPhaseProjections = ImmutableList.of(orderProjection);
                 }
-                tnp.outputs(allOutputs);
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
                         context.plannerContext(),
-                        whereClause, toCollect, ImmutableList.<Projection>of(tnp));
+                        whereClause,
+                        toCollect,
+                        collectPhaseProjections,
+                        projectionBuilderContext.orderBy,
+                        projectionBuilderContext.limit);
 
                 // MERGE
-                tnp = new TopNProjection(limit, querySpec.offset());
+                TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
                 tnp.outputs(finalOutputs);
                 if (orderBy == null) {
                     // no sorting needed
@@ -219,14 +225,13 @@ public class QueryAndFetchConsumer implements Consumer {
                     );
                 }
             } else {
-                ImmutableList<Projection> projections = ImmutableList.of();
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
                         context.plannerContext(),
                         whereClause,
                         outputSymbols,
-                        projections
+                        ImmutableList.<Projection>of()
                 );
                 if (context.rootRelation() == table) {
                     mergeNode = PlanNodeBuilder.localMerge(
@@ -246,6 +251,71 @@ public class QueryAndFetchConsumer implements Consumer {
                 inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
             }
             return inputColumns;
+        }
+    }
+
+    private static class CollectPhaseOrderedProjectionBuilderContext {
+        OrderBy orderBy;
+        int offset;
+        Integer limit;
+        List<Symbol> orderByInputColumns;
+        List<Symbol> allOutputs;
+
+        public CollectPhaseOrderedProjectionBuilderContext(QuerySpec querySpec,
+                                                           List<Symbol> orderByInputColumns,
+                                                           List<Symbol> allOutputs) {
+            this.orderByInputColumns = orderByInputColumns;
+            this.allOutputs = allOutputs;
+            this.orderBy = querySpec.orderBy();
+            this.offset = querySpec.offset();
+            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);;
+        }
+    }
+
+    private static class CollectPhaseOrderedProjectionBuilder extends AnalyzedRelationVisitor<CollectPhaseOrderedProjectionBuilderContext, Projection> {
+
+        @Override
+        public Projection visitQueriedTable(QueriedTable table,
+                                            CollectPhaseOrderedProjectionBuilderContext context) {
+            // if we have an offset we have to get as much docs from every node as we have offset+limit
+            // otherwise results will be wrong
+            TopNProjection topNProjection;
+            if (context.orderBy == null) {
+                topNProjection = new TopNProjection(context.offset + context.limit, 0);
+            } else {
+                topNProjection = new TopNProjection(context.offset + context.limit, 0,
+                        context.orderByInputColumns,
+                        context.orderBy.reverseFlags(),
+                        context.orderBy.nullsFirst()
+                );
+            }
+            topNProjection.outputs(context.allOutputs);
+            // this values are passed to the CollectPhase,a QueriedTable does not support these
+            // at CollectPhase so null it
+            context.orderBy = null;
+            context.limit = null;
+            return topNProjection;
+        }
+
+        @Override
+        public Projection visitQueriedDocTable(QueriedDocTable table,
+                                               CollectPhaseOrderedProjectionBuilderContext context) {
+            if (context.orderBy == null) {
+                return null;
+            } else {
+                return new MergeProjection(
+                        context.allOutputs,
+                        context.orderByInputColumns,
+                        context.orderBy.reverseFlags(),
+                        context.orderBy.nullsFirst()
+                );
+            }
+        }
+
+        @Override
+        protected Projection visitAnalyzedRelation(AnalyzedRelation relation,
+                                                     CollectPhaseOrderedProjectionBuilderContext context) {
+            throw new UnsupportedOperationException("relation not supported");
         }
     }
 }
