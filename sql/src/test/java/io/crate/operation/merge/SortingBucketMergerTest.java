@@ -34,9 +34,9 @@ import io.crate.operation.Input;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -106,6 +106,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         assertRows(bucket, "A| 1", "A| 2", "B| 1", "B| 2");
     }
 
+
     @Test
     public void testNullsFirst() throws Exception {
         BucketPage page1 = createPage(
@@ -128,7 +129,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
                         new Object[]{"D", 3}
                 )
         );
-        Bucket bucket = mergeWith(2, false, page1, page2);
+        Bucket bucket = mergeWith(2, true, page1, page2);
         assertRows(bucket, "NULL| 1", "NULL| 2", "A| 1", "A| 2", "B| 1", "B| 2", "C| 3", "D| 3");
     }
 

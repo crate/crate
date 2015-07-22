@@ -21,15 +21,11 @@
 
 package io.crate.operation.merge;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -38,12 +34,15 @@ import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.operation.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * BucketMerger implementation that expects sorted rows in the
@@ -54,13 +53,9 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
     private final RowDownstreamHandle downstream;
     private final Ordering<Row> ordering;
     private final int numBuckets;
-    private final AtomicBoolean wantMore;
-    private final IntOpenHashSet exhaustedIterators;
-    private final IntArrayList bucketsWithRowEqualToLeast;
-    private final ArrayList<Row> previousRows;
     private final Optional<Executor> executor;
-    private Iterator<Row>[] remainingBucketIts = null;
-    private final AtomicBoolean alreadyFinished = new AtomicBoolean(false);
+    private final AtomicBoolean finished = new AtomicBoolean(false);
+    private RowMergingIterator prevRowMergingIterator = null;
 
 
     public SortingBucketMerger(RowDownstream rowDownstream,
@@ -74,18 +69,10 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
         this.executor = executor;
         List<Comparator<Row>> comparators = new ArrayList<>(orderByPositions.length);
         for (int i = 0; i < orderByPositions.length; i++) {
-            comparators.add(OrderingByPosition.rowOrdering(orderByPositions[i], reverseFlags[i], nullsFirst[i]));
+            OrderingByPosition<Row> rowOrdering = OrderingByPosition.rowOrdering(orderByPositions[i], reverseFlags[i], nullsFirst[i]);
+            comparators.add(rowOrdering.reverse());
         }
         ordering = Ordering.compound(comparators);
-        wantMore = new AtomicBoolean(true);
-
-        //noinspection unchecked
-        remainingBucketIts = new Iterator[numBuckets];
-
-        previousRows = new ArrayList<>(numBuckets);
-        bucketsWithRowEqualToLeast = new IntArrayList(numBuckets);
-        exhaustedIterators = new IntOpenHashSet(numBuckets, 1);
-
         downstream = rowDownstream.registerUpstream(this);
     }
 
@@ -104,50 +91,45 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
      * output:
      *  [ A, A, B, B, B, B, C, C, C, D, D ]
      *
-     * see private emitBuckets(...) for more details on how this works
      */
     @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
         assert page.buckets().size() == numBuckets :
                 "number of buckets received in merge call must match the number given in the constructor";
-        final AtomicBoolean listenerNotified = new AtomicBoolean(false);
 
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
-                try {
-                    ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(numBuckets);
-                    for (int i = 0; i < buckets.size(); i++) {
-                        Iterator<Row> remainingBucketIt = remainingBucketIts[i];
-                        if (remainingBucketIt == null) {
-                            bucketIts.add(buckets.get(i).iterator());
-                        } else {
-                            bucketIts.add(Iterators.concat(remainingBucketIt, buckets.get(i).iterator()));
-                        }
+                List<Iterator<Row>> bucketIts = getBucketIterators(buckets);
+                RowMergingIterator mergingIterator = getMergingIterator(bucketIts);
+
+                while (mergingIterator.hasNext()) {
+                    if (finished.get()) {
+                        listener.finish();
+                        return;
                     }
-                    emitBuckets(bucketIts);
-                } catch (Throwable t) {
-                    downstream.fail(t);
-                } finally {
-                    notifyListener();
+                    Row row = mergingIterator.next();
+                    boolean wantMore = downstream.setNextRow(row);
+                    if (!wantMore) {
+                        listener.finish();;
+                        return;
+                    }
+
+                    if (mergingIterator.leastExhausted()) {
+                        // this means the first bucket in the page is empty, need to request the next page
+                        // before consuming the remaining buckets
+                        prevRowMergingIterator = mergingIterator;
+                        break;
+                    }
                 }
+
+                listener.needMore();
             }
 
             @Override
             public void onFailure(Throwable t) {
-                wantMore.set(false);
                 fail(t);
-                notifyListener();
-            }
-
-            private void notifyListener() {
-                if (!listenerNotified.getAndSet(true)) {
-                    if (wantMore.get()) {
-                        listener.needMore();
-                    } else {
-                        listener.finish();
-                    }
-                }
+                listener.finish();
             }
         };
 
@@ -158,189 +140,151 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
         }
     }
 
-    /**
-     * multi bucket sort-merge based on iterators
-     *
-     * Page1  (first merge call)
-     *     B1      B2       B3
-     *
-     *    ->B     ->A     ->A
-     *      B       C       A
-     *                      B
-     *
-     * first iteration across all buckets:
-     *
-     *      leastRow:                   A (from b2)
-     *      equal (or also leastRow):   b3
-     *
-     *      these will be emitted
-     *
-     * second iteration:
-     *
-     *    ->B       A       A
-     *      B     ->C     ->A
-     *                      B
-     *
-     *      leastRow:   A (from b3)
-     *      equal: none
-     *
-     * third iteration:
-     *
-     *    ->B       A       A
-     *      B     ->C       A
-     *                    ->B
-     *
-     *      leastRow:   B (from b1)
-     *      equal:      B (from b2)
-     *
-     * fourth iteration:
-     *
-     *      B       A       A
-     *    ->B     ->C       A
-     *                      B
-     *
-     *      leastRow:   B (from b1)
-     *
-     * after the fourth iteration the iterator that had the leastRow (B1) will be exhausted
-     * which causes B2 (Row C) to be put into the remainingIterators which will be used if a new merge call is made
-     */
-    private void emitBuckets(ArrayList<Iterator<Row>> bucketIts) {
-        exhaustedIterators.clear();
-        bucketsWithRowEqualToLeast.clear();
-        previousRows.clear();
+    private RowMergingIterator getMergingIterator(List<Iterator<Row>> bucketIts) {
+        RowMergingIterator mergingIterator;
+        if (prevRowMergingIterator != null) {
+            mergingIterator = prevRowMergingIterator.merge(bucketIts);
+        } else {
+            mergingIterator = new RowMergingIterator(bucketIts, ordering);
+        }
+        return mergingIterator;
+    }
 
-        for (Iterator<Row> bucketIt : bucketIts) {
-            if (bucketIt.hasNext()) {
-                previousRows.add(bucketIt.next());
-            } else {
-                previousRows.add(null);
-            }
+    private List<Iterator<Row>> getBucketIterators(List<Bucket> buckets) {
+        List<Iterator<Row>> bucketIts = new ArrayList<>(buckets.size());
+        for (Bucket bucket : buckets) {
+            bucketIts.add(bucket.iterator());
+        }
+        return bucketIts;
+    }
+
+    private static class PeekingRowIterator implements PeekingIterator<Row> {
+
+        private final Iterator<? extends Row> iterator;
+        private boolean hasPeeked;
+        private Row peekedElement;
+
+        public PeekingRowIterator(Iterator<? extends Row> iterator) {
+            this.iterator = iterator;
         }
 
-        int bi = 0;
-        Row leastRow = null;
-        int leastBi = -1;
-        while (exhaustedIterators.size() < numBuckets) {
-            Row row = previousRows.get(bi);
-            if (row == null) {
-                exhaustedIterators.add(bi);
+        @Override
+        public Row peek() {
+            if (!hasPeeked) {
+                peekedElement = new RowN(iterator.next().materialize());
+                hasPeeked = true;
             }
+            return peekedElement;
+        }
 
-            if (leastRow == null) {
-                leastRow = row;
-                leastBi = bi;
-            } else if (row != null) {
-                int compare = ordering.compare(leastRow, row);
-                if (compare < 0) {
-                    leastBi = bi;
-                    leastRow = row;
-                    bucketsWithRowEqualToLeast.clear();
-                } else if (compare == 0) {
-                    bucketsWithRowEqualToLeast.add(bi);
-                }
+        @Override
+        public boolean hasNext() {
+            return hasPeeked || iterator.hasNext();
+        }
+
+        @Override
+        public Row next() {
+            if (!hasPeeked) {
+                return iterator.next();
             }
+            Row result = peekedElement;
+            hasPeeked = false;
+            peekedElement = null;
+            return result;
+        }
 
-            if (bi == (numBuckets-1)) {
-                // looked at all buckets..
-                boolean leastBucketItExhausted = false;
-
-                if (leastRow == null) {
-                    leastBucketItExhausted = true;
-                } else {
-                    if (!emit(leastRow)) {
-                        Arrays.fill(remainingBucketIts, null);
-                        return;
-                    }
-
-                    // send for all other buckets that are equal to least
-                    for (IntCursor equalBucketIdx : bucketsWithRowEqualToLeast) {
-
-                        if (!emit(previousRows.get(equalBucketIdx.value))) {
-                            Arrays.fill(remainingBucketIts, null);
-                            return;
-                        }
-
-                        Iterator<Row> equalBucketIt = bucketIts.get(equalBucketIdx.value);
-                        if (equalBucketIt.hasNext()) {
-                            previousRows.set(equalBucketIdx.value, equalBucketIt.next());
-                        } else {
-                            remainingBucketIts[equalBucketIdx.value] = null;
-                            previousRows.set(equalBucketIdx.value, null);
-                            exhaustedIterators.add(bi);
-                        }
-                    }
-                    Iterator<Row> bucketItWithLeastRow = bucketIts.get(leastBi);
-                    if (bucketItWithLeastRow.hasNext()) {
-                        previousRows.set(leastBi, bucketItWithLeastRow.next());
-                    } else {
-                        previousRows.set(leastBi, null);
-                        remainingBucketIts[leastBi] = null;
-                        leastBucketItExhausted = true;
-                    }
-
-
-                    leastRow = null;
-                    bucketsWithRowEqualToLeast.clear();
-                }
-                if (leastBucketItExhausted) {
-                    // need next page to continue...
-                    for (int i = 0; i < numBuckets; i++) {
-                        Iterator<Row> bucketIt = bucketIts.get(i);
-                        Row previousRow = previousRows.get(i);
-                        if (previousRow != null) {
-                            Iterator<Row> iterator = ImmutableList.of(previousRow).iterator();
-                            if (bucketIt.hasNext()) {
-                                iterator = Iterators.concat(iterator, bucketIt);
-                            }
-                            remainingBucketIts[i] = iterator;
-                        } else if (bucketIt.hasNext()) {
-                            remainingBucketIts[i] = bucketIt;
-                        }
-                    }
-                    return;
-                }
-            }
-            bi = (bi+1) % numBuckets;
+        @Override
+        public void remove() {
+            checkState(!hasPeeked, "Can't remove after you've peeked at next");
+            iterator.remove();
         }
     }
 
-    private boolean emit(Row row) {
-        if (alreadyFinished.get() || !downstream.setNextRow(row)) {
-            wantMore.set(false);
-            return false;
+    /**
+     * MergingIterator like it is used in guava Iterators.mergedSort
+     * but uses a custom PeekingRowIterator which materializes the rows on peek()
+     */
+    private static class RowMergingIterator extends UnmodifiableIterator<Row> {
+
+        final Queue<PeekingRowIterator> queue;
+        private boolean leastExhausted = false;
+
+        public RowMergingIterator(Iterable<? extends Iterator<? extends Row>> iterators, final Comparator<? super Row> itemComparator) {
+            Comparator<PeekingRowIterator> heapComparator = new Comparator<PeekingRowIterator>() {
+                @Override
+                public int compare(PeekingRowIterator o1, PeekingRowIterator o2) {
+                    return itemComparator.compare(o1.peek(), o2.peek());
+                }
+            };
+            queue = new PriorityQueue<>(2, heapComparator);
+
+            for (Iterator<? extends Row> iterator : iterators) {
+                if (iterator.hasNext()) {
+                    queue.add(peekingIterator(iterator));
+                }
+            }
         }
-        return true;
+
+        private PeekingRowIterator peekingIterator(Iterator<? extends Row> iterator) {
+            if (iterator instanceof PeekingRowIterator) {
+                return (PeekingRowIterator) iterator;
+            }
+            return new PeekingRowIterator(iterator);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !queue.isEmpty();
+        }
+
+        @Override
+        public Row next() {
+            PeekingRowIterator nextIter = queue.remove();
+            Row next = nextIter.next();
+            if (nextIter.hasNext()) {
+                queue.add(nextIter);
+            } else {
+                leastExhausted = true;
+            }
+            return next;
+        }
+
+        public boolean leastExhausted() {
+            return leastExhausted;
+        }
+
+        public RowMergingIterator merge(List<Iterator<Row>> mergingIterator) {
+            for (Iterator<Row> rowIterator : mergingIterator) {
+                queue.add(peekingIterator(rowIterator));
+            }
+            leastExhausted = false;
+            return this;
+        }
     }
 
     @Override
     public void finish() {
-        if(alreadyFinished.get()) {
-            return;
-        }
-        while (hasReminaingBucketIts()) {
-            ArrayList<Iterator<Row>> bucketIts = new ArrayList<>(remainingBucketIts.length);
-            for (Iterator<Row> bucketIt : remainingBucketIts) {
-                if (bucketIt == null) {
-                    bucketIts.add(Collections.<Row>emptyIterator());
-                } else {
-                    bucketIts.add(bucketIt);
-                }
-            }
-            emitBuckets(bucketIts);
-        }
-        if (!alreadyFinished.getAndSet(true)) {
+        if(finished.compareAndSet(false, true)) {
+            consumeRemaining();
             downstream.finish();
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private boolean hasReminaingBucketIts() {
-        return Iterators.any(Iterators.forArray(remainingBucketIts), Predicates.notNull());
+    private void consumeRemaining() {
+        if (prevRowMergingIterator == null) {
+            return;
+        }
+        while (prevRowMergingIterator.hasNext()) {
+            boolean wantMore = downstream.setNextRow(prevRowMergingIterator.next());
+            if (!wantMore) {
+                break;
+            }
+        }
     }
 
     @Override
     public void fail(Throwable e) {
-        if (!alreadyFinished.getAndSet(true)) {
+        if (!finished.getAndSet(true)) {
             downstream.fail(e);
         }
     }

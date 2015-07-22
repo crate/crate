@@ -46,4 +46,8 @@ public class Row1 implements Row {
         return new Object[]{value};
     }
 
+    @Override
+    public String toString() {
+        return "Row1{" + value + '}';
+    }
 }
