@@ -73,6 +73,7 @@ public class NonSortingBucketMerger implements PageDownstream, StoppableRowUpstr
 
     @Override
     public void pause() {
+        LOGGER.trace("received pause (will pause sending rows to {})", downstream);
         pendingPause = true;
     }
 
@@ -100,6 +101,7 @@ public class NonSortingBucketMerger implements PageDownstream, StoppableRowUpstr
                     pausedRowIterator = rowIterator;
                     paused.set(true);
                     pendingPause = false;
+                    LOGGER.trace("pause sending rows to {}", downstream);
                     return;
                 }
 

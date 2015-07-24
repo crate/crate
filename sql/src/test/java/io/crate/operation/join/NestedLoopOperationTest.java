@@ -22,25 +22,19 @@
 package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
-import io.crate.operation.Input;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import com.google.common.util.concurrent.Futures;
+import io.crate.core.collections.*;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.operation.merge.NonSortingBucketMerger;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
@@ -48,18 +42,16 @@ import static org.hamcrest.core.Is.is;
 public class NestedLoopOperationTest extends CrateUnitTest {
 
     private Bucket executeNestedLoop(List<Row> leftRows, List<Row> rightRows) throws Exception {
-        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
-
-        RowUpstream dummyUpstream = new RowUpstream() {};
-
-        final RowDownstreamHandle left = nestedLoopOperation.registerUpstream(dummyUpstream);
-        final RowDownstreamHandle right = nestedLoopOperation.registerUpstream(dummyUpstream);
+        final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
 
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        Thread t1 = sendRowsThreaded("left", left, leftRows);
-        Thread t2 = sendRowsThreaded("right", right, rightRows);
+        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+
+        Thread t1 = sendRowsThreaded("left", leftBucketMerger, leftRows);
+        Thread t2 = sendRowsThreaded("right", rightBucketMerger, rightRows);
         t1.join();
         t2.join();
         return collectingProjector.result().get(2, TimeUnit.SECONDS);
@@ -75,23 +67,33 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     @Test
     public void testRightSideFinishesBeforeLeftSideStarts() throws Exception {
-        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
+        final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        RowUpstream dummyUpstream = new RowUpstream() {};
+        final NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        final NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
 
-        final RowDownstreamHandle left = nestedLoopOperation.registerUpstream(dummyUpstream);
-        final RowDownstreamHandle right = nestedLoopOperation.registerUpstream(dummyUpstream);
+        setLastPage(leftBucketMerger, Buckets.of(new Row1(1)));
 
-        right.setNextRow(new Row1(1));
-        right.finish();
-
-        left.setNextRow(new Row1(10));
-        left.setNextRow(new Row1(20));
-        left.finish();
+        Bucket bucket = new RowCollectionBucket(Arrays.<Row>asList(new Row1(10), new Row1(20)));
+        setLastPage(rightBucketMerger, bucket);
 
         assertThat(Buckets.materialize(collectingProjector.result().get()).length, is(2));
+    }
+
+    private void setLastPage(final PageDownstream pageDownstream, Bucket bucket) {
+        pageDownstream.nextPage(new BucketPage(Futures.immediateFuture(bucket)), new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                pageDownstream.finish();
+            }
+
+            @Override
+            public void finish() {
+                pageDownstream.finish();
+            }
+        });
     }
 
     @Test
@@ -125,10 +127,11 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     @Repeat (iterations = 5)
     public void testNestedLoopWithTopNDownstream() throws Exception {
-        RowUpstream dummyUpstream = new RowUpstream() {};
         NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
-        final RowDownstreamHandle left = nestedLoopOperation.registerUpstream(dummyUpstream);
-        final RowDownstreamHandle right = nestedLoopOperation.registerUpstream(dummyUpstream);
+
+        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+
 
         InputCollectExpression firstCol = new InputCollectExpression(0);
         InputCollectExpression secondCol = new InputCollectExpression(1);
@@ -142,8 +145,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         topNProjector.downstream(collectingProjector);
 
-        Thread leftT = sendRowsThreaded("left", left, asRows("green", "blue", "red"));
-        Thread rightT = sendRowsThreaded("right", right, asRows("small", "medium"));
+        Thread leftT = sendRowsThreaded("left", leftBucketMerger, asRows("green", "blue", "red"));
+        Thread rightT = sendRowsThreaded("right", rightBucketMerger, asRows("small", "medium"));
 
         Bucket rows = collectingProjector.result().get(2, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows), is("" +
@@ -155,15 +158,31 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         rightT.join();
     }
 
-    private Thread sendRowsThreaded(String name, final RowDownstreamHandle downstreamHandle, final List<Row> rows) {
+    private static class RowCollectionBucket implements Bucket {
+
+        private Collection<Row> rows;
+
+        public RowCollectionBucket(Collection<Row> rows) {
+            this.rows = rows;
+        }
+
+        @Override
+        public int size() {
+            return rows.size();
+        }
+
+        @Override
+        public Iterator<Row> iterator() {
+            return rows.iterator();
+        }
+    }
+
+    private Thread sendRowsThreaded(String name, final PageDownstream pageDownstream, final List<Row> rows) {
         Thread t = new Thread() {
             @Override
             public void run() {
                 try {
-                    for (Row row : rows) {
-                        downstreamHandle.setNextRow(row);
-                    }
-                    downstreamHandle.finish();
+                    setLastPage(pageDownstream, new RowCollectionBucket(rows));
                 } catch (Throwable t) {
                     t.printStackTrace();
                 }
@@ -175,4 +194,16 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         return t;
     }
 
+    private static class NestedLoopRowDownstream implements RowDownstream {
+        private final NestedLoopOperation nestedLoopOperation;
+
+        public NestedLoopRowDownstream(NestedLoopOperation nestedLoopOperation) {
+            this.nestedLoopOperation = nestedLoopOperation;
+        }
+
+        @Override
+        public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+            return nestedLoopOperation.registerUpstream(upstream);
+        }
+    }
 }
