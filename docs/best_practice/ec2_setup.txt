@@ -14,14 +14,16 @@ also one for EC2. EC2 discovery uses the `EC2 API`_ to look up other EC2 hosts
 that are then used as unicast hosts for node discovery (see
 :ref:`conf_discovery`).
 
-_Note that this best practice only describes how to use the EC2 discovery and
-its settings, and not how to set up a cluster on EC2 securely._
+.. note::
+
+  Note that this best practice only describes how to use the EC2 discovery and
+  its settings, and not how to set up a cluster on EC2 securely.
 
 
 Basic Configuration
 ===================
 
-First, to activate EC2 discovery **simply set the discovery type to ``ec2``**::
+First, to activate EC2 discovery **simply set the discovery type to "ec2"**::
 
   discovery.type: ec2
 
@@ -78,28 +80,18 @@ You could also provide them as system properties or as settings in the
 Define Region
 -------------
 
-Once authenticated you'll need to set the region you're operating within. This
-must match the region your instances are launched in. E.g. when your instances
+Once authenticated you'll need to set the region you're operating within. **By
+default, the region in which the EC2 instance is running in will be used and
+you don't need to define it separately!**
+
+However, if this region differs from the region that you want to use for
+discovery, you'd need to set it manyally, e.g. when your instances
 are running in ``eu-west-1`` your setting would be::
 
   cloud.aws.region: eu-west-1
 
-Available regions are:
+You can find the available region setting values :ref:`here <discovery_ec2_region>`.
 
-* us-east (us-east-1)
-* us-west (us-west-1)
-* us-west-1
-* us-west-2
-* ap-southeast (ap-southeast-1)
-* ap-southeast-1
-* ap-southeast-2
-* ap-northeast (ap-northeast-1)
-* eu-west (eu-west-1)
-* eu-central (eu-central-1)
-* sa-east (sa-east-1)
-* cn-north (cn-north-1)
-
-**Note that you can only discovery nodes within the same region automatically.**
 
 Host Addressing
 ---------------

@@ -567,9 +567,11 @@ Note that the AWS credentials can also be provided by environment variables
 ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY`` or via system properties
 ``aws.accessKeyId`` and ``aws.secretKey``.
 
+.. _discovery_ec2_region:
+
 **cloud.aws.region**
   | *Runtime:*  ``no``
-  | *Default:*  ``us-east-1``
+  | *Default:*  ``Current region of the EC2 instance``
   | *Available Values:*: ``us-east (us-east-1)``, ``us-west (us-west-1)``,
                          ``us-west-1``, ``us-west-2``,
                          ``ap-southeast (ap-southeast-1)``, ``ap-southeast-1``,
