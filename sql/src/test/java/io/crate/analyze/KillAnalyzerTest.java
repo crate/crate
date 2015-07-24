@@ -54,11 +54,11 @@ public class KillAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAnalyzeKillJobWithParameter() throws Exception {
         UUID jobId = UUID.randomUUID();
-        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill $2", new Object[]{ 2, jobId });
+        KillAnalyzedStatement stmt = (KillAnalyzedStatement) analyze("kill $2", new Object[]{2, jobId});
         assertThat(stmt.jobId().get(), is(jobId));
-        stmt = (KillAnalyzedStatement) analyze("kill $1", new Object[]{ jobId });
+        stmt = (KillAnalyzedStatement) analyze("kill $1", new Object[]{jobId});
         assertThat(stmt.jobId().get(), is(jobId));
-        stmt = (KillAnalyzedStatement) analyze("kill ?", new Object[]{ jobId });
+        stmt = (KillAnalyzedStatement) analyze("kill ?", new Object[]{jobId});
         assertThat(stmt.jobId().get(), is(jobId));
     }
 

@@ -359,7 +359,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         }
         assertThat(logResponse.rows().length, not(0));
         String jobId = (String) logResponse.rows()[0][0];
-        execute("KILL ?", new Object[] { jobId });
+        execute("KILL ?", new Object[] {jobId});
         insertThread.join();
         try {
             res.get();

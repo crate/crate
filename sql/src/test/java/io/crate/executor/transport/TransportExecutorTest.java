@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.*;
@@ -33,8 +34,6 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -43,6 +42,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
@@ -59,8 +59,11 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -435,40 +438,35 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     @Test
     public void testKillJobTask() throws Exception {
-        execute("create table t (name string)");
-        refresh();
-        Statement statement = SqlParser.createStatement("select * from t");
+        execute("create table t (id string, name string)");
+        ensureYellow();
+
+        final Object[][] bulkArgs = new Object[1000][];
+        for(int i = 0; i < bulkArgs.length; i++) {
+            bulkArgs[i] = new Object[]{"id", "name"};
+        }
+
+        Statement statement = SqlParser.createStatement("insert into t (id, name) values (?, ?)");
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
         Planner planner = internalCluster().getInstance(Planner.class);
 
         UUID jobId = UUID.randomUUID();
 
-        Analysis analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], new Object[0][], null));
-        QueryThenFetch plan = ((QueryThenFetch) planner.plan(analysis, jobId));
-
-        MergePhase mergePhase = plan.mergeNode();
-
-        MergePhase fishyMergePhase = new MergePhase(jobId,
-                mergePhase.executionPhaseId(),
-                mergePhase.name(),
-                mergePhase.numUpstreams() + 1,
-                mergePhase.inputTypes(),
-                mergePhase.projections()
-        );
-        QueryThenFetch brokenPlan = new QueryThenFetch(plan.collectNode(), fishyMergePhase, jobId);
+        Analysis analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, null));
+        Upsert plan = (Upsert) planner.plan(analysis, jobId);
 
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class);
-        Job job = transportExecutor.newJob(brokenPlan);
-        transportExecutor.execute(job);
+        Job job = transportExecutor.newJob(plan);
+        List<? extends ListenableFuture<TaskResult>> futures = transportExecutor.execute(job);
 
-        execute("KILL ?", new Object[] { jobId });
+        execute("kill ?", new Object[]{jobId});
 
-        final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
-
-        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-            Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-            assertThat(contexts.containsKey(jobId), not(true));
+        try {
+            Futures.allAsList(futures).get();
+            fail("future should fail with killed exception");
+        } catch (Exception e) {
+            assertThat(e.getCause(), instanceOf(CancellationException.class));
+            assertNoJobExecutionContextAreLeftOpen();
         }
     }
 }

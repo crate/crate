@@ -94,7 +94,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             happened.await();
             SQLResponse logResponse = execute("select * from sys.jobs_log where stmt = ?", new Object[]{statement});
             String jobId = logResponse.rows()[0][0].toString();
-            SQLResponse response = execute("kill ?", new Object[] { jobId });
+            SQLResponse response = execute("kill ?", new Object[] {jobId});
 
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
