@@ -434,14 +434,13 @@ those queries.
   in the execution of SQL DML Statements over a huge amount of rows.
 
 **bulk.partition_creation_timeout**
-  | *Default:* ``0s``
+  | *Default:* ``10s``
   | *Runtime:* ``yes``
 
   Timeout that applies to creating partitions while handling SQL DML Statements
-  over a huge amount of rows. If this value is set to ``0s``,
-  which is the default, a dynamic timeout of 10s per partition created in
-  bulk is applied. So, if 10 partitions are to be created at once,
-  a timeout of 100s applies to that operation.
+  over a huge amount of rows. The default value of the setting is ``10s``.
+  So, if 10 partitions are to be created at once, a timeout of 100s applies
+  to that operation.
 
 Discovery
 ---------
