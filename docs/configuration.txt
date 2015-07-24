@@ -566,21 +566,6 @@ Note that the AWS credentials can also be provided by environment variables
 ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY`` or via system properties
 ``aws.accessKeyId`` and ``aws.secretKey``.
 
-.. _discovery_ec2_region:
-
-**cloud.aws.region**
-  | *Runtime:*  ``no``
-  | *Default:*  ``Current region of the EC2 instance``
-  | *Available Values:*: ``us-east (us-east-1)``, ``us-west (us-west-1)``,
-                         ``us-west-1``, ``us-west-2``,
-                         ``ap-southeast (ap-southeast-1)``, ``ap-southeast-1``,
-                         ``ap-southeast-2``, ``ap-northeast (ap-northeast-1)``,
-                         ``eu-west (eu-west-1)``, ``eu-central (eu-central-1)``,
-                         ``sa-east (sa-east-1)``, ``cn-north (cn-north-1)``
-
-  Defines the region in which the API call is performed and nodes can be looked
-  up.
-
 Following settings control the discovery:
 
 .. _discovery_ec2_groups:
