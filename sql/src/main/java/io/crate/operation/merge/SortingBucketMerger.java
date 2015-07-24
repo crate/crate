@@ -91,6 +91,7 @@ public class SortingBucketMerger implements PageDownstream, StoppableRowUpstream
 
     @Override
     public void pause() {
+        LOGGER.trace("pending pause (sending rows to): {}", downstream);
         pendingPause = true;
     }
 
@@ -166,6 +167,7 @@ public class SortingBucketMerger implements PageDownstream, StoppableRowUpstream
                 pausedListener = listener;
                 paused.set(true);
                 pendingPause = false;
+                LOGGER.trace("pausing sending rows to: {}", downstream);
                 return;
             }
 
