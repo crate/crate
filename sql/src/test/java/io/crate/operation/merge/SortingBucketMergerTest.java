@@ -29,9 +29,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
+import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.Input;
-import io.crate.operation.PageConsumeListener;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.SimpleTopNProjector;
@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.testing.TestingHelpers.createPage;
 import static io.crate.testing.TestingHelpers.isSorted;
@@ -110,6 +111,40 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         assertRows(bucket, "A| 1", "A| 2", "B| 1", "B| 2");
     }
 
+    @Test
+    public void testPauseResume() throws Exception {
+        final CollectingProjector collectingProjector = new CollectingProjector();
+        final AtomicInteger rowsReceived = new AtomicInteger();
+        RowDownstream rowDownstream = new PausingRowDownstream(rowsReceived, collectingProjector);
+        final SortingBucketMerger bucketMerger = new SortingBucketMerger(
+                rowDownstream, 2, new int[]{0}, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>absent());
+
+        BucketPage page1 = createPage(
+                Arrays.asList(
+                        new Object[]{"B"},
+                        new Object[]{"B"}
+                ),
+                Arrays.asList(
+                        new Object[]{"A"},
+                        new Object[]{"C"}
+                ));
+
+        bucketMerger.nextPage(page1, new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                bucketMerger.finish();
+            }
+
+            @Override
+            public void finish() {
+                bucketMerger.finish();
+            }
+        });
+
+        bucketMerger.resume();
+        Bucket rows = collectingProjector.result().get();
+        assertRows(rows, "A", "B", "B", "C");
+    }
 
     @Test
     public void testNullsFirst() throws Exception {
@@ -551,5 +586,40 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         // NULLS LAST
         assertRows(mergeWith(3, false, page1), "A", "A", "A", "B", "B", "B", "NULL", "NULL", "NULL");
 
+    }
+
+    private static class PausingRowDownstream implements RowDownstream, RowUpstream {
+        private final AtomicInteger rowsReceived;
+        private final CollectingProjector collectingProjector;
+
+        public PausingRowDownstream(AtomicInteger rowsReceived, CollectingProjector collectingProjector) {
+            this.rowsReceived = rowsReceived;
+            this.collectingProjector = collectingProjector;
+            collectingProjector.registerUpstream(this);
+        }
+
+        @Override
+        public RowDownstreamHandle registerUpstream(final RowUpstream upstream) {
+            return new RowDownstreamHandle() {
+                @Override
+                public boolean setNextRow(Row row) {
+                    if (rowsReceived.incrementAndGet() == 3) {
+                        ((StoppableRowUpstream) upstream).pause();
+                        return collectingProjector.setNextRow(row);
+                    }
+                    return collectingProjector.setNextRow(row);
+                }
+
+                @Override
+                public void finish() {
+                    collectingProjector.finish();
+                }
+
+                @Override
+                public void fail(Throwable throwable) {
+                    collectingProjector.fail(throwable);
+                }
+            };
+        }
     }
 }
