@@ -164,8 +164,8 @@ following statement:
   requires at least 3 nodes.
 
 
-Gateway Cofiguration
-====================
+Gateway Configuration
+=====================
 
 The gateway persists cluster meta data on disk every time the meta data
 changes. This data is stored persistently across full cluster restarts
