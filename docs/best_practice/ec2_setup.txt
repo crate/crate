@@ -120,6 +120,8 @@ Optional Filters
 Sometimes however, you will want to have a more flexible setup. In this case
 there are a few other settings that can be set.
 
+.. _filter-by-tags:
+
 Filter by Tags
 --------------
 
@@ -175,5 +177,3 @@ See also :ref:`discovery.ec2.availability_zones <discovery_ec2_zones>`.
 .. _`Amazon EC2`: http://aws.amazon.com/ec2
 .. _`EC2 API`: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html
 .. _`sign the requests`: http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html
-
-

@@ -1,0 +1,119 @@
+.. highlight:: yaml
+.. _crate_ami:
+
+=============================================
+Launching EC2 Instances with Crate AMI on AWS
+=============================================
+
+Crate provides custom AMIs (see `AMI`_) that can be launched from every
+EC2 user by using the AWS Management Console or `AWS CLI`_. The naming
+convention is as follows:
+
+  ``Crate-AWS-AMI-<VERSION>-<REVISION>``
+
+The placeholder ``<VERSION>`` is the Crate version in format x.y.z and
+``<REVISION`` describes its build revision.
+
+Find Crate AMI
+==============
+
+To launch an own EC2 instance based on the Crate AMI use the search panel to
+to find the image on the public AMI repository. After choosing the desired AMI
+by its Crate version it can be launched as an EC2 instance running on your
+account.
+
+.. image:: ../_static/crate-ami-search.png
+   :alt: Search for public Crate AMI on AWS Management Console
+   :width: 100%
+
+If you are using the `AWS CLI`_ you can find the public Crate AMI by using the
+``describe-images`` command. The easiest way to search for it is by its
+``AMI Name``. AMIs are listed in JSON-format and sorted by their creation date.
+The following command lists every available Crate AMI on the AWS platform.
+
+.. code-block:: bash
+
+    $ aws ec2 describe-images --filters "Name=name,Values=Crate-AWS-AMI-*"
+
+
+Launch the AMI
+==============
+
+You can launch one or more instances with the Crate AMI using the ``run-instances``
+command utilizing the ``--image-id`` command line option. Use the
+available parameters of the command to configure its start-up behavior and
+hardware configuration.
+
+.. code-block:: bash
+
+    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>
+
+
+The AMI has Crate installed and configured so it uses ``EC2 discovery``
+(see :ref:`ec2_setup`). It is required that you provide Crate with your AWS
+credentials that it can authenticate requests on the EC2 API. You can provide
+these credentials (access key and secret key) as part of the user data when
+launching the instance.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    echo "
+    export AWS_ACCESS_KEY_ID='<your_access_key_id>'
+    export AWS_SECRET_ACCESS_KEY='<your_secret_access_key>'
+    " >> /etc/sysconfig/crate
+
+This configuration script will be launched on startup of each instance.
+The following example shows how you can run a single instance of type
+``m3.medium`` and pass the AWS credentials as a file (provided as
+``user-data.sh``).
+
+.. code-block:: bash
+
+    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --user-data $(base64 user-data.sh)
+
+
+.. note::
+    In case that you want to filter machines by instance tags or security groups
+    add this configuration also to the ``USER-DATA`` field parameter
+    (see :ref:`filter-by-tags`).
+
+
+Instance Types
+==============
+
+The instance type specifies the combination of CPU, memory, storage and
+networking capacity. To receive a better performance for running queries
+select an instance type which gives you the possibility to attach ephemeral
+storage. On newer instance types on AWS this storage is covered by
+`Solid-State-Drives`_ (short *SSD*). By choosing one of those instance types
+Crate will automatically mount and store its data on those devices if they are
+attached to the instance as a block device mapping (see also :ref:`attached_devices`).
+Instance Types with additional instance store volumes (SSD or HDD) are
+currently all instances of type ``m3``, ``g2``, ``r3``, ``d2`` and ``i2``.
+
+.. _attached_devices:
+
+Attached Devices
+================
+
+To add a block device mapping before launching an instance it is possible to
+use the ``block-device-mappings`` parameter on the ``run-instances`` command.
+In this case ``ephemeral1`` will be added as an instance store volume with the
+device name ``/dev/sdc``.
+
+.. code-block:: bash
+
+    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
+
+.. note::
+    Note that the data stored on ephemeral disks is nor permanent and only
+    persists during the lifetime of an instance.
+
+If no block device mapping is configured on the EC2 instance the default data
+directory of Crate is set to ``/var/lib/crate``. The data paths are set in
+``/etc/crate/crate.yml``.
+
+.. _AMI: https://en.wikipedia.org/wiki/Amazon_Machine_Image
+.. _Solid-State-Drives: https://en.wikipedia.org/wiki/Solid-state_drive
+.. _AWS CLI: https://aws.amazon.com/cli/
