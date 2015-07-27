@@ -78,6 +78,16 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
     private static final ESLogger LOGGER = Loggers.getLogger(MapSideDataCollectOperation.class);
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     private static class VoidFunction<Arg> implements Function<Arg, Void> {
         @Nullable
         @Override

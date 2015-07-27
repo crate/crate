@@ -52,7 +52,7 @@ import static com.google.common.base.Preconditions.checkState;
  * BucketMerger implementation that expects sorted rows in the
  * incoming buckets and merges them to a single sorted stream of {@linkplain Row}s.
  */
-public class SortingBucketMerger implements PageDownstream, StoppableRowUpstream {
+public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
     private final static ESLogger LOGGER = Loggers.getLogger(SortingBucketMerger.class);
 

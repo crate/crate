@@ -198,4 +198,14 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     public RamAccountingContext queryPhaseRamAccountingContext() {
         return queryPhaseRamAccountingContext;
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -23,14 +23,12 @@ package io.crate.operation.join;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.StoppableRowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -50,8 +48,8 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     private final Object mutex = new Object();
     private final AtomicInteger numUpstreams = new AtomicInteger(0);
 
-    private StoppableRowUpstream leftUpstream;
-    private StoppableRowUpstream rightUpstream;
+    private RowUpstream leftUpstream;
+    private RowUpstream rightUpstream;
 
     private RowDownstreamHandle downstream;
     private volatile boolean leftFinished = false;
@@ -68,17 +66,27 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         if (numUpstreams.incrementAndGet() == 1) {
-            leftUpstream = (StoppableRowUpstream) upstream;
+            leftUpstream = upstream;
             return leftDownstreamHandle;
         } else {
             assert numUpstreams.get() <= 2: "Only 2 upstreams supported";
-            rightUpstream = (StoppableRowUpstream) upstream;
+            rightUpstream = upstream;
             return rightDownstreamHandle;
         }
     }
 
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
+    }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
     }
 
     static class CombinedRow implements Row {

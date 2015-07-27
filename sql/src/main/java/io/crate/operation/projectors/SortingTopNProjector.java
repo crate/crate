@@ -156,4 +156,13 @@ public class SortingTopNProjector extends ResultProviderBase {
     }
 
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -573,7 +573,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
                 @Override
                 public boolean setNextRow(Row row) {
                     if (rowsReceived.incrementAndGet() == 3) {
-                        ((StoppableRowUpstream) upstream).pause();
+                        upstream.pause();
                         return collectingProjector.setNextRow(row);
                     }
                     return collectingProjector.setNextRow(row);
@@ -589,6 +589,16 @@ public class SortingBucketMergerTest extends CrateUnitTest {
                     collectingProjector.fail(throwable);
                 }
             };
+        }
+
+        @Override
+        public void pause() {
+
+        }
+
+        @Override
+        public void resume() {
+
         }
     }
 }
