@@ -250,19 +250,19 @@ public class SysClusterTableInfo extends SysTableInfo {
         register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS.name()));
-        register(ClusterSettingsExpression.NAME, DataTypes.LONG, ImmutableList.of(CrateSettings.INDICES.name(),
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE.name()));
         register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS.name()));
-        register(ClusterSettingsExpression.NAME, DataTypes.LONG, ImmutableList.of(CrateSettings.INDICES.name(),
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE.name()));
         register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_COMPRESS.name()));
-        register(ClusterSettingsExpression.NAME, DataTypes.LONG, ImmutableList.of(CrateSettings.INDICES.name(),
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_RECOVERY.name(),
                 CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.name()));
         register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
@@ -290,7 +290,7 @@ public class SysClusterTableInfo extends SysTableInfo {
                 CrateSettings.INDICES_STORE.name(),
                 CrateSettings.INDICES_STORE_THROTTLE.name(),
                 CrateSettings.INDICES_STORE_THROTTLE_TYPE.name()));
-        register(ClusterSettingsExpression.NAME, DataTypes.LONG, ImmutableList.of(CrateSettings.INDICES.name(),
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
                 CrateSettings.INDICES_STORE.name(),
                 CrateSettings.INDICES_STORE_THROTTLE.name(),
                 CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC.name()));
