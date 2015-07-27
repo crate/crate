@@ -29,7 +29,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,26 +69,21 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private void assertGotCancelled(final String statement, @Nullable final Object[] params) throws Exception {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
         final AtomicReference<Throwable> thrown = new AtomicReference<>();
-        final CountDownLatch happened = new CountDownLatch(1);
         try {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    while (thrown.get() == null) {
-                        try {
-                            execute(statement, params);
-                        } catch (Throwable e) {
-                            Throwable unwrapped = Exceptions.unwrap(e);
-                            thrown.compareAndSet(null, unwrapped);
-                        } finally {
-                            happened.countDown();
-                        }
+                    try {
+                        execute(statement, params);
+                    } catch (Throwable e) {
+                        Throwable unwrapped = Exceptions.unwrap(e);
+                        thrown.compareAndSet(null, unwrapped);
                     }
                 }
             });
-            happened.await();
+            Thread.sleep(100L);
             execute("kill all");
             executor.shutdown();
             executor.awaitTermination(5L, TimeUnit.SECONDS);
@@ -123,9 +117,9 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testKillGroupBy() throws Exception {
         setup.setUpEmployees();
-        assertGotCancelled("SELECT sum(income) as summed_income, count(distinct name), department " +
+        assertGotCancelled("SELECT sleep(500), sum(income) as summed_income, count(distinct name), department " +
                 "from employees " +
-                "group by department " +
+                "group by sleep(500), department " +
                 "having avg(income) > 100 " +
                 "order by department desc nulls first " +
                 "limit 10", null);

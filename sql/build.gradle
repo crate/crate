@@ -59,6 +59,7 @@ sourceSets {
     test {
         resources {
             srcDir 'src/test/java'
+            include '**/*.Plugin'
             include '**/*.rst'
             include '**/*.json'
             include '**/*.sql'
