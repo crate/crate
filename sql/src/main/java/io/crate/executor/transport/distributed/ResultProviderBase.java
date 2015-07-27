@@ -89,4 +89,14 @@ public abstract class ResultProviderBase implements ResultProvider {
     public void downstream(RowDownstream downstream) {
         throw new UnsupportedOperationException("Setting downstream isn't supported on ResultProvider");
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }
