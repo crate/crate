@@ -129,4 +129,14 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
             downstream.fail(t);
         }
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

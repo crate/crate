@@ -127,4 +127,14 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
             }
         }
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

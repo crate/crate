@@ -157,6 +157,16 @@ public class MergeProjector implements Projector  {
         return lowest;
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {
 
         private final MergeProjector projector;
