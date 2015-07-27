@@ -131,4 +131,14 @@ public class LuceneDocFetcher implements RowUpstream {
             downstream.fail(e);
         }
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

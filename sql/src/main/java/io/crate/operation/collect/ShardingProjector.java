@@ -163,6 +163,16 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
         return routing;
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     static class VisitorContext extends ImplementationSymbolVisitor.Context {}
 
     static class Visitor extends ImplementationSymbolVisitor {
