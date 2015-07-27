@@ -23,9 +23,14 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.*;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -34,7 +39,11 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.*;
+import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.Input;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
@@ -62,9 +71,13 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
@@ -189,7 +202,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * </p>
      */
     @Override
-    public ListenableFuture<List<Void>> collect(CollectPhase collectNode,
+    public Collection<CrateCollector> collect(CollectPhase collectNode,
                                                 RowDownstream downstream,
                                                 final JobCollectContext jobCollectContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
@@ -201,33 +214,18 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 // shard or doc level (incl. unassigned shards)
                 return handleShardCollect(collectNode, downstream, jobCollectContext);
             } else {
-                ListenableFuture<List<Void>> results;
-
+                Collection<CrateCollector> results;
                 if (collectNode instanceof FileUriCollectPhase) {
                     results = handleWithService(nodeCollectService, collectNode, downstream, jobCollectContext);
                 } else if (collectNode.isPartitioned() && collectNode.maxRowGranularity() == RowGranularity.DOC) {
                     // edge case: partitioned table without actual indices
                     // no results
                     downstream.registerUpstream(this).finish();
-                    results = IMMEDIATE_LIST;
+                    results = ImmutableList.of();
                 } else {
                     CollectService collectService = getCollectService(collectNode, localNodeId);
                     results = handleWithService(collectService, collectNode, downstream, jobCollectContext);
                 }
-
-                // close JobCollectContext after non doc collectors are finished
-                Futures.addCallback(results, new FutureCallback<List<Void>>() {
-                    @Override
-                    public void onSuccess(@Nullable List<Void> result) {
-                        jobCollectContext.close();
-                    }
-
-                    @Override
-                    public void onFailure(@Nonnull Throwable t) {
-                        jobCollectContext.closeDueToFailure(t);
-                    }
-                });
-
                 return results;
             }
         }
@@ -258,47 +256,63 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
     }
 
-    private ListenableFuture<List<Void>> handleWithService(final CollectService collectService,
+    private Collection<CrateCollector> handleWithService(final CollectService collectService,
                                                            final CollectPhase node,
                                                            final RowDownstream rowDownstream,
                                                            final JobCollectContext jobCollectContext) {
-        return listeningExecutorService.submit(new Callable<List<Void>>() {
+        EvaluatingNormalizer nodeNormalizer = MapSideDataCollectOperation.this.nodeNormalizer;
+        if (node.maxRowGranularity().finerThan(RowGranularity.CLUSTER)) {
+            nodeNormalizer = new EvaluatingNormalizer(functions,
+                    RowGranularity.NODE,
+                    new NodeSysReferenceResolver(nodeSysExpression));
+        }
+
+        final CollectPhase localCollectNode = node.normalize(nodeNormalizer);
+        if (localCollectNode.whereClause().noMatch()) {
+            rowDownstream.registerUpstream(MapSideDataCollectOperation.this).finish();
+            return ImmutableList.of();
+        }
+
+        final RowDownstream localRowDownStream;
+        final FlatProjectorChain projectorChain;
+        if (!localCollectNode.projections().isEmpty()) {
+                 projectorChain = FlatProjectorChain.withAttachedDownstream(
+                        projectorVisitor,
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        localCollectNode.projections(),
+                         rowDownstream,
+                        node.jobId()
+                );
+                localRowDownStream = projectorChain.firstProjector();
+        } else {
+            localRowDownStream = rowDownstream;
+            projectorChain = null;
+        }
+        final CrateCollector collector;
+        try {
+            collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream();
+        } catch (Throwable t) {
+            rowDownstream.registerUpstream(MapSideDataCollectOperation.this).fail(t);
+            return ImmutableList.of();
+        }
+        listeningExecutorService.submit(new Callable<List<Void>>() {
             @Override
             public List<Void> call() throws Exception {
                 try {
-                    EvaluatingNormalizer nodeNormalizer = MapSideDataCollectOperation.this.nodeNormalizer;
-                    if (node.maxRowGranularity().finerThan(RowGranularity.CLUSTER)) {
-                        nodeNormalizer = new EvaluatingNormalizer(functions,
-                                RowGranularity.NODE,
-                                new NodeSysReferenceResolver(nodeSysExpression));
+                    if (projectorChain != null) {
+                        projectorChain.startProjections(jobCollectContext);
                     }
-                    CollectPhase localCollectNode = node.normalize(nodeNormalizer);
-                    RowDownstream localRowDownStream = rowDownstream;
-                    if (localCollectNode.whereClause().noMatch()) {
-                        localRowDownStream.registerUpstream(MapSideDataCollectOperation.this).finish();
-                    } else {
-                        if (!localCollectNode.projections().isEmpty()) {
-                            FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
-                                    projectorVisitor,
-                                    jobCollectContext.queryPhaseRamAccountingContext(),
-                                    localCollectNode.projections(),
-                                    localRowDownStream,
-                                    node.jobId()
-                            );
-                            projectorChain.startProjections(jobCollectContext);
-                            localRowDownStream = projectorChain.firstProjector();
-                        }
-                        CrateCollector collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream()
-                        collector.doCollect();
-                    }
+                    collector.doCollect();
+                    jobCollectContext.close();
                 } catch (Throwable t) {
                     LOGGER.error("error during collect", t);
                     rowDownstream.registerUpstream(MapSideDataCollectOperation.this).fail(t);
                     Throwables.propagate(t);
                 }
-                return ONE_LIST;
+                return ImmutableList.of();
             }
         });
+        return ImmutableList.of(collector);
     }
 
     private CrateCollector getNodeLevelCollector(CollectPhase collectNode,
@@ -357,9 +371,9 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      *
      * @param collectNode {@link CollectPhase} containing routing information and symbols to collect
      */
-    protected ListenableFuture<List<Void>> handleShardCollect(CollectPhase collectNode,
+    protected Collection<CrateCollector> handleShardCollect(final CollectPhase collectNode,
                                                               RowDownstream downstream,
-                                                              JobCollectContext jobCollectContext) {
+                                                              final JobCollectContext jobCollectContext) {
         String localNodeId = clusterService.state().nodes().localNodeId();
 
         final int numShards = numShards(collectNode, localNodeId);
@@ -372,7 +386,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             downstream.registerUpstream(this).finish();
-            return IMMEDIATE_LIST;
+            return ImmutableList.of();
         }
 
         assert normalizedCollectNode.jobId() != null : "jobId must be set on CollectNode";
@@ -463,26 +477,41 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
         if (shardCollectors.isEmpty()) {
             downstream.registerUpstream(this).finish();
-            return IMMEDIATE_LIST;
+            return ImmutableList.of();
         }
 
         // start the projection
         projectorChain.startProjections(jobCollectContext);
         try {
             LOGGER.trace("starting {} shardCollectors...", numShards);
-            return runCollectThreaded(collectNode, shardCollectors);
+            ListenableFuture<List<Void>> futures = runCollectThreaded(collectNode, shardCollectors);
+
+            Futures.addCallback(futures, new FutureCallback<List<Void>>() {
+                @Override
+                public void onSuccess(@Nullable List<Void> result) {
+                    if (!(collectNode.maxRowGranularity().equals(RowGranularity.DOC))) {
+                        jobCollectContext.close();
+                    }
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    jobCollectContext.closeDueToFailure(t);
+                }
+            });
+            return  shardCollectors;
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
             // in order to fire the failure we need to add the operation directly as an upstream to get a handle
             downstream.registerUpstream(this).fail(e);
-            return Futures.immediateFailedFuture(e);
         }
-
+        return ImmutableList.of();
     }
 
     private ListenableFuture<List<Void>> runCollectThreaded(CollectPhase collectNode,
-                                                            final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
+                                                            final List<CrateCollector> shardCollectors)
+            throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -492,7 +521,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     for (CrateCollector collector : shardCollectors) {
                         collector.doCollect();
                     }
-                    return ONE_LIST;
+                    return ImmutableList.of();
                 }
             });
         } else {
@@ -503,6 +532,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     new VoidFunction<List<Void>>());
         }
     }
+
 
     private Collection<Callable<Void>> collectors2Callables(List<CrateCollector> collectors) {
         return Lists.transform(collectors, new Function<CrateCollector, Callable<Void>>() {

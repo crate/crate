@@ -42,6 +42,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -61,6 +62,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
+    private final Collection<CrateCollector> collectors = new ArrayList<>();
 
     private volatile boolean isKilled = false;
 
@@ -147,6 +149,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     public void kill() {
         isKilled = true;
         close(new CancellationException());
+        for (CrateCollector collector : collectors) {
+            collector.kill();
+        }
     }
 
     @Override
@@ -181,7 +186,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                     closeDueToFailure(t);
                 }
             });
-            collectOperation.collect(collectNode, downstream, this);
+            collectors.addAll(collectOperation.collect(collectNode, downstream, this));
         } catch (Throwable t) {
             closeDueToFailure(t);
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);

@@ -21,10 +21,12 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
@@ -44,6 +46,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
  * This class requires PowerMock in order to mock the final {@link SearchContext#close} method.
@@ -97,19 +100,44 @@ public class JobCollectContextTest extends CrateUnitTest {
 
     @Test
     public void testKill() throws Exception {
-        CrateSearchContext mock1 = mock(CrateSearchContext.class);
         final SettableFuture<Throwable> errorFuture = SettableFuture.create();
-        jobCollectContext.addContext(1, mock1);
-        jobCollectContext.addCallback(new ContextCallback() {
+
+        CrateSearchContext mock1 = mock(CrateSearchContext.class);
+        CollectOperation collectOperationMock = mock(CollectOperation.class);
+        CollectPhase collectPhaseMock = mock(CollectPhase.class);
+        UUID jobId = UUID.randomUUID();
+        ResultProvider projector = new CollectingProjector();
+
+        JobCollectContext jobCtx = new JobCollectContext(
+                jobId,
+                collectPhaseMock,
+                collectOperationMock,
+                ramAccountingContext,
+                projector);
+
+        jobCtx.addContext(1, mock1);
+        jobCtx.addCallback(new ContextCallback() {
             @Override
             public void onClose(@Nullable Throwable error, long bytesUsed) {
                 errorFuture.set(error);
             }
         });
-        jobCollectContext.kill();
+
+        CrateCollector collectorMock1 = mock(CrateCollector.class);
+        CrateCollector collectorMock2 = mock(CrateCollector.class);
+
+        when(collectOperationMock.collect(collectPhaseMock, projector, jobCtx))
+                .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
+
+        jobCtx.start();
+        jobCtx.kill();
+
+        verify(collectorMock1, times(1)).kill();
+        verify(collectorMock2, times(1)).kill();
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
 
         assertThat(errorFuture.get(50, TimeUnit.MILLISECONDS), instanceOf(CancellationException.class));
     }
+
 }
