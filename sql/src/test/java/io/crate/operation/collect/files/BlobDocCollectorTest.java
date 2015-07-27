@@ -22,68 +22,46 @@
 package io.crate.operation.collect.files;
 
 import io.crate.blob.BlobContainer;
-import io.crate.blob.v2.BlobShard;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
+import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.FileSystemUtils;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class BlobDocCollectorTest extends CrateUnitTest {
 
-    private Path tmpDir;
-
-    @Before
-    public void prepare() throws Exception {
-        tmpDir = Files.createTempDirectory(getClass().getName());
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        if (tmpDir != null) {
-            FileSystemUtils.deleteRecursively(tmpDir.toFile());
-        }
-    }
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+    private BlobDigestExpression digestExpression = new BlobDigestExpression();
+    private BlobLastModifiedExpression ctimeExpression = new BlobLastModifiedExpression();
 
     @Test
     public void testBlobFound() throws Exception {
-        BlobContainer container = new BlobContainer(tmpDir.toFile());
+        BlobContainer container = new BlobContainer(tempFolder.newFolder());
         String digest = "417de3231e23dcd6d224ff60918024bc6c59aa58";
+        long mtime = createFile(container, digest).lastModified();
 
-        File blob = new File(container.getVarDirectory().getAbsolutePath() + "/01/" + digest);
-        blob.createNewFile();
-        long mtime = blob.lastModified();
-
-        BlobDigestExpression digestExpression = new BlobDigestExpression();
-        BlobLastModifiedExpression ctimeExpression = new BlobLastModifiedExpression();
-        Input<Boolean> condition = new Input<Boolean>() {
-            @Override
-            public Boolean value() {
-                return true;
-            }
-        };
-
+        Input<Boolean> condition = Literal.BOOLEAN_TRUE;
         CollectingProjector projector = getProjector(
                 container,
                 Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
@@ -94,16 +72,36 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         assertThat(result, contains(isRow(new BytesRef(digest), mtime)));
     }
 
+    @Test
+    public void testConditionThatReturnsNull() throws Exception {
+        BlobContainer container = new BlobContainer(tempFolder.newFolder());
+        createFile(container, "417de3231e23dcd6d224ff60918024bc6c59aa58");
+
+        Input<Boolean> condition = Literal.<Boolean>newLiteral((Boolean) null);
+        CollectingProjector projector = getProjector(
+                container,
+                Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
+                Arrays.<BlobCollectorExpression<?>>asList(digestExpression, ctimeExpression),
+                condition
+        );
+        Bucket result = projector.result().get();
+        assertThat(result.size(), is(0));
+    }
+
+    private File createFile(BlobContainer container, String digest) throws IOException {
+        File blob = new File(container.getVarDirectory().getAbsolutePath() + "/01/" + digest);
+        assertTrue(blob.createNewFile());
+        return blob;
+    }
+
     private CollectingProjector getProjector(BlobContainer container,
                                              List<Input<?>> inputs,
                                              List<BlobCollectorExpression<?>> expressions,
                                              Input<Boolean> condition) throws Exception {
         CollectingProjector projector = new CollectingProjector();
-        BlobShard blobShard = mock(BlobShard.class);
-        when(blobShard.blobContainer()).thenReturn(container);
 
         BlobDocCollector collector = new BlobDocCollector(
-                blobShard,
+                container,
                 inputs,
                 expressions,
                 condition,
@@ -114,5 +112,4 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         collector.doCollect();
         return projector;
     }
-
 }

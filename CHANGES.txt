@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused queries on blob tables to cause a
+   NullPointerException if the filter in the WHERE CLAUSE resulted in a
+   ``null`` value.
+
  - Fix: fixed an issue which caused an error if one selects a setting
    which is not set
 
