@@ -24,9 +24,27 @@ package io.crate.integrationtests;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
+
+    private void createColorsAndSizes() {
+        execute("create table colors (name string) ");
+        execute("create table sizes (name string) ");
+        ensureYellow();
+
+        execute("insert into colors (name) values (?)", new Object[][]{
+                new Object[]{"red"},
+                new Object[]{"blue"},
+                new Object[]{"green"}
+        });
+        execute("insert into sizes (name) values (?)", new Object[][]{
+                new Object[]{"small"},
+                new Object[]{"large"},
+        });
+        execute("refresh table colors, sizes");
+    }
 
     @Test
     public void testCrossJoinOrderByOnBothTables() throws Exception {
@@ -34,11 +52,11 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select colors.name, sizes.name from colors, sizes order by colors.name, sizes.name");
         assertThat(printedTable(response.rows()), is(
                 "blue| large\n" +
-                "blue| small\n" +
-                "green| large\n" +
-                "green| small\n" +
-                "red| large\n" +
-                "red| small\n"));
+                        "blue| small\n" +
+                        "green| large\n" +
+                        "green| small\n" +
+                        "red| large\n" +
+                        "red| small\n"));
     }
 
     @Test
@@ -138,20 +156,57 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 "2| foo\n"));
     }
 
-    private void createColorsAndSizes() {
-        execute("create table colors (name string) ");
-        execute("create table sizes (name string) ");
+    @Test
+    public void testJoinMultipleTables() throws Exception {
+        createColorsAndSizes();
+        execute("create table genders (name string)");
+        execute("create table cities (name string)");
         ensureYellow();
+        execute("insert into genders (name) values (?)", new Object[][]{
+                new Object[]{"female"},
+                new Object[]{"male"},
+        });
+        execute("insert into cities (name) values (?)", new Object[][]{
+                new Object[]{"Berlin"},
+                new Object[]{"Dornbirn"},
+        });
+        execute("refresh table genders, cities");
 
-        execute("insert into colors (name) values (?)", new Object[][]{
-                new Object[]{"red"},
-                new Object[]{"blue"},
-                new Object[]{"green"}
+        execute("select colors.name, sizes.name, genders.name, cities.name " +
+                "from colors, sizes, genders, cities");
+        assertThat(response.rowCount(), is(24L));
+        assertThat(printedTable(response.rows()), containsString("" +
+                "blue| large| female| Berlin\n"));
+        assertThat(printedTable(response.rows()), containsString("" +
+                "red| small| male| Dornbirn\n"));
+    }
+
+    @Test
+    public void testJoinMultipleTablesWithOrderBy() throws Exception {
+        createColorsAndSizes();
+        execute("create table genders (name string)");
+        ensureYellow();
+        execute("insert into genders (name) values (?)", new Object[][]{
+                new Object[]{"female"},
+                new Object[]{"male"},
         });
-        execute("insert into sizes (name) values (?)", new Object[][]{
-                new Object[]{"small"},
-                new Object[]{"large"},
-        });
-        execute("refresh table colors, sizes");
+        execute("refresh table genders");
+
+        execute("select colors.name, sizes.name, genders.name from colors, sizes, genders " +
+                "order by sizes.name, colors.name, genders.name");
+        assertThat(response.rowCount(), is(12L));
+        assertThat(printedTable(response.rows()), is("" +
+                "blue| large| female\n" +
+                "blue| large| male\n" +
+                "green| large| female\n" +
+                "green| large| male\n" +
+                "red| large| female\n" +
+                "red| large| male\n" +
+                "blue| small| female\n" +
+                "blue| small| male\n" +
+                "green| small| female\n" +
+                "green| small| male\n" +
+                "red| small| female\n" +
+                "red| small| male\n"));
     }
 }
