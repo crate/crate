@@ -42,6 +42,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -178,6 +179,20 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         );
         Bucket bucket = mergeWith(3, null, page1);
         assertRows(bucket, "A", "A", "A", "B", "B", "B", "C");
+    }
+
+    @Test
+    public void testSecondPageContainsEmptyBucket() throws Exception {
+        BucketPage p1Buckets = createPage(Arrays.asList(
+                        new Object[]{"A"},
+                        new Object[]{"C"}),
+                Arrays.asList(
+                        new Object[]{"B"},
+                        new Object[]{"B"}));
+        BucketPage p2Buckets = createPage(Arrays.<Object[]>asList(new Object[]{"C"}), Collections.<Object[]>emptyList());
+
+        Bucket bucket = mergeWith(2, null, p1Buckets, p2Buckets);
+        assertRows(bucket, "A", "B", "B", "C", "C");
     }
 
     @Test

@@ -200,6 +200,13 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
         }
     }
 
+    private static PeekingRowIterator peekingIterator(Iterator<? extends Row> iterator) {
+        if (iterator instanceof PeekingRowIterator) {
+            return (PeekingRowIterator) iterator;
+        }
+        return new PeekingRowIterator(iterator);
+    }
+
     /**
      * MergingIterator like it is used in guava Iterators.mergedSort
      * but uses a custom PeekingRowIterator which materializes the rows on peek()
@@ -225,13 +232,6 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             }
         }
 
-        private PeekingRowIterator peekingIterator(Iterator<? extends Row> iterator) {
-            if (iterator instanceof PeekingRowIterator) {
-                return (PeekingRowIterator) iterator;
-            }
-            return new PeekingRowIterator(iterator);
-        }
-
         @Override
         public boolean hasNext() {
             return !queue.isEmpty();
@@ -253,9 +253,11 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             return leastExhausted;
         }
 
-        public RowMergingIterator merge(List<Iterator<Row>> mergingIterator) {
-            for (Iterator<Row> rowIterator : mergingIterator) {
-                queue.add(peekingIterator(rowIterator));
+        public RowMergingIterator merge(List<Iterator<Row>> iterators) {
+            for (Iterator<Row> rowIterator : iterators) {
+                if (rowIterator.hasNext()) {
+                    queue.add(peekingIterator(rowIterator));
+                }
             }
             leastExhausted = false;
             return this;
