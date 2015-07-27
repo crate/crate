@@ -40,4 +40,14 @@ public class NoopCrateCollector implements CrateCollector {
     @Override
     public void kill() {
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

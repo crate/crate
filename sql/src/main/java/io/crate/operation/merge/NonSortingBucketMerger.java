@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * and just emits a stream of rows, whose order is undeterministic
  * as it is not guaranteed which row from which bucket ends up in the stream at which position.
  */
-public class NonSortingBucketMerger implements PageDownstream, StoppableRowUpstream {
+public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
 
