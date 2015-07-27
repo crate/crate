@@ -243,8 +243,11 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testCrossJoinWithMoreThanTwoTables() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cross join with more than 2 tables is not supported");
-        plan("select * from users u1, users u2, users u3");
+        NestedLoop plan = plan("select * from users u1, users u2, users u3");
+        assertThat(plan.left().plan(), instanceOf(QueryAndFetch.class));
+        assertThat(plan.right().plan(), instanceOf(NestedLoop.class));
+        NestedLoop innerPlan = (NestedLoop) plan.right().plan();
+        assertThat(innerPlan.left().plan(), instanceOf(QueryAndFetch.class));
+        assertThat(innerPlan.right().plan(), instanceOf(QueryAndFetch.class));
     }
 }
