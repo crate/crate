@@ -57,6 +57,16 @@ import java.util.concurrent.CancellationException;
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;

@@ -261,4 +261,14 @@ public abstract class AbstractIndexWriterProjector implements
         this.downstream = downstream.registerUpstream(this);
         setResultCallback();
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

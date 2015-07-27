@@ -99,4 +99,14 @@ public class FilterProjector implements Projector, RowDownstreamHandle {
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }
