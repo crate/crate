@@ -405,6 +405,16 @@ public class CrateSettings {
         public String name() { return "include"; }
 
         @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    ROUTING_ALLOCATION_INCLUDE_IP,
+                    ROUTING_ALLOCATION_INCLUDE_HOST,
+                    ROUTING_ALLOCATION_INCLUDE_ID,
+                    ROUTING_ALLOCATION_INCLUDE_NAME
+            );
+        }
+
+        @Override
         public Setting parent() {
             return ROUTING_ALLOCATION;
         }
@@ -453,6 +463,16 @@ public class CrateSettings {
     public static final NestedSetting ROUTING_ALLOCATION_EXCLUDE = new NestedSetting() {
         @Override
         public String name() { return "exclude"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    ROUTING_ALLOCATION_EXCLUDE_IP,
+                    ROUTING_ALLOCATION_EXCLUDE_HOST,
+                    ROUTING_ALLOCATION_EXCLUDE_ID,
+                    ROUTING_ALLOCATION_EXCLUDE_NAME
+            );
+        }
 
         @Override
         public Setting parent() {
@@ -504,6 +524,16 @@ public class CrateSettings {
     public static final NestedSetting ROUTING_ALLOCATION_REQUIRE = new NestedSetting() {
         @Override
         public String name() { return "require"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    ROUTING_ALLOCATION_REQUIRE_IP,
+                    ROUTING_ALLOCATION_REQUIRE_HOST,
+                    ROUTING_ALLOCATION_REQUIRE_ID,
+                    ROUTING_ALLOCATION_REQUIRE_NAME
+            );
+        }
 
         @Override
         public Setting parent() {
