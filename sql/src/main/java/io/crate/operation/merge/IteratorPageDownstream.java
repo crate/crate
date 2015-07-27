@@ -54,6 +54,11 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private final Executor executor;
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final PagingIterator<Row> pagingIterator;
+    private final AtomicBoolean paused = new AtomicBoolean(false);
+
+    private volatile PageConsumeListener pausedListener;
+    private volatile PagingIterator<Row> pausedIterator;
+    private volatile boolean pendingPause;
 
     public IteratorPageDownstream(RowDownstream rowDownstream,
                                   PagingIterator<Row> pagingIterator,
@@ -64,24 +69,49 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     }
 
     @Override
+    public void pause() {
+        pendingPause = true;
+    }
+
+    @Override
+    public void resume() {
+        if (paused.compareAndSet(true, false)) {
+            processBuckets(pausedIterator, pausedListener);
+        } else {
+            pendingPause = false;
+        }
+    }
+
+    private void processBuckets(PagingIterator<Row> iterator, PageConsumeListener listener) {
+        while (iterator.hasNext()) {
+            if (finished.get()) {
+                listener.finish();
+                return;
+            }
+            Row row = iterator.next();
+            boolean wantMore = downstream.setNextRow(row);
+            if (pendingPause) {
+                pausedListener = listener;
+                pausedIterator = iterator;
+                paused.set(true);
+                pendingPause = false;
+                return;
+            }
+            if (!wantMore) {
+                listener.finish();
+                return;
+            }
+        }
+        listener.needMore();
+    }
+
+    @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 pagingIterator.merge(getBucketIterators(buckets));
-                while (pagingIterator.hasNext()) {
-                    if (finished.get()) {
-                        listener.finish();
-                        return;
-                    }
-                    Row row = pagingIterator.next();
-                    boolean wantMore = downstream.setNextRow(row);
-                    if (!wantMore) {
-                        listener.finish();
-                        return;
-                    }
-                }
-                listener.needMore();
+                processBuckets(pagingIterator, listener);
             }
 
             @Override

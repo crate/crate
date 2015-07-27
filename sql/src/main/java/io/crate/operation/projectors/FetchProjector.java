@@ -368,6 +368,16 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         }
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     private static class NodeBucket {
 
         private final int nodeIdx;
