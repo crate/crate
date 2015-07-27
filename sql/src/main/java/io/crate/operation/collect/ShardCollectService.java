@@ -154,7 +154,7 @@ public class ShardCollectService {
             condition = Literal.newLiteral(true);
         }
         return new BlobDocCollector(
-                blobIndices.blobShardSafe(shardId),
+                blobIndices.blobShardSafe(shardId).blobContainer(),
                 ctx.topLevelInputs(),
                 ctx.docLevelExpressions(),
                 condition,

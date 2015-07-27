@@ -37,7 +37,7 @@ import java.util.concurrent.CancellationException;
 
 public class BlobDocCollector implements CrateCollector {
 
-    private final BlobShard blobShard;
+    private BlobContainer blobContainer;
     private final List<Input<?>> inputs;
     private final List<BlobCollectorExpression<?>> expressions;
     private final Input<Boolean> condition;
@@ -46,12 +46,12 @@ public class BlobDocCollector implements CrateCollector {
     private volatile boolean killed;
 
     public BlobDocCollector(
-            BlobShard blobShard,
+            BlobContainer blobContainer,
             List<Input<?>> inputs,
             List<BlobCollectorExpression<?>> expressions,
             Input<Boolean> condition,
             RowDownstream downstream) {
-        this.blobShard = blobShard;
+        this.blobContainer = blobContainer;
         this.inputs = inputs;
         this.expressions = expressions;
         this.condition = condition;
@@ -62,7 +62,7 @@ public class BlobDocCollector implements CrateCollector {
     public void doCollect() {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
-            blobShard.blobContainer().walkFiles(null, fileVisitor);
+            blobContainer.walkFiles(null, fileVisitor);
             downstream.finish();
         } catch (Throwable t) {
             downstream.fail(t);
@@ -86,7 +86,8 @@ public class BlobDocCollector implements CrateCollector {
             for (BlobCollectorExpression expression : expressions) {
                 expression.setNextBlob(file);
             }
-            if (condition.value()) {
+            Boolean match = condition.value();
+            if (match != null && match) {
                 return downstream.setNextRow(row);
             }
             return true;
