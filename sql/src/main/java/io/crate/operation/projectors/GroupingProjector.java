@@ -187,6 +187,16 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         grouper = null;
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     private interface Grouper {
         boolean setNextRow(final Row row);
 

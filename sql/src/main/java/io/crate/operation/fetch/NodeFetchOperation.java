@@ -28,6 +28,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
@@ -50,11 +51,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -183,6 +180,16 @@ public class NodeFetchOperation implements RowUpstream {
                     }
                 })
         );
+    }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
     }
 
 

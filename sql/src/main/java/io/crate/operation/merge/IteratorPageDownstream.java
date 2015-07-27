@@ -136,4 +136,14 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private Iterable<Iterator<Row>> getBucketIterators(List<Bucket> buckets) {
         return FluentIterable.from(buckets).transform(BUCKET_TO_ROW_ITERATOR);
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }
