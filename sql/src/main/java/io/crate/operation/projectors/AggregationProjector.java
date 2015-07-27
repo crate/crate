@@ -108,4 +108,14 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
         }
         return new ArrayBucket(new Object[][]{cells});
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

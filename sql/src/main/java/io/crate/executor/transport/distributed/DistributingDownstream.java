@@ -174,6 +174,16 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     protected abstract ESLogger logger();
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     protected class Downstream implements ActionListener<DistributedResultResponse> {
 
         final AtomicBoolean wantMore = new AtomicBoolean(true);

@@ -81,4 +81,14 @@ public class QueryResultRowDownstream implements Projector {
     public void downstream(RowDownstream downstream) {
         throw new UnsupportedOperationException("QueryResultRowDownstream can't have another downstream");
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -290,4 +290,14 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             downstream.fail(e);
         }
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }

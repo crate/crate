@@ -62,4 +62,14 @@ public class SimpleOneRowCollector implements CrateCollector {
     public void kill() {
         killed = true;
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
 }
