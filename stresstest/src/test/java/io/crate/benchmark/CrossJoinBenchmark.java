@@ -186,4 +186,10 @@ public class CrossJoinBenchmark extends BenchmarkBase {
         );
     }
 
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testQAF3Tables() {
+        execute("select articles.name as article, colors.name as color, small.info['size'] as size " +
+                "from articles, colors, small order by article, color limit 20000");
+    }
 }
