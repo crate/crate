@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: fixed an issue which caused that some settings are not selectable
+   if they are not set
+
  - Fix: fixed an issue which caused TypeConversion errors if a setting was
    selected which represents a byte size
    (e.g. indices[‘store’][‘throttle’][‘my_bytes_per_sec’])
