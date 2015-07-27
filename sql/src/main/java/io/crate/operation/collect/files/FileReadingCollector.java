@@ -76,6 +76,16 @@ public class FileReadingCollector implements CrateCollector {
     };
     private volatile boolean killed;
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
     public enum FileFormat {
         JSON
     }

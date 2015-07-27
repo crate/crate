@@ -212,6 +212,16 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         this.downstream = downstream.registerUpstream(this);
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
 
     interface RowWriter {
         void write(Row row);

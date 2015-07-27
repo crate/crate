@@ -99,7 +99,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                     public boolean setNextRow(Row row) {
                         if (rowsReceived.incrementAndGet() == 3) {
                             collectingProjector.setNextRow(row);
-                            ((StoppableRowUpstream)upstream).pause();
+                            upstream.pause();
                             return true;
                         }
                         return collectingProjector.setNextRow(row);
