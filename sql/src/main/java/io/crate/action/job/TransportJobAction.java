@@ -46,7 +46,7 @@ import java.util.List;
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     public static final String ACTION_NAME = "crate/sql/job";
-    private static final String EXECUTOR = ThreadPool.Names.SEARCH;
+    private static final String EXECUTOR = ThreadPool.Names.SAME;
 
     private final Transports transports;
     private final JobContextService jobContextService;
