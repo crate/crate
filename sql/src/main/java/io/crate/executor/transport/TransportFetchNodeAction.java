@@ -89,7 +89,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             final NodeFetchRequest request,
             ActionListener<NodeFetchResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
-                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, executorName()) {
+                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, ThreadPool.Names.SUGGEST) {
             @Override
             public NodeFetchResponse newInstance() {
                 return new NodeFetchResponse(outputStreamers(request.toFetchReferences()));

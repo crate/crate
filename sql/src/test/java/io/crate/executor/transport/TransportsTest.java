@@ -96,7 +96,7 @@ public class TransportsTest extends CrateUnitTest {
         NodeAction nodeAction = mock(NodeAction.class);
         when(nodeAction.executorName()).thenReturn(executorName);
         transports.executeLocalOrWithTransport(nodeAction, "noop_id", mock(TransportRequest.class), listener,
-                new DefaultTransportResponseHandler(listener, executorName) {
+                new DefaultTransportResponseHandler(listener) {
             @Override
             public TransportResponse newInstance() {
                 return mock(TransportResponse.class);
