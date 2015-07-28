@@ -39,6 +39,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.RejectionAwareExecutor;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.projectors.NoOpProjector;
@@ -158,7 +159,7 @@ public class SortingBucketMerger implements BucketMerger {
             }
         };
 
-        Executor executor = this.executor.or(MoreExecutors.directExecutor());
+        Executor executor = RejectionAwareExecutor.wrapExecutor(this.executor.or(MoreExecutors.directExecutor()), finalCallback);
         MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), finalCallback);
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
             Futures.addCallback(bucketFuture, multiFutureCallback, executor);
