@@ -56,7 +56,7 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
 
     public void execute(String targetNode, KillJobsRequest request, ActionListener<KillResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
-                new DefaultTransportResponseHandler<KillResponse>(listener, executorName()) {
+                new DefaultTransportResponseHandler<KillResponse>(listener) {
                     @Override
                     public KillResponse newInstance() {
                         return new KillResponse(0);
