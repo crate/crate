@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,16 +33,20 @@ import io.crate.operation.Input;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 
 import static io.crate.testing.TestingHelpers.createPage;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -272,6 +277,33 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
         Bucket merged = future.get();
         assertThat(merged.size(), is(2));
+    }
+
+    @Test
+    public void testRejectedExecutionDoesNotCauseBucketMergerToGetStuck() throws Exception {
+        expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
+
+        final CollectingProjector rowDownstream = new CollectingProjector();
+        NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(rowDownstream, Optional.<Executor>of(new Executor() {
+            @Override
+            public void execute(@Nonnull Runnable command) {
+                throw new EsRejectedExecutionException("HAHA !");
+            }
+        }));
+
+        BucketPage page = createPage(Arrays.<Object[]>asList(new Object[]{"A"}));
+        bucketMerger.nextPage(page, new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                rowDownstream.finish();
+            }
+
+            @Override
+            public void finish() {
+                rowDownstream.finish();
+            }
+        });
+        rowDownstream.result().get();
     }
 
     @Test

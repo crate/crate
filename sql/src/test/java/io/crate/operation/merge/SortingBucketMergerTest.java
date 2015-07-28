@@ -38,8 +38,11 @@ import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -132,6 +135,34 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         );
         Bucket bucket = mergeWith(2, true, page1, page2);
         assertRows(bucket, "NULL| 1", "NULL| 2", "A| 1", "A| 2", "B| 1", "B| 2", "C| 3", "D| 3");
+    }
+
+    @Test
+    public void testRejectedExecutionDoesNotCauseBucketMergerToGetStuck() throws Exception {
+        expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
+
+        final CollectingProjector collectingProjector = new CollectingProjector();
+        SortingBucketMerger sortingBucketMerger = new SortingBucketMerger(
+                collectingProjector, 1, new int[] {0 }, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>of(new Executor() {
+            @Override
+            public void execute(@Nonnull Runnable command) {
+                throw new EsRejectedExecutionException("I'm a lazy executor who doesn't like to do any work.");
+            }
+        }));
+
+        sortingBucketMerger.nextPage(createPage(Collections.singletonList(new Object[]{"A"})), new PageConsumeListener() {
+            @Override
+            public void needMore() {
+                collectingProjector.finish();
+            }
+
+            @Override
+            public void finish() {
+                collectingProjector.finish();
+            }
+        });
+
+        collectingProjector.result().get();
     }
 
     @Test
