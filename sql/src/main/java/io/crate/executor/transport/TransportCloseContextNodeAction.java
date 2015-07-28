@@ -73,7 +73,7 @@ public class TransportCloseContextNodeAction implements NodeAction<NodeCloseCont
             NodeCloseContextRequest request,
             ActionListener<NodeCloseContextResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
-                new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener, executorName()) {
+                new DefaultTransportResponseHandler<NodeCloseContextResponse>(listener) {
                     @Override
                     public NodeCloseContextResponse newInstance() {
                         return new NodeCloseContextResponse();

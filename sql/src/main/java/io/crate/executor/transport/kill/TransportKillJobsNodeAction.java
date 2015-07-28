@@ -96,7 +96,7 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
             }
         };
         DefaultTransportResponseHandler<KillResponse> transportResponseHandler =
-                new DefaultTransportResponseHandler<KillResponse>(killResponseActionListener, executorName()) {
+                new DefaultTransportResponseHandler<KillResponse>(killResponseActionListener) {
             @Override
             public KillResponse newInstance() {
                 return new KillResponse(0);

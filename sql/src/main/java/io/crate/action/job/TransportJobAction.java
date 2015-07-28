@@ -71,7 +71,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
         transports.executeLocalOrWithTransport(this, node, request, listener,
-                new DefaultTransportResponseHandler<JobResponse>(listener, EXECUTOR) {
+                new DefaultTransportResponseHandler<JobResponse>(listener) {
                     @Override
                     public JobResponse newInstance() {
                         return new JobResponse();

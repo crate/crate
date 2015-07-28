@@ -52,6 +52,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
     private static final String TRANSPORT_ACTION = "crate/sql/node/fetch";
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+    private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SUGGEST;
 
     private Transports transports;
     private final StatsTables statsTables;
@@ -89,7 +90,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             final NodeFetchRequest request,
             ActionListener<NodeFetchResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
-                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, executorName()) {
+                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
             @Override
             public NodeFetchResponse newInstance() {
                 return new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
