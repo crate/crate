@@ -133,7 +133,7 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             }
         };
 
-        Executor executor = this.executor.or(MoreExecutors.directExecutor());
+        Executor executor = RejectionAwareExecutor.wrapExecutor(this.executor.or(MoreExecutors.directExecutor()), finalCallback);
         MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), finalCallback);
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
             Futures.addCallback(bucketFuture, multiFutureCallback, executor);
