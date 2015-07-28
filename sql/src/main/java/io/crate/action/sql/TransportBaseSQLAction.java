@@ -210,6 +210,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             sendResponse(listener, buildSQLActionException(e));
+            statsTables.jobFinished(jobId, e.getMessage());
         }
     }
 

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug where a job entry wasn't cleaned up on any parser/analyzer errors.
+   
  - Fixed an issue that caused queries on blob tables to cause a
    NullPointerException if the filter in the WHERE CLAUSE resulted in a
    ``null`` value.
