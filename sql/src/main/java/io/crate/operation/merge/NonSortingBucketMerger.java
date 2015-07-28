@@ -35,12 +35,9 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * BucketMerger implementation that does not care about sorting
@@ -99,7 +96,7 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
             }
         };
 
-        Executor executor = this.executor.or(MoreExecutors.directExecutor());
+        Executor executor = RejectionAwareExecutor.wrapExecutor(this.executor.or(MoreExecutors.directExecutor()), callback);
         /**
          * Wait for all buckets to arrive before doing any work to make sure that the job context is present on all nodes
          * Otherwise there could be race condition.
