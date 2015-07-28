@@ -29,6 +29,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
@@ -83,8 +84,10 @@ public class Transports {
                         nodeAction.nodeOperation(request, listener);
                     }
                 });
-            } catch (RejectedExecutionException e) {
-                LOGGER.error("error executing jobinit locally on node [{}]", e, node);
+            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Couldn't execute {} locally on node {}", e, nodeAction.getClass().getSimpleName(), node);
+                }
                 listener.onFailure(e);
             }
         } else {
