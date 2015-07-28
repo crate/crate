@@ -1952,6 +1952,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains." +
                 "\",\"race\":null}| 3\n");
     }
+
+    @Test
+    public void testUnknownTableJobGetsRemoved() throws Exception {
+        execute("set global stats.enabled=true");
+        try {
+            execute("select * from foobar");
+        } catch (SQLActionException e) {
+            assertEquals(e.getMessage(), "Table 'foobar' unknown");
+            execute("select stmt from sys.jobs");
+            assertEquals(response.rowCount(), 1L);
+            assertEquals(response.rows()[0][0], "select stmt from sys.jobs");
+        } finally {
+            execute("reset global stats.enabled");
+        }
+    }
 }
 
 
