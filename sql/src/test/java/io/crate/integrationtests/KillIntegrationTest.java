@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -81,11 +82,14 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             execute("kill all");
             executor.shutdown();
             executor.awaitTermination(5L, TimeUnit.SECONDS);
-            // if killed, then cancellationException, nothing else
             Throwable exception = thrown.get();
             if (exception != null) {
                 assertThat(exception, instanceOf(SQLActionException.class));
-                assertThat(((SQLActionException)exception).stackTrace(), containsString("Job killed by user"));
+                assertThat(((SQLActionException)exception).stackTrace(), anyOf(
+                        containsString("Job killed by user"), // CancellationException
+                        containsString("JobExecutionContext for job"), // ContextMissingException when job execution context not found
+                        containsString("SearchContext for job") // ContextMissingException when search context not found
+                ));
             }
         } finally {
             executor.shutdownNow();
@@ -125,7 +129,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testKillSelectDocTable() throws Exception {
         setup.setUpEmployees();
-        assertGotCancelled("SELECT *, sleep(500) FROM employees", null);
+        assertGotCancelled("SELECT name, department, sleep(500) FROM employees ORDER BY name", null);
     }
 
 }

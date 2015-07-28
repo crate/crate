@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.ContextMissingException;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -88,8 +89,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 threadPool,
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
-
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ContextMissingException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "JobExecutionContext for job %s not found", jobId));
         nodeFetchOperation.fetch(mock(SingleBucketBuilder.class));
     }
@@ -114,8 +114,8 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "No SearchContext found for job search context id '%s'", 0));
+        expectedException.expect(ContextMissingException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "SearchContext for job %s with id '%s' not found", jobId, 0));
 
         SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[0]);
         nodeFetchOperation.fetch(singleBucketBuilder);
