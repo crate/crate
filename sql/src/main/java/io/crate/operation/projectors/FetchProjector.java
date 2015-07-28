@@ -48,9 +48,9 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector implements Projector, RowDownstreamHandle {
 
@@ -82,13 +82,14 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
-    private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final List <Throwable> failures = Collections.synchronizedList(new ArrayList<Throwable>());
 
     private int inputCursor = 0;
     private boolean consumedRows = false;
     private boolean needInputRow = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
+    private ExecutionState executionState;
 
     public FetchProjector(TransportFetchNodeAction transportFetchNodeAction,
                           TransportCloseContextNodeAction transportCloseContextNodeAction,
@@ -150,8 +151,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void startProjection(ExecutionState executionState) {
+        this.executionState = executionState;
         collectDocIdExpression.startCollect();
-
         if (remainingUpstreams.get() <= 0) {
             finish();
         } else {
@@ -207,7 +208,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 it.remove();
             }
 
-
             // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
             if (!consumedRows) {
                 closeContextsIfRequiredAndFinish();
@@ -221,17 +221,22 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     }
 
     private void finishDownstream() {
-        Throwable throwable = failure.get();
-        if (throwable == null) {
+        if (failures.size() == 0) {
             downstream.finish();
         } else {
-            downstream.fail(throwable);
+            for (Throwable e : failures) {
+                if (e instanceof CancellationException) {
+                    downstream.fail(e);
+                    return;
+                }
+            }
+            downstream.fail(failures.get(failures.size()-1));
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failure.set(throwable);
+        failures.add(throwable);
         if (remainingUpstreams.decrementAndGet() == 0) {
             closeContextsAndFinish();
         }
@@ -306,7 +311,11 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             @Override
             public void onFailure(Throwable e) {
                 consumingRows.set(false);
-                downstream.fail(e);
+                if (executionState.isKilled()) {
+                    downstream.fail(new CancellationException());
+                } else {
+                    downstream.fail(e);
+                }
             }
         });
 
@@ -335,24 +344,32 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
         final AtomicInteger pendingRequests = new AtomicInteger(executionNodes.size());
         for (final String nodeId : executionNodes) {
-            transportCloseContextNodeAction.execute(nodeId,
-                    new NodeCloseContextRequest(jobId, executionPhaseId),
-                    new ActionListener<NodeCloseContextResponse>() {
-                @Override
-                public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                    if (pendingRequests.decrementAndGet() == 0) {
-                        allClosed.set(null);
-                    }
-                }
+            try {
+                transportCloseContextNodeAction.execute(nodeId,
+                        new NodeCloseContextRequest(jobId, executionPhaseId),
+                        new ActionListener<NodeCloseContextResponse>() {
+                            @Override
+                            public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
+                                if (pendingRequests.decrementAndGet() == 0) {
+                                    allClosed.set(null);
+                                }
+                            }
 
-                @Override
-                public void onFailure(Throwable e) {
-                    LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                    if (pendingRequests.decrementAndGet() == 0) {
-                        allClosed.set(null);
-                    }
+                            @Override
+                            public void onFailure(Throwable e) {
+                                LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                                if (pendingRequests.decrementAndGet() == 0) {
+                                    allClosed.set(null);
+                                }
+                            }
+                        });
+            } catch (IllegalArgumentException e) {
+                // node not found in cluster state
+                LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
+                if (pendingRequests.decrementAndGet() == 0) {
+                    allClosed.set(null);
                 }
-            });
+            }
         }
     }
 

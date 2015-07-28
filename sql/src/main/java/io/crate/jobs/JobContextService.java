@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -35,6 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -96,7 +98,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     public JobExecutionContext getContext(UUID jobId) {
         JobExecutionContext context = activeContexts.get(jobId);
         if (context == null) {
-            throw new IllegalArgumentException(String.format("JobExecutionContext for job %s not found", jobId));
+            throw new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, jobId);
         }
         return context;
     }

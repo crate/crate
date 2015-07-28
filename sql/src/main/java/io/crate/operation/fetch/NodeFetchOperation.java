@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.ContextMissingException;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -137,8 +139,7 @@ public class NodeFetchOperation implements RowUpstream {
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
             CrateSearchContext searchContext = jobCollectContext.getContext(entry.key);
             if (searchContext == null) {
-                String errorMsg = String.format(Locale.ENGLISH, "No SearchContext found for job search context id '%s'", entry.key);
-                throw new IllegalArgumentException(errorMsg);
+                throw new ContextMissingException(ContextMissingException.ContextType.SEARCH_CONTEXT, jobId, entry.key);
             }
             // create new collect expression for every shard (collect expressions are not thread-safe)
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(toFetchReferences);

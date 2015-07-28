@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.exceptions.ContextMissingException;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
@@ -134,8 +135,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
                                         ActionListener<DistributedResultResponse> listener,
                                         int retry) {
         if (retry > 20) {
-            listener.onFailure(new IllegalStateException(
-                    String.format("Couldn't find JobExecutionContext for %s", request.jobId())));
+            listener.onFailure(new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
         } else {
             scheduler.schedule(new NodeOperationRunnable(request, listener, retry), (retry + 1) * 2, TimeUnit.MILLISECONDS);
         }

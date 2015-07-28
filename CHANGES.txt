@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: issuing ``KILL ALL`` when a ``SELECT`` statement hung due to a node
+   becoming unavailable during execution could result in error response
+
  - Improved the error handling: In case threadpools are exhausted (due to very
    high load on the cluster) queries could get stuck instead of being aborted
    right away.
