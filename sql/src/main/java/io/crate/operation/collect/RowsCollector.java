@@ -21,30 +21,28 @@
 
 package io.crate.operation.collect;
 
-import io.crate.metadata.RowCollectExpression;
 import io.crate.operation.*;
+import io.crate.operation.projectors.RowFilter;
 
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
 public class RowsCollector<R> implements CrateCollector, RowUpstream {
 
-    private final List<RowCollectExpression<R, ?>> collectExpressions;
     private final Iterable<R> rows;
-    private final Input<Boolean> condition;
     private final RowDownstreamHandle rowDownstream;
     private final InputRow row;
+    private final RowFilter<R> rowFilter;
     private volatile boolean killed;
 
     public RowsCollector(List<Input<?>> inputs,
-                         List<RowCollectExpression<R, ?>> collectExpressions,
+                         List<CollectExpression<R, ?>> collectExpressions,
                          RowDownstream rowDownstream,
                          Iterable<R> rows,
                          Input<Boolean> condition) {
         this.row = new InputRow(inputs);
-        this.collectExpressions = collectExpressions;
         this.rows = rows;
-        this.condition = condition;
+        this.rowFilter = new RowFilter<>(collectExpressions, condition);
         this.rowDownstream = rowDownstream.registerUpstream(this);
     }
 
@@ -56,18 +54,11 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
                     rowDownstream.fail(new CancellationException());
                     return;
                 }
-                for (RowCollectExpression<R, ?> collectorExpression : collectExpressions) {
-                    collectorExpression.setNextRow(row);
-                }
-                Boolean match = condition.value();
-                if (match == null || !match) {
-                    // no match
-                    continue;
-                }
-
-                if (!rowDownstream.setNextRow(this.row)) {
-                    // no more rows required, we can stop here
-                    break;
+                if (rowFilter.matches(row)) {
+                    if (!rowDownstream.setNextRow(this.row)) {
+                        // no more rows required, we can stop here
+                        break;
+                    }
                 }
             }
             rowDownstream.finish();

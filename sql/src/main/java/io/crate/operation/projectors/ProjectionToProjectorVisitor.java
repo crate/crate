@@ -303,9 +303,7 @@ public class ProjectionToProjectorVisitor
             condition = Literal.newLiteral(true);
         }
 
-        return new FilterProjector(
-                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
-                condition);
+        return new FilterProjector(ctx.collectExpressions(), condition);
     }
 
     @Override

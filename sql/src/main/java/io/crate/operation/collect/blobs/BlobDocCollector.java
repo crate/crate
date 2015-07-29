@@ -22,13 +22,13 @@
 package io.crate.operation.collect.blobs;
 
 import io.crate.blob.BlobContainer;
-import io.crate.blob.v2.BlobShard;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.projectors.RowFilter;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,10 +37,9 @@ import java.util.concurrent.CancellationException;
 
 public class BlobDocCollector implements CrateCollector {
 
+    private final RowFilter<File> rowFilter;
     private BlobContainer blobContainer;
     private final List<Input<?>> inputs;
-    private final List<BlobCollectorExpression<?>> expressions;
-    private final Input<Boolean> condition;
 
     private RowDownstreamHandle downstream;
     private volatile boolean killed;
@@ -48,13 +47,12 @@ public class BlobDocCollector implements CrateCollector {
     public BlobDocCollector(
             BlobContainer blobContainer,
             List<Input<?>> inputs,
-            List<BlobCollectorExpression<?>> expressions,
+            List<CollectExpression<File, ?>> expressions,
             Input<Boolean> condition,
             RowDownstream downstream) {
         this.blobContainer = blobContainer;
         this.inputs = inputs;
-        this.expressions = expressions;
-        this.condition = condition;
+        this.rowFilter = new RowFilter<>(expressions, condition);
         this.downstream = downstream.registerUpstream(this);
     }
 
@@ -83,11 +81,8 @@ public class BlobDocCollector implements CrateCollector {
             if (killed) {
                 throw new CancellationException();
             }
-            for (BlobCollectorExpression expression : expressions) {
-                expression.setNextBlob(file);
-            }
-            Boolean match = condition.value();
-            if (match != null && match) {
+            //noinspection SimplifiableIfStatement
+            if (rowFilter.matches(file)) {
                 return downstream.setNextRow(row);
             }
             return true;

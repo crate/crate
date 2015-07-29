@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,18 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect.blobs;
+package io.crate.operation.projectors;
 
+import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 
-import java.io.File;
+import java.util.Collection;
 
-public abstract class BlobCollectorExpression<T> implements CollectExpression<File, T> {
+public class RowFilter<TRow> {
 
-    protected File blob;
+    private final Collection<CollectExpression<TRow, ?>> expressions;
+    private final Input<Boolean> condition;
 
-    @Override
-    public void setNextRow(File file) {
-        this.blob = file;
+    public RowFilter(Collection<CollectExpression<TRow, ?>> expressions,
+                     Input<Boolean> condition) {
+        this.expressions = expressions;
+        this.condition = condition;
+    }
+
+    public boolean matches(TRow row) {
+        Boolean match;
+        synchronized (this) {
+            for (CollectExpression<TRow, ?> expression : expressions) {
+                expression.setNextRow(row);
+            }
+            match = condition.value();
+        }
+        return !(match == null) && match;
     }
 }

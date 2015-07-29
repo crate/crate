@@ -25,14 +25,13 @@ import io.crate.blob.BlobContainer;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
-import io.crate.operation.collect.blobs.BlobCollectorExpression;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
 import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,7 +64,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         CollectingProjector projector = getProjector(
                 container,
                 Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
-                Arrays.<BlobCollectorExpression<?>>asList(digestExpression, ctimeExpression),
+                Arrays.<CollectExpression<File, ?>>asList(digestExpression, ctimeExpression),
                 condition
         );
         Bucket result = projector.result().get();
@@ -81,7 +80,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         CollectingProjector projector = getProjector(
                 container,
                 Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
-                Arrays.<BlobCollectorExpression<?>>asList(digestExpression, ctimeExpression),
+                Arrays.<CollectExpression<File, ?>>asList(digestExpression, ctimeExpression),
                 condition
         );
         Bucket result = projector.result().get();
@@ -96,7 +95,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
 
     private CollectingProjector getProjector(BlobContainer container,
                                              List<Input<?>> inputs,
-                                             List<BlobCollectorExpression<?>> expressions,
+                                             List<CollectExpression<File, ?>> expressions,
                                              Input<Boolean> condition) throws Exception {
         CollectingProjector projector = new CollectingProjector();
 

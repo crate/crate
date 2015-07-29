@@ -29,22 +29,21 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class FilterProjector implements Projector, RowDownstreamHandle {
 
-    private final CollectExpression<Row, ?>[] collectExpressions;
-    private final Input<Boolean> condition;
+    private final RowFilter<Row> rowFilter;
 
     private RowDownstreamHandle downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
-    public FilterProjector(CollectExpression<Row, ?>[] collectExpressions,
+    public FilterProjector(Collection<CollectExpression<Row, ?>> collectExpressions,
                            Input<Boolean> condition) {
-        this.collectExpressions = collectExpressions;
-        this.condition = condition;
+        rowFilter = new RowFilter<>(collectExpressions, condition);
     }
 
     @Override
@@ -53,16 +52,12 @@ public class FilterProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
+        if (downstream == null) {
+            throw new IllegalStateException("setNextRow called on FilterProjector without downstream");
         }
-
-        Boolean queryResult = condition.value();
-        if (queryResult == null) {
-            return true;
-        }
-
-        if (downstream != null && queryResult) {
+        
+        //noinspection SimplifiableIfStatement
+        if (rowFilter.matches(row)) {
             return downstream.setNextRow(row);
         }
         return true;
