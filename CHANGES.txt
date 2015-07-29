@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the error handling: In case threadpools are exhausted (due to very
+   high load on the cluster) queries could get stuck instead of being aborted
+   right away.
+
  - Fixed a bug with the kill of collectors when ``KILL ALL`` is called.
 
  - Fixed a bug where a job entry wasn't cleaned up on any parser/analyzer errors.
