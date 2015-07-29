@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -206,18 +207,18 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNestedObject() throws Exception {
-        execute("create table dynamic_table (" +
+    public void testInsertNestedObjectOnCustomSchemaTable() throws Exception {
+        execute("create table c.dynamic_table (" +
                 "  meta object(strict) as (" +
                 "     meta object" +
                 "  )" +
                 ") with (column_policy='dynamic', number_of_replicas=0)");
         ensureYellow();
-        execute("insert into dynamic_table (meta) values({meta={a=['a','b']}})");
-        execute("refresh table dynamic_table");
-        execute("insert into dynamic_table (meta) values({meta={a=['c','d']}})");
-        waitForMappingUpdateOnAll("dynamic_table", "meta.meta.a");
-        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
+        execute("insert into c.dynamic_table (meta) values({meta={a=['a','b']}})");
+        execute("refresh table c.dynamic_table");
+        execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
+        waitForMappingUpdateOnAll(new TableIdent("c", "dynamic_table"), "meta.meta.a");
+        Map<String, Object> sourceMap = getSourceMap("c.dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("string"));
     }

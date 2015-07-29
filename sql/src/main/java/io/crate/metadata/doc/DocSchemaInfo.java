@@ -266,14 +266,15 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             ImmutableOpenMap<String, IndexMetaData> indices = metaData.indices();
             while (it.hasNext()) {
                 String tableName = it.next();
+                String indexName = getIndexName(tableName);
 
-                IndexMetaData newIndexMetaData = event.state().getMetaData().index(tableName);
+                IndexMetaData newIndexMetaData = event.state().getMetaData().index(indexName);
                 if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
                     cache.invalidate(tableName);
                     // invalidate aliases of changed indices
                     invalidateAliases(newIndexMetaData.aliases());
 
-                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(tableName);
+                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
                     if (oldIndexMetaData != null) {
                         invalidateAliases(oldIndexMetaData.aliases());
                     }
@@ -290,6 +291,14 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     }
                 }
             }
+        }
+    }
+
+    private String getIndexName(String tableName) {
+        if (schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) {
+            return tableName;
+        } else {
+            return schemaName + "." + tableName;
         }
     }
 
