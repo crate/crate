@@ -162,6 +162,11 @@ public class QueryThenFetchConsumer implements Consumer {
             if ( limit == null && context.rootRelation() == table) {
                 limit = Constants.DEFAULT_SELECT_LIMIT;
             }
+            if ( limit != null ) {
+                TopNProjection topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols, null, 0, limit + querySpec.offset(), null);
+                collectProjections.add(topNProjection);
+            }
 
             CollectPhase collectNode = PlanNodeBuilder.collect(
                     context.plannerContext().jobId(),

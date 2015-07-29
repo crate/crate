@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: reduced the amount of unnecessary data handled on select queries
+
  - Fixed an issue which prevented column updates to be noticed in the cluster
    on tables in custom schemas.
 

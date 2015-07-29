@@ -159,4 +159,10 @@ public class ShardProjectorChain {
             }
         }
     }
+
+    public void finish() {
+        if (firstNodeProjector != null) {
+            firstNodeProjector.registerUpstream(null).finish();
+        }
+    }
 }

@@ -539,6 +539,12 @@ public class PlannerTest extends CrateUnitTest {
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
 
+        // The collectPhase has a mergeProjection and a TopNProjection which limits the sorted results
+        assertThat(collectNode.projections().get(0), is(instanceOf(MergeProjection.class)));
+        TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(1);
+        assertThat(topNProjection.limit(), is(10));
+        assertThat(topNProjection.isOrdered(), is(false));
+
         DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
         assertThat(resultNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
@@ -633,6 +639,10 @@ public class PlannerTest extends CrateUnitTest {
         plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
         collectNode = plan.collectNode();
         assertThat(collectNode.limit(), is(100_000 + 20));
+
+        TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(0);
+        assertThat(topNProjection.limit(), is(100_000 + 20));
+        assertThat(topNProjection.isOrdered(), is(false));
 
         mergeNode = plan.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
