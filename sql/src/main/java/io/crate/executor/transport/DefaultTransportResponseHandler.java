@@ -21,7 +21,10 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
@@ -32,9 +35,21 @@ public abstract class DefaultTransportResponseHandler<TResponse extends Transpor
     private final ActionListener<TResponse> listener;
     private final String executor;
 
-    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener, String executor) {
+    /**
+     * Creates a ResponseHandler that passes the response or exception to the given listener.
+     * onResponse/onFailure will be executed using the SAME threadPool
+     */
+    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener) {
+        this(listener, null);
+    }
+
+     /**
+     * Creates a ResponseHandler that passes the response or exception to the given listener.
+     * onResponse/onFailure will be executed using the given executor or SAME if the executor is null
+     */
+    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener, @Nullable String executor) {
         this.listener = listener;
-        this.executor = executor;
+        this.executor = MoreObjects.firstNonNull(executor, ThreadPool.Names.SAME);
     }
 
     @Override
