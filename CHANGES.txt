@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/07/29 0.50.2
+=================
+
  - Fix: reduced the amount of unnecessary data handled on select queries
 
  - Fixed an issue which prevented column updates to be noticed in the cluster
@@ -18,7 +21,7 @@ Unreleased
    right away.
 
  - Fixed a bug where a job entry wasn't cleaned up on any parser/analyzer errors.
-   
+
  - Fixed an issue that caused queries on blob tables to cause a
    NullPointerException if the filter in the WHERE CLAUSE resulted in a
    ``null`` value.
