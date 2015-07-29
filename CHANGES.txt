@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ 2015/07/29 0.51.0
+ =================
+
  - Added the ``KILL 'job_id'`` statement.
 
  - Fixed a bug with the kill of collectors when ``KILL ALL`` is called.
@@ -24,8 +27,6 @@ Unreleased
    - added support for line breaks in console result table
 
  - Added column policy as column to ``information_schema.tables`` table
-
- - Fix: column policy property was missing in SHOW CREATE TABLE result
 
  - Added SHOW CREATE TABLE statement to dump the schema of a user created table
 
