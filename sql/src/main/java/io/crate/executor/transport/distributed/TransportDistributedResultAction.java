@@ -38,7 +38,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Locale;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -114,11 +113,12 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = context.getSubContextOrNull(request.executionPhaseId());
-        if (pageDownstreamContext == null) {
+        PageDownstreamContext pageDownstreamContext;
+        try {
+            pageDownstreamContext = context.getSubContext(request.executionPhaseId());
+        } catch (Throwable t) {
             // this is currently sometimes the case when upstreams send failures more than once
-            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find pageDownstreamContext for %d", request.executionPhaseId())));
+            listener.onFailure(t);
             return;
         }
 

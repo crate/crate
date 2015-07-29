@@ -28,7 +28,8 @@ public class ContextMissingException extends UnhandledServerException {
 
     public enum ContextType {
         JOB_EXECUTION_CONTEXT("JobExecutionContext"),
-        SEARCH_CONTEXT("SearchContext");
+        SEARCH_CONTEXT("SearchContext"),
+        SUB_CONTEXT("ExecutionSubContext");
 
         private final String contextType;
 

@@ -23,6 +23,7 @@ package io.crate.jobs;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
@@ -143,15 +144,12 @@ public class JobExecutionContext {
         return (T) subContexts.get(executionNodeId);
     }
 
-    public <T extends ExecutionSubContext> T getSubContext(int executionNodeId) {
-        lastAccessTime = threadPool.estimatedTimeInMillis();
-        ExecutionSubContext subContext = subContexts.get(executionNodeId);
+    public <T extends ExecutionSubContext> T getSubContext(int executionNodeId) throws ContextMissingException {
+        T subContext = getSubContextOrNull(executionNodeId);
         if (subContext == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ExecutionSubContext for %s/%d doesn't exist", jobId(), executionNodeId));
+            throw new ContextMissingException(ContextMissingException.ContextType.SUB_CONTEXT, jobId, executionNodeId);
         }
-        //noinspection unchecked
-        return (T)subContext;
+        return subContext;
     }
 
     public long lastAccessTime() {
