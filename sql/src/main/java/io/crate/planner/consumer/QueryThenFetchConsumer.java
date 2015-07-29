@@ -25,7 +25,10 @@ import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -47,7 +50,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Singleton
@@ -155,6 +157,11 @@ public class QueryThenFetchConsumer implements Consumer {
             // apply default limit if relation is root relation
             if ( limit == null && context.rootRelation() == table) {
                 limit = Constants.DEFAULT_SELECT_LIMIT;
+            }
+            if ( limit != null ) {
+                TopNProjection topNProjection = projectionBuilder.topNProjection(
+                        collectSymbols, null, 0, limit + querySpec.offset(), null);
+                collectProjections.add(topNProjection);
             }
 
             CollectPhase collectNode = PlanNodeBuilder.collect(

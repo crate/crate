@@ -476,7 +476,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         if (shardCollectors.isEmpty()) {
-            downstream.registerUpstream(this).finish();
+            projectorChain.finish();
             return ImmutableList.of();
         }
 
