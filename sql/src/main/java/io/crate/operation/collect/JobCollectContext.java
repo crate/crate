@@ -23,23 +23,20 @@ package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.ExecutionSubContext;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +44,8 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class JobCollectContext implements ExecutionSubContext, RowUpstream, ExecutionState {
 
@@ -54,7 +53,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final CollectPhase collectNode;
     private final CollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
-    private final ResultProvider downstream;
+    private final RowDownstream downstream;
 
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
     private final Object subContextLock = new Object();
@@ -69,15 +68,49 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     public JobCollectContext(UUID jobId,
-                             CollectPhase collectNode,
+                             final CollectPhase collectPhase,
                              CollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
-                             ResultProvider downstream) {
+                             final RowDownstream rowDownstream) {
         id = jobId;
-        this.collectNode = collectNode;
+        this.collectNode = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
-        this.downstream = downstream;
+        this.downstream = new RowDownstream() {
+
+            final AtomicLong rowCount = new AtomicLong();
+            final AtomicInteger numUpstreams = new AtomicInteger();
+
+            @Override
+            public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+                numUpstreams.incrementAndGet();
+                final RowDownstreamHandle rowDownstreamHandle = rowDownstream.registerUpstream(upstream);
+                return new RowDownstreamHandle() {
+
+                    @Override
+                    public boolean setNextRow(Row row) {
+                        rowCount.incrementAndGet();
+                        return rowDownstreamHandle.setNextRow(row);
+                    }
+
+                    @Override
+                    public void finish() {
+                        rowDownstreamHandle.finish();
+                        if (numUpstreams.decrementAndGet() == 0) {
+                            if (rowCount.get() == 0 || !collectPhase.keepContextForFetcher()) {
+                                close();
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void fail(Throwable throwable) {
+                        rowDownstreamHandle.fail(throwable);
+                        closeDueToFailure(throwable);
+                    }
+                };
+            }
+        };
     }
 
     @Override
@@ -172,23 +205,8 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     @Override
     public void start() {
         try {
-            Futures.addCallback(downstream.result(), new FutureCallback<Bucket>() {
-                @Override
-                public void onSuccess(@Nullable Bucket result) {
-                    // if the result is pushed to a downstream, the Bucket might be null here.
-                    if ((result != null && result.size() == 0) || !collectNode.keepContextForFetcher()) {
-                        close();
-                    }
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    closeDueToFailure(t);
-                }
-            });
             collectors.addAll(collectOperation.collect(collectNode, downstream, this));
         } catch (Throwable t) {
-            closeDueToFailure(t);
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
             rowDownstreamHandle.fail(t);
         }

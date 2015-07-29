@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
@@ -43,6 +44,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
@@ -99,7 +102,7 @@ public class JobCollectContextTest extends CrateUnitTest {
     }
 
     @Test
-    public void testKill() throws Exception {
+    public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
         final SettableFuture<Throwable> errorFuture = SettableFuture.create();
 
         CrateSearchContext mock1 = mock(CrateSearchContext.class);
@@ -126,7 +129,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
-        when(collectOperationMock.collect(collectPhaseMock, projector, jobCtx))
+        when(collectOperationMock.collect(eq(collectPhaseMock), any(RowDownstream.class), eq(jobCtx)))
                 .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
 
         jobCtx.start();
