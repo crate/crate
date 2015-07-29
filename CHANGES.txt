@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which prevented column updates to be noticed in the cluster
+   on tables in custom schemas.
+
  - Fix: issuing ``KILL ALL`` when a ``SELECT`` statement hung due to a node
    becoming unavailable during execution could result in error response
 
