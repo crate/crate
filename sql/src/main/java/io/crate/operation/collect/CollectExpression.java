@@ -21,10 +21,9 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 
-public interface CollectExpression<TReturnValue> extends Input<TReturnValue> {
+public interface CollectExpression<TRow, TReturnValue> extends Input<TReturnValue> {
 
-    void setNextRow(Row row);
+    void setNextRow(TRow row);
 }

@@ -53,7 +53,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          @Nullable Symbol routingSymbol,
                                          List<Reference> columnReferences,
                                          List<Symbol> columnSymbols,
-                                         CollectExpression<?>[] collectExpressions,
+                                         CollectExpression<Row, ?>[] collectExpressions,
                                          @Nullable
                                          Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,

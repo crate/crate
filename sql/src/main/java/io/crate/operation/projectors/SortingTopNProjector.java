@@ -48,7 +48,7 @@ public class SortingTopNProjector extends ResultProviderBase {
     private RowPriorityQueue<Object[]> pq;
     private final Comparator[] comparators;
     private final Input<?>[] inputs;
-    private final CollectExpression<?>[] collectExpressions;
+    private final CollectExpression<Row, ?>[] collectExpressions;
     private Object[] spare;
 
     /**
@@ -61,7 +61,7 @@ public class SortingTopNProjector extends ResultProviderBase {
      * @param offset             the initial offset, this number of rows are skipped
      */
     public SortingTopNProjector(Input<?>[] inputs,
-                                CollectExpression<?>[] collectExpressions,
+                                CollectExpression<Row, ?>[] collectExpressions,
                                 int numOutputs,
                                 int[] orderBy,
                                 boolean[] reverseFlags,
@@ -110,7 +110,7 @@ public class SortingTopNProjector extends ResultProviderBase {
     }
 
     private synchronized void evaluateRow(Row row) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
         int i = 0;

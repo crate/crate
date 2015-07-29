@@ -40,13 +40,13 @@ import java.util.Set;
 public class AggregationProjector extends ResultProviderBase implements Projector, RowUpstream {
 
     private final Aggregator[] aggregators;
-    private final Set<CollectExpression<?>> collectExpressions;
+    private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final Object[] cells;
     private final Row row;
     private final Object[] states;
     private RowDownstreamHandle downstream;
 
-    public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
+    public AggregationProjector(Set<CollectExpression<Row, ?>> collectExpressions,
                                 AggregationContext[] aggregations,
                                 RamAccountingContext ramAccountingContext) {
         cells = new Object[aggregations.length];
@@ -79,7 +79,7 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
         for (int i = 0; i < aggregators.length; i++) {

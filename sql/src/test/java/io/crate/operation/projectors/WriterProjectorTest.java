@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.jobs.ExecutionState;
@@ -70,7 +71,7 @@ public class WriterProjectorTest extends CrateUnitTest {
                 uri,
                 settings,
                 null,
-                ImmutableSet.<CollectExpression<?>>of(),
+                ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
         ResultProvider downstream = new CollectingProjector();
@@ -118,7 +119,7 @@ public class WriterProjectorTest extends CrateUnitTest {
                 uri,
                 settings,
                 null,
-                ImmutableSet.<CollectExpression<?>>of(),
+                ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
         CollectingProjector downstream = new CollectingProjector();
@@ -141,7 +142,7 @@ public class WriterProjectorTest extends CrateUnitTest {
                 uri,
                 settings,
                 null,
-                ImmutableSet.<CollectExpression<?>>of(),
+                ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
         CollectingProjector downstream = new CollectingProjector();

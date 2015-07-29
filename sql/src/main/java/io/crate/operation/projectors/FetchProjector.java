@@ -63,7 +63,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     private final UUID jobId;
     private final int executionPhaseId;
-    private final CollectExpression<?> collectDocIdExpression;
+    private final CollectExpression<Row, ?> collectDocIdExpression;
     private final List<ReferenceInfo> partitionedBy;
     private final List<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<String> jobSearchContextIdToNode;
@@ -96,7 +96,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           Functions functions,
                           UUID jobId,
                           int executionPhaseId,
-                          CollectExpression<?> collectDocIdExpression,
+                          CollectExpression<Row, ?> collectDocIdExpression,
                           List<Symbol> inputSymbols,
                           List<Symbol> outputSymbols,
                           List<ReferenceInfo> partitionedBy,

@@ -21,11 +21,12 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.collect.CollectExpression;
+
 /**
  * Base interface for row based expressions.
  * @param <TReturnValue> The returnType of the expression
  */
-public interface RowCollectExpression<TRow, TReturnValue> extends ReferenceImplementation<TReturnValue> {
-
-    void setNextRow(TRow row);
+public interface RowCollectExpression<TRow, TReturnValue>
+        extends CollectExpression<TRow, TReturnValue>, ReferenceImplementation<TReturnValue> {
 }

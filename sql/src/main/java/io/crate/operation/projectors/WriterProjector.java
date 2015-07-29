@@ -58,7 +58,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     private static final byte NEW_LINE = (byte) '\n';
 
     private final URI uri;
-    private final Set<CollectExpression<?>> collectExpressions;
+    private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
     private Output output;
@@ -82,7 +82,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
                            String uri,
                            Settings settings,
                            @Nullable List<Input<?>> inputs,
-                           Set<CollectExpression<?>> collectExpressions,
+                           Set<CollectExpression<Row, ?>> collectExpressions,
                            Map<ColumnIdent, Object> overwrites) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
@@ -222,13 +222,13 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     static class DocWriter implements RowWriter {
 
         private final OutputStream outputStream;
-        private final Set<CollectExpression<?>> collectExpressions;
+        private final Set<CollectExpression<Row, ?>> collectExpressions;
         private final Map<String, Object> overwrites;
         private final AtomicReference<Throwable> failure;
         private final XContentBuilder builder;
 
         public DocWriter(OutputStream outputStream,
-                         Set<CollectExpression<?>> collectExpressions,
+                         Set<CollectExpression<Row, ?>> collectExpressions,
                          Map<String, Object> overwrites,
                          AtomicReference<Throwable> failure) throws IOException {
             this.outputStream = outputStream;
@@ -241,7 +241,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         @Override
         @SuppressWarnings("unchecked")
         public void write(Row row) {
-            for (CollectExpression<?> collectExpression : collectExpressions) {
+            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
             Map doc = (Map) row.get(0);
@@ -288,14 +288,14 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     }
 
     static class ColumnRowWriter implements RowWriter {
-        private final Set<CollectExpression<?>> collectExpressions;
+        private final Set<CollectExpression<Row, ?>> collectExpressions;
         private final List<Input<?>> inputs;
         private final AtomicReference<Throwable> failure;
         private final OutputStream outputStream;
         private final XContentBuilder builder;
 
         ColumnRowWriter(OutputStream outputStream,
-                        Set<CollectExpression<?>> collectExpressions,
+                        Set<CollectExpression<Row, ?>> collectExpressions,
                         List<Input<?>> inputs,
                         AtomicReference<Throwable> failure) throws IOException {
             this.outputStream = outputStream;
@@ -306,7 +306,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         }
 
         public void write(Row row) {
-            for (CollectExpression<?> collectExpression : collectExpressions) {
+            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
             try {

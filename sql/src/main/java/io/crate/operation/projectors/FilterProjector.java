@@ -34,14 +34,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FilterProjector implements Projector, RowDownstreamHandle {
 
-    private final CollectExpression[] collectExpressions;
+    private final CollectExpression<Row, ?>[] collectExpressions;
     private final Input<Boolean> condition;
 
     private RowDownstreamHandle downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
-    public FilterProjector(CollectExpression[] collectExpressions,
+    public FilterProjector(CollectExpression<Row, ?>[] collectExpressions,
                            Input<Boolean> condition) {
         this.collectExpressions = collectExpressions;
         this.condition = condition;
@@ -53,7 +53,7 @@ public class FilterProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
 

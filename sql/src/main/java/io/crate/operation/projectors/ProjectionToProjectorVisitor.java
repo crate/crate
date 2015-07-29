@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -102,7 +103,7 @@ public class ProjectionToProjectorVisitor
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
         Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
-        List<CollectExpression<?>> collectExpressions = new ArrayList<>();
+        List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
 
         ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
         inputs.addAll(ctx.topLevelInputs());

@@ -26,6 +26,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
@@ -85,11 +86,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -328,8 +325,8 @@ public class TransportShardUpsertAction
         updatedSourceAsMap = sourceAndContent.v2();
 
         // collect inputs
-        Set<CollectExpression<?>> collectExpressions = extractorContextUpdate.implContext.collectExpressions();
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        Set<CollectExpression<Row, ?>> collectExpressions = extractorContextUpdate.implContext.collectExpressions();
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(item.row());
         }
 
@@ -365,8 +362,8 @@ public class TransportShardUpsertAction
                                        ShardUpsertRequest.Item item,
                                        SymbolToInputContext implContext) throws IOException {
         // collect inputs
-        Set<CollectExpression<?>> collectExpressions = implContext.collectExpressions();
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        Set<CollectExpression<Row, ?>> collectExpressions = implContext.collectExpressions();
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(item.row());
         }
 

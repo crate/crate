@@ -71,7 +71,7 @@ public abstract class AbstractIndexWriterProjector implements
         Projector, RowUpstream, RowDownstreamHandle {
 
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final CollectExpression<?>[] collectExpressions;
+    private final CollectExpression<Row, ?>[] collectExpressions;
     private UUID jobId;
     private final TableIdent tableIdent;
     @Nullable
@@ -109,7 +109,7 @@ public abstract class AbstractIndexWriterProjector implements
                                            List<Symbol> primaryKeySymbols,
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
-                                           CollectExpression<?>[] collectExpressions,
+                                           CollectExpression<Row, ?>[] collectExpressions,
                                            final TableIdent tableIdent,
                                            UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
@@ -187,7 +187,7 @@ public abstract class AbstractIndexWriterProjector implements
         boolean result;
 
         synchronized (lock) {
-            for (CollectExpression<?> collectExpression : collectExpressions) {
+            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
 

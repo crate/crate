@@ -21,6 +21,7 @@
 
 package io.crate.operation;
 
+import io.crate.core.collections.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.*;
@@ -31,10 +32,10 @@ public class AssignmentSymbolVisitor extends SymbolVisitor<AssignmentSymbolVisit
 
     public static class Context {
 
-        protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
+        protected Set<CollectExpression<Row, ?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         protected Map<InputColumn, InputCollectExpression> allocatedInputCollectionExpressions = new HashMap<>();
 
-        public Set<CollectExpression<?>> collectExpressions() {
+        public Set<CollectExpression<Row, ?>> collectExpressions() {
             return collectExpressions;
         }
 

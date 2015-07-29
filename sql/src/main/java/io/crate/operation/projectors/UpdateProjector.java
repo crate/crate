@@ -59,7 +59,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     private final ShardId shardId;
-    private final CollectExpression<?> collectUidExpression;
+    private final CollectExpression<Row, ?> collectUidExpression;
     private final Symbol[] assignments;
     @Nullable
     private final Long requiredVersion;
@@ -72,7 +72,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                            ShardId shardId,
                            TransportActionProvider transportActionProvider,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                           CollectExpression<?> collectUidExpression,
+                           CollectExpression<Row, ?> collectUidExpression,
                            String[] assignmentsColumns,
                            Symbol[] assignments,
                            @Nullable Long requiredVersion,

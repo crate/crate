@@ -100,7 +100,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable Symbol routingSymbol,
                                 Input<?> sourceInput,
                                 InputColumn sourceInputColumn,
-                                CollectExpression<?>[] collectExpressions,
+                                CollectExpression<Row, ?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,

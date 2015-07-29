@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstreamHandle {
 
-    private final CollectExpression<?>[] collectExpressions;
+    private final CollectExpression<Row, ?>[] collectExpressions;
     private final InputRow inputRow;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private RowDownstreamHandle downstream;
@@ -44,7 +44,7 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
     private AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public SimpleTopNProjector(List<Input<?>> inputs,
-                               CollectExpression<?>[] collectExpressions,
+                               CollectExpression<Row, ?>[] collectExpressions,
                                int limit,
                                int offset) {
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
@@ -78,7 +78,7 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
             return true;
         }
         assert downstream != null;
-        for (CollectExpression<?> collectExpression : collectExpressions) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
         if (!downstream.setNextRow(this.inputRow)) {

@@ -21,6 +21,7 @@
 
 package io.crate.operation;
 
+import io.crate.core.collections.Row;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -43,7 +44,7 @@ public class ImplementationSymbolVisitor extends
 
     public static class Context extends AbstractImplementationSymbolVisitor.Context {
 
-        protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
+        protected Set<CollectExpression<Row, ?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
         protected List<AggregationContext> aggregations = new ArrayList<>();
         protected Map<InputColumn, InputCollectExpression> allocatedInputCollectionExpressions = new HashMap<>();
@@ -58,7 +59,7 @@ public class ImplementationSymbolVisitor extends
             }
         }
 
-        public Set<CollectExpression<?>> collectExpressions() {
+        public Set<CollectExpression<Row, ?>> collectExpressions() {
             return collectExpressions;
         }
 
@@ -112,10 +113,10 @@ public class ImplementationSymbolVisitor extends
         Input<?> result;
         if (!symbol.info().granularity().finerThan(rowGranularity)) {
             ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
-            if (impl != null && impl instanceof Input<?>) {
+            if (impl != null) {
                 // collect collectExpressions separately
-                if (impl instanceof CollectExpression<?>) {
-                    context.collectExpressions.add((CollectExpression<?>) impl);
+                if (impl instanceof CollectExpression) {
+                    context.collectExpressions.add((CollectExpression<Row, ?>) impl);
                 }
                 result = (Input<?>) impl;
             } else {

@@ -23,7 +23,7 @@ package io.crate.operation.collect;
 
 import io.crate.core.collections.Row;
 
-public class InputCollectExpression implements CollectExpression<Object> {
+public class InputCollectExpression implements CollectExpression<Row, Object> {
 
     private final int position;
     private Object value;

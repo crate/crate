@@ -59,7 +59,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByWithoutLimitAndOffset() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{false},
@@ -93,7 +93,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         for (int i = 0; i < projectors.length; i++) {
             SortingTopNProjector projector = new SortingTopNProjector(
                     new Input<?>[]{INPUT},
-                    new CollectExpression[]{(CollectExpression<?>) INPUT},
+                    new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                     1,
                     new int[]{0},
                     new boolean[]{false},
@@ -136,7 +136,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testWithHighOffset() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{false},
@@ -160,7 +160,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByWithoutLimit() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{false},
@@ -191,7 +191,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderBy() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{false},
@@ -221,7 +221,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByAscNullsFirst() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{false},
@@ -242,7 +242,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByAscNullsLast() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{false},
@@ -263,7 +263,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByDescNullsLast() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{true},
@@ -284,7 +284,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByDescNullsFirst() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 1,
                 new int[]{0},
                 new boolean[]{true},
@@ -305,7 +305,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     public void testOrderByAsc() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<?>) INPUT},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
                 2,
                 new int[]{0},
                 new boolean[]{true},
@@ -330,7 +330,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>) INPUT}, 2,
+        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<Row, ?>) INPUT}, 2,
                 new int[]{0},
                 new boolean[]{true},
                 new Boolean[]{null},
@@ -340,7 +340,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>) INPUT}, 2,
+        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<Row, ?>) INPUT}, 2,
                 new int[]{0},
                 new boolean[]{true},
                 new Boolean[]{null},
@@ -354,7 +354,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         Input input = new InputCollectExpression(1);
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{input, INPUT, /* order By input */input, INPUT},
-                new CollectExpression[]{(CollectExpression<?>) INPUT, (CollectExpression<?>) input},
+                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT, (CollectExpression<Row, ?>) input},
                 2,
                 new int[]{2, 3},
                 new boolean[]{false, false},
