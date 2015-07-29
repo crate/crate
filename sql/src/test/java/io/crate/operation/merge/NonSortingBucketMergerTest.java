@@ -220,7 +220,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testThreadedNoMoreRowsPlease() throws Exception {
-        InputCollectExpression<Object> collectExpression = new InputCollectExpression<>(0);
+        InputCollectExpression collectExpression = new InputCollectExpression(0);
         SimpleTopNProjector topNProjector = new SimpleTopNProjector(
                 Arrays.<Input<?>>asList(collectExpression),
                 Arrays.asList(collectExpression).toArray(new CollectExpression[1]),

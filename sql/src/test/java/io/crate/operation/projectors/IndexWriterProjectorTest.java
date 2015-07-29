@@ -67,7 +67,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
+        InputCollectExpression sourceInput = new InputCollectExpression(1);
         InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
         CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
 

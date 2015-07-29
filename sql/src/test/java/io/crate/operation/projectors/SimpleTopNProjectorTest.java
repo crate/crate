@@ -51,7 +51,7 @@ import static org.mockito.Mockito.mock;
 
 public class SimpleTopNProjectorTest extends CrateUnitTest {
 
-    private static final Input<Integer> input = new InputCollectExpression<>(0);
+    private static final Input input = new InputCollectExpression(0);
     private static final Row row = new Row1(42);
 
     private static class TestFunction extends Scalar<Integer, Integer> {

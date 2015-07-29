@@ -67,9 +67,9 @@ public class ImplementationSymbolVisitor extends
         }
 
         public Input<?> collectExpressionFor(InputColumn inputColumn) {
-            InputCollectExpression<?> collectExpression = allocatedInputCollectionExpressions.get(inputColumn);
+            InputCollectExpression collectExpression = allocatedInputCollectionExpressions.get(inputColumn);
             if (collectExpression == null) {
-                collectExpression = new InputCollectExpression<>(inputColumn.index());
+                collectExpression = new InputCollectExpression(inputColumn.index());
                 allocatedInputCollectionExpressions.put(inputColumn, collectExpression);
             }
             collectExpressions.add(collectExpression);

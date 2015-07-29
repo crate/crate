@@ -23,7 +23,9 @@ package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.executor.transport.*;
+import io.crate.executor.transport.NodeCloseContextRequest;
+import io.crate.executor.transport.TransportCloseContextNodeAction;
+import io.crate.executor.transport.TransportFetchNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.RowUpstream;

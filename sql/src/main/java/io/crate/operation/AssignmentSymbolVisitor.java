@@ -39,9 +39,9 @@ public class AssignmentSymbolVisitor extends SymbolVisitor<AssignmentSymbolVisit
         }
 
         public InputColumn allocateCollectExpression(InputColumn inputColumn) {
-            InputCollectExpression<?> collectExpression = allocatedInputCollectionExpressions.get(inputColumn);
+            InputCollectExpression collectExpression = allocatedInputCollectionExpressions.get(inputColumn);
             if (collectExpression == null) {
-                collectExpression = new InputCollectExpression<>(inputColumn.index());
+                collectExpression = new InputCollectExpression(inputColumn.index());
                 allocatedInputCollectionExpressions.put(inputColumn, collectExpression);
             }
             collectExpressions.add(collectExpression);

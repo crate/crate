@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
 
-    private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
+    private static final Input INPUT = new InputCollectExpression(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
 
     private final RowN spare = new RowN(new Object[]{});
@@ -351,7 +351,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testMultipleOrderBy() throws Exception {
         // select modulo(bla, 4), bla from x order by modulo(bla, 4), bla
-        Input<Integer> input = new InputCollectExpression<>(1);
+        Input input = new InputCollectExpression(1);
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{input, INPUT, /* order By input */input, INPUT},
                 new CollectExpression[]{(CollectExpression<?>) INPUT, (CollectExpression<?>) input},

@@ -436,7 +436,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         Thread mergeThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                InputCollectExpression inputCollectExpression = new InputCollectExpression<>(0);
+                InputCollectExpression inputCollectExpression = new InputCollectExpression(0);
                 SimpleTopNProjector topN = new SimpleTopNProjector(
                         Arrays.<Input<?>>asList(inputCollectExpression), new CollectExpression[]{ inputCollectExpression }, 100, 0);
                 final SortingBucketMerger bucketMerger = new SortingBucketMerger(

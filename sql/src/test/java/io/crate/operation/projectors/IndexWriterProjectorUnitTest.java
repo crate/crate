@@ -69,7 +69,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         expectedException.expectMessage("my dummy exception");
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
+        InputCollectExpression sourceInput = new InputCollectExpression(1);
         InputColumn sourceInputColumn = new InputColumn(1);
         CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
 
@@ -112,7 +112,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(0);
+        InputCollectExpression sourceInput = new InputCollectExpression(0);
         InputColumn sourceInputColumn = new InputColumn(0);
         CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
         final IndexWriterProjector indexWriter = new IndexWriterProjector(

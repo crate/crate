@@ -23,23 +23,22 @@ package io.crate.operation.collect;
 
 import io.crate.core.collections.Row;
 
-public class InputCollectExpression<ReturnType> extends CollectExpression<ReturnType> {
+public class InputCollectExpression implements CollectExpression<Object> {
 
     private final int position;
-    private ReturnType value;
+    private Object value;
 
     public InputCollectExpression(int position) {
         this.position = position;
     }
 
     @Override
-    public boolean setNextRow(Row row) {
-        value = (ReturnType) row.get(position);
-        return true;
+    public void setNextRow(Row row) {
+        value = row.get(position);
     }
 
     @Override
-    public ReturnType value() {
+    public Object value() {
         return value;
     }
 
