@@ -185,13 +185,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 CollectPhaseOrderedProjectionBuilderContext projectionBuilderContext =
                         new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
 
-                Projection orderProjection = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
-                List<Projection> collectPhaseProjections;
-                if (orderProjection == null) {
-                    collectPhaseProjections = ImmutableList.of();
-                } else {
-                    collectPhaseProjections = ImmutableList.of(orderProjection);
-                }
+                List<Projection> collectPhaseProjections = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
                 collectNode = PlanNodeBuilder.collect(
                         context.plannerContext().jobId(),
                         tableInfo,
@@ -272,10 +266,10 @@ public class QueryAndFetchConsumer implements Consumer {
         }
     }
 
-    private static class CollectPhaseOrderedProjectionBuilder extends AnalyzedRelationVisitor<CollectPhaseOrderedProjectionBuilderContext, Projection> {
+    private static class CollectPhaseOrderedProjectionBuilder extends AnalyzedRelationVisitor<CollectPhaseOrderedProjectionBuilderContext, List<Projection>> {
 
         @Override
-        public Projection visitQueriedTable(QueriedTable table,
+        public List<Projection> visitQueriedTable(QueriedTable table,
                                             CollectPhaseOrderedProjectionBuilderContext context) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
@@ -294,26 +288,29 @@ public class QueryAndFetchConsumer implements Consumer {
             // at CollectPhase so null it
             context.orderBy = null;
             context.limit = null;
-            return topNProjection;
+            return ImmutableList.<Projection>of(topNProjection);
         }
 
         @Override
-        public Projection visitQueriedDocTable(QueriedDocTable table,
+        public List<Projection> visitQueriedDocTable(QueriedDocTable table,
                                                CollectPhaseOrderedProjectionBuilderContext context) {
             if (context.orderBy == null) {
-                return null;
+                return ImmutableList.of();
             } else {
-                return new MergeProjection(
+                MergeProjection mergeProjection = new MergeProjection(
                         context.allOutputs,
                         context.orderByInputColumns,
                         context.orderBy.reverseFlags(),
                         context.orderBy.nullsFirst()
                 );
+                TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
+                topNProjection.outputs(context.allOutputs);
+                return ImmutableList.of(mergeProjection, topNProjection);
             }
         }
 
         @Override
-        protected Projection visitAnalyzedRelation(AnalyzedRelation relation,
+        protected List<Projection> visitAnalyzedRelation(AnalyzedRelation relation,
                                                      CollectPhaseOrderedProjectionBuilderContext context) {
             throw new UnsupportedOperationException("relation not supported");
         }
