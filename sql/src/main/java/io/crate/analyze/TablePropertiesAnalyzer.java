@@ -61,6 +61,7 @@ public class TablePropertiesAnalyzer {
                     .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
                     .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
                     .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
+                    .put(stripIndexPrefix(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT), TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
                     .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
                     .put("blobs_path", TableParameterInfo.BLOBS_PATH)
                     .build();
@@ -95,6 +96,7 @@ public class TablePropertiesAnalyzer {
                     .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
                     .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
                     .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
+                    .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT))
                     .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
                     .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
                     .build();

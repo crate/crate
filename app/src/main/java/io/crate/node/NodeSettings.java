@@ -21,6 +21,7 @@
 
 package io.crate.node;
 
+import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.env.Environment;
@@ -47,6 +48,16 @@ public class NodeSettings {
             } catch (FailedToResolveConfigException e) {
                 // ignore
             }
+        }
+
+        if (settingsBuilder.get("http.port") == null) {
+            settingsBuilder.put("http.port", Constants.HTTP_PORT_RANGE);
+        }
+        if (settingsBuilder.get("transport.tcp.port") == null) {
+            settingsBuilder.put("transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
+        }
+        if (settingsBuilder.get("thrift.port") == null) {
+            settingsBuilder.put("thrift.port", Constants.THRIFT_PORT_RANGE);
         }
 
         // Set the default cluster name if not explicitly defined

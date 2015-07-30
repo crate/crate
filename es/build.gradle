@@ -20,15 +20,14 @@ tasks.withType(JavaCompile) {
 }
 
 // generated in upstream directory with:
-// mvn dependency:tree|grep -o ' .- .*:compile'|cut -d ' ' -f 3|sort|gsed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
+// mvn dependency:tree | grep -o ' .- .*:compile' | cut -d ' ' -f 3 | sort | gsed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
 dependencies {
 
-
     compile 'com.carrotsearch:hppc:0.6.0'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.4.2'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.4.2'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.4.2'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.4.2'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.5.3'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.5.3'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.5.3'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.5.3'
     compile('com.github.spullara.mustache.java:compiler:0.8.13') {
         exclude group: 'com.google.guava', module: 'guava'
     }
@@ -50,6 +49,7 @@ dependencies {
     compile 'org.ow2.asm:asm-commons:4.1'
     compile 'org.ow2.asm:asm:4.1'
     compile 'org.slf4j:slf4j-api:1.6.2'
+    compile 'org.yaml:snakeyaml:1.12'
 
     // if you update the versions here
     // also update the dependencies in client/build.gradle
@@ -68,7 +68,7 @@ dependencies {
     compile 'org.apache.lucene:lucene-suggest:4.10.4'
 
     // keep sigar out, see below
-    // compile 'org.fusesource:sigar:1.6.4'
+    testCompile 'org.fusesource:sigar:1.6.4'
     // we add the sigar libs as system dep since it is checked in
     compile fileTree(dir: 'upstream/lib/sigar/', include: '*.jar')
 

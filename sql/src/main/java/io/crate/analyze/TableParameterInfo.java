@@ -27,6 +27,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
@@ -57,6 +58,7 @@ public class TableParameterInfo {
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE;
     public static final String RECOVERY_INITIAL_SHARDS = LocalGatewayAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
     public static final String WARMER_ENABLED = IndicesWarmer.INDEX_WARMER_ENABLED;
+    public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 
     // all available table mapping keys
     public static final String COLUMN_POLICY = ColumnPolicy.ES_MAPPING_NAME;
@@ -79,6 +81,7 @@ public class TableParameterInfo {
                     .add(TOTAL_SHARDS_PER_NODE)
                     .add(RECOVERY_INITIAL_SHARDS)
                     .add(WARMER_ENABLED)
+                    .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
                     .build();
 
     protected static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
@@ -131,6 +134,7 @@ public class TableParameterInfo {
                 .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
                 .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, CrateTableSettings.GATEWAY_LOCAL_SYNC.extractMillis(settings))
                 .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
+                .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
                 .build();
     }
 }

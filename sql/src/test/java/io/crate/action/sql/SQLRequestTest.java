@@ -56,7 +56,7 @@ public class SQLRequestTest extends CrateUnitTest {
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
                 {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 0, 1};
-        BytesStreamInput in = new BytesStreamInput(buf, false);
+        BytesStreamInput in = new BytesStreamInput(buf);
         SQLRequest request = new SQLRequest();
         request.readFrom(in);
 

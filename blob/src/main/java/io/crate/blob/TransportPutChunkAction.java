@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -73,8 +74,8 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected PrimaryResponse<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(ClusterState clusterState,
-            PrimaryOperationRequest shardRequest) {
+    protected Tuple<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(ClusterState clusterState,
+                                                                                      PrimaryOperationRequest shardRequest) {
         final PutChunkRequest request = shardRequest.request;
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
@@ -86,7 +87,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
         replicaRequest.index(request.index());
-        return new PrimaryResponse<>(replicaRequest, response, null);
+        return new Tuple<>(response, replicaRequest);
     }
 
     @Override

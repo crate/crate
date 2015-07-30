@@ -63,7 +63,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         double used_percent = ((Number) response.rows()[0][3]).intValue() * 0.01;
 
         double calculated_free_percent = free / (double)(free + used) ;
-        double calculated_used_percent = used/ (double)(free + used) ;
+        double calculated_used_percent = used / (double)(free + used) ;
 
         double max_delta = 0.02; // result should not differ from calculated result more than 2%
         double free_delta = Math.abs(calculated_free_percent - free_percent);

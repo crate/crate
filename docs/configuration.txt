@@ -189,6 +189,20 @@ Warmer
   disable/enable table warming. Table warming allows to run registered queries
   to warm up the table before it is available.
 
+Unassigned
+----------
+
+**unassigned.node_left.delayed_timeout**
+  | *Default:*  ``1m``
+  | *Runtime:*  ``yes``
+
+  Delay the allocation of replica shards which have become unassigned because
+  a node has left. It defaults to ``1m`` to give a node time to restart
+  completely (which can take some time when the node has lots of shards).
+  Setting the timeout to ``0`` will start allocation immediately. This setting
+  can be changed on runtime in order to increase/decrease the delayed allocation
+  if needed.
+
 Column Policy
 -------------
 

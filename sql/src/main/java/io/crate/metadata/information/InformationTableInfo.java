@@ -102,6 +102,12 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("translog", "interval"));
         public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
                 ImmutableList.of("refresh_interval"));
+        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
+                ImmutableList.of("unassigned"));
+        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",
+                ImmutableList.of("unassigned", "node_left"));
+        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new ColumnIdent("settings",
+                ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
     }
 
     protected InformationTableInfo(InformationSchemaInfo schemaInfo,

@@ -40,7 +40,6 @@ public abstract class SysObjectArrayReference extends SimpleObjectExpression<Obj
     @Override
     public ReferenceImplementation<Object[]> getChildImplementation(String name) {
         List<NestedObjectExpression> childImplementations = getChildImplementations();
-        assert childImplementations.size() > 0;
         final Object[] values = new Object[childImplementations.size()];
         int i = 0;
         for (NestedObjectExpression sysObjectReference : childImplementations) {
@@ -48,6 +47,8 @@ public abstract class SysObjectArrayReference extends SimpleObjectExpression<Obj
             if (child != null) {
                 Object value = child.value();
                 values[i++] = value;
+            } else {
+                values[i++] = null;
             }
         }
         return new SimpleObjectExpression<Object[]>() {

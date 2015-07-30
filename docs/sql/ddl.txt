@@ -855,6 +855,7 @@ already existing user-created doc tables in the cluster::
     |    "translog.flush_threshold_period" = 1800000,     |
     |    "translog.flush_threshold_size" = 209715200,     |
     |    "translog.interval" = 5000,                      |
+    |    "unassigned.node_left.delayed_timeout" = 60000,  |
     |    "warmer.enabled" = true                          |
     | )                                                   |
     +-----------------------------------------------------+

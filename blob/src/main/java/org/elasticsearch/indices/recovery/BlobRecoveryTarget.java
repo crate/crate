@@ -25,6 +25,7 @@ import io.crate.blob.BlobWriteException;
 import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -123,7 +124,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().index().name())
                                                   .shardSafe(request.shardId().id());
-            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(indexShard);
+            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
 
             if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
                 throw new IndexShardClosedException(request.shardId());

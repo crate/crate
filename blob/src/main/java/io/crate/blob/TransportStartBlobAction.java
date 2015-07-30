@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -78,13 +79,13 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected PrimaryResponse<StartBlobResponse, StartBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
-            PrimaryOperationRequest shardRequest) {
+    protected Tuple<StartBlobResponse, StartBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
+                                                                                 PrimaryOperationRequest shardRequest) {
         logger.trace("shardOperationOnPrimary {}", shardRequest);
         final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(shardRequest.shardId.id(), request, response);
-        return new PrimaryResponse<>(request, response, null);
+        return new Tuple<>(response, request);
 
     }
 

@@ -293,7 +293,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
     public void loadBulk(boolean queryPlannerEnabled) throws Exception {
         String path = dataPath();
         byte[] bulkPayload = PathAccessor.bytesFromPath(path, this.getClass());
-        BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
+        BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data %s", item);
         }

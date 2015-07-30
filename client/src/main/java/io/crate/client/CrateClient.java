@@ -56,7 +56,7 @@ public class CrateClient {
     private final Settings settings;
     private final InternalCrateClient internalClient;
     private final TransportService transportService;
-    private ThreadPool threadPool;
+    private final ThreadPool threadPool;
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
@@ -85,10 +85,12 @@ public class CrateClient {
 
         CompressorFactory.configure(this.settings);
 
+        threadPool = new ThreadPool(this.settings);
+
         ModulesBuilder modules = new ModulesBuilder();
         modules.add(new CrateClientModule());
         modules.add(new Version.Module(version));
-        modules.add(new ThreadPoolModule(this.settings));
+        modules.add(new ThreadPoolModule(threadPool));
 
         modules.add(new SettingsModule(this.settings));
 
@@ -97,7 +99,6 @@ public class CrateClient {
         modules.add(new CircuitBreakerModule(this.settings));
 
         Injector injector = modules.createInjector();
-        threadPool = injector.getInstance(ThreadPool.class);
         transportService = injector.getInstance(TransportService.class).start();
         internalClient = injector.getInstance(InternalCrateClient.class);
     }

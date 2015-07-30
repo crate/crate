@@ -49,7 +49,7 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTi
  *
  */
 @ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
-public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
+public abstract class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
 
     public static InternalTestCluster GLOBAL_CLUSTER;
     private static Random random;
@@ -59,6 +59,7 @@ public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
         public Settings node(int nodeOrdinal) {
             return ImmutableSettings.builder()
                     .put(InternalNode.HTTP_ENABLED, false)
+                    .put("bootstrap.sigar", true)
                     .put("plugin.types", "io.crate.plugin.CrateCorePlugin").build();
         }
 

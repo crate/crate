@@ -21,14 +21,19 @@
 
 package io.crate.action.sql.query;
 
+import com.carrotsearch.hppc.ObjectObjectAssociativeContainer;
 import com.google.common.base.Optional;
 import io.crate.Constants;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
+import org.elasticsearch.common.HasContext;
+import org.elasticsearch.common.HasContextAndHeaders;
+import org.elasticsearch.common.HasHeaders;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -42,6 +47,7 @@ import org.elasticsearch.search.lookup.SearchLookup;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 public class CrateSearchContext extends DefaultSearchContext {
 
@@ -114,7 +120,6 @@ public class CrateSearchContext extends DefaultSearchContext {
 
         @Override
         public void source(BytesReference source) {
-
         }
 
         @Override
@@ -180,6 +185,78 @@ public class CrateSearchContext extends DefaultSearchContext {
         @Override
         public BytesReference cacheKey() throws IOException {
             return null;
+        }
+
+        @Override
+        public void copyContextAndHeadersFrom(HasContextAndHeaders other) {
+        }
+
+        @Override
+        public <V> V putInContext(Object key, Object value) {
+            return null;
+        }
+
+        @Override
+        public void putAllInContext(ObjectObjectAssociativeContainer<Object, Object> map) {
+
+        }
+
+        @Override
+        public <V> V getFromContext(Object key) {
+            return null;
+        }
+
+        @Override
+        public <V> V getFromContext(Object key, V defaultValue) {
+            return null;
+        }
+
+        @Override
+        public boolean hasInContext(Object key) {
+            return false;
+        }
+
+        @Override
+        public int contextSize() {
+            return 0;
+        }
+
+        @Override
+        public boolean isContextEmpty() {
+            return false;
+        }
+
+        @Override
+        public ImmutableOpenMap<Object, Object> getContext() {
+            return null;
+        }
+
+        @Override
+        public void copyContextFrom(HasContext other) {
+        }
+
+        @Override
+        public HasHeaders putHeader(String key, Object value) {
+            return null;
+        }
+
+        @Override
+        public <V> V getHeader(String key) {
+            return null;
+        }
+
+        @Override
+        public boolean hasHeader(String key) {
+            return false;
+        }
+
+        @Override
+        public Set<String> getHeaders() {
+            return null;
+        }
+
+        @Override
+        public void copyHeadersFrom(HasHeaders from) {
         }
     }
 }

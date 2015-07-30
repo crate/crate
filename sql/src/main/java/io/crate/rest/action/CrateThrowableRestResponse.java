@@ -82,11 +82,6 @@ public class CrateThrowableRestResponse extends RestResponse {
     }
 
     @Override
-    public boolean contentThreadSafe() {
-        return true;
-    }
-
-    @Override
     public BytesReference content() {
         return content;
     }

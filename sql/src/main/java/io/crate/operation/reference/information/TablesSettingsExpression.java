@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.information;
 
-import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.information.InformationTablesTableInfo;
@@ -48,6 +47,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
         childImplementations.put(TablesSettingsGatewayExpression.NAME, new TablesSettingsGatewayExpression());
+        childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
     static class TableParameterExpression extends RowContextCollectorExpression<TableInfo, Object> {
@@ -217,6 +217,37 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
             childImplementations.put(FLUSH_THRESHOLD_PERIOD, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
             childImplementations.put(DISABLE_FLUSH, new TableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
             childImplementations.put(INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
+        }
+    }
+
+    static class TablesSettingsUnassignedExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "unassigned";
+
+        public TablesSettingsUnassignedExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
+            addChildImplementations();
+        }
+
+        private void addChildImplementations() {
+            childImplementations.put(TablesSettingsNodeLeftExpression.NAME,
+                    new TablesSettingsNodeLeftExpression());
+        }
+    }
+
+    static class TablesSettingsNodeLeftExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "node_left";
+
+        public TablesSettingsNodeLeftExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
+            addChildImplementations();
+        }
+
+        public static final String DELAYED_TIMEOUT = "delayed_timeout";
+
+        private void addChildImplementations() {
+            childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));
         }
     }
 }

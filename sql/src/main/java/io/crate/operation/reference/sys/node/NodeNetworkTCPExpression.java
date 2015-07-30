@@ -27,6 +27,7 @@ import org.elasticsearch.monitor.network.NetworkStats;
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
     public static final String NAME = "tcp";
+    private static final Long VALUE_UNAVAILABLE = -1L;
 
     public NodeNetworkTCPExpression(NetworkStats stats) {
         childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(stats));
@@ -44,38 +45,53 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
         protected TCPConnectionsExpression(NetworkStats stats) {
-            addChildImplementations(stats);
+            addChildImplementations(stats.tcp());
         }
 
-        private void addChildImplementations(final NetworkStats stats) {
+        private void addChildImplementations(final NetworkStats.Tcp tcp) {
             childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().activeOpens();
+                    if (tcp != null) {
+                        return tcp.activeOpens();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().passiveOpens();
+                    if (tcp != null) {
+                        return tcp.passiveOpens();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().currEstab();
+                    if (tcp != null) {
+                        return tcp.currEstab();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().estabResets();
+                    if (tcp != null) {
+                        return tcp.estabResets();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().attemptFails();
+                    if (tcp != null) {
+                        return tcp.attemptFails();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
         }
@@ -95,38 +111,53 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String RST_SENT = "rst_sent";
 
         protected TCPPacketsExpression(NetworkStats stats) {
-            addChildImplementations(stats);
+            addChildImplementations(stats.tcp());
         }
 
-        private void addChildImplementations(final NetworkStats stats) {
+        private void addChildImplementations(final NetworkStats.Tcp tcp) {
             childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().outSegs();
+                    if (tcp != null) {
+                        return tcp.outSegs();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().inSegs();
+                    if (tcp != null) {
+                        return tcp.inSegs();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().retransSegs();
+                    if (tcp != null) {
+                        return tcp.retransSegs();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().inErrs();
+                    if (tcp != null) {
+                        return tcp.inErrs();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
             childImplementations.put(RST_SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
-                    return stats.tcp().outRsts();
+                    if (tcp != null) {
+                        return tcp.outRsts();
+                    }
+                    return VALUE_UNAVAILABLE;
                 }
             });
         }

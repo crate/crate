@@ -168,9 +168,9 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+    protected Tuple<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
 
-        KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
+        KillableCallable<Tuple> callable = new KillableCallable<Tuple>() {
 
             private AtomicBoolean killed = new AtomicBoolean(false);
 
@@ -180,7 +180,7 @@ public class TransportShardUpsertAction
             }
 
             @Override
-            public PrimaryResponse call() throws Exception {
+            public Tuple call() throws Exception {
                 ShardUpsertRequest request = shardRequest.request;
                 SymbolToFieldExtractorContext extractorContextUpdate = null;
                 SymbolToInputContext implContextInsert = null;
@@ -199,14 +199,15 @@ public class TransportShardUpsertAction
                 }
                 ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, request,
                         extractorContextUpdate, implContextInsert, killed);
-                return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+                return new Tuple<>(shardUpsertResponse, shardRequest.request);
             }
 
         };
 
         activeOperations.put(shardRequest.request.jobId(), callable);
-        PrimaryResponse response;
+        Tuple<ShardUpsertResponse, ShardUpsertRequest> response;
         try {
+            //noinspection unchecked
             response = callable.call();
         } catch (Throwable e) {
             throw Throwables.propagate(e);
@@ -382,7 +383,7 @@ public class TransportShardUpsertAction
         if (rawSource != null) {
             indexRequest.source(BytesRef.deepCopyOf(rawSource).bytes);
         } else {
-            indexRequest.source(builder.bytes(), false);
+            indexRequest.source(builder.bytes());
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());

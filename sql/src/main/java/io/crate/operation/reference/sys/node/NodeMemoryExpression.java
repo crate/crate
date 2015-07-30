@@ -37,39 +37,51 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     public static final String USED_PERCENT = "used_percent";
     public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeMemoryExpression(OsStats stats) {
-        addChildImplementations(stats);
+    public NodeMemoryExpression(final OsStats stats) {
+        addChildImplementations(stats.mem());
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return stats.timestamp();
+            }
+        });
     }
 
-    private void addChildImplementations(final OsStats stats) {
+    private void addChildImplementations(final OsStats.Mem mem) {
         childImplementations.put(FREE, new MemoryExpression() {
             @Override
             public Long value() {
-                return stats.mem().actualFree().bytes();
+                if (mem != null) {
+                    return mem.actualFree().bytes();
+                }
+                return -1L;
             }
         });
         childImplementations.put(USED, new MemoryExpression() {
             @Override
             public Long value() {
-                return stats.mem().actualUsed().bytes();
+                if (mem != null) {
+                    return mem.actualUsed().bytes();
+                }
+                return -1L;
             }
         });
         childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return stats.mem().freePercent();
+                if (mem != null) {
+                    return mem.freePercent();
+                }
+                return -1;
             }
         });
         childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return stats.mem().usedPercent();
-            }
-        });
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.timestamp();
+                if (mem != null) {
+                    return mem.usedPercent();
+                }
+                return -1;
             }
         });
     }

@@ -64,7 +64,7 @@ public class ESDeleteByQueryTask extends JobTask {
             WhereClause whereClause = node.whereClauses().get(i);
             String routing = node.routings().get(i);
             try {
-                request.source(QUERY_BUILDER.convert(whereClause), false);
+                request.source(QUERY_BUILDER.convert(whereClause));
                 request.indices(indices);
                 if (whereClause.clusteredBy().isPresent()){
                     request.routing(routing);

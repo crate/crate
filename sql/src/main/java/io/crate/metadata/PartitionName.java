@@ -98,7 +98,7 @@ public class PartitionName {
             return;
         }
         byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
-        BytesStreamInput in = new BytesStreamInput(inputBytes, true);
+        BytesStreamInput in = new BytesStreamInput(inputBytes);
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
             BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);

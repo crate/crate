@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -76,14 +77,14 @@ public class TransportDeleteBlobAction extends TransportShardReplicationOperatio
     }
 
     @Override
-    protected PrimaryResponse<DeleteBlobResponse, DeleteBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
-            PrimaryOperationRequest shardRequest) {
+    protected Tuple<DeleteBlobResponse, DeleteBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
+                                                                                   PrimaryOperationRequest shardRequest) {
         logger.trace("shardOperationOnPrimary {}", shardRequest);
         final DeleteBlobRequest request = shardRequest.request;
         BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.request.index(), shardRequest.shardId.id());
         boolean deleted = blobShard.delete(request.id());
         final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-        return new PrimaryResponse<>(request, response, null);
+        return new Tuple<>(response,request);
     }
 
     @Override

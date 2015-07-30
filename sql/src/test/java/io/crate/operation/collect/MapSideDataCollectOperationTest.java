@@ -94,7 +94,7 @@ public class MapSideDataCollectOperationTest {
                 functions,
                 referenceResolver,
                 mock(NodeSysExpression.class),
-                new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build(), null),
+                new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build()),
                 collectSourceResolver
         );
 

@@ -24,7 +24,11 @@ package io.crate.bootstrap;
 /**
  * A main entry point when starting from the command line.
  */
-public class CrateF extends Crate {
+public class CrateF {
+
+    public static void close(String[] args) {
+        Crate.close(args);
+    }
 
     public static void main(String[] args) {
         System.setProperty("es.foreground", "yes");

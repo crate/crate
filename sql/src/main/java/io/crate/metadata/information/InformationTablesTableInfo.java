@@ -102,7 +102,12 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = info(
                 Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, DataTypes.LONG);
 
-
+        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED = info(
+                Columns.TABLE_SETTINGS_UNASSIGNED, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = info(
+                Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, DataTypes.OBJECT);
+        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = info(
+                Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG);
     }
 
     private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
@@ -146,6 +151,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     put(Columns.TABLE_SETTINGS_GATEWAY, ReferenceInfos.TABLE_SETTINGS_GATEWAY);
                     put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL);
                     put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC);
+                    put(Columns.TABLE_SETTINGS_UNASSIGNED, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
+                    put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
+                    put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT);
                 }},
                 ImmutableList.of(
                         ReferenceInfos.SCHEMA_NAME,

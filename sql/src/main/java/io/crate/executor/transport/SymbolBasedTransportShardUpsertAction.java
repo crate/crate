@@ -161,8 +161,8 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    protected PrimaryResponse<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
-        KillableCallable<PrimaryResponse> callable = new KillableCallable<PrimaryResponse>() {
+    protected Tuple<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+        KillableCallable<Tuple> callable = new KillableCallable<Tuple>() {
 
             private AtomicBoolean killed = new AtomicBoolean(false);
 
@@ -172,14 +172,15 @@ public class SymbolBasedTransportShardUpsertAction
             }
 
             @Override
-            public PrimaryResponse call() throws Exception {
+            public Tuple call() throws Exception {
                 ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, shardRequest.request, killed);
-                return new PrimaryResponse<>(shardRequest.request, shardUpsertResponse, null);
+                return new Tuple<>(shardUpsertResponse, shardRequest.request);
             }
         };
         activeOperations.put(shardRequest.request.jobId(), callable);
-        PrimaryResponse response;
+        Tuple<ShardUpsertResponse, SymbolBasedShardUpsertRequest> response;
         try {
+            //noinspection unchecked
             response = callable.call();
         } catch (Throwable e) {
             throw Throwables.propagate(e);
@@ -339,7 +340,7 @@ public class SymbolBasedTransportShardUpsertAction
         if (rawSource != null) {
             indexRequest.source(rawSource.bytes);
         } else {
-            indexRequest.source(builder.bytes(), false);
+            indexRequest.source(builder.bytes());
         }
         return indexRequest;
     }

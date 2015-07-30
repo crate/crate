@@ -223,4 +223,16 @@ public class CrateTableSettings {
             return TimeValue.timeValueMillis(1000);
         }
     };
+
+    public static final TimeSetting UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() {
+            return TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT;
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueMinutes(1);
+        }
+    };
 }

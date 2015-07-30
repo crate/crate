@@ -201,7 +201,7 @@ public class SQLResponseTest extends CrateUnitTest {
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
                 { 0,0,2,2,4,99,111,108,49,4,99,111,108,50,0,0,0,2,0,9,114,111,119,49,95,99,111,108,49,0,9,114,111,119,49,95,99,111,108,50,0,9,114,111,119,50,95,99,111,108,49,0,9,114,111,119,50,95,99,111,108,50,0,1,0,0,0,2,4,4};
-        BytesStreamInput in = new BytesStreamInput(buf, false);
+        BytesStreamInput in = new BytesStreamInput(buf);
         SQLResponse resp = new SQLResponse();
         resp.readFrom(in);
 

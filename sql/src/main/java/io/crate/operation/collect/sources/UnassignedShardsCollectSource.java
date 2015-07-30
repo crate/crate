@@ -110,14 +110,17 @@ public class UnassignedShardsCollectSource implements CollectSource {
 
     private Iterable<UnassignedShard> createIterator(final Map<String, List<Integer>> indexShardMap) {
         String[] indices = indexShardMap.keySet().toArray(new String[indexShardMap.size()]);
-        List<ShardRouting> allShards;
+        List<ShardRouting> allShards = new ArrayList<>();
         try {
-            allShards = clusterService.state().routingTable().allShards(indices);
+            for (String index : indices) {
+                allShards.addAll(clusterService.state().routingTable().allShards(index));
+            }
         } catch (IndexMissingException e) {
             // edge case: index was deleted while collecting, no more shards
             return NO_SHARDS;
         }
-        if (allShards == null || allShards.size() == 0) {
+
+        if (allShards.size() == 0) {
             return NO_SHARDS;
         }
 

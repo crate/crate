@@ -45,6 +45,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
         childImplementations.put(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression());
         childImplementations.put(PartitionsSettingsGatewayExpression.NAME, new PartitionsSettingsGatewayExpression());
+        childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
     }
 
     static class PartitionTableParameterExpression extends RowContextCollectorExpression<PartitionInfo, Object> {
@@ -216,4 +217,36 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
             childImplementations.put(INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
         }
     }
+
+    static class PartitionsSettingsUnassignedExpression extends AbstractPartitionsSettingsExpression {
+
+        public static final String NAME = "unassigned";
+
+        public PartitionsSettingsUnassignedExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
+            addChildImplementations();
+        }
+
+        private void addChildImplementations() {
+            childImplementations.put(PartitionsSettingsNodeLeftExpression.NAME,
+                    new PartitionsSettingsNodeLeftExpression());
+        }
+    }
+
+    static class PartitionsSettingsNodeLeftExpression extends AbstractPartitionsSettingsExpression {
+
+        public static final String NAME = "node_left";
+
+        public PartitionsSettingsNodeLeftExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
+            addChildImplementations();
+        }
+
+        public static final String DELAYED_TIMEOUT = "delayed_timeout";
+
+        private void addChildImplementations() {
+            childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));
+        }
+    }
+
 }
