@@ -73,7 +73,7 @@ public class ModuloDistributingDownstream extends DistributingDownstream {
         for (int i = 0; i < downstreams.length; i++) {
             Downstream downstream = downstreams[i];
             if (downstream.wantMore.get()) {
-                downstream.sendRequest(bucketBuilder.build(i), isLast());
+                downstream.sendRequest(bucketBuilder.build(i));
             }
         }
     }

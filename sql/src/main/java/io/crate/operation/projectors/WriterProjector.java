@@ -28,10 +28,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
@@ -49,9 +46,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class WriterProjector implements Projector, RowDownstreamHandle {
 
@@ -63,9 +58,9 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     private final Map<String, Object> overwrites;
     private Output output;
 
-    protected final AtomicInteger remainingUpstreams = new AtomicInteger();
     protected final AtomicLong counter = new AtomicLong();
-    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     private RowDownstreamHandle downstream;
     private RowWriter rowWriter;
@@ -99,7 +94,35 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         } else {
             throw new UnsupportedFeatureException(String.format("Unknown scheme '%s'", this.uri.getScheme()));
         }
+        registerDownstreamHandleProxy();
     }
+
+    private void registerDownstreamHandleProxy() {
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                endProjection();
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                endProjection();
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                try {
+                    rowWriter.write(row);
+                } catch (Exception e) {
+                    fail(e);
+                    return false;
+                }
+                counter.incrementAndGet();
+                return true;
+            }
+        });
+    }
+
 
     protected static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
         Map<String, Object> nestedMap = new HashMap<>();
@@ -145,66 +168,60 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
             output.open();
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
-                        output.getOutputStream(), collectExpressions, overwrites, failure);
+                        output.getOutputStream(), collectExpressions, overwrites);
             } else if (inputs != null && !inputs.isEmpty()) {
-                rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs, failure);
+                rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs);
             } else {
-                rowWriter = new RawRowWriter(output.getOutputStream(), failure);
+                rowWriter = new RawRowWriter(output.getOutputStream());
             }
         } catch (IOException e) {
             UnhandledServerException t = new UnhandledServerException(
                     String.format("Failed to open output: '%s'", e.getMessage()), e);
-            failure.set(t);
+            multiUpstreamRowDownstream.registerUpstream(null);
+            multiUpstreamRowDownstream.fail(t);
         }
     }
 
     private void endProjection() {
+        Throwable failure;
         try {
             if (rowWriter != null) {
                 rowWriter.close();
             }
             output.close();
+            failure = multiUpstreamRowDownstream.failure();
         } catch (IOException e) {
-            failure.set(new UnhandledServerException("Failed to close output", e));
+            failure = new UnhandledServerException("Failed to close output", e);
         }
         if (downstream != null) {
-            Throwable throwable = failure.get();
-            if (throwable == null) {
+            if (failure == null) {
                 downstream.setNextRow(new Row1(counter.get()));
                 downstream.finish();
             } else {
-                downstream.fail(throwable);
+                downstream.fail(failure);
             }
         }
     }
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        if (failure.get() != null) {
-            return false;
-        }
-        rowWriter.write(row);
-        counter.incrementAndGet();
-        return true;
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            endProjection();
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failure.set(throwable);
-        finish();
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
@@ -214,12 +231,12 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 
 
@@ -234,17 +251,14 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         private final OutputStream outputStream;
         private final Set<CollectExpression<Row, ?>> collectExpressions;
         private final Map<String, Object> overwrites;
-        private final AtomicReference<Throwable> failure;
         private final XContentBuilder builder;
 
         public DocWriter(OutputStream outputStream,
                          Set<CollectExpression<Row, ?>> collectExpressions,
-                         Map<String, Object> overwrites,
-                         AtomicReference<Throwable> failure) throws IOException {
+                         Map<String, Object> overwrites) throws IOException {
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.overwrites = overwrites;
-            this.failure = failure;
             builder = XContentFactory.jsonBuilder(outputStream);
         }
 
@@ -261,7 +275,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
                 builder.flush();
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
-                failure.set(new UnhandledServerException("Failed to write row to output", e));
+                throw new UnhandledServerException("Failed to write row to output", e);
             }
         }
 
@@ -273,11 +287,9 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     static class RawRowWriter implements RowWriter {
 
         private final OutputStream outputStream;
-        private final AtomicReference<Throwable> failure;
 
-        RawRowWriter(OutputStream outputStream, AtomicReference<Throwable> failure) {
+        RawRowWriter(OutputStream outputStream) {
             this.outputStream = outputStream;
-            this.failure = failure;
         }
 
         @Override
@@ -287,7 +299,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
                 outputStream.write(value.bytes, value.offset, value.length);
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
-                failure.set(new UnhandledServerException("Failed to write row to output", e));
+                throw new UnhandledServerException("Failed to write row to output", e);
             }
         }
 
@@ -300,18 +312,15 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     static class ColumnRowWriter implements RowWriter {
         private final Set<CollectExpression<Row, ?>> collectExpressions;
         private final List<Input<?>> inputs;
-        private final AtomicReference<Throwable> failure;
         private final OutputStream outputStream;
         private final XContentBuilder builder;
 
         ColumnRowWriter(OutputStream outputStream,
                         Set<CollectExpression<Row, ?>> collectExpressions,
-                        List<Input<?>> inputs,
-                        AtomicReference<Throwable> failure) throws IOException {
+                        List<Input<?>> inputs) throws IOException {
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.inputs = inputs;
-            this.failure = failure;
             builder = XContentFactory.jsonBuilder(outputStream);
         }
 
@@ -328,7 +337,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
                 builder.flush();
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
-                failure.set(new UnhandledServerException("Failed to write row to output", e));
+                throw new UnhandledServerException("Failed to write row to output", e);
             }
         }
 

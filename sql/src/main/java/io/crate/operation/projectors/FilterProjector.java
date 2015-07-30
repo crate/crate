@@ -23,23 +23,16 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class FilterProjector implements Projector, RowDownstreamHandle {
 
     private final RowFilter<Row> rowFilter;
-
-    private RowDownstreamHandle downstream;
-    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     public FilterProjector(Collection<CollectExpression<Row, ?>> collectExpressions,
                            Input<Boolean> condition) {
@@ -52,61 +45,45 @@ public class FilterProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        if (downstream == null) {
+        if (multiUpstreamRowDownstream.downstreamHandle() == null) {
             throw new IllegalStateException("setNextRow called on FilterProjector without downstream");
         }
-        
+
         //noinspection SimplifiableIfStatement
         if (rowFilter.matches(row)) {
-            return downstream.setNextRow(row);
+            return multiUpstreamRowDownstream.setNextRow(row);
         }
         return true;
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (downstream != null) {
-            Throwable throwable = upstreamFailure.get();
-            if (throwable == null) {
-                downstream.finish();
-            } else {
-                downstream.fail(throwable);
-            }
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        upstreamFailure.set(throwable);
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (downstream != null) {
-            downstream.fail(throwable);
-        }
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
     public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        multiUpstreamRowDownstream.downstreamHandle(downstream.registerUpstream(this));
     }
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 }

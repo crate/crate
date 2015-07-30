@@ -123,7 +123,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
          expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
          final CollectingProjector rowDownstream = new CollectingProjector();
 
-         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+         final IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                  rowDownstream,
                  new PassThroughPagingIterator<Row>(),
                  Optional.<Executor>of(new Executor() {
@@ -138,12 +138,12 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
          pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), new PageConsumeListener() {
              @Override
              public void needMore() {
-                 rowDownstream.finish();
+                 pageDownstream.finish();
              }
 
              @Override
              public void finish() {
-                 rowDownstream.finish();
+                 pageDownstream.finish();
              }
          });
          rowDownstream.result().get(20, TimeUnit.MILLISECONDS);
