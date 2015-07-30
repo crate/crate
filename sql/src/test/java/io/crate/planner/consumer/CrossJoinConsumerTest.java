@@ -216,11 +216,15 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
         QueryAndFetch leftPlan = (QueryAndFetch) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectNode();
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().size(), is(2));
         MergeProjection projection = ((MergeProjection) collectPhase.projections().get(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
         assertThat(projection.orderBy().size(), is(1));
         assertThat(projection.orderBy().get(0), isInputColumn(0));
+        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(1);
+        assertThat(topNProjection.isOrdered(), is(false));
+        assertThat(topNProjection.offset(), is(0));
+        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test
