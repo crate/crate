@@ -37,6 +37,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;

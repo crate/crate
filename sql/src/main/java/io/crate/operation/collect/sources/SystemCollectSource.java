@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.collect.sources;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
@@ -30,18 +31,20 @@ import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.*;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
  */
-public class SystemCollectService implements CollectService {
+public class SystemCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, StatsTables.IterableGetter> iterableGetters;
@@ -49,7 +52,7 @@ public class SystemCollectService implements CollectService {
 
 
     @Inject
-    public SystemCollectService(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
+    public SystemCollectSource(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextDocLevelReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.of(
@@ -62,25 +65,22 @@ public class SystemCollectService implements CollectService {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
-        if (collectNode.whereClause().noMatch()) {
-            return new NoopCrateCollector(downstream);
-        }
-        Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+        Set<String> tables = collectPhase.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
         StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
         assert iterableGetter != null;
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
+        if (collectPhase.whereClause().hasQuery()) {
             // TODO: single arg method
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectPhase.whereClause().query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }
 
-        return new RowsCollector<>(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterableGetter.getIterable(), condition);
+        return ImmutableList.<CrateCollector>of(new RowsCollector<>(
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterableGetter.getIterable(), condition));
     }
 }

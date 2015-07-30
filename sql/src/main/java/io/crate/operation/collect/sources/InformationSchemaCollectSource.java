@@ -19,17 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.collect.sources;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.*;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -39,19 +41,20 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Iterator;
 
-public class InformationSchemaCollectService implements CollectService {
+public class InformationSchemaCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
 
     @Inject
-    protected InformationSchemaCollectService(Functions functions,
-                                              Schemas schemas,
-                                              InformationDocLevelReferenceResolver refResolver,
-                                              FulltextAnalyzerResolver ftResolver,
-                                              ClusterService clusterService) {
+    protected InformationSchemaCollectSource(Functions functions,
+                                             Schemas schemas,
+                                             InformationDocLevelReferenceResolver refResolver,
+                                             FulltextAnalyzerResolver ftResolver,
+                                             ClusterService clusterService) {
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
@@ -146,27 +149,25 @@ public class InformationSchemaCollectService implements CollectService {
 
     }
 
+    @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
-        if (collectNode.whereClause().noMatch()) {
-            return new NoopCrateCollector(downstream);
-        }
-        Routing routing =  collectNode.routing();
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+        Routing routing =  collectPhase.routing();
         assert routing.locations().containsKey(TableInfo.NULL_NODE_ID);
         assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
         String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
+        if (collectPhase.whereClause().hasQuery()) {
             // TODO: single arg method
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectPhase.whereClause().query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }
 
-        return new RowsCollector<>(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
+        return ImmutableList.<CrateCollector>of(new RowsCollector<>(
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition));
     }
 }

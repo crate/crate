@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.collect.sources;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -31,6 +31,10 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -42,12 +46,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class UnassignedShardsCollectService implements CollectService {
+public class UnassignedShardsCollectSource implements CollectSource {
 
     public static final IndexShardsEntryToShardIds INDEX_SHARDS_ENTRY_TO_SHARD_IDS = new IndexShardsEntryToShardIds();
     private final CollectInputSymbolVisitor<Input<?>> inputSymbolVisitor;
@@ -57,9 +58,9 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Inject
     @SuppressWarnings("unchecked")
-    public UnassignedShardsCollectService(Functions functions,
-                                          ClusterService clusterService,
-                                          UnassignedShardsReferenceResolver unassignedShardsReferenceResolver) {
+    public UnassignedShardsCollectSource(Functions functions,
+                                         ClusterService clusterService,
+                                         UnassignedShardsReferenceResolver unassignedShardsReferenceResolver) {
         this.inputSymbolVisitor = new CollectInputSymbolVisitor(
                 functions,
                 unassignedShardsReferenceResolver
@@ -159,25 +160,22 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
-        if (node.whereClause().noMatch()) {
-            return new NoopCrateCollector(downstream);
-        }
-        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.extractImplementations(node);
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+        CollectInputSymbolVisitor.Context context = inputSymbolVisitor.extractImplementations(collectPhase);
 
-        Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
+        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         assert locations != null : "locations must be present";
         Map<String, List<Integer>> indexShardMap = locations.get(TableInfo.NULL_NODE_ID);
         Iterable<UnassignedShard> iterable = createIterator(indexShardMap);
 
         Input<Boolean> condition;
-        if (node.whereClause().hasQuery()) {
-            condition = (Input<Boolean>) inputSymbolVisitor.process(node.whereClause().query(), context);
+        if (collectPhase.whereClause().hasQuery()) {
+            condition = (Input<Boolean>) inputSymbolVisitor.process(collectPhase.whereClause().query(), context);
         } else {
             condition = Literal.newLiteral(true);
         }
 
-        return new RowsCollector<>(
-                context.topLevelInputs(), context.docLevelExpressions(), downstream, iterable, condition);
+        return ImmutableList.<CrateCollector>of(new RowsCollector<>(
+                context.topLevelInputs(), context.docLevelExpressions(), downstream, iterable, condition));
     }
 }

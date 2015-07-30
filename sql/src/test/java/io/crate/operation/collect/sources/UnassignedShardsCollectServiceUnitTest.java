@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.collect.sources;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.index.shard.ShardId;
@@ -31,8 +31,8 @@ public class UnassignedShardsCollectServiceUnitTest extends CrateUnitTest {
 
     @Test
     public void testIsPrimaryAllShardsUnassinged() throws Exception {
-        UnassignedShardsCollectService.UnassignedShardIteratorContext context =
-                new UnassignedShardsCollectService(null, null, null).new UnassignedShardIteratorContext();
+        UnassignedShardsCollectSource.UnassignedShardIteratorContext context =
+                new UnassignedShardsCollectSource(null, null, null).new UnassignedShardIteratorContext();
         // Set<ShardId> must be instantiated but empty,
         // which means: no primary shards available; all shards unassigned for a specific table name and shard id
         context.seenPrimaries = new HashSet<>();

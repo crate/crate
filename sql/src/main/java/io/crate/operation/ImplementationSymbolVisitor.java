@@ -22,16 +22,17 @@
 package io.crate.operation;
 
 import io.crate.core.collections.Row;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 
 import java.util.*;
 
@@ -45,19 +46,8 @@ public class ImplementationSymbolVisitor extends
     public static class Context extends AbstractImplementationSymbolVisitor.Context {
 
         protected Set<CollectExpression<Row, ?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
-        protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
         protected List<AggregationContext> aggregations = new ArrayList<>();
         protected Map<InputColumn, InputCollectExpression> allocatedInputCollectionExpressions = new HashMap<>();
-
-        public RowGranularity maxGranularity() {
-            return maxGranularity;
-        }
-
-        private void setMaxGranularity(RowGranularity granularity) {
-            if (granularity.ordinal() > this.maxGranularity.ordinal()) {
-                this.maxGranularity = granularity;
-            }
-        }
 
         public Set<CollectExpression<Row, ?>> collectExpressions() {
             return collectExpressions;
@@ -106,28 +96,6 @@ public class ImplementationSymbolVisitor extends
     @Override
     public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
         return context.collectExpressionFor(inputColumn);
-    }
-
-    @Override
-    public Input<?> visitReference(Reference symbol, Context context) {
-        Input<?> result;
-        if (!symbol.info().granularity().finerThan(rowGranularity)) {
-            ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
-            if (impl != null) {
-                // collect collectExpressions separately
-                if (impl instanceof CollectExpression) {
-                    context.collectExpressions.add((CollectExpression<Row, ?>) impl);
-                }
-                result = (Input<?>) impl;
-            } else {
-                // same or lower granularity and not found means unknown
-                throw new UnhandledServerException(SymbolFormatter.format("Unknown Reference %s", symbol));
-            }
-            context.setMaxGranularity(symbol.info().granularity());
-        } else {
-            throw new IllegalArgumentException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
-        }
-        return result;
     }
 
     @Override
