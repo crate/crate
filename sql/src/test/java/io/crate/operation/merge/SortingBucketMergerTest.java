@@ -142,7 +142,7 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
 
         final CollectingProjector collectingProjector = new CollectingProjector();
-        SortingBucketMerger sortingBucketMerger = new SortingBucketMerger(
+        final SortingBucketMerger sortingBucketMerger = new SortingBucketMerger(
                 collectingProjector, 1, new int[] {0 }, new boolean[]{false}, new Boolean[]{null}, Optional.<Executor>of(new Executor() {
             @Override
             public void execute(@Nonnull Runnable command) {
@@ -153,12 +153,12 @@ public class SortingBucketMergerTest extends CrateUnitTest {
         sortingBucketMerger.nextPage(createPage(Collections.singletonList(new Object[]{"A"})), new PageConsumeListener() {
             @Override
             public void needMore() {
-                collectingProjector.finish();
+                sortingBucketMerger.finish();
             }
 
             @Override
             public void finish() {
-                collectingProjector.finish();
+                sortingBucketMerger.finish();
             }
         });
 

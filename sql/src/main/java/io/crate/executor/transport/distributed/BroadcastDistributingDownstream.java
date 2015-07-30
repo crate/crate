@@ -71,7 +71,7 @@ public class BroadcastDistributingDownstream extends DistributingDownstream {
         }
         for (Downstream downstream : downstreams) {
             if (downstream.wantMore.get()) {
-                downstream.sendRequest(bucket, remainingUpstreams.get() <= 0);
+                downstream.sendRequest(bucket);
             }
         }
     }
