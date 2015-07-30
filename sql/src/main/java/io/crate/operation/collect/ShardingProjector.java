@@ -173,6 +173,10 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void repeat() {
+    }
+
     static class VisitorContext extends ImplementationSymbolVisitor.Context {}
 
     static class Visitor extends ImplementationSymbolVisitor {

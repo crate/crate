@@ -21,7 +21,6 @@
 
 package io.crate.testing;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -92,6 +91,11 @@ public class RowSender implements Runnable, RowUpstream {
                 run();
             }
         }
+    }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
     }
 
     public int numPauses() {
