@@ -227,4 +227,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     public KeepAliveListener keepAliveListener() {
         return contextCallback;
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }

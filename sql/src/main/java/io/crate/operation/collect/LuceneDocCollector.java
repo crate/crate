@@ -62,6 +62,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private static final CollectionTerminatedException COLLECTION_TERMINATED_EXCEPTION = new CollectionTerminatedException();
     private final KeepAliveListener keepAliveListener;
 
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;

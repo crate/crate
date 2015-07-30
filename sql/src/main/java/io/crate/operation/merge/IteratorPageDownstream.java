@@ -33,9 +33,12 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
 import io.crate.operation.*;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -50,11 +53,15 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
             return input.iterator();
         }
     };
+    private static final ESLogger LOGGER = Loggers.getLogger(IteratorPageDownstream.class);
+
     private final RowDownstreamHandle downstream;
     private final Executor executor;
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final PagingIterator<Row> pagingIterator;
     private final AtomicBoolean paused = new AtomicBoolean(false);
+    private final boolean keepPages;
+    private final List<List<Bucket>> pages = new ArrayList<>();
 
     private volatile PageConsumeListener pausedListener;
     private volatile PagingIterator<Row> pausedIterator;
@@ -62,8 +69,10 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
 
     public IteratorPageDownstream(RowDownstream rowDownstream,
                                   PagingIterator<Row> pagingIterator,
-                                  Optional<Executor> executor) {
+                                  Optional<Executor> executor,
+                                  boolean downstreamRequiresRepeat) {
         this.pagingIterator = pagingIterator;
+        this.keepPages = downstreamRequiresRepeat;
         this.executor = executor.or(MoreExecutors.directExecutor());
         downstream = rowDownstream.registerUpstream(this);
     }
@@ -80,6 +89,27 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         } else {
             pendingPause = false;
         }
+    }
+
+    @Override
+    public void repeat() {
+        if (finished.compareAndSet(true, false)) {
+            LOGGER.trace("received repeat: {}", downstream);
+            paused.set(false);
+            processBuckets(repeatIt(), PageConsumeListener.NO_OP_LISTENER);
+            consumeRemaining();
+            downstream.finish();
+            finished.set(true);
+        } else {
+            LOGGER.trace("received repeat, but wasn't finished {}", downstream);
+         }
+    }
+
+    private PagingIterator<Row> repeatIt() {
+        for (List<Bucket> page : pages) {
+            pagingIterator.merge(getBucketIterators(page));
+        }
+        return pagingIterator;
     }
 
     private void processBuckets(PagingIterator<Row> iterator, PageConsumeListener listener) {
@@ -110,6 +140,9 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
+                if (keepPages) {
+                    pages.add(buckets);
+                }
                 pagingIterator.merge(getBucketIterators(buckets));
                 processBuckets(pagingIterator, listener);
             }

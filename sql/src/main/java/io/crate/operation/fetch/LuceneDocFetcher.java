@@ -23,6 +23,7 @@ package io.crate.operation.fetch;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.LuceneDocCollector;
@@ -36,6 +37,7 @@ import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MapperService;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
@@ -139,6 +141,11 @@ public class LuceneDocFetcher implements RowUpstream {
 
     @Override
     public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 }
