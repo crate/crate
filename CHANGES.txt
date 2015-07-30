@@ -5,8 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- 2015/07/29 0.51.0
- =================
+2015/07/29 0.51.0
+=================
 
  - Added the ``KILL 'job_id'`` statement.
 
@@ -40,8 +40,8 @@ Unreleased
 
  - Added ``date_format`` scalar function
 
- 2015/07/29 0.50.2
- =================
+2015/07/29 0.50.2
+=================
 
   - Fix: reduced the amount of unnecessary data handled on select queries
 
