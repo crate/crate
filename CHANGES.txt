@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause a count function on partitioned tables
+   to cause an error if a partition was deleted concurrently.
+
 2015/07/29 0.50.2
 =================
 

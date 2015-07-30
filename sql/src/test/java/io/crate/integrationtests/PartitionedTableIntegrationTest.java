@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -124,17 +123,27 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((String) response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
     }
 
-    @Test
-    public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
+    private TaskResult deletePartitionsAndExecutePlan(String stmt) throws Exception {
         execute("create table t (name string, p string) partitioned by (p)");
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         ensureYellow();
 
-        Plan plan = plan("select * from t");
+        Plan plan = plan(stmt);
         execute("delete from t");
         ListenableFuture<List<TaskResult>> future = execute(plan);
-        TaskResult taskResult = future.get().get(0);
+        return future.get(500, TimeUnit.MILLISECONDS).get(0);
+    }
+
+    @Test
+    public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
+        TaskResult taskResult = deletePartitionsAndExecutePlan("select * from t");
         assertThat(taskResult.rows().size(), is(0));
+    }
+
+    @Test
+    public void testTableUnknownExceptionNotRaisedIfPartitionsDeletedAfterCountPlan() throws Exception {
+        TaskResult taskResult = deletePartitionsAndExecutePlan("select count(*) from t");
+        assertThat((Long)taskResult.rows().iterator().next().get(0), is(0L));
     }
 
     @Test
