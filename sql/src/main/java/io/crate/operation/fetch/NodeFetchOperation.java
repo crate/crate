@@ -53,9 +53,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -195,6 +193,10 @@ public class NodeFetchOperation implements RowUpstream {
     @Override
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
     }
 
 

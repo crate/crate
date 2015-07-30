@@ -73,7 +73,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
     @Test
     public void testMergeOnPagingIteratorIsCalledAfterALLBucketsAreReady() throws Exception {
         IteratorPageDownstream downstream = new IteratorPageDownstream(
-                new CollectingProjector(), mockedPagingIterator, Optional.<Executor>absent());
+                new CollectingProjector(), mockedPagingIterator, Optional.<Executor>absent(), false);
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
@@ -92,7 +92,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         CollectingProjector collectingProjector = new CollectingProjector();
         IteratorPageDownstream downstream = new IteratorPageDownstream(
-                collectingProjector, mockedPagingIterator, Optional.<Executor>absent());
+                collectingProjector, mockedPagingIterator, Optional.<Executor>absent(), false);
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
@@ -110,7 +110,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
             }
         };
         IteratorPageDownstream downstream = new IteratorPageDownstream(
-                rowDownstream, mockedPagingIterator, Optional.<Executor>absent());
+                rowDownstream, mockedPagingIterator, Optional.<Executor>absent(), false);
 
         downstream.finish();
         downstream.finish();
@@ -131,7 +131,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                      public void execute(@Nonnull Runnable command) {
                          throw new EsRejectedExecutionException("HAHA !");
                      }
-                 }));
+                 }), false);
 
          SettableFuture<Bucket> b1 = SettableFuture.create();
          b1.set(Bucket.EMPTY);
@@ -147,6 +147,31 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
              }
          });
          rowDownstream.result().get(20, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testRepeat() throws Exception {
+        CollectingProjector rowDownstream = new CollectingProjector();
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+                rowDownstream,
+                new PassThroughPagingIterator<Row>(),
+                Optional.<Executor>absent(),
+                true);
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        b1.set(new ArrayBucket(
+                new Object[][] {
+                        new Object[] {"a"},
+                        new Object[] {"b"},
+                        new Object[] {"c"}
+                }
+        ));
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.finish();
+        pageDownstream.repeat();
+        pageDownstream.finish();
+        assertThat(rowDownstream.result().get(20, TimeUnit.MILLISECONDS).size(), is(12));
     }
 
     @Test
@@ -183,8 +208,8 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                 rowDownstream,
                 new PassThroughPagingIterator<Row>(),
-                Optional.<Executor>absent()
-        );
+                Optional.<Executor>absent(),
+                false);
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         b1.set(new ArrayBucket(

@@ -58,16 +58,6 @@ public class CollectingProjector extends ResultProviderBase implements Projector
     }
 
     @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void startProjection(ExecutionState executionState) {
 
     }
