@@ -25,7 +25,9 @@ import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.EngineSearcher;
 import org.elasticsearch.cache.recycler.CacheRecycler;
@@ -38,6 +40,7 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchShardTarget;
@@ -114,7 +117,15 @@ public class InternalCountOperation implements CountOperation {
 
     @Override
     public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
-        IndexService indexService = indicesService.indexServiceSafe(index);
+        IndexService indexService;
+        try {
+            indexService = indicesService.indexServiceSafe(index);
+        } catch (IndexMissingException e) {
+            if (PartitionName.isPartition(index)) {
+                return 0L;
+            }
+            throw new TableUnknownException(index, e);
+        }
         IndexShard indexShard = indexService.shardSafe(shardId);
 
         SearchShardTarget shardTarget = new SearchShardTarget(clusterService.localNode().id(), index, shardId);
