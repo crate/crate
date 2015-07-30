@@ -109,4 +109,9 @@ public class FilterProjector extends RowDownstreamAndHandle implements Projector
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }

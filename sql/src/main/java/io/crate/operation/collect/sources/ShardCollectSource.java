@@ -134,9 +134,10 @@ public class ShardCollectSource implements CollectSource {
 
         Integer limit = collectPhase.limit();
 
-        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
+        final int numTotalShards = normalizedPhase.routing().numShards();
+        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), numTotalShards);
         LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
-                batchSizeHint, limit, batchSizeHint);
+                batchSizeHint, limit, numTotalShards);
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
             if (nodeEntry.getKey().equals(localNodeId)) {

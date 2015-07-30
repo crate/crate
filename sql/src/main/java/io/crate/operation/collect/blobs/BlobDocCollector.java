@@ -83,6 +83,11 @@ public class BlobDocCollector implements CrateCollector {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void repeat() {
+
+    }
+
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
         private final InputRow row = new InputRow(inputs);

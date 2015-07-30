@@ -55,5 +55,4 @@ public interface RowDownstreamHandle {
      * NOTE: This method must not throw any exceptions!
      */
     void fail(Throwable throwable);
-
 }

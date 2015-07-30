@@ -66,4 +66,9 @@ public class SingleBucketBuilder extends ResultProviderBase {
         }
         return true;
     }
+
+    @Override
+    public void repeat() {
+
+    }
 }
