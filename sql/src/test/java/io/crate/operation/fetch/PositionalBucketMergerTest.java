@@ -99,7 +99,6 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
         }
         latch.await();
         executorService.shutdown();
-        bucketMerger.finish();
 
         assertThat(setNextRowExceptions, empty());
 

@@ -23,13 +23,10 @@ package io.crate.operation.fetch;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Merge multiple upstream buckets, whereas every row is ordered by a positional unique integer.
@@ -38,14 +35,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PositionalBucketMerger implements RowUpstream {
 
-    private RowDownstreamHandle downstream;
-    private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final int orderingColumnIndex;
     private final UpstreamBucket[] remainingBuckets;
     private volatile int outputCursor = 0;
     private volatile int leastBucketCursor = -1;
     private volatile int leastBucketId = -1;
     private final AtomicBoolean consumeBuckets = new AtomicBoolean(true);
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     public PositionalBucketMerger(RowDownstream downstream,
                                   int numUpstreams,
@@ -110,7 +107,7 @@ public class PositionalBucketMerger implements RowUpstream {
             if (!emitRow(remainingBuckets[leastBucketId].poll())) {
                 return false;
             }
-            if (upstreamsRemaining.get() > 0) {
+            if (multiUpstreamRowDownstream.pendingUpstreams() > 0) {
                 findLeastBucketIt();
             }
         }
@@ -143,40 +140,37 @@ public class PositionalBucketMerger implements RowUpstream {
 
     private boolean emitRow(Row row) {
         outputCursor++;
-        return downstream.setNextRow(row);
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
 
     public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        multiUpstreamRowDownstream.downstreamHandle(downstream.registerUpstream(this));
     }
 
     public PositionalBucketMerger registerUpstream(RowUpstream upstream) {
-        upstreamsRemaining.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     public void finish() {
-        if (upstreamsRemaining.decrementAndGet() <= 0) {
-            downstream.finish();
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     public void fail(Throwable throwable) {
         consumeBuckets.set(false);
-        downstream.fail(throwable);
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
-
 
     private static class UpstreamBucket implements Bucket {
         private LinkedList<Row> rows;

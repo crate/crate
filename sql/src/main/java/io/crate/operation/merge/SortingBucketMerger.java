@@ -266,7 +266,7 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
     @Override
     public void finish() {
-        if(finished.compareAndSet(false, true)) {
+        if (finished.compareAndSet(false, true)) {
             consumeRemaining();
             downstream.finish();
         }

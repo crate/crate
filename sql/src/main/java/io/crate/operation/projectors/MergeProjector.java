@@ -25,26 +25,24 @@ import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.common.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class MergeProjector implements Projector  {
 
     private final Ordering<Row> ordering;
     private final List<MergeProjectorDownstreamHandle> downstreamHandles = new ArrayList<>();
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
+    private final Object lowestToEmitLock = new Object();
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
+
     private RowDownstreamHandle downstreamContext;
     private Row lowestToEmit = null;
-    private final Object lowestToEmitLock = new Object();
-
 
     public MergeProjector(int[] orderBy,
                           boolean[] reverseFlags,
@@ -54,18 +52,39 @@ public class MergeProjector implements Projector  {
             comparators.add(OrderingByPosition.rowOrdering(orderBy[i], reverseFlags[i], nullsFirst[i]));
         }
         ordering = Ordering.compound(comparators);
+
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                if (downstreamContext != null) {
+                    downstreamContext.finish();
+                }
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                if (downstreamContext != null) {
+                    downstreamContext.fail(t);
+                }
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                return false;
+            }
+        });
     }
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        if (remainingUpstreams.get() == 0) {
+        if (multiUpstreamRowDownstream.pendingUpstreams() == 0) {
             upstreamFinished();
         }
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         MergeProjectorDownstreamHandle handle = new MergeProjectorDownstreamHandle(this);
         downstreamHandles.add(handle);
         return handle;
@@ -78,20 +97,12 @@ public class MergeProjector implements Projector  {
 
     public void upstreamFinished() {
         emit();
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstreamContext != null) {
-                downstreamContext.finish();
-            }
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     public void upstreamFailed(Throwable throwable) {
         downstreamAborted.compareAndSet(false, true);
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            if (downstreamContext != null) {
-                downstreamContext.fail(throwable);
-            }
-        }
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     public boolean emit() {
@@ -159,12 +170,12 @@ public class MergeProjector implements Projector  {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {
