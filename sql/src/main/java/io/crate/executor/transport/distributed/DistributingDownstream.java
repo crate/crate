@@ -106,11 +106,11 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     private void sendRequestsIfNeeded() {
         synchronized (rowQueue) {
-            if (!requestsPending.get() && (fullPageInQueue() || remainingUpstreams.get() == 0)) {
+            if (!requestsPending.get() && (fullPageInQueue() || multiUpstreamRowDownstream.pendingUpstreams() == 0)) {
                 if (!requestsPending.compareAndSet(false, true)) {
                     return;
                 }
-                if (remainingUpstreams.get() == 0) {
+                if (multiUpstreamRowDownstream.pendingUpstreams() == 0) {
                     lastPageSent.set(true);
                 }
                 drainPageFromQueue();
@@ -129,7 +129,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     }
 
     protected boolean isLast() {
-        return remainingUpstreams.get() == 0 && rowQueue.size() <= pageSize;
+        return multiUpstreamRowDownstream.pendingUpstreams() == 0 && rowQueue.size() <= pageSize;
     }
 
     private void onAllUpstreamsFinished() {
@@ -168,7 +168,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
         if (!needMore) {
             if (finishedDownstreams.incrementAndGet() == downstreams.length) {
                 drainPageFromQueue();
-            };
+            }
         }
         synchronized (requestsPending) {
             if (currentPageProcessed.incrementAndGet() == downstreams.length) {
@@ -185,16 +185,6 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     protected abstract void sendRequests();
 
     protected abstract ESLogger logger();
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume() {
-        throw new UnsupportedOperationException();
-    }
 
     protected class Downstream implements ActionListener<DistributedResultResponse> {
 
@@ -227,9 +217,9 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             sendRequest(request);
         }
 
-        public void sendRequest(Bucket bucket, boolean isLast) {
+        public void sendRequest(Bucket bucket) {
             DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionPhaseId,
-                    inputId, bucketIdx, streamers, bucket != null ? bucket : Bucket.EMPTY, isLast);
+                    inputId, bucketIdx, streamers, bucket != null ? bucket : Bucket.EMPTY, isLast());
             sendRequest(request);
         }
 
