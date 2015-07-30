@@ -187,6 +187,7 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
                 pageDownstreamFactory.createMergeNodePageDownstream(
                         phase,
                         nestedLoopOperation,
+                        true,
                         ramAccountingContext,
                         Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(phase);

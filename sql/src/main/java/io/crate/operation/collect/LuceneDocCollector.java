@@ -26,6 +26,7 @@ import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -46,10 +47,7 @@ import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 /**
@@ -66,6 +64,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 

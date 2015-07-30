@@ -28,10 +28,7 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Projector;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -144,6 +141,11 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
     @Override
     public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 

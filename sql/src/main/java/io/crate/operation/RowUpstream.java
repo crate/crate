@@ -21,6 +21,10 @@
 
 package io.crate.operation;
 
+import io.crate.core.collections.Row;
+
+import java.util.Iterator;
+
 /**
  * Marker for objects which can be an upstream of a {@link RowDownstream}.
  */
@@ -37,4 +41,10 @@ public interface RowUpstream {
      * tells the RowUpstream that it should resume sending rows.
      */
     void resume();
+
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    void repeat();
 }

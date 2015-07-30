@@ -129,4 +129,9 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -59,7 +59,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
             throws ExecutionException, InterruptedException {
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger(collectingProjector);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(collectingProjector, false);
         final Iterator<BucketPage> pageIter = Iterators.forArray(pages);
         if (pageIter.hasNext()) {
             merger.nextPage(pageIter.next(), new PageConsumeListener() {
@@ -114,9 +114,10 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                     public void fail(Throwable throwable) {
                         collectingProjector.fail(throwable);
                     }
+
                 };
             }
-        });
+        }, false);
         collectingProjector.registerUpstream(bucketMerger);
 
         bucketMerger.nextPage(createPage(Arrays.asList(
@@ -283,7 +284,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
                 2,
                 0);
         final CollectingProjector collectingProjector = new CollectingProjector();
-        final NonSortingBucketMerger merger = new NonSortingBucketMerger(topNProjector);
+        final NonSortingBucketMerger merger = new NonSortingBucketMerger(topNProjector, false);
         topNProjector.downstream(collectingProjector);
 
         final SettableFuture<Bucket> bucketFuture1 = SettableFuture.create();
@@ -340,7 +341,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
         expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
 
         final CollectingProjector rowDownstream = new CollectingProjector();
-        NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(rowDownstream, Optional.<Executor>of(new Executor() {
+        NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(rowDownstream, false, Optional.<Executor>of(new Executor() {
             @Override
             public void execute(@Nonnull Runnable command) {
                 throw new EsRejectedExecutionException("HAHA !");

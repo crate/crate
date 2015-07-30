@@ -47,8 +47,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
-        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
+        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
 
         Thread t1 = sendRowsThreaded("left", leftBucketMerger, leftRows);
         Thread t2 = sendRowsThreaded("right", rightBucketMerger, rightRows);
@@ -71,8 +71,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        final NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
-        final NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        final NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
+        final NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
 
         setLastPage(leftBucketMerger, Buckets.of(new Row1(1)));
 
@@ -129,8 +129,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     public void testNestedLoopWithTopNDownstream() throws Exception {
         NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
 
-        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
-        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation));
+        NonSortingBucketMerger leftBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
+        NonSortingBucketMerger rightBucketMerger = new NonSortingBucketMerger(new NestedLoopRowDownstream(nestedLoopOperation), true);
 
 
         InputCollectExpression firstCol = new InputCollectExpression(0);

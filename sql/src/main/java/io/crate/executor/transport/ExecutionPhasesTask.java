@@ -165,6 +165,7 @@ public class ExecutionPhasesTask extends JobTask {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergeNode,
                 rowDownstream,
+                false,
                 ramAccountingContext,
                 Optional.<Executor>absent()
         );

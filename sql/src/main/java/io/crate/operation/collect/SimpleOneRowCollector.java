@@ -72,4 +72,9 @@ public class SimpleOneRowCollector implements CrateCollector {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+
+    }
 }

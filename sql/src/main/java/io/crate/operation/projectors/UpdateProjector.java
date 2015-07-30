@@ -190,4 +190,9 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }

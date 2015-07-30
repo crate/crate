@@ -137,4 +137,9 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+
+    }
 }

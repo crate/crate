@@ -160,6 +160,7 @@ public class ContextPreparer {
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             node,
                             downstream,
+                            false,
                             ramAccountingContext,
                             // no separate executor because TransportDistributedResultAction already runs in a threadPool
                             Optional.<Executor>absent());

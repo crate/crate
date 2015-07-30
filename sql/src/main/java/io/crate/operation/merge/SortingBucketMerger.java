@@ -41,7 +41,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import javax.naming.directory.BasicAttribute;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -63,6 +62,8 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
     private final AtomicBoolean finished = new AtomicBoolean(false);
 
     private final AtomicBoolean paused = new AtomicBoolean(false);
+    private final boolean keepPages;
+    private final List<List<Bucket>> pages = new ArrayList<>();
 
     private RowMergingIterator prevRowMergingIterator = null;
     private boolean pendingPause;
@@ -71,6 +72,7 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
 
 
     public SortingBucketMerger(RowDownstream rowDownstream,
+                               boolean downstreamRequiresRepeat,
                                int numBuckets,
                                int[] orderByPositions,
                                boolean[] reverseFlags,
@@ -86,6 +88,7 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
         }
         ordering = Ordering.compound(comparators);
         downstream = rowDownstream.registerUpstream(this);
+        keepPages = downstreamRequiresRepeat;
     }
 
 
@@ -106,8 +109,30 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
             } else {
                 processBuckets(pausedIterator, pausedListener);
             }
-        } else if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("received resume but wasn't paused {}", downstream);
+        } else {
+            pendingPause = false;
+        }
+    }
+
+    private RowMergingIterator repeatIt() {
+        RowMergingIterator mergingIterator = new RowMergingIterator(Collections.<Iterator<? extends Row>>emptyList(), ordering);
+        for (List<Bucket> page : pages) {
+            mergingIterator.merge(getBucketIterators(page));
+        }
+        return mergingIterator;
+    }
+
+    @Override
+    public void repeat() {
+        if (finished.compareAndSet(true, false)) {
+            LOGGER.trace("received repeat: {}", downstream);
+            paused.set(false);
+            processBuckets(repeatIt(), PageConsumeListener.NO_OP_LISTENER);
+            consumeRemaining();
+            downstream.finish();
+            finished.set(true);
+        } else {
+            LOGGER.trace("received repeat, but wasn't finished {}", downstream);
         }
     }
 
@@ -135,6 +160,9 @@ public class SortingBucketMerger implements PageDownstream, RowUpstream {
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
+                if (keepPages) {
+                    pages.add(buckets);
+                }
                 RowMergingIterator mergingIterator = getMergingIterator(getBucketIterators(buckets));
                 processBuckets(mergingIterator, listener);
             }

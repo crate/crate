@@ -40,10 +40,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -194,6 +191,11 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;

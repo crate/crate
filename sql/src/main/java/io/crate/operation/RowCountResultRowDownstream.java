@@ -66,6 +66,7 @@ public class RowCountResultRowDownstream implements RowDownstream {
             public void fail(Throwable throwable) {
                 result.setException(throwable);
             }
+
         };
     }
 }

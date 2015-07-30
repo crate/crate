@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -47,9 +48,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -76,6 +75,11 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
 
     @Override
     public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 

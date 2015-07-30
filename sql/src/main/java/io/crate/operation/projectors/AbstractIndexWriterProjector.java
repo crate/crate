@@ -59,10 +59,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -269,6 +266,11 @@ public abstract class AbstractIndexWriterProjector implements
 
     @Override
     public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
         throw new UnsupportedOperationException();
     }
 }

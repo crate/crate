@@ -222,6 +222,11 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
 
     interface RowWriter {
         void write(Row row);

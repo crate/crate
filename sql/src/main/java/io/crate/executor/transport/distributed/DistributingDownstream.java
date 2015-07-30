@@ -29,9 +29,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
@@ -183,16 +181,6 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     protected abstract void sendRequests();
 
     protected abstract ESLogger logger();
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume() {
-        throw new UnsupportedOperationException();
-    }
 
     protected class Downstream implements ActionListener<DistributedResultResponse> {
 

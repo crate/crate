@@ -177,6 +177,11 @@ public class PositionalBucketMerger implements RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
 
     private static class UpstreamBucket implements Bucket {
         private LinkedList<Row> rows;

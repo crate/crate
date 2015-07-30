@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verify;
 
 public class PageDownstreamTest {
 
-    public static interface PageDownstreamBuilder <T extends PageDownstream> {
+    public interface PageDownstreamBuilder <T extends PageDownstream> {
 
         T create(RowDownstream downstream);
     }
@@ -71,6 +71,7 @@ public class PageDownstreamTest {
                     @Override
                     public void fail(Throwable throwable) {
                     }
+
                 };
             }
 
@@ -115,7 +116,7 @@ public class PageDownstreamTest {
         verifyNoSetNextRowAfterFinished(new PageDownstreamBuilder<NonSortingBucketMerger>() {
             @Override
             public NonSortingBucketMerger create(RowDownstream downstream) {
-                return new NonSortingBucketMerger(downstream);
+                return new NonSortingBucketMerger(downstream, false);
             }
         });
     }
@@ -126,7 +127,7 @@ public class PageDownstreamTest {
         verifyNoSetNextRowAfterFinished(new PageDownstreamBuilder<PageDownstream>() {
             @Override
             public SortingBucketMerger create(RowDownstream downstream) {
-                return new SortingBucketMerger(downstream, 1, new int[0], new boolean[0], new Boolean[0], Optional.<Executor>absent());
+                return new SortingBucketMerger(downstream, false, 1, new int[0], new boolean[0], new Boolean[0], Optional.<Executor>absent());
             }
         });
     }

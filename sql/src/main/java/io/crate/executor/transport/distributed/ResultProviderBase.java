@@ -101,4 +101,9 @@ public abstract class ResultProviderBase implements ResultProvider {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }

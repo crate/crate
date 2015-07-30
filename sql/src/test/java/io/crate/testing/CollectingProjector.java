@@ -63,4 +63,9 @@ public class CollectingProjector extends ResultProviderBase {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+
+    }
 }

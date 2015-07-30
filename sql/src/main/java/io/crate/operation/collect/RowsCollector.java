@@ -81,4 +81,9 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     public void resume() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+
+    }
 }

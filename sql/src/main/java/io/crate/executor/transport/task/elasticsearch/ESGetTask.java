@@ -238,6 +238,11 @@ public class ESGetTask extends JobTask implements RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void repeat() {
+
+    }
+
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<FieldExtractor<GetResponse>> fieldExtractors;

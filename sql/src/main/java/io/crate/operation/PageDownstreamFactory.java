@@ -72,6 +72,7 @@ public class PageDownstreamFactory {
 
     public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,
                                                                                    RowDownstream rowDownstream,
+                                                                                   boolean downstreamRequiresRepeat,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
         FlatProjectorChain projectorChain = null;
@@ -90,6 +91,7 @@ public class PageDownstreamFactory {
         if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
             pageDownstream = new SortingBucketMerger(
                     rowDownstream,
+                    downstreamRequiresRepeat,
                     mergeNode.numUpstreams(),
                     mergeNode.orderByIndices(),
                     mergeNode.reverseFlags(),
@@ -97,7 +99,7 @@ public class PageDownstreamFactory {
                     executorOptional
             );
         } else {
-            pageDownstream = new NonSortingBucketMerger(rowDownstream, executorOptional);
+            pageDownstream = new NonSortingBucketMerger(rowDownstream, downstreamRequiresRepeat, executorOptional);
         }
         return new Tuple<>(pageDownstream, projectorChain);
     }
