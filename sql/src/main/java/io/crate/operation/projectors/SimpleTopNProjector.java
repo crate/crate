@@ -29,15 +29,14 @@ import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstreamHandle {
 
     private final CollectExpression<Row, ?>[] collectExpressions;
     private final InputRow inputRow;
-    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private RowDownstreamHandle downstream;
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     private int remainingOffset;
     private int toCollect;
@@ -56,18 +55,18 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
         }
         this.remainingOffset = offset;
         this.toCollect = limit;
-
     }
 
     @Override
     public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        multiUpstreamRowDownstream.downstreamHandle(downstream.registerUpstream(this));
     }
 
     @Override
     public void startProjection(ExecutionState executionState) {
     }
 
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public synchronized boolean setNextRow(Row row) {
         if (toCollect<1){
@@ -77,11 +76,11 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
             remainingOffset--;
             return true;
         }
-        assert downstream != null;
+        assert multiUpstreamRowDownstream.downstreamHandle() != null;
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        if (!downstream.setNextRow(this.inputRow)) {
+        if (!multiUpstreamRowDownstream.setNextRow(this.inputRow)) {
             toCollect = -1;
         }
         toCollect--;
@@ -90,43 +89,27 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (downstream != null) {
-            Throwable throwable = failure.get();
-            if (throwable == null) {
-                downstream.finish();
-            } else {
-                downstream.fail(throwable);
-            }
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstream != null) {
-                downstream.fail(throwable);
-            }
-            return;
-        }
-        failure.set(throwable);
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 }

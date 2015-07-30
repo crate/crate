@@ -251,7 +251,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         result.cancel(true);
     }
 
-    private void setFailure(Throwable e) {
+    public void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
         result.setException(e);
     }

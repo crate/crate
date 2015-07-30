@@ -284,7 +284,7 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
         expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
 
         final CollectingProjector rowDownstream = new CollectingProjector();
-        NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(rowDownstream, Optional.<Executor>of(new Executor() {
+        final NonSortingBucketMerger bucketMerger = new NonSortingBucketMerger(rowDownstream, Optional.<Executor>of(new Executor() {
             @Override
             public void execute(@Nonnull Runnable command) {
                 throw new EsRejectedExecutionException("HAHA !");
@@ -295,12 +295,12 @@ public class NonSortingBucketMergerTest extends CrateUnitTest {
         bucketMerger.nextPage(page, new PageConsumeListener() {
             @Override
             public void needMore() {
-                rowDownstream.finish();
+                bucketMerger.finish();
             }
 
             @Override
             public void finish() {
-                rowDownstream.finish();
+                bucketMerger.finish();
             }
         });
         rowDownstream.result().get();

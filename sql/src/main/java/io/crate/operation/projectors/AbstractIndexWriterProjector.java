@@ -39,10 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.ShardingProjector;
 import io.crate.planner.symbol.Reference;
@@ -63,14 +60,11 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractIndexWriterProjector implements
         Projector, RowUpstream, RowDownstreamHandle {
 
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<Row, ?>[] collectExpressions;
     private UUID jobId;
     private final TableIdent tableIdent;
@@ -88,6 +82,9 @@ public abstract class AbstractIndexWriterProjector implements
     private final ShardingProjector shardingProjector;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
+
     private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
     private RowDownstreamHandle downstream;
 
@@ -133,6 +130,39 @@ public abstract class AbstractIndexWriterProjector implements
             partitionIdentCache = null;
         }
         shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, routingSymbol);
+        registerDownstreamHandleProxy();
+    }
+
+    private void registerDownstreamHandleProxy() {
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                bulkShardProcessor.close();
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                bulkShardProcessor.setFailure(t);
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                String indexName;
+                boolean result;
+
+                synchronized (lock) {
+                    for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+                        collectExpression.setNextRow(row);
+                    }
+
+                    indexName = getIndexName();
+                    row = updateRow(row);
+                    result = bulkShardProcessor.add(indexName, row, null);
+                }
+
+                return result;
+            }
+        });
     }
 
     protected void createBulkShardProcessor(ClusterService clusterService,
@@ -183,45 +213,23 @@ public abstract class AbstractIndexWriterProjector implements
 
     @Override
     public boolean setNextRow(Row row) {
-        String indexName;
-        boolean result;
-
-        synchronized (lock) {
-            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-                collectExpression.setNextRow(row);
-            }
-
-            indexName = getIndexName();
-            row = updateRow(row);
-            result = bulkShardProcessor.add(indexName, row, null);
-        }
-
-        return result;
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            bulkShardProcessor.close();
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        if (downstream != null) {
-            downstream.fail(throwable);
-        }
-        if (throwable instanceof CancellationException) {
-            bulkShardProcessor.kill();
-        } else {
-            bulkShardProcessor.close();
-        }
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     private void setResultCallback() {
@@ -264,11 +272,11 @@ public abstract class AbstractIndexWriterProjector implements
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 }

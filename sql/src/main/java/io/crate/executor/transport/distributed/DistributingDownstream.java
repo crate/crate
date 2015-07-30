@@ -97,11 +97,11 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     private void sendRequestsIfNeeded() {
         synchronized (rowQueue) {
-            if (!requestsPending.get() && (fullPageInQueue() || remainingUpstreams.get() == 0)) {
+            if (!requestsPending.get() && (fullPageInQueue() || multiUpstreamRowDownstream.pendingUpstreams() == 0)) {
                 if (!requestsPending.compareAndSet(false, true)) {
                     return;
                 }
-                if (remainingUpstreams.get() == 0) {
+                if (multiUpstreamRowDownstream.pendingUpstreams() == 0) {
                     lastPageSent.set(true);
                 }
                 drainPageFromQueue();
@@ -120,7 +120,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     }
 
     protected boolean isLast() {
-        return remainingUpstreams.get() == 0 && rowQueue.size() <= Constants.PAGE_SIZE;
+        return multiUpstreamRowDownstream.pendingUpstreams() == 0 && rowQueue.size() <= Constants.PAGE_SIZE;
     }
 
     private void onAllUpstreamsFinished() {
@@ -174,16 +174,6 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     protected abstract ESLogger logger();
 
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume() {
-        throw new UnsupportedOperationException();
-    }
-
     protected class Downstream implements ActionListener<DistributedResultResponse> {
 
         final AtomicBoolean wantMore = new AtomicBoolean(true);
@@ -211,9 +201,9 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             sendRequest(request);
         }
 
-        public void sendRequest(Bucket bucket, boolean isLast) {
+        public void sendRequest(Bucket bucket) {
             DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionNodeId, bucketIdx,
-                    streamers, bucket != null ? bucket : Bucket.EMPTY, isLast);
+                    streamers, bucket != null ? bucket : Bucket.EMPTY, isLast());
             sendRequest(request);
         }
 
