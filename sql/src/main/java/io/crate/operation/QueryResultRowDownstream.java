@@ -69,6 +69,7 @@ public class QueryResultRowDownstream implements Projector {
             public void fail(Throwable throwable) {
                 result.setException(throwable);
             }
+
         };
     }
 
@@ -90,5 +91,10 @@ public class QueryResultRowDownstream implements Projector {
     @Override
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void repeat() {
+
     }
 }

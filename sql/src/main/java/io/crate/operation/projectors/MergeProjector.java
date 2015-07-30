@@ -173,6 +173,11 @@ public class MergeProjector implements Projector  {
         }
     }
 
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {
 
         private final MergeProjector projector;

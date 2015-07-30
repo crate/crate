@@ -46,14 +46,16 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     private final SourceInjectorRow row;
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 
     private static final class SourceInjectorRow implements Row {
 
