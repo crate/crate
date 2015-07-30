@@ -74,9 +74,9 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         analysisMetaData = new AnalysisMetaData(
                 injector.getInstance(Functions.class),
                 mock(ReferenceInfos.class),
-                new ReferenceResolver() {
+                new NestedReferenceResolver() {
                     @Override
-                    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+                    public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
                         return null;
                     }
                 });

@@ -22,19 +22,10 @@
 package io.crate.operation.reference.sys.job;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.sys.SysChecksTableInfo;
-import io.crate.metadata.sys.SysJobsLogTableInfo;
-import io.crate.metadata.sys.SysJobsTableInfo;
-import io.crate.metadata.sys.SysOperationsLogTableInfo;
-import io.crate.metadata.sys.SysOperationsTableInfo;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.metadata.sys.*;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.check.checks.SysCheck;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
@@ -46,16 +37,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class RowContextDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
+public class RowContextReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
 
-    public static final RowContextDocLevelReferenceResolver INSTANCE = new RowContextDocLevelReferenceResolver();
+    public static final RowContextReferenceResolver INSTANCE = new RowContextReferenceResolver();
 
     private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> tableFactories = new HashMap<>();
 
     /**
      * This is a singleton Use the static INSTANCE attribute
      */
-    private RowContextDocLevelReferenceResolver() {
+    private RowContextReferenceResolver() {
         tableFactories.put(SysJobsTableInfo.IDENT, getSysJobsExpressions());
         tableFactories.put(SysJobsLogTableInfo.IDENT, getSysJobsLogExpressions());
         tableFactories.put(SysOperationsTableInfo.IDENT, getSysOperationExpressions());
@@ -364,8 +355,8 @@ public class RowContextDocLevelReferenceResolver implements DocLevelReferenceRes
     }
 
     @Override
-    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
-        return rowCollectExpressionFromFactoryMap(tableFactories, info);
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo refInfo) {
+        return rowCollectExpressionFromFactoryMap(tableFactories, refInfo);
     }
 
     public static RowCollectExpression<?, ?> rowCollectExpressionFromFactoryMap(

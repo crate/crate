@@ -26,8 +26,11 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.merge.*;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.operation.merge.IteratorPageDownstream;
+import io.crate.operation.merge.PagingIterator;
+import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -41,8 +44,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -56,7 +57,7 @@ public class PageDownstreamFactory {
                                  Settings settings,
                                  TransportActionProvider transportActionProvider,
                                  BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                 ReferenceResolver referenceResolver,
+                                 NestedReferenceResolver referenceResolver,
                                  Functions functions) {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,

@@ -98,7 +98,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
+        NestedReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
         Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new AbstractModule() {

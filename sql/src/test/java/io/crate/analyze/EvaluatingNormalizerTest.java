@@ -30,7 +30,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {
 
-    private ReferenceResolver referenceResolver;
+    private NestedReferenceResolver referenceResolver;
     private Functions functions;
     private ReferenceInfo dummyLoadInfo;
 

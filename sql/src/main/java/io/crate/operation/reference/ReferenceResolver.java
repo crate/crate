@@ -24,7 +24,7 @@ package io.crate.operation.reference;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
 
-public interface DocLevelReferenceResolver<E extends Input<?>> {
+public interface ReferenceResolver<E extends Input<?>> {
 
-    E getImplementation(ReferenceInfo ident);
+    E getImplementation(ReferenceInfo refInfo);
 }

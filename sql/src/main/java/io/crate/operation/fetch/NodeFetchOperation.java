@@ -44,8 +44,8 @@ import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.ResultProvider;
-import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -92,7 +92,7 @@ public class NodeFetchOperation implements RowUpstream {
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         poolSize = executor.getCorePoolSize();
 
-        DocLevelReferenceResolver<? extends Input<?>> resolver = new LuceneDocLevelReferenceResolver(null);
+        ReferenceResolver<? extends Input<?>> resolver = new LuceneReferenceResolver(null);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions,
                 resolver

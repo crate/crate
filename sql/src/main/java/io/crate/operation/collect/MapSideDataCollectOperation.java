@@ -30,7 +30,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
@@ -80,7 +80,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Functions functions,
-                                       ReferenceResolver clusterReferenceResolver,
+                                       NestedReferenceResolver clusterReferenceResolver,
                                        NodeSysExpression nodeSysExpression,
                                        ThreadPool threadPool,
                                        CollectSourceResolver collectSourceResolver) {

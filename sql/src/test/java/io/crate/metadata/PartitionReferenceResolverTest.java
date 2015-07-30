@@ -23,7 +23,10 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.reference.partitioned.PartitionExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -34,9 +37,9 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
 
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
-        ReferenceResolver fallbackRefResolver = mock(ReferenceResolver.class);
-        ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "foo"), "bar");
-        when(fallbackRefResolver.getImplementation(ident)).thenReturn(new ReferenceImplementation() {
+        NestedReferenceResolver fallbackRefResolver = mock(NestedReferenceResolver.class);
+        ReferenceInfo refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
+        when(fallbackRefResolver.getImplementation(refInfo)).thenReturn(new ReferenceImplementation() {
             @Override
             public Object value() {
                 return null;
@@ -52,7 +55,7 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
                 ImmutableList.<PartitionExpression>of()
         );
         try {
-            referenceResolver.getImplementation(ident);
+            referenceResolver.getImplementation(refInfo);
             fail();
         } catch (AssertionError e) {
             assertThat(e.getMessage(), is("granularity < PARTITION should have been resolved already"));

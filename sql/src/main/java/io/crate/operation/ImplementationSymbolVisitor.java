@@ -24,7 +24,7 @@ package io.crate.operation;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -68,11 +68,11 @@ public class ImplementationSymbolVisitor extends
         }
     }
 
-    protected final ReferenceResolver referenceResolver;
+    protected final NestedReferenceResolver referenceResolver;
     protected final RowGranularity rowGranularity;
 
 
-    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver,
+    public ImplementationSymbolVisitor(NestedReferenceResolver referenceResolver,
                                        Functions functions,
                                        RowGranularity rowGranularity) {
         super(functions);
@@ -80,7 +80,7 @@ public class ImplementationSymbolVisitor extends
         this.rowGranularity = rowGranularity;
     }
 
-    public ReferenceResolver referenceResolver() {
+    public NestedReferenceResolver referenceResolver() {
         return referenceResolver;
     }
 

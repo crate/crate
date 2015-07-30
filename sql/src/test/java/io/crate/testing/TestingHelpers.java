@@ -551,6 +551,27 @@ public class TestingHelpers {
         return threadPool;
     }
 
+    public static ReferenceInfo refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String ... nested) {
+        String[] parts = fqColumnName.split("\\.");
+        ReferenceIdent refIdent;
+
+        List<String> nestedParts = null;
+        if (nested.length > 0) {
+            nestedParts = Arrays.asList(nested);
+        }
+        switch (parts.length) {
+            case 2:
+                refIdent = new ReferenceIdent(new TableIdent(null, parts[0]), parts[1], nestedParts);
+                break;
+            case 3:
+                refIdent = new ReferenceIdent(new TableIdent(parts[0], parts[1]), parts[2], nestedParts);
+                break;
+            default:
+                throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
+        }
+        return new ReferenceInfo(refIdent, rowGranularity, dataType);
+    }
+
     private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
 
         private final Class<? extends Throwable> type;

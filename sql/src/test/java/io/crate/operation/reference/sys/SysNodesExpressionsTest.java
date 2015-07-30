@@ -20,20 +20,18 @@
  */
 package io.crate.operation.reference.sys;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import io.crate.operation.reference.sys.node.fs.NodeFsDataExpression;
-import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
@@ -75,16 +73,18 @@ import org.mockito.stubbing.Answer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
 public class SysNodesExpressionsTest extends CrateUnitTest {
+
+    private ReferenceInfo loadRefInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
 
     /**
      * Resolve canonical path (platform independent)
@@ -102,7 +102,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     }
 
     private Injector injector;
-    private ReferenceResolver resolver;
+    private NestedReferenceResolver resolver;
 
     private boolean onWindows = false;
     private boolean sigarAvailable = true;
@@ -314,8 +314,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testLoad() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(ident);
+        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
 
         Map<String, Object> v = load.value();
         assertNull(v.get("something"));
@@ -334,8 +333,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testWindowsLoad() throws Exception {
         onWindows = true;
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(ident);
+        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
         Map<String, Object> windowsValue = load.value();
         assertNull(windowsValue.get("1"));
         assertNull(windowsValue.get("5"));
@@ -345,37 +343,36 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testName() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "name");
-        SimpleObjectExpression<String> name = (SimpleObjectExpression<String>) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
+        SimpleObjectExpression<String> name = (SimpleObjectExpression<String>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("node 1"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "id");
-        SimpleObjectExpression<BytesRef> id = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
+        SimpleObjectExpression<BytesRef> id = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("node-id-1"), id.value());
     }
 
     @Test
     public void testHostname() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "hostname");
-        SimpleObjectExpression<BytesRef> hostname = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
+        SimpleObjectExpression<BytesRef> hostname = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("localhost"), hostname.value());
     }
 
     @Test
     public void testRestUrl() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "rest_url");
-        SimpleObjectExpression<BytesRef> http_addr = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
+        SimpleObjectExpression<BytesRef> http_addr = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("http://localhost:44200"), http_addr.value());
     }
 
     @Test
     public void testPorts() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "port");
-        NestedObjectExpression port = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression port = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = port.value();
         assertEquals(44200, v.get("http"));
@@ -384,9 +381,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testMemory() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "mem");
-        NestedObjectExpression mem = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression mem = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = mem.value();
 
@@ -399,9 +395,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testHeap() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "heap");
-        NestedObjectExpression heap = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
+        NestedObjectExpression heap = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = heap.value();
 
@@ -412,8 +407,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testFs() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
-        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = fs.value();
         String total = mapToSortedString((Map<String, Object>) v.get("total"));
@@ -436,8 +431,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
         assertThat((String) ((Map<String, Object>) data[1]).get("path"), is(resolveCanonicalPath("/bar")));
 
-        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME, ImmutableList.of(NodeFsDataExpression.NAME, "dev"));
-        SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>) resolver.getImplementation(ident);
+        refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
+        SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>) resolver.getImplementation(refInfo);
         for (Object arrayElement : fsData.value()) {
             assertThat(arrayElement, instanceOf(BytesRef.class));
         }
@@ -447,8 +442,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testFsWithoutSigar() throws Exception {
         sigarAvailable = false;
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
-        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = fs.value();
         assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
@@ -464,9 +459,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testFsDataOnNonDataNode() throws Exception {
         isDataNode = false;
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME,
-                ImmutableList.of("data"));
-        SysObjectArrayReference fs = (SysObjectArrayReference) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
+        SysObjectArrayReference fs = (SysObjectArrayReference) resolver.getImplementation(refInfo);
         assertThat(fs.value().length, is(0));
         isDataNode = true;
     }
@@ -474,9 +468,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testVersion() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
-        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = version.value();
         assertEquals(Version.CURRENT.number(), v.get("number"));
@@ -487,8 +480,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNetwork() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network");
-        NestedObjectExpression networkRef = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression networkRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
@@ -500,8 +493,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNetworkTCP() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network", Collections.singletonList("tcp"));
-        NestedObjectExpression tcpRef = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
+        NestedObjectExpression tcpRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> tcpStats = tcpRef.value();
 
@@ -513,8 +506,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testCpu() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os");
-        NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = os.value();
         assertEquals(3600000L, v.get("uptime"));
@@ -530,8 +523,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testProcess() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "process");
-        NestedObjectExpression processRef = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression processRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = processRef.value();
         assertEquals(42L, (long) v.get("open_file_descriptors"));
@@ -546,8 +539,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testOsInfo() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os_info");
-        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = ref.value();
         int cores = (int) v.get("available_processors");
@@ -556,11 +549,11 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNestedBytesRefExpressionsString() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
-        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
-        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version", Collections.singletonList("number"));
-        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(ident);
+        refInfo = refInfo("sys.nodes.version", DataTypes.STRING, RowGranularity.NODE, "number");
+        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(refInfo);
 
         assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
         assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));

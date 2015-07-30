@@ -34,10 +34,9 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
-import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -84,7 +83,7 @@ public class ShardCollectService {
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
-        DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : new LuceneDocLevelReferenceResolver(mapperService));
+        ReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : new LuceneReferenceResolver(mapperService));
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions,
                 resolver

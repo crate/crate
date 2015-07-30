@@ -6,15 +6,15 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class UnassignedShardsReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
+public class UnassignedShardsReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
 
     private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
 
@@ -155,9 +155,9 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
 
     @Nullable
     @Override
-    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
-        RowCollectExpression expression =  RowContextDocLevelReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, info);
-        if (expression == null && info.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo refInfo) {
+        RowCollectExpression expression =  RowContextReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, refInfo);
+        if (expression == null && refInfo.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
             return new RowContextCollectorExpression<UnassignedShard, Object>() {
                 @Override
                 public Object value() {

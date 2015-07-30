@@ -26,7 +26,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
@@ -44,7 +44,7 @@ import java.util.List;
 public class CollectInputSymbolVisitor<E extends Input<?>>
         extends AbstractImplementationSymbolVisitor<CollectInputSymbolVisitor.Context> {
 
-    private final DocLevelReferenceResolver<E> referenceResolver;
+    private final ReferenceResolver<E> referenceResolver;
 
     public static class Context<E> extends AbstractImplementationSymbolVisitor.Context {
 
@@ -65,7 +65,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         }
     }
 
-    public CollectInputSymbolVisitor(Functions functions, DocLevelReferenceResolver<E> referenceResolver) {
+    public CollectInputSymbolVisitor(Functions functions, ReferenceResolver<E> referenceResolver) {
         super(functions);
         this.referenceResolver = referenceResolver;
     }

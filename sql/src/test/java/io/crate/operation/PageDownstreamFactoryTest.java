@@ -83,7 +83,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private GroupProjection groupProjection;
     private Functions functions;
-    private ReferenceResolver referenceResolver;
+    private NestedReferenceResolver referenceResolver;
     private ThreadPool threadPool;
 
     @Before

@@ -30,9 +30,9 @@ import io.crate.metadata.information.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
-import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
+import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,13 +41,13 @@ import java.util.List;
 import java.util.Map;
 
 @Singleton
-public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
+public class InformationReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
 
     private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
     private final BytesRef DOC_SCHEMA_INFO = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
 
     @Inject
-    public InformationDocLevelReferenceResolver() {
+    public InformationReferenceResolver() {
         ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder = ImmutableMap.builder();
         addInformationSchemaTablesFactories(builder);
         addInformationSchemaColumnsFactories(builder);
@@ -374,7 +374,7 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
     }
 
     @Override
-    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
-        return RowContextDocLevelReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, info);
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo refInfo) {
+        return RowContextReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, refInfo);
     }
 }

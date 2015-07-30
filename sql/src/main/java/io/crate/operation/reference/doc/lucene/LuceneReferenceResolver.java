@@ -24,51 +24,51 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.types.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.mapper.MapperService;
 
-public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
+public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final @Nullable MapperService mapperService;
 
     private final static NullValueCollectorExpression NULL_COLLECTOR_EXPRESSION = new NullValueCollectorExpression();
 
-    public LuceneDocLevelReferenceResolver(@Nullable MapperService mapperService) {
+    public LuceneReferenceResolver(@Nullable MapperService mapperService) {
         this.mapperService = mapperService;
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
-        assert referenceInfo.granularity() == RowGranularity.DOC;
+    public LuceneCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+        assert refInfo.granularity() == RowGranularity.DOC;
 
-        if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())){
-            if (referenceInfo.ident().columnIdent().isColumn()){
+        if (RawCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())){
+            if (refInfo.ident().columnIdent().isColumn()){
                 return new RawCollectorExpression();
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(
                         String.format("_source expression does not support subscripts %s",
-                        referenceInfo.ident().columnIdent().fqn()));
+                        refInfo.ident().columnIdent().fqn()));
             }
-        } else if (IdCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+        } else if (IdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
             return new IdCollectorExpression();
-        } else if (DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
-            return DocCollectorExpression.create(referenceInfo);
-        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+        } else if (DocCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+            return DocCollectorExpression.create(refInfo);
+        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
             return new DocIdCollectorExpression();
-        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
             return new ScoreCollectorExpression();
         }
 
-        String colName = referenceInfo.ident().columnIdent().fqn();
+        String colName = refInfo.ident().columnIdent().fqn();
         if (this.mapperService != null && mapperService.smartNameFieldMapper(colName) == null) {
             return NULL_COLLECTOR_EXPRESSION;
         }
 
-        switch (referenceInfo.type().id()) {
+        switch (refInfo.type().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(colName);
             case ShortType.ID:
@@ -93,7 +93,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
             case GeoPointType.ID:
                 return new GeoPointColumnReference(colName);
             default:
-                throw new UnhandledServerException(String.format("unsupported type '%s'", referenceInfo.type().getName()));
+                throw new UnhandledServerException(String.format("unsupported type '%s'", refInfo.type().getName()));
         }
     }
 

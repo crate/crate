@@ -134,7 +134,7 @@ public class WhereClauseAnalyzer {
 
 
     private static PartitionReferenceResolver preparePartitionResolver(
-            ReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
+            NestedReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
         for (ReferenceInfo partitionedByColumn : partitionColumns) {

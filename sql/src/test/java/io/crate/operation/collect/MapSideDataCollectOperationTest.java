@@ -79,9 +79,9 @@ public class MapSideDataCollectOperationTest {
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
                 ImmutableMap.<String, DynamicFunctionResolver>of());
-        ReferenceResolver referenceResolver = new ReferenceResolver() {
+        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
-            public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+            public ReferenceImplementation getImplementation(ReferenceInfo referenceInfo) {
                 return null;
             }
         };

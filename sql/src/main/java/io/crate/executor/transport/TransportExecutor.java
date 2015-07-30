@@ -34,7 +34,7 @@ import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
@@ -91,7 +91,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
-                             ReferenceResolver referenceResolver,
+                             NestedReferenceResolver referenceResolver,
                              PageDownstreamFactory pageDownstreamFactory,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ShowStatementDispatcher showStatementDispatcherProvider,

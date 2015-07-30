@@ -23,17 +23,17 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class NodeSysReferenceResolver implements ReferenceResolver {
+public class NodeSysReferenceResolver implements NestedReferenceResolver {
 
     private NodeSysExpression nodeSysExpression;
-    private final Map<String, ReferenceImplementation> expressionCache = new HashMap();
+    private final Map<String, ReferenceImplementation> expressionCache = new HashMap<>();
 
     public NodeSysReferenceResolver(NodeSysExpression nodeSysExpression) {
         this.nodeSysExpression = nodeSysExpression;
@@ -49,7 +49,8 @@ public class NodeSysReferenceResolver implements ReferenceResolver {
     }
 
     @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+    public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
+        ReferenceIdent ident = refInfo.ident();
         if (SysNodesTableInfo.IDENT.equals(ident.tableIdent())) {
             ReferenceImplementation impl = getCachedImplementation(ident.columnReferenceIdent().columnIdent().name());
             if (impl != null) {

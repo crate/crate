@@ -25,11 +25,11 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.Map;
 
-public class BlobReferenceResolver implements DocLevelReferenceResolver<BlobCollectorExpression<?>> {
+public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExpression<?>> {
 
     public static final BlobReferenceResolver INSTANCE = new BlobReferenceResolver();
 
@@ -52,9 +52,9 @@ public class BlobReferenceResolver implements DocLevelReferenceResolver<BlobColl
     private BlobReferenceResolver() {}
 
     @Override
-    public BlobCollectorExpression<?> getImplementation(ReferenceInfo info) {
-        assert (BlobSchemaInfo.NAME.equals(info.ident().tableIdent().schema()));
-        ExpressionBuilder builder = expressionBuilder.get(info.ident().columnIdent().name());
+    public BlobCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+        assert (BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()));
+        ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
         if (builder != null) {
             return builder.create();
         }

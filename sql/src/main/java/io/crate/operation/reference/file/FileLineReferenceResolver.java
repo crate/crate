@@ -24,11 +24,11 @@ package io.crate.operation.reference.file;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.collect.files.LineCollectorExpression;
-import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.Map;
 
-public class FileLineReferenceResolver implements DocLevelReferenceResolver<LineCollectorExpression<?>> {
+public class FileLineReferenceResolver implements ReferenceResolver<LineCollectorExpression<?>> {
 
     public static final FileLineReferenceResolver INSTANCE = new FileLineReferenceResolver();
 
@@ -51,12 +51,12 @@ public class FileLineReferenceResolver implements DocLevelReferenceResolver<Line
     private FileLineReferenceResolver() {
     }
 
-    public LineCollectorExpression<?> getImplementation(ReferenceInfo info) {
-        ExpressionBuilder builder = expressionBuilder.get(info.ident().columnIdent().name());
+    public LineCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+        ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
         if (builder != null) {
             return builder.create();
         }
-        return new ColumnExtractingLineExpression(info.ident().columnIdent());
+        return new ColumnExtractingLineExpression(refInfo.ident().columnIdent());
     }
 
 

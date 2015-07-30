@@ -49,7 +49,7 @@ import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
+import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.symbol.*;
@@ -103,7 +103,7 @@ public class LuceneQueryBuilder {
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
-        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
+        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneReferenceResolver(null));
     }
 
     public Context convert(WhereClause whereClause,

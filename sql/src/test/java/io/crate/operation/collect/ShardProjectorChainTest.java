@@ -27,7 +27,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -107,7 +107,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         Injector injector = builder.createInjector();
 
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
-                injector.getInstance(ReferenceResolver.class),
+                injector.getInstance(NestedReferenceResolver.class),
                 injector.getInstance(Functions.class),
                 RowGranularity.CLUSTER);
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(

@@ -40,7 +40,7 @@ public class MetaDataModule extends AbstractModule {
 
     protected void bindReferences() {
         referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-        bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+        bind(NestedReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
     }
 
     protected void bindFunctions() {

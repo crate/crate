@@ -21,8 +21,7 @@
 
 package io.crate.metadata;
 
-public interface ReferenceResolver {
+import io.crate.operation.reference.ReferenceResolver;
 
-    ReferenceImplementation getImplementation(ReferenceIdent ident);
-
+public interface NestedReferenceResolver extends ReferenceResolver<ReferenceImplementation<?>> {
 }

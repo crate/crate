@@ -25,11 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.sys.SysTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstream;
@@ -63,7 +62,7 @@ public class CollectSourceResolver {
     @SuppressWarnings("ForLoopReplaceableByForEach")
     public CollectSourceResolver(ClusterService clusterService,
                                  Functions functions,
-                                 ReferenceResolver clusterReferenceResolver,
+                                 NestedReferenceResolver clusterReferenceResolver,
                                  Settings settings,
                                  ThreadPool threadPool,
                                  TransportActionProvider transportActionProvider,

@@ -87,7 +87,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
                 injector.getInstance(Functions.class),
                 RowGranularity.CLUSTER,
-                injector.getInstance(ReferenceResolver.class));
+                injector.getInstance(NestedReferenceResolver.class));
 
         return new EqualityExtractor(normalizer);
     }

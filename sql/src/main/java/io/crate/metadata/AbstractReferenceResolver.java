@@ -23,10 +23,11 @@ package io.crate.metadata;
 
 import java.util.Map;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver {
+public abstract class AbstractReferenceResolver implements NestedReferenceResolver {
 
     @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+    public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
+        ReferenceIdent ident = refInfo.ident();
         if (ident.isColumn()) {
             return implementations().get(ident);
         }

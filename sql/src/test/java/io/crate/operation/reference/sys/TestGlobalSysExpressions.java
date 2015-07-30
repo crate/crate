@@ -32,7 +32,9 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -56,6 +58,7 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,7 +66,7 @@ import static org.mockito.Mockito.when;
 public class TestGlobalSysExpressions extends CrateUnitTest {
 
     private Injector injector;
-    private ReferenceResolver resolver;
+    private NestedReferenceResolver resolver;
     private Schemas schemas;
 
     private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
@@ -79,7 +82,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
                 new MetaDataModule(),
                 new MetaDataSysModule()
         ).createInjector();
-        resolver = injector.getInstance(ReferenceResolver.class);
+        resolver = injector.getInstance(NestedReferenceResolver.class);
         schemas = injector.getInstance(Schemas.class);
     }
 
@@ -137,22 +140,23 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         assertEquals(sysNodesTableInfo.getReferenceInfo(ident.columnIdent()), LOAD1_INFO);
     }
 
+
     @Test
     public void testChildImplementationLookup() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Input ci = load.getChildImplementation("1");
         assertEquals(1D, ci.value());
 
-        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(LOAD1_INFO.ident());
+        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(LOAD1_INFO);
         assertTrue(ci == l1);
     }
 
     @Test
     public void testClusterSettings() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, ClusterSettingsExpression.NAME);
-        NestedObjectExpression settingsExpression = (NestedObjectExpression) resolver.getImplementation(ident);
+        ReferenceInfo refInfo = refInfo("sys.cluster.settings", DataTypes.OBJECT, RowGranularity.CLUSTER);
+        NestedObjectExpression settingsExpression = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map settings = settingsExpression.value();
 

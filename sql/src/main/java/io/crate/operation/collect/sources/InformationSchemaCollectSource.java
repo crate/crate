@@ -33,7 +33,7 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
 import io.crate.operation.reference.information.ColumnContext;
-import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
+import io.crate.operation.reference.information.InformationReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -52,7 +52,7 @@ public class InformationSchemaCollectSource implements CollectSource {
     @Inject
     protected InformationSchemaCollectSource(Functions functions,
                                              Schemas schemas,
-                                             InformationDocLevelReferenceResolver refResolver,
+                                             InformationReferenceResolver refResolver,
                                              FulltextAnalyzerResolver ftResolver,
                                              ClusterService clusterService) {
 
