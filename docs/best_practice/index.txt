@@ -16,3 +16,4 @@ This is a collection of best practice examples how to use Crate in the wild.
    migrating_from_mongodb
    multi_zone_setup
    ec2_setup
+   crate_ami
