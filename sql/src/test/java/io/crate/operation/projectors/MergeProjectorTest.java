@@ -243,13 +243,13 @@ public class MergeProjectorTest extends CrateUnitTest {
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
 
         projector.downstream(collectingProjector);
-        projector.startProjection(mock(ExecutionState.class));
 
         // register upstreams
         List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
         for (int i = 0; i < numUpstreams; i++) {
             downstreamHandles.add(projector.registerUpstream(null));
         }
+        projector.startProjection(mock(ExecutionState.class));
 
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;

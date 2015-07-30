@@ -23,9 +23,7 @@ package io.crate.operation.fetch;
 
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.projectors.Projector;
 
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Merge rows of multiple upstreams ordered by a positional unique long. Rows are emitted as
@@ -43,14 +40,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
-    private RowDownstreamHandle downstream;
-    private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final List<UpstreamBuffer> upstreamBuffers = new ArrayList<>();
     private final int orderingColumnIndex;
     private volatile int outputCursor = 0;
     private volatile int leastUpstreamBufferCursor = -1;
     private volatile int leastUpstreamBufferId = -1;
     private final AtomicBoolean consumeRows = new AtomicBoolean(true);
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     public PositionalRowMerger(RowDownstream downstream, int orderingColumnIndex) {
         downstream(downstream);
@@ -71,7 +68,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
             if (!emitRow(upstreamBuffers.get(leastUpstreamBufferId).poll())) {
                 return false;
             }
-            if (upstreamsRemaining.get() > 0) {
+            if (multiUpstreamRowDownstream.pendingUpstreams() > 0) {
                 findLeastUpstreamBufferId();
             }
         }
@@ -104,7 +101,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
     private synchronized boolean emitRow(Row row) {
         outputCursor++;
-        return downstream.setNextRow(row);
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
@@ -113,12 +110,12 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
     @Override
     public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        multiUpstreamRowDownstream.downstreamHandle(downstream.registerUpstream(this));
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        upstreamsRemaining.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         UpstreamBuffer upstreamBuffer = new UpstreamBuffer(this);
         upstreamBuffers.add(upstreamBuffer);
         return upstreamBuffer;
@@ -126,25 +123,23 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
 
     @Override
     public void finish() {
-        if (upstreamsRemaining.decrementAndGet() <= 0) {
-            downstream.finish();
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
         consumeRows.set(false);
-        downstream.fail(throwable);
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 
     static class UpstreamBuffer implements RowDownstreamHandle {

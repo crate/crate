@@ -75,15 +75,15 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final Object rowDelegateLock = new Object();
     private final Row outputRow;
     private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
     private final List<String> executionNodes;
     private final int numNodes;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
-    private final List <Throwable> failures = Collections.synchronizedList(new ArrayList<Throwable>());
     private final Set<String> nodesWithOpenContexts;
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     private int inputCursor = 0;
     private boolean consumedRows = false;
@@ -115,6 +115,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         numNodes = executionNodes.size();
         this.executionNodes = new ArrayList<>(executionNodes);
         nodesWithOpenContexts = Sets.newConcurrentHashSet(executionNodes);
+        registerDownstreamHandleProxy();
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
@@ -149,96 +150,109 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         outputRow = new InputRow(inputs);
     }
 
+    private void registerDownstreamHandleProxy() {
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                // flush all remaining buckets
+                Iterator<NodeBucket> it = nodeBuckets.values().iterator();
+                remainingRequests.set(nodeBuckets.size());
+                while (it.hasNext()) {
+                    flushNodeBucket(it.next());
+                    it.remove();
+                }
+
+                // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
+                if (!consumedRows) {
+                    closeContextsAndFinish();
+                } else {
+                    finishDownstream();
+                    // projector registered itself as an upstream to prevent downstream of
+                    // flushing rows before all requests finished.
+                    // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
+                }
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                closeContextsAndFinish();
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                if (!consumingRows.get()) {
+                    return false;
+                }
+                consumedRows = true;
+                collectDocIdExpression.setNextRow(row);
+
+                long docId = (Long) collectDocIdExpression.value();
+                int jobSearchContextId = (int) (docId >> 32);
+
+                String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
+                String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
+
+                NodeBucket nodeBucket = nodeBuckets.get(nodeId);
+                if (nodeBucket == null) {
+                    nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
+                    nodeBuckets.put(nodeId, nodeBucket);
+                }
+                Row partitionRow = partitionedByRow(index);
+                nodeBucket.add(inputCursor++, docId, partitionRow, row);
+
+                return true;
+            }
+        });
+    }
+
     @Override
     public void startProjection(ExecutionState executionState) {
         this.executionState = executionState;
-        if (remainingUpstreams.get() <= 0) {
+        if (multiUpstreamRowDownstream.pendingUpstreams() == 0) {
             finish();
-        } else {
-            // register once to increment downstream upstreams counter
-            downstream.registerUpstream(this);
         }
     }
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        if (!consumingRows.get()) {
-            return false;
-        }
-        consumedRows = true;
-        collectDocIdExpression.setNextRow(row);
-
-        long docId = (Long)collectDocIdExpression.value();
-        int jobSearchContextId = (int)(docId >> 32);
-
-        String nodeId = jobSearchContextIdToNode.get(jobSearchContextId);
-        String index = jobSearchContextIdToShard.get(jobSearchContextId).getIndex();
-
-        NodeBucket nodeBucket = nodeBuckets.get(nodeId);
-        if (nodeBucket == null) {
-            nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
-            nodeBuckets.put(nodeId, nodeBucket);
-        }
-        Row partitionRow = partitionedByRow(index);
-        nodeBucket.add(inputCursor++, docId, partitionRow, row);
-
-        return true;
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
     public void downstream(RowDownstream downstream) {
         this.downstream = new PositionalBucketMerger(downstream, numNodes, outputRow.size());
+        // register once to increment downstream upstreams counter
+        this.downstream.registerUpstream(this);
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            // flush all remaining buckets
-            Iterator<NodeBucket> it = nodeBuckets.values().iterator();
-            remainingRequests.set(nodeBuckets.size());
-            while (it.hasNext()) {
-                flushNodeBucket(it.next());
-                it.remove();
-            }
-
-            // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
-            if (!consumedRows) {
-                closeContextsAndFinish();
-            } else {
-                finishDownstream();
-                // projector registered itself as an upstream to prevent downstream of
-                // flushing rows before all requests finished.
-                // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
-            }
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     private void finishDownstream() {
-        if (failures.size() == 0) {
+        if (executionState != null && executionState.isKilled()) {
+            downstream.fail(new CancellationException());
+            return;
+        }
+        Throwable throwable = multiUpstreamRowDownstream.failure();
+        if (throwable == null) {
             downstream.finish();
         } else {
-            for (Throwable e : failures) {
-                if (e instanceof CancellationException) {
-                    downstream.fail(e);
-                    return;
-                }
-            }
-            downstream.fail(failures.get(failures.size() - 1));
+            downstream.fail(throwable);
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failures.add(throwable);
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            closeContextsAndFinish();
-        }
+        consumingRows.set(false);
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Nullable
@@ -301,7 +315,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                 if (!downstream.setNextBucket(rows, nodeBucket.nodeIdx)) {
                     consumingRows.set(false);
                 }
-                if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
+                if (remainingRequests.decrementAndGet() <= 0 && multiUpstreamRowDownstream.pendingUpstreams() <= 0) {
                     closeContextsAndFinish();
                 } else {
                     downstream.finish();
@@ -370,12 +384,12 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 
     private static class NodeBucket {
