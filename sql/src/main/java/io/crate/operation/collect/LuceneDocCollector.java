@@ -86,7 +86,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    private CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+    private CollectInputSymbolVisitor<?> inputSymbolVisitor;
 
     private final RowDownstreamHandle downstream;
     private final CollectorFieldsVisitor fieldsVisitor;
@@ -107,8 +107,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     public LuceneDocCollector(CrateSearchContext searchContext,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
+                              CollectInputSymbolVisitor<?> inputSymbolVisitor,
                               CollectPhase collectNode,
-                              Functions functions,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {
         this.searchContext = searchContext;
@@ -124,7 +124,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             }
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
-        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
+        this.inputSymbolVisitor = inputSymbolVisitor;
         this.pageSize = Constants.PAGE_SIZE;
     }
 

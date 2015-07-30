@@ -23,35 +23,28 @@ package io.crate.action.sql.query;
 
 import io.crate.analyze.OrderBy;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
-import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class LuceneSortGenerator {
 
     @Nullable
-    private static Sort generateLuceneSort(SearchContext context,
-                                           List<Symbol> symbols,
-                                           boolean[] reverseFlags,
-                                           Boolean[] nullsFirst,
-                                           SortSymbolVisitor sortSymbolVisitor) {
-        if (symbols.isEmpty()) {
+    public static Sort generateLuceneSort(SearchContext context,
+                                          OrderBy orderBy,
+                                          CollectInputSymbolVisitor<?> inputSymbolVisitor) {
+        if (orderBy.orderBySymbols().isEmpty()) {
             return null;
         }
-        SortField[] sortFields = sortSymbolVisitor.generateSortFields(symbols, context, reverseFlags, nullsFirst);
-        return new Sort(sortFields);
-    }
-
-    @Nullable
-    public static Sort generateLuceneSort(SearchContext context,
-                                     OrderBy orderBy,
-                                     CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
         SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
-        return generateLuceneSort(context, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst(), sortSymbolVisitor);
+        SortField[] sortFields = sortSymbolVisitor.generateSortFields(
+                orderBy.orderBySymbols(),
+                context,
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+        );
+        return new Sort(sortFields);
     }
 }

@@ -74,9 +74,9 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         }
     }
 
-    private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+    private final CollectInputSymbolVisitor<?> inputSymbolVisitor;
 
-    public SortSymbolVisitor(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
+    public SortSymbolVisitor(CollectInputSymbolVisitor<?> inputSymbolVisitor) {
         super();
         this.inputSymbolVisitor = inputSymbolVisitor;
     }

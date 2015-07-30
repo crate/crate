@@ -57,7 +57,6 @@ public class ShardCollectService {
     private final SearchContextFactory searchContextFactory;
     private final ShardId shardId;
     private final IndexService indexService;
-    private final Functions functions;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -81,7 +80,6 @@ public class ShardCollectService {
         this.searchContextFactory = searchContextFactory;
         this.shardId = shardId;
         this.indexService = indexService;
-        this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -182,8 +180,8 @@ public class ShardCollectService {
                     searchContext,
                     docCtx.topLevelInputs(),
                     docCtx.docLevelExpressions(),
+                    docInputSymbolVisitor,
                     collectNode,
-                    functions,
                     downstream,
                     jobCollectContext.queryPhaseRamAccountingContext()
             );
