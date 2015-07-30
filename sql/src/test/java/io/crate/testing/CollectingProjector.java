@@ -53,14 +53,4 @@ public class CollectingProjector extends ResultProviderBase {
     public Throwable doFail(Throwable t) {
         return t;
     }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume() {
-        throw new UnsupportedOperationException();
-    }
 }

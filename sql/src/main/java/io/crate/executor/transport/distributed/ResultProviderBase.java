@@ -25,25 +25,20 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.projectors.ResultProvider;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class ResultProviderBase implements ResultProvider {
 
     private final SettableFuture<Bucket> result = SettableFuture.create();
-    private final AtomicBoolean failed = new AtomicBoolean(false);
+    protected final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
-    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     protected ExecutionState executionState;
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
@@ -71,14 +66,15 @@ public abstract class ResultProviderBase implements ResultProvider {
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() == 0 && !failed.get()) {
+        multiUpstreamRowDownstream.finish();
+        if (multiUpstreamRowDownstream.allUpstreamsFinishedSuccessful()) {
             result.set(doFinish());
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failed.set(true);
+        multiUpstreamRowDownstream.fail(throwable);
         result.setException(doFail(throwable));
     }
 
@@ -94,11 +90,11 @@ public abstract class ResultProviderBase implements ResultProvider {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.pause();
     }
 
     @Override
     public void resume() {
-        throw new UnsupportedOperationException();
+        multiUpstreamRowUpstream.resume();
     }
 }
