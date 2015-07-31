@@ -122,7 +122,8 @@ public class ShardCollectService {
     public CrateCollector getCollector(CollectPhase collectNode,
                                        ShardProjectorChain projectorChain,
                                        JobCollectContext jobCollectContext,
-                                       int jobSearchContextId) throws Exception {
+                                       int jobSearchContextId,
+                                       int pageSize) throws Exception {
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
         RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
@@ -134,7 +135,8 @@ public class ShardCollectService {
                 if (isBlobShard) {
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
-                    return getLuceneIndexCollector(normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId);
+                    return getLuceneIndexCollector(
+                            normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.extractImplementations(normalizedCollectNode);
@@ -164,7 +166,8 @@ public class ShardCollectService {
     private CrateCollector getLuceneIndexCollector(final CollectPhase collectNode,
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
-                                                   final int jobSearchContextId) throws Exception {
+                                                   final int jobSearchContextId,
+                                                   int pageSize) throws Exception {
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
         CrateSearchContext searchContext = null;
@@ -184,7 +187,8 @@ public class ShardCollectService {
                     docInputSymbolVisitor,
                     collectNode,
                     downstream,
-                    jobCollectContext.queryPhaseRamAccountingContext()
+                    jobCollectContext.queryPhaseRamAccountingContext(),
+                    pageSize
             );
         } catch (Throwable t) {
             if (searchContext == null) {

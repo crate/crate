@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -127,6 +128,7 @@ public class ShardCollectSource implements CollectSource {
                 jobCollectContext.queryPhaseRamAccountingContext()
         );
 
+        int pageSize = getPageSize(collectPhase, normalizedPhase.routing().numShards());
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
             if (nodeEntry.getKey().equals(localNodeId)) {
@@ -152,7 +154,8 @@ public class ShardCollectSource implements CollectSource {
                                     normalizedPhase,
                                     projectorChain,
                                     jobCollectContext,
-                                    jobSearchContextId
+                                    jobSearchContextId,
+                                    pageSize
                             );
                             shardCollectors.add(collector);
                         } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
@@ -185,5 +188,16 @@ public class ShardCollectSource implements CollectSource {
             projectorChain.startProjections(jobCollectContext);
         }
         return shardCollectors;
+    }
+
+    private int getPageSize(CollectPhase collectPhase, int numShardsEstimate) {
+        Integer limit = collectPhase.limit();
+        if (limit == null) {
+            return Constants.PAGE_SIZE;
+        }
+        if (limit < numShardsEstimate) {
+            return limit;
+        }
+        return (int) ((limit / numShardsEstimate) * 1.1);
     }
 }

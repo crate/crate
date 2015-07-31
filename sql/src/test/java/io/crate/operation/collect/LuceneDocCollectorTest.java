@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -163,7 +164,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 jobId, node, mock(CollectOperation.class), RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         jobContextService.createContext(builder);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
+                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
         collector.pageSize(pageSize);
         return collector;
     }
@@ -353,7 +355,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(collectingProjector);
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
+                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
         collector.pageSize(1);
         collector.doCollect();
         jobCollectContext.close();
@@ -379,7 +382,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         collectingProjector.rows.clear();
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
-        collector = (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0);
+        collector = (LuceneDocCollector)shardCollectService.getCollector(
+                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
         collector.pageSize(1);
         collector.doCollect();
         jobCollectContext.close();

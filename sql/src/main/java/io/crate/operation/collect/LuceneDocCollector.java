@@ -28,9 +28,11 @@ import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.QueryBuilderHelper;
-import io.crate.metadata.Functions;
 import io.crate.operation.*;
-import io.crate.operation.reference.doc.lucene.*;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.operation.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -110,7 +112,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               CollectInputSymbolVisitor<?> inputSymbolVisitor,
                               CollectPhase collectNode,
                               RowDownstream downStreamProjector,
-                              RamAccountingContext ramAccountingContext) throws Exception {
+                              RamAccountingContext ramAccountingContext,
+                              int pageSize) throws Exception {
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectNode.limit();
@@ -125,7 +128,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.inputSymbolVisitor = inputSymbolVisitor;
-        this.pageSize = Constants.PAGE_SIZE;
+        this.pageSize = pageSize;
     }
 
     @Override
@@ -226,7 +229,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     private void searchWithOrderBy(Query query) throws IOException {
-        Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
+        Integer batchSize = pageSize;
         Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
         TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
         int collected = topFieldDocs.scoreDocs.length;
