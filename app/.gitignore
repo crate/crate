@@ -2,3 +2,4 @@
 /data/
 /logs/
 /plugins/
+/src/main/resources/crate-build.properties

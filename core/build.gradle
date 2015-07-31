@@ -72,34 +72,3 @@ sourceSets {
         }
     }
 }
-
-task writeBuildInfo << {
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'log', '-n', '1', '--pretty=format:%H'
-        standardOutput stdout
-    }
-    def hash = stdout.toString().trim()
-
-    def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties");
-    if(!file.isFile()) {
-        def parentDir = new File(file.parent);
-        if (!parentDir.isDirectory()) {
-            parentDir.mkdirs();
-        }
-        file.createNewFile();
-    }
-
-    ant.propertyfile(file:file.path, comment:'Build Properties') {
-        ant.entry(key:'hash',value:hash)
-        ant.entry(key:'timestamp', value:System.currentTimeMillis())
-    }
-}
-
-tasks.withType(Jar) {
-    doFirst {
-        if (gradle.taskGraph.hasTask(':app:distTar')) {
-            tasks.writeBuildInfo.execute()
-        }
-    }
-}

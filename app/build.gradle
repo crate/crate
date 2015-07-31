@@ -89,6 +89,29 @@ fatJar {
     }
 }
 
+
+task writeBuildInfo << {
+    def stdout = new ByteArrayOutputStream()
+    def hash = "git rev-parse HEAD".execute().in.text.trim()
+
+    def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties");
+    if(!file.isFile()) {
+        def parentDir = new File(file.parent);
+        if (!parentDir.isDirectory()) {
+            parentDir.mkdirs();
+        }
+        file.createNewFile();
+    }
+
+    ant.propertyfile(file:file.path, comment:'Build Properties') {
+        ant.entry(key:'hash',value:hash)
+        ant.entry(key:'timestamp', value:System.currentTimeMillis())
+    }
+}
+
+
+processResources.dependsOn writeBuildInfo
+
 task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
