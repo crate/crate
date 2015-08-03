@@ -47,8 +47,5 @@ public class Constants {
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
 
-    // this must not be final so tests could adjust it
-    public static int PAGE_SIZE = 1_000_000;
-
     public static final String KILLED_MESSAGE = "KILLED";
 }

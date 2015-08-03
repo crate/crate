@@ -30,5 +30,5 @@ import java.util.UUID;
 @ImplementedBy(InternalResultProviderFactory.class)
 public interface ResultProviderFactory {
 
-    ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId);
+    ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize);
 }

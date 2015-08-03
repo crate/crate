@@ -30,6 +30,7 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
+import io.crate.operation.Paging;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -37,8 +38,8 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,7 +70,7 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1, ImmutableList.<DataType>of(LongType.INSTANCE), ImmutableList.<Projection>of());
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase);
-        return resultProviderFactory.createDownstream(nodeOperation, jobId);
+        return resultProviderFactory.createDownstream(nodeOperation, jobId, Paging.DEFAULT_PAGE_SIZE);
     }
 
     @Test

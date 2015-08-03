@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.Constants;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.OrderBy;

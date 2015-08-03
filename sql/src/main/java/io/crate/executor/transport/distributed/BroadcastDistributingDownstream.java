@@ -45,10 +45,10 @@ public class BroadcastDistributingDownstream extends DistributingDownstream {
                                            Collection<String> downstreamNodeIds,
                                            TransportDistributedResultAction transportDistributedResultAction,
                                            Streamer<?>[] streamers,
-                                           Settings settings) {
+                                           Settings settings,
+                                           int pageSize) {
         super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds,
-                transportDistributedResultAction, streamers, settings);
-
+                transportDistributedResultAction, streamers, settings, pageSize);
         bucketBuilder = new StreamBucket.Builder(streamers);
     }
 

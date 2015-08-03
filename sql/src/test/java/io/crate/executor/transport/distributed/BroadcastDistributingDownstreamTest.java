@@ -23,6 +23,7 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
+import io.crate.operation.Paging;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -67,7 +69,8 @@ public class BroadcastDistributingDownstreamTest extends CrateUnitTest {
                 downstreamNodes,
                 distributedResultAction,
                 streamers,
-                ImmutableSettings.EMPTY
+                ImmutableSettings.EMPTY,
+                Paging.DEFAULT_PAGE_SIZE
         );
         downstream.registerUpstream(null);
     }

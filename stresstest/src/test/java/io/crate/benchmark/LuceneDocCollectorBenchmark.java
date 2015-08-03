@@ -27,7 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -37,6 +36,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
+import io.crate.operation.Paging;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
@@ -197,7 +197,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
+                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
         collector.pageSize(PAGE_SIZE);
         return collector;
     }
@@ -303,7 +303,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                                     .addField("continent")
                                     .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                                     .setScroll("1m")
-                                    .setSize(Constants.PAGE_SIZE)
+                                    .setSize(Paging.DEFAULT_PAGE_SIZE)
                                     .execute().actionGet();
         totalHits += response.getHits().hits().length;
         while ( totalHits < NUMBER_OF_DOCUMENTS) {

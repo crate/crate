@@ -56,7 +56,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
         this.settings = settings;
     }
 
-    public ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId) {
+    public ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
 
         if (nodeOperation.downstreamExecutionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE ||
@@ -80,7 +80,8 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                         nodeOperation.downstreamNodes(),
                         transportDistributedResultAction,
                         streamers,
-                        settings
+                        settings,
+                        pageSize
                 );
             }
 
@@ -91,7 +92,8 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     nodeOperation.downstreamNodes(),
                     transportDistributedResultAction,
                     streamers,
-                    settings
+                    settings,
+                    pageSize
             );
         }
     }

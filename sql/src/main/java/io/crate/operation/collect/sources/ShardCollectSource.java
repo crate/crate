@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -30,6 +29,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.Paging;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
@@ -46,6 +46,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexShardMissingException;
@@ -62,6 +64,7 @@ import java.util.concurrent.CancellationException;
 
 @Singleton
 public class ShardCollectSource implements CollectSource {
+
 
     private final Settings settings;
     private final IndicesService indicesService;
@@ -128,7 +131,7 @@ public class ShardCollectSource implements CollectSource {
                 jobCollectContext.queryPhaseRamAccountingContext()
         );
 
-        int pageSize = getPageSize(collectPhase, normalizedPhase.routing().numShards());
+        int pageSize = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
             if (nodeEntry.getKey().equals(localNodeId)) {
@@ -190,14 +193,4 @@ public class ShardCollectSource implements CollectSource {
         return shardCollectors;
     }
 
-    private int getPageSize(CollectPhase collectPhase, int numShardsEstimate) {
-        Integer limit = collectPhase.limit();
-        if (limit == null) {
-            return Constants.PAGE_SIZE;
-        }
-        if (limit < numShardsEstimate) {
-            return limit;
-        }
-        return (int) ((limit / numShardsEstimate) * 1.1);
-    }
 }

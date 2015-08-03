@@ -33,6 +33,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.Paging;
 import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -228,7 +229,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             // HANDLER/MERGE/FETCH related END
 
-            if (limit != null && limit + querySpec.offset() > Constants.PAGE_SIZE) {
+            if (limit != null && limit + querySpec.offset() > Paging.DEFAULT_PAGE_SIZE) {
                 localMergeNode.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
             }
             return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());

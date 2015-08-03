@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.distributed;
 
-import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -50,9 +49,10 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     private final AtomicBoolean requestsPending = new AtomicBoolean(false);
     private final AtomicBoolean lastPageSent = new AtomicBoolean(false);
 
-    protected final Collection<Row> currentPage = new ArrayList<>(Constants.PAGE_SIZE);
+    protected final Collection<Row> currentPage;
     protected final BlockingQueue<Row> rowQueue;
     protected final Downstream[] downstreams;
+    protected final int pageSize;
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
@@ -60,7 +60,8 @@ public abstract class DistributingDownstream extends ResultProviderBase {
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
                                   Streamer<?>[] streamers,
-                                  Settings settings) {
+                                  Settings settings,
+                                  int pageSize) {
         this.transportDistributedResultAction = transportDistributedResultAction;
 
         downstreams = new Downstream[downstreamNodeIds.size()];
@@ -72,8 +73,10 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             idx++;
         }
 
+        this.pageSize = pageSize;
+        currentPage = new ArrayList<>(pageSize);
         int pagesBufferSize = settings.getAsInt(PAGES_BUFFER_SIZE, DEFAULT_PAGES_BUFFER_SIZE);
-        rowQueue = new ArrayBlockingQueue<>(Constants.PAGE_SIZE * pagesBufferSize);
+        rowQueue = new ArrayBlockingQueue<>(pageSize * pagesBufferSize);
     }
 
     @Override
@@ -112,15 +115,15 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     private void drainPageFromQueue() {
         currentPage.clear();
-        rowQueue.drainTo(currentPage, Constants.PAGE_SIZE);
+        rowQueue.drainTo(currentPage, pageSize);
     }
 
     private boolean fullPageInQueue() {
-        return rowQueue.size() >= Constants.PAGE_SIZE;
+        return rowQueue.size() >= pageSize;
     }
 
     protected boolean isLast() {
-        return remainingUpstreams.get() == 0 && rowQueue.size() <= Constants.PAGE_SIZE;
+        return remainingUpstreams.get() == 0 && rowQueue.size() <= pageSize;
     }
 
     private void onAllUpstreamsFinished() {

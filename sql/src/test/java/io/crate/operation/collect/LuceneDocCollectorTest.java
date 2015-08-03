@@ -31,6 +31,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
+import io.crate.operation.Paging;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
@@ -165,7 +166,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         jobContextService.createContext(builder);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
+                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
         collector.pageSize(pageSize);
         return collector;
     }
@@ -356,7 +357,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
+                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
         collector.pageSize(1);
         collector.doCollect();
         jobCollectContext.close();
@@ -383,7 +384,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
         collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Constants.PAGE_SIZE);
+                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
         collector.pageSize(1);
         collector.doCollect();
         jobCollectContext.close();

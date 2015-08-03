@@ -31,9 +31,11 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
+import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageDownstreamFactory;
+import io.crate.operation.Paging;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
@@ -51,8 +53,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -62,8 +62,6 @@ import java.util.UUID;
 
 @Singleton
 public class ContextPreparer {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
 
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
@@ -146,7 +144,8 @@ public class ContextPreparer {
         @Override
         public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
-            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId());
+            ResultProvider downstream = resultProviderFactory.createDownstream(
+                    context.nodeOperation, node.jobId(), Paging.DEFAULT_PAGE_SIZE);
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             node,
@@ -169,7 +168,11 @@ public class ContextPreparer {
         @Override
         public Void visitCollectNode(final CollectPhase node, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
-            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId());
+
+            String localNodeId = clusterService.localNode().id();
+            Routing routing = node.routing();
+            int pageSize = Paging.getNodePageSize(node.limit(), routing.numShards(), routing.numShards(localNodeId));
+            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId(), pageSize);
 
             if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
