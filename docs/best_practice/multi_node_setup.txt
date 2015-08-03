@@ -157,7 +157,7 @@ following statement:
 
 .. note::
 
-  Thee formula above means that in a cluster with a maximum of
+  The formula above means that in a cluster with a maximum of
   2 nodes the quorum is also 2. In practice this means that a 2-node
   cluster needs to have both nodes online in order to be operational
   and therefore a highly available and fault-tolerant multi-node setup
