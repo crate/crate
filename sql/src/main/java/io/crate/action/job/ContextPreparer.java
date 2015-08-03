@@ -59,6 +59,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 @Singleton
 public class ContextPreparer {
@@ -151,7 +152,8 @@ public class ContextPreparer {
                             node,
                             downstream,
                             ramAccountingContext,
-                            Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
+                            // no separate executor because TransportDistributedResultAction already runs in a threadPool
+                            Optional.<Executor>absent());
 
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
                     node.name(),

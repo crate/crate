@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a deadlock that could occur if queries with high offset or limit were
+   executed concurrently
+
  - Upgraded Elasticsearch to 1.7.1
    This update changes the default value for delayed allocation of unassigned
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).

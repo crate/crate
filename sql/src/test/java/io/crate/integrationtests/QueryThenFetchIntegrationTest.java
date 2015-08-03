@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
