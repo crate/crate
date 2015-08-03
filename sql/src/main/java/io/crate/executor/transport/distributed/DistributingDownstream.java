@@ -84,6 +84,10 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
         try {
             rowQueue.put(new RowN(row.materialize()));
+            if (allDownstreamsFinished()) {
+                // in case the Q just got unblocked from a response with needMore=false
+                return false;
+            }
             sendRequestsIfNeeded();
         } catch (Exception e) {
             if (e instanceof InterruptedException) {
@@ -156,7 +160,9 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     private void onDownstreamResponse(boolean needMore) {
         if (!needMore) {
-            finishedDownstreams.incrementAndGet();
+            if (finishedDownstreams.incrementAndGet() == downstreams.length) {
+                drainPageFromQueue();
+            };
         }
         synchronized (requestsPending) {
             if (currentPageProcessed.incrementAndGet() == downstreams.length) {

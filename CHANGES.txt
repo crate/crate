@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a deadlock that could occur if queries with high offset or limit were
+   executed concurrently
+
  - Fixed an issue that could cause a count function on partitioned tables
    to cause an error if a partition was deleted concurrently.
 
