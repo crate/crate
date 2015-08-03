@@ -270,13 +270,18 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         public void finish() {
             if (hasNoDownstreamOrHasFailure()) return;
 
-            // TODO: check ram accounting
-            // account the multi-dimension `rows` array
-            // 1st level
-            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
-            // 2nd level
-            ramAccountingContext.addBytes(RamAccountingContext.roundUp(
-                    (1 + aggregators.length) * 4 + 12));
+            try {
+                // TODO: check ram accounting
+                // account the multi-dimension `rows` array
+                // 1st level
+                ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
+                // 2nd level
+                ramAccountingContext.addBytes(RamAccountingContext.roundUp(
+                        (1 + aggregators.length) * 4 + 12));
+            } catch (CircuitBreakingException e) {
+                downstream.fail(e);
+                return;
+            }
             RowN row = new RowN(1 + aggregators.length);
             for (Map.Entry<Object, Object[]> entry : result.entrySet()) {
                 if (executionState.isKilled()) {
@@ -368,12 +373,17 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         @Override
         public void finish() {
             if (hasNoDownstreamOrHasFailure()) return;
-            // account the multi-dimension `rows` array
-            // 1st level
-            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
-            // 2nd level
-            ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
-                    (keyInputs.size() + aggregators.length) * 4));
+            try {
+                // account the multi-dimension `rows` array
+                // 1st level
+                ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
+                // 2nd level
+                ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
+                        (keyInputs.size() + aggregators.length) * 4));
+            } catch (CircuitBreakingException e) {
+                downstream.fail(e);
+                return;
+            }
             RowN row = new RowN(keyInputs.size() + aggregators.length);
             for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
                 if (executionState.isKilled()) {

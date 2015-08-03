@@ -88,7 +88,6 @@ public class MultiUpstreamRowDownstream implements RowDownstream, RowDownstreamH
         }
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public void fail(Throwable throwable) {
         int upstreams = pendingUpstreams.decrementAndGet();
