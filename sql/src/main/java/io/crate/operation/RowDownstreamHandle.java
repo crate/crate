@@ -43,12 +43,16 @@ public interface RowDownstreamHandle {
 
     /**
      * Called from the upstream to indicate that all rows are sent.
+     *
+     * NOTE: This method must not throw any exceptions!
      */
     void finish();
 
     /**
      * Is called from the upstream in case of a failure.
      * @param throwable the cause of the fail
+     *
+     * NOTE: This method must not throw any exceptions!
      */
     void fail(Throwable throwable);
 
