@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -166,8 +165,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         jobContextService.createContext(builder);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
-        collector.pageSize(pageSize);
+                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
+        collector.batchSizeHint(pageSize);
         return collector;
     }
 
@@ -357,8 +356,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
-        collector.pageSize(1);
+                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
+        collector.batchSizeHint(1);
         collector.doCollect();
         jobCollectContext.close();
         assertThat(collectingProjector.rows.size(), is(8));
@@ -384,8 +383,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
         collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
-        collector.pageSize(1);
+                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
+        collector.batchSizeHint(1);
         collector.doCollect();
         jobCollectContext.close();
 

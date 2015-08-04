@@ -65,6 +65,7 @@ import java.util.concurrent.CancellationException;
 @Singleton
 public class ShardCollectSource implements CollectSource {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(ShardCollectSource.class);
 
     private final Settings settings;
     private final IndicesService indicesService;
@@ -131,7 +132,11 @@ public class ShardCollectSource implements CollectSource {
                 jobCollectContext.queryPhaseRamAccountingContext()
         );
 
-        int pageSize = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
+        Integer limit = collectPhase.limit();
+
+        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
+        LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
+                batchSizeHint, limit, batchSizeHint);
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
             if (nodeEntry.getKey().equals(localNodeId)) {
@@ -158,7 +163,7 @@ public class ShardCollectSource implements CollectSource {
                                     projectorChain,
                                     jobCollectContext,
                                     jobSearchContextId,
-                                    pageSize
+                                    batchSizeHint
                             );
                             shardCollectors.add(collector);
                         } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {

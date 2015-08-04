@@ -38,6 +38,8 @@ import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
@@ -55,6 +57,7 @@ import java.util.concurrent.CancellationException;
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(LuceneDocCollector.class);
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -103,7 +106,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
     private int rowCount = 0;
-    private int pageSize;
+    private int batchSizeHint;
 
     public LuceneDocCollector(CrateSearchContext searchContext,
                               List<Input<?>> inputs,
@@ -112,7 +115,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               CollectPhase collectNode,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext,
-                              int pageSize) throws Exception {
+                              int batchSizeHint) throws Exception {
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectNode.limit();
@@ -127,7 +130,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         this.inputSymbolVisitor = inputSymbolVisitor;
-        this.pageSize = pageSize;
+        this.batchSizeHint = batchSizeHint;
     }
 
     @Override
@@ -228,19 +231,23 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     private void searchWithOrderBy(Query query) throws IOException {
-        Integer batchSize = pageSize;
+        Integer batchSize = batchSizeHint;
         Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
+        LOGGER.trace("Collecting data: batchSize: {}", batchSize);
         TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
         int collected = topFieldDocs.scoreDocs.length;
 
         Collection<ScoreCollectorExpression> scoreExpressions = getScoreExpressions();
         ScoreDoc lastCollected = collectTopFields(topFieldDocs, scoreExpressions);
         while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
+
             if (killed) {
                 throw new CancellationException();
             }
 
-            batchSize = limit == null ? pageSize : Math.min(pageSize, limit - collected);
+
+            batchSize = limit == null ? batchSizeHint : Math.min(batchSizeHint, limit - collected);
+            LOGGER.trace("Collecting data: batchSize: {}; already collected: {} ", batchSize, collected);
             Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
             if (alreadyCollectedQuery != null) {
                 BooleanQuery searchAfterQuery = new BooleanQuery();
@@ -265,8 +272,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         return scoreCollectorExpressions;
     }
 
-    public void pageSize(int pageSize) {
-        this.pageSize = pageSize;
+    public void batchSizeHint(int batchSizeHint) {
+        this.batchSizeHint = batchSizeHint;
     }
 
     private ScoreDoc collectTopFields(TopFieldDocs topFieldDocs, Collection<ScoreCollectorExpression> scoreExpressions) throws IOException{

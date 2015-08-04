@@ -197,8 +197,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.DEFAULT_PAGE_SIZE);
-        collector.pageSize(PAGE_SIZE);
+                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
+        collector.batchSizeHint(PAGE_SIZE);
         return collector;
     }
 
@@ -303,7 +303,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                                     .addField("continent")
                                     .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                                     .setScroll("1m")
-                                    .setSize(Paging.DEFAULT_PAGE_SIZE)
+                                    .setSize(Paging.PAGE_SIZE)
                                     .execute().actionGet();
         totalHits += response.getHits().hits().length;
         while ( totalHits < NUMBER_OF_DOCUMENTS) {

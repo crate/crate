@@ -229,7 +229,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
             // HANDLER/MERGE/FETCH related END
 
-            if (limit != null && limit + querySpec.offset() > Paging.DEFAULT_PAGE_SIZE) {
+            if (limit != null && limit + querySpec.offset() > Paging.PAGE_SIZE) {
                 localMergeNode.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
             }
             return new QueryThenFetch(collectNode, localMergeNode, context.plannerContext().jobId());

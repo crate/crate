@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.distributed;
 
-import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.Transports;
@@ -65,7 +64,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
 
     @Before
     public void before() throws Exception {
-        originalPageSize = Paging.DEFAULT_PAGE_SIZE;
+        originalPageSize = Paging.PAGE_SIZE;
         threadPool = new ThreadPool("dummy");
 
         distributedResultAction = spy(new TransportDistributedResultAction(
@@ -107,7 +106,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
 
     @After
     public void after() throws Exception {
-        Paging.DEFAULT_PAGE_SIZE = originalPageSize;
+        Paging.PAGE_SIZE = originalPageSize;
         threadPool.shutdown();
         threadPool.awaitTermination(100, TimeUnit.MILLISECONDS);
     }
@@ -123,7 +122,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
                 useFailingTransport ? failingDistributedResultAction : distributedResultAction,
                 streamers,
                 ImmutableSettings.EMPTY,
-                Paging.DEFAULT_PAGE_SIZE
+                Paging.PAGE_SIZE
         );
         downstream.registerUpstream(null);
     }
@@ -150,7 +149,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
 
     @Test
     public void testOperationIsStoppedOnFailureResponse() throws Exception {
-        Paging.DEFAULT_PAGE_SIZE = 2;
+        Paging.PAGE_SIZE = 2;
         // if we modify the PAGE_SIZE, we must re-instantiate the downstream
         // also we need a failing transport here
         initDownstream(true);

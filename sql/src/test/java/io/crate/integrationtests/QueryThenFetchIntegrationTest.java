@@ -34,14 +34,14 @@ import static org.hamcrest.Matchers.is;
 
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final int ORIGINAL_PAGE_SIZE = Paging.DEFAULT_PAGE_SIZE;
+    private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @After
     public void cleanUp() throws Exception {
-        Paging.DEFAULT_PAGE_SIZE = ORIGINAL_PAGE_SIZE;
+        Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
     }
 
     @Test
@@ -93,16 +93,16 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (x) values ('a')");
         execute("refresh table t");
 
-        execute("select * from t limit ?", new Object[]{Paging.DEFAULT_PAGE_SIZE + 10000});
+        execute("select * from t limit ?", new Object[]{Paging.PAGE_SIZE + 10000});
         assertThat(response.rowCount(), is(1L));
     }
 
     @Test
     public void testPushBasedQTFWithPaging() throws Exception {
-        Paging.DEFAULT_PAGE_SIZE = 10;
+        Paging.PAGE_SIZE = 10;
         // insert more docs than PAGE_SIZE and query at least 2 times of it to trigger push of
         // at least 2 pages
-        int docCount = (Paging.DEFAULT_PAGE_SIZE * 2) + 2;
+        int docCount = (Paging.PAGE_SIZE * 2) + 2;
 
         Object[][] bulkArgs = new Object[docCount][1];
         for (int i = 0; i < docCount; i++) {

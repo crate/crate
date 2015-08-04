@@ -21,6 +21,7 @@
 
 package io.crate.action.job;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
@@ -53,6 +54,8 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -63,6 +66,8 @@ import java.util.concurrent.Executor;
 
 @Singleton
 public class ContextPreparer {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
 
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
@@ -146,7 +151,9 @@ public class ContextPreparer {
         public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
             ResultProvider downstream = resultProviderFactory.createDownstream(
-                    context.nodeOperation, node.jobId(), Paging.DEFAULT_PAGE_SIZE);
+                    context.nodeOperation,
+                    node.jobId(),
+                    Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / node.executionNodes().size()));
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
                             node,
@@ -173,7 +180,14 @@ public class ContextPreparer {
 
             String localNodeId = clusterService.localNode().id();
             Routing routing = node.routing();
-            int pageSize = Paging.getNodePageSize(node.limit(), routing.numShards(), routing.numShards(localNodeId));
+            int numTotalShards = routing.numShards();
+            int numShardsOnNode = routing.numShards(localNodeId);
+            int pageSize = Paging.getWeightedPageSize(
+                    MoreObjects.firstNonNull(node.limit(), Paging.PAGE_SIZE),
+                    1.0 / numTotalShards * numShardsOnNode
+            );
+            LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
+                    localNodeId, pageSize, numTotalShards, numShardsOnNode);
             ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId(), pageSize);
 
             if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {

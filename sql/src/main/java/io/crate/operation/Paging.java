@@ -23,30 +23,35 @@ package io.crate.operation;
 
 import javax.annotation.Nullable;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
 public class Paging {
 
     // this must not be final so tests could adjust it
-    public static int DEFAULT_PAGE_SIZE = 1_000_000;
+    public static int PAGE_SIZE = 500_000;
+    private final static double OVERHEAD_FACTOR = 1.5;
 
-    public static int getNodePageSize(@Nullable Integer limit, int numTotalShards, int numShardsOnNode) {
-        assert numTotalShards >= numShardsOnNode : "there can't be more shards on a node than there are shards in total";
-        if (limit != null && limit < numTotalShards) {
-            return limit;
-        }
-        return getShardPageSize(limit, numTotalShards) * Math.max(1, numShardsOnNode);
+    public static int getWeightedPageSize(@Nullable Integer limit, double weight) {
+        return getWeightedPageSize(limit, weight, OVERHEAD_FACTOR);
     }
 
-    public static int getShardPageSize(@Nullable Integer limit, int numShardsEstimate) {
-        if (limit == null || numShardsEstimate == 0) {
-            return DEFAULT_PAGE_SIZE;
+    public static int getShardPageSize(@Nullable Integer limit, int numTotalShards) {
+        return getWeightedPageSize(
+                limit,
+                1.0d/ Math.max(1, numTotalShards),
+                Math.pow(OVERHEAD_FACTOR, 2)
+        );
+    }
+
+    private static int getWeightedPageSize(@Nullable Integer limit, double weight, double overheadFactor) {
+        Integer limitOrPageSize = firstNonNull(limit, PAGE_SIZE);
+        if (1.0 / weight > limitOrPageSize) {
+            return limitOrPageSize;
         }
-        if (limit < numShardsEstimate) {
-            return limit;
+        int dynPageSize = Math.max((int) (limitOrPageSize * weight * overheadFactor), 1);
+        if (limit == null) {
+            return dynPageSize;
         }
-        int i = (int) ((limit / numShardsEstimate) * 1.5);
-        if (i > limit) {
-            return limit;
-        }
-        return i;
+        return Math.min(dynPageSize, limit);
     }
 }

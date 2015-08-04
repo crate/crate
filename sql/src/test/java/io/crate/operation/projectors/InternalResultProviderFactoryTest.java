@@ -70,7 +70,7 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1, ImmutableList.<DataType>of(LongType.INSTANCE), ImmutableList.<Projection>of());
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase);
-        return resultProviderFactory.createDownstream(nodeOperation, jobId, Paging.DEFAULT_PAGE_SIZE);
+        return resultProviderFactory.createDownstream(nodeOperation, jobId, Paging.PAGE_SIZE);
     }
 
     @Test

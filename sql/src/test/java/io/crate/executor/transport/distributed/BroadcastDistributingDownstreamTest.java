@@ -70,7 +70,7 @@ public class BroadcastDistributingDownstreamTest extends CrateUnitTest {
                 distributedResultAction,
                 streamers,
                 ImmutableSettings.EMPTY,
-                Paging.DEFAULT_PAGE_SIZE
+                Paging.PAGE_SIZE
         );
         downstream.registerUpstream(null);
     }
