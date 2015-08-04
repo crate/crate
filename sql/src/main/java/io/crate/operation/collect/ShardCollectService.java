@@ -56,11 +56,11 @@ public class ShardCollectService {
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
     private final ShardId shardId;
-    private final IndexService indexService;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
+    private final IndexService indexService;
     private final BlobIndices blobIndices;
 
     @Inject
@@ -179,16 +179,27 @@ public class ShardCollectService {
             );
             jobCollectContext.addContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
-            return new LuceneDocCollector(
-                    searchContext,
-                    docCtx.topLevelInputs(),
-                    docCtx.docLevelExpressions(),
-                    docInputSymbolVisitor,
-                    collectNode,
-                    downstream,
-                    jobCollectContext.queryPhaseRamAccountingContext(),
-                    pageSize
-            );
+            if (collectNode.orderBy() != null) {
+                return new OrderedLuceneDocCollector(
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        docInputSymbolVisitor,
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        pageSize
+                );
+            } else {
+                return new LuceneDocCollector(
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext()
+                );
+            }
         } catch (Throwable t) {
             if (searchContext == null) {
                 searcher.close();
