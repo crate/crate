@@ -34,7 +34,6 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
-import io.crate.operation.Paging;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.operator.EqOperator;
@@ -66,10 +65,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -81,9 +77,47 @@ import static org.mockito.Mockito.when;
 @ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
+    private static class PausingCollectingProjector extends ResultProviderBase {
+
+        public final Vector<Object[]> rows = new Vector<>();
+
+        private RowUpstream upstream;
+        private Throwable failure;
+        private int pauseAfter = 5;
+        private boolean finished = false;
+
+        @Override
+        public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+            this.upstream = upstream;
+            return super.registerUpstream(upstream);
+        }
+
+        @Override
+        protected Bucket doFinish() {
+            finished = true;
+            return new CollectionBucket(rows);
+        }
+
+        @Override
+        protected Throwable doFail(Throwable t) {
+            failure = t;
+            return t;
+        }
+
+        @Override
+        public boolean setNextRow(Row row) {
+            rows.add(row.materialize());
+            if (rows.size() == pauseAfter) {
+                upstream.pause();
+            }
+            return true;
+        }
+    }
+
     private final static Integer PAGE_SIZE = 20;
     private final static String INDEX_NAME = "countries";
-    private final static Integer NUMBER_OF_DOCS = 25;
+    // use higher value here to be sure multiple segment reader exists during collect (not only 1)
+    private final static Integer NUMBER_OF_DOCS = 10_000;
     private OrderBy orderBy;
     private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
@@ -172,8 +206,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
         jobContextService.createContext(builder);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
-        collector.batchSizeHint(pageSize);
+                node, projectorChain, jobCollectContext, 0, pageSize);
         return collector;
     }
 
@@ -198,48 +231,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(collectingProjector.rows.size(), is(15));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
         assertThat(((BytesRef)collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef)collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA") );
-        assertThat(((BytesRef)collectingProjector.rows.get(3)[0]).utf8ToString(), is("USA") );
-    }
-
-    private class PausingCollectingProjector extends ResultProviderBase {
-
-        public final Vector<Object[]> rows = new Vector<>();
-
-        private RowUpstream upstream;
-
-        private Throwable failure;
-
-        private int pauseAfter = 5;
-
-        private boolean finished = false;
-
-        @Override
-        public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-            this.upstream = upstream;
-            return super.registerUpstream(upstream);
-        }
-
-        @Override
-        protected Bucket doFinish() {
-            finished = true;
-            return new CollectionBucket(rows);
-        }
-
-        @Override
-        protected Throwable doFail(Throwable t) {
-            failure = t;
-            return t;
-        }
-
-        @Override
-        public boolean setNextRow(Row row) {
-            rows.add(row.materialize());
-            if (rows.size() == pauseAfter) {
-                upstream.pause();
-            }
-            return true;
-        }
+        assertThat(((BytesRef) collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA"));
+        assertThat(((BytesRef) collectingProjector.rows.get(3)[0]).utf8ToString(), is("USA"));
     }
 
     @Test
@@ -276,6 +269,25 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(projection.finished, is(true));
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testUnorderedPauseResume() throws Exception {
+        PausingCollectingProjector projector = new PausingCollectingProjector();
+        ReferenceIdent populationIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "population");
+        Reference population = new Reference(new ReferenceInfo(populationIdent, RowGranularity.DOC, DataTypes.INTEGER));
+        projector.pauseAfter = NUMBER_OF_DOCS - 1;
+        LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, projector);
+        docCollector.doCollect();
+        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS - 1));
+        docCollector.resume();
+        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
+        assertThat(new ArrayList<>(projector.rows), containsInAnyOrder(new ArrayList() {{
+            for (int i = 0; i < NUMBER_OF_DOCS; i++) {
+                add(equalTo(new Object[]{i}));
+            }
+        }}));
+    }
+
     @Test
     public void testKillWhilePaused() throws Exception {
         PausingCollectingProjector projector = new PausingCollectingProjector();
@@ -302,7 +314,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Test
     public void testOrderedWithoutLimit() throws Exception {
         collectingProjector.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, 1);
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
@@ -317,7 +329,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)ref), new boolean[]{false}, new Boolean[]{true});
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, 1);
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(collectingProjector.rows.get(0)[0], is(nullValue()));
@@ -334,7 +346,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)ref), new boolean[]{true}, new Boolean[]{false});
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, 1);
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(collectingProjector.rows.get(NUMBER_OF_DOCS - 1)[0], is(nullValue()));
@@ -351,7 +363,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)ref), new boolean[]{true}, new Boolean[]{true});
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, 1);
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(collectingProjector.rows.get(0)[0], is(nullValue()));
@@ -453,8 +465,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
-        collector.batchSizeHint(1);
+                node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();
         assertThat(collectingProjector.rows.size(), is(8));
@@ -480,8 +491,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
         collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, Paging.PAGE_SIZE);
-        collector.batchSizeHint(1);
+                node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();
 

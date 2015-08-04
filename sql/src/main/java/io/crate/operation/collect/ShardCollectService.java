@@ -37,7 +37,6 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -180,16 +179,27 @@ public class ShardCollectService {
             );
             jobCollectContext.addContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
-            return new LuceneDocCollector(
-                    searchContext,
-                    docCtx.topLevelInputs(),
-                    docCtx.docLevelExpressions(),
-                    docInputSymbolVisitor,
-                    collectNode,
-                    downstream,
-                    jobCollectContext.queryPhaseRamAccountingContext(),
-                    pageSize
-            );
+            if (collectNode.orderBy() != null) {
+                return new OrderedLuceneDocCollector(
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        docInputSymbolVisitor,
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        pageSize
+                );
+            } else {
+                return new LuceneDocCollector(
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext()
+                );
+            }
         } catch (Throwable t) {
             if (searchContext == null) {
                 searcher.close();
