@@ -56,6 +56,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 
 public class ExecutionPhasesTask extends JobTask {
@@ -165,7 +166,7 @@ public class ExecutionPhasesTask extends JobTask {
                 mergeNode,
                 rowDownstream,
                 ramAccountingContext,
-                Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
+                Optional.<Executor>absent()
         );
         return new PageDownstreamContext(
                 mergeNode.name(),
