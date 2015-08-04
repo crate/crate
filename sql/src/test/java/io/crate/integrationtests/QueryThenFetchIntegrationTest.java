@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
