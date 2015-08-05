@@ -196,27 +196,30 @@ public class QueryAndFetchConsumer implements Consumer {
                         projectionBuilderContext.orderBy,
                         projectionBuilderContext.limit);
 
+
                 // MERGE
-                TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
-                tnp.outputs(finalOutputs);
-                if (orderBy == null) {
-                    // no sorting needed
-                    mergeNode = PlanNodeBuilder.localMerge(
-                            context.plannerContext().jobId(),
-                            ImmutableList.<Projection>of(tnp), collectNode,
-                            context.plannerContext());
-                } else {
-                    // no order by needed in TopN as we already sorted on collector
-                    // and we merge sorted with SortedBucketMerger
-                    mergeNode = PlanNodeBuilder.sortedLocalMerge(
-                            context.plannerContext().jobId(),
-                            ImmutableList.<Projection>of(tnp),
-                            orderBy,
-                            allOutputs,
-                            orderByInputColumns,
-                            collectNode,
-                            context.plannerContext()
-                    );
+                if (context.rootRelation() == table) {
+                    TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
+                    tnp.outputs(finalOutputs);
+                    if (orderBy == null) {
+                        // no sorting needed
+                        mergeNode = PlanNodeBuilder.localMerge(
+                                context.plannerContext().jobId(),
+                                ImmutableList.<Projection>of(tnp), collectNode,
+                                context.plannerContext());
+                    } else {
+                        // no order by needed in TopN as we already sorted on collector
+                        // and we merge sorted with SortedBucketMerger
+                        mergeNode = PlanNodeBuilder.sortedLocalMerge(
+                                context.plannerContext().jobId(),
+                                ImmutableList.<Projection>of(tnp),
+                                orderBy,
+                                allOutputs,
+                                orderByInputColumns,
+                                collectNode,
+                                context.plannerContext()
+                        );
+                    }
                 }
             } else {
                 collectNode = PlanNodeBuilder.collect(

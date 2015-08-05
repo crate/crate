@@ -54,6 +54,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.ConsumerContext;
+import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
@@ -83,11 +84,13 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     Setup setup = new Setup(sqlExecutor);
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
+    ConsumingPlanner consumingPlanner;
 
     @Before
     public void transportSetUp() {
         executor = internalCluster().getInstance(TransportExecutor.class);
         docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class);
+        consumingPlanner = internalCluster().getInstance(ConsumingPlanner.class);
     }
 
     @After
@@ -304,5 +307,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) resultingRows.get(1)[0], is(2));
         assertThat((BytesRef) resultingRows.get(1)[1], is(new BytesRef("Ford")));
         assertThat((BytesRef) resultingRows.get(1)[2], is(new BytesRef("ord")));
+    }
+
+    protected Planner.Context newPlannerContext() {
+        return new Planner.Context(clusterService(), UUID.randomUUID(), consumingPlanner);
     }
 }

@@ -33,6 +33,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.Literal;
@@ -108,4 +109,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys, executionNodeId);
     }
 
+    protected Planner.Context newPlannerContext() {
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+    }
 }

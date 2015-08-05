@@ -22,14 +22,12 @@
 package io.crate.analyze;
 
 import io.crate.planner.symbol.Symbol;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class OrderBy implements Streamable {

@@ -450,4 +450,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         results.get(0).get();
     }
 
+    protected Planner.Context newPlannerContext() {
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+    }
 }

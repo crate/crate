@@ -557,12 +557,12 @@ public class PlannerTest extends CrateUnitTest {
         // testing that a fetch projection is not added if all output symbols are included
         // at the orderBy symbols
         Plan plan = plan("select name from users where name = 'x' order by name limit 10");
-        assertThat(plan, instanceOf(QueryThenFetch.class));
-        CollectPhase collectNode = ((QueryThenFetch) plan).collectNode();
+        assertThat(plan, instanceOf(QueryAndFetch.class));
+        CollectPhase collectNode = ((QueryAndFetch) plan).collectNode();
         assertTrue(collectNode.whereClause().hasQuery());
         assertFalse(collectNode.isPartitioned());
 
-        DQLPlanNode resultNode = ((QueryThenFetch) plan).resultNode();
+        DQLPlanNode resultNode = ((QueryAndFetch) plan).resultNode();
         assertThat(resultNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
 
@@ -631,10 +631,6 @@ public class PlannerTest extends CrateUnitTest {
         plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
         collectNode = plan.collectNode();
         assertThat(collectNode.limit(), is(100_000 + 20));
-
-        TopNProjection topNProjection = (TopNProjection)collectNode.projections().get(0);
-        assertThat(topNProjection.limit(), is(100_000 + 20));
-        assertThat(topNProjection.isOrdered(), is(false));
 
         mergeNode = plan.mergeNode();
         assertThat(mergeNode.projections().size(), is(2));
