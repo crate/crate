@@ -64,6 +64,9 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -192,6 +195,26 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
             JobContextService.KEEP_ALIVE = defaultKeepAlive;
         }
 
+    }
+
+    public void waitUntilShardOperationsFinished() throws Exception {
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
+                    for (IndicesService indicesService : indexServices) {
+                        for (IndexService indexService : indicesService) {
+                            for (IndexShard indexShard : indexService) {
+                                assertThat(indexShard.getOperationsCount(), Matchers.equalTo(0));
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    throw Throwables.propagate(t);
+                }
+            }
+        }, 500, TimeUnit.MILLISECONDS);
     }
 
     /**

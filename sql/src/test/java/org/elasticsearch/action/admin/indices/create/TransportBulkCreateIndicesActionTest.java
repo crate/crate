@@ -26,6 +26,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.indices.InvalidIndexNameException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -147,5 +148,10 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
             assertThat(indicesExistsResponse.isExists(), is(false)); // if one name is invalid no index is created
             throw t;
         }
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        action.killAllJobs(System.nanoTime());
     }
 }

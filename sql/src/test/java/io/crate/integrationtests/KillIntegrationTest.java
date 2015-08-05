@@ -71,6 +71,8 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=1)");
         ensureYellow();
         assertGotCancelled("insert into new_employees (select * from employees)", null, true);
+        // There could still be running upsert requests after the kill happened, so wait for them
+        waitUntilShardOperationsFinished();
     }
 
     private void assertGotCancelled(final String statement, @Nullable final Object[] params, boolean killAll) throws Exception {
