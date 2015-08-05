@@ -178,7 +178,6 @@ public class OutputS3 extends Output {
                             multipartUpload.getUploadId(),
                             etags)
             );
-            executorService.shutdown();
             super.close();
         }
     }
