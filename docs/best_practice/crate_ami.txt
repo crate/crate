@@ -42,11 +42,12 @@ Launch the AMI
 You can launch one or more instances with the Crate AMI using the ``run-instances``
 command utilizing the ``--image-id`` command line option. Use the
 available parameters of the command to configure its start-up behavior and
-hardware configuration.
+hardware configuration. A valid key-pair is necessary to connect to the instances 
+later on.
 
 .. code-block:: bash
 
-    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>
+    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>  --key-name <KEY-NAME>
 
 
 The AMI has Crate installed and configured so it uses ``EC2 discovery``
@@ -70,7 +71,7 @@ The following example shows how you can run a single instance of type
 
 .. code-block:: bash
 
-    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --user-data $(base64 user-data.sh)
+    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
 
 .. note::
