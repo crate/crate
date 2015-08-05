@@ -6,7 +6,7 @@ Unreleased
 ==========
 
  - Fixed an issue that caused ``COPY TO .. s3`` statements to leave the cluster
-   in a broken state.
+   in an inaccessible state
 
  - Fixed a deadlock that could occur if queries with high offset or limit were
    executed concurrently
