@@ -27,9 +27,10 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.*;
-
-import java.io.File;
+import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 
 public class BlobHeadRequestHandler {
 
@@ -88,7 +89,6 @@ public class BlobHeadRequestHandler {
                 "Received GetBlobHeadRequest for transfer" + request.transferId.toString() + "but don't have an activeTransfer with that id";
 
             final DiscoveryNode recipientNode = clusterService.state().getNodes().get(request.senderNodeId);
-            final File pendingFile = transferStatus.digestBlob().file();
             final long bytesToSend = request.endPos;
 
             blobTransferTarget.gotAGetBlobHeadRequest(request.transferId);
@@ -97,7 +97,7 @@ public class BlobHeadRequestHandler {
 
             threadPool.generic().execute(
                 new PutHeadChunkRunnable(
-                    pendingFile, bytesToSend, transportService, blobTransferTarget,
+                    transferStatus.digestBlob(), bytesToSend, transportService, blobTransferTarget,
                     recipientNode, request.transferId)
             );
         }

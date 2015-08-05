@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which could cause the blob recovery process to hang under some
+   rare circumstances
+
  - Fixed an issue that caused ``COPY TO .. s3`` statements to leave the cluster
    in an inaccessible state
 
