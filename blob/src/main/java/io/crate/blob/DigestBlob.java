@@ -173,6 +173,10 @@ public class DigestBlob {
         return newFile;
     }
 
+    public File getContainerFile() {
+        return container.getFile(digest);
+    }
+
     public void addContent(BytesReference content, boolean last){
         try {
             addContent(content.toChannelBuffer(), last);

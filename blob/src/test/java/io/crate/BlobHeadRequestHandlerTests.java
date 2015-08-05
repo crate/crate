@@ -22,6 +22,7 @@
 package io.crate;
 
 import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.DigestBlob;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.pending_transfer.HeadChunkFileTooSmallException;
 import io.crate.blob.pending_transfer.PutHeadChunkRunnable;
@@ -31,9 +32,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.transport.*;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +54,8 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
         BlobTransferTarget blobTransferTarget = mock(BlobTransferTarget.class);
         TransportService transportService = mock(TransportService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+        DigestBlob digestBlob = mock(DigestBlob.class);
+        when(digestBlob.file()).thenReturn(file);
 
         ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(EsExecutors.daemonThreadFactory("blob-head"));
         try {
@@ -69,7 +70,7 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
                 }
             }, 800, TimeUnit.MILLISECONDS);
             PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-                    file, 5, transportService, blobTransferTarget, discoveryNode, transferId
+                    digestBlob, 5, transportService, blobTransferTarget, discoveryNode, transferId
             );
 
             @SuppressWarnings("unchecked")
@@ -105,6 +106,7 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
         expectedException.expect(HeadChunkFileTooSmallException.class);
 
         File file = File.createTempFile("test", "");
+        File notExisting = new File("./does/not/exist");
         final FileOutputStream outputStream = new FileOutputStream(file);
         outputStream.write(new byte[] { 0x65 });
 
@@ -113,8 +115,11 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
         TransportService transportService = mock(TransportService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
+        DigestBlob digestBlob = mock(DigestBlob.class);
+        when(digestBlob.file()).thenReturn(notExisting);
+        when(digestBlob.getContainerFile()).thenReturn(file);
         PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-            file, 5, transportService, transferTarget, discoveryNode, transferId
+            digestBlob, 5, transportService, transferTarget, discoveryNode, transferId
         );
 
         @SuppressWarnings("unchecked")
@@ -128,5 +133,6 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
         )).thenReturn(result);
 
         runnable.run();
+        verify(digestBlob).getContainerFile();
     }
 }
