@@ -6,7 +6,7 @@ Unreleased
 ==========
 
  - Fixed an issue that caused ``COPY TO .. s3`` statements to leave the cluster
-   in a broken state.
+   in an inaccessible state
 
  - Fixed an issue that could cause a count function on partitioned tables
    to cause an error if a partition was deleted concurrently.
