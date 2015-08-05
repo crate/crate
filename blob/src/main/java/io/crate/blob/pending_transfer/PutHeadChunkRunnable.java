@@ -22,6 +22,7 @@
 package io.crate.blob.pending_transfer;
 
 import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.DigestBlob;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
@@ -37,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 public class PutHeadChunkRunnable implements Runnable {
 
-    private final File pendingFile;
+    private final DigestBlob digestBlob;
     private final long bytesToSend;
     private final DiscoveryNode recipientNode;
     private final TransportService transportService;
@@ -47,11 +48,11 @@ public class PutHeadChunkRunnable implements Runnable {
     private WatchService watcher;
     private static final ESLogger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
 
-    public PutHeadChunkRunnable(File pendingFile, long bytesToSend,
+    public PutHeadChunkRunnable(DigestBlob digestBlob, long bytesToSend,
                                 TransportService transportService,
                                 BlobTransferTarget blobTransferTarget,
                                 DiscoveryNode recipientNode, UUID transferId) {
-        this.pendingFile = pendingFile;
+        this.digestBlob = digestBlob;
         this.bytesToSend = bytesToSend;
         this.recipientNode = recipientNode;
         this.blobTransferTarget = blobTransferTarget;
@@ -61,42 +62,50 @@ public class PutHeadChunkRunnable implements Runnable {
 
     @Override
     public void run() {
+        FileInputStream fileInputStream = null;
         try {
-            try (FileInputStream inputStream = new FileInputStream(pendingFile)) {
-                int bufSize = 4096;
-                int bytesRead;
-                int size;
-                int maxFileGrowthWait = 5;
-                int fileGrowthWaited = 0;
-                byte[] buffer = new byte[bufSize];
-                long remainingBytes = bytesToSend;
+            int bufSize = 4096;
+            int bytesRead;
+            int size;
+            int maxFileGrowthWait = 5;
+            int fileGrowthWaited = 0;
+            byte[] buffer = new byte[bufSize];
+            long remainingBytes = bytesToSend;
 
-                while (remainingBytes > 0) {
-                    size = (int) Math.min(bufSize, remainingBytes);
-                    bytesRead = inputStream.read(buffer, 0, size);
-                    if (bytesRead < size) {
-                        waitUntilFileHasGrown(pendingFile);
-                        fileGrowthWaited++;
-                        if (fileGrowthWaited == maxFileGrowthWait) {
-                            throw new HeadChunkFileTooSmallException(pendingFile.getAbsolutePath());
-                        }
-                        if (bytesRead < 1) {
-                            continue;
-                        }
+            File pendingFile;
+            try {
+                pendingFile = digestBlob.file();
+                fileInputStream = new FileInputStream(pendingFile);
+            } catch (FileNotFoundException e) {
+                // this happens if the file has already been moved from tmpDirectory to containerDirectory
+                pendingFile = digestBlob.getContainerFile();
+                fileInputStream = new FileInputStream(pendingFile);
+            }
+
+            while (remainingBytes > 0) {
+                size = (int) Math.min(bufSize, remainingBytes);
+                bytesRead = fileInputStream.read(buffer, 0, size);
+                if (bytesRead < size) {
+                    waitUntilFileHasGrown(pendingFile);
+                    fileGrowthWaited++;
+                    if (fileGrowthWaited == maxFileGrowthWait) {
+                        throw new HeadChunkFileTooSmallException(pendingFile.getAbsolutePath());
                     }
-                    remainingBytes -= bytesRead;
+                    if (bytesRead < 1) {
+                        continue;
+                    }
+                }
+                remainingBytes -= bytesRead;
 
-                    transportService.submitRequest(
+                transportService.submitRequest(
                         recipientNode,
                         BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                         new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
                         TransportRequestOptions.options(),
                         EmptyTransportResponseHandler.INSTANCE_SAME
-                    ).txGet();
-                }
+                ).txGet();
             }
-        } catch (FileNotFoundException ex) {
-            logger.error("Can't send HeadChunk - file not found", ex);
+
         } catch (IOException ex) {
             logger.error("IOException in PutHeadChunkRunnable", ex);
         } finally {
@@ -108,7 +117,13 @@ public class PutHeadChunkRunnable implements Runnable {
                     logger.error("Error closing WatchService in {}", e, getClass().getSimpleName());
                 }
             }
-
+            if (fileInputStream != null) {
+                try {
+                    fileInputStream.close();
+                } catch (IOException e) {
+                    logger.error("Error closing HeadChunk", e);
+                }
+            }
         }
     }
 
