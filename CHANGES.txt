@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/08/06 0.50.3
+=================
+
  - Updated crate-admin to 0.14.3 which includes the following changes:
 
    - fixed line wrapping in console result table
