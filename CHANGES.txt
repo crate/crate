@@ -17,6 +17,7 @@ Unreleased
  - Upgraded Elasticsearch to 1.7.1
    This update changes the default value for delayed allocation of unassigned
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).
+   Also updated the upstream of EC2 discovery module
 
  - Fixed an issue that could cause a count function on partitioned tables
    to cause an error if a partition was deleted concurrently.
