@@ -52,7 +52,7 @@ public class ConsumingPlanner {
         consumers.add(globalAggregateConsumer);
         consumers.add(new ESGetConsumer());
         consumers.add(queryThenFetchConsumer);
-        consumers.add(new InsertFromSubQueryConsumer(this));
+        consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(queryAndFetchConsumer);
     }
 

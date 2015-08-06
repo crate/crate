@@ -1846,7 +1846,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testAllocatedJobSearchContextIds() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
         CollectPhase collectNode = new CollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(), "collect", shardRouting,
@@ -1882,7 +1882,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID());
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
         CollectPhase collectNode1 = new CollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(), "collect1", shardRouting,

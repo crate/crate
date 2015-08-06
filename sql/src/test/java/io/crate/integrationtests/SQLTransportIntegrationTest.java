@@ -389,4 +389,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     protected String restSQLExecute(String source) throws IOException {
         return restSQLExecute(source, false);
     }
+
+    protected Planner.Context newPlannerContext() {
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+    }
+
 }

@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.DocKeys;
@@ -84,16 +85,23 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
         private final ClusterService clusterService;
         private final UUID jobId;
+        private final ConsumingPlanner consumingPlanner;
         private int jobSearchContextIdBaseSeq = 0;
         private int executionPhaseId = 0;
 
-        public Context(ClusterService clusterService, UUID jobId) {
+        public Context(ClusterService clusterService, UUID jobId, ConsumingPlanner consumingPlanner) {
             this.clusterService = clusterService;
             this.jobId = jobId;
+            this.consumingPlanner = consumingPlanner;
         }
 
         public ClusterService clusterService() {
             return clusterService;
+        }
+
+        public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
+            assert consumingPlanner != null;
+            return consumingPlanner.plan(relation, consumerContext);
         }
 
         public UUID jobId() {
@@ -171,7 +179,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis, UUID jobId) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId));
+        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner));
     }
 
     @Override

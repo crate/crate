@@ -92,7 +92,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         // create plan
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
         Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
@@ -114,7 +114,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
         ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
         Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
@@ -127,7 +127,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testESMultiGet() throws Exception {
         setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
         ESGetNode node = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
         Plan plan = new IterablePlan(ctx.jobId(), node);
         Job job = executor.newJob(plan);
@@ -146,7 +146,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
 
         CollectPhase collectNode = PlanNodeBuilder.collect(
                 ctx.jobId(),
@@ -196,7 +196,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
         CollectPhase collectNode = PlanNodeBuilder.collect(
                 ctx.jobId(),
                 characters,
@@ -259,7 +259,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
         );
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
 
         CollectPhase collectNode = PlanNodeBuilder.collect(
                 ctx.jobId(),
@@ -333,7 +333,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
         ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
 
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
         List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         UUID jobId = UUID.randomUUID();
         CollectPhase collectNode = PlanNodeBuilder.collect(
@@ -372,7 +372,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testQTFTaskPartitioned() throws Exception {
         setup.setUpPartitionedTableWithName();
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        Planner.Context ctx = new Planner.Context(clusterService(), UUID.randomUUID());
+        Planner.Context ctx = newPlannerContext();
 
         ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));

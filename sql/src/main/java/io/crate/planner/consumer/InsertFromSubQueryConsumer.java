@@ -40,24 +40,14 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class InsertFromSubQueryConsumer implements Consumer {
 
-    private final Visitor visitor;
-
-    public InsertFromSubQueryConsumer(ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(consumingPlanner);
-    }
+    private static final Visitor VISITOR = new Visitor();
 
     @Override
     public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
-        return visitor.process(relation, context);
+        return VISITOR.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
-
-        private final ConsumingPlanner consumingPlanner;
-
-        public Visitor(ConsumingPlanner consumingPlanner) {
-            this.consumingPlanner = consumingPlanner;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
@@ -76,7 +66,9 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     ImmutableSettings.EMPTY,
                     statement.tableInfo().isPartitioned()
             );
-            PlannedAnalyzedRelation plannedSubQuery = consumingPlanner.plan(statement.subQueryRelation(), context);
+
+            PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(
+                    statement.subQueryRelation(), context);
             if (plannedSubQuery == null) {
                 return null;
             }
