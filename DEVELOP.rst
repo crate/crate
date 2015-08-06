@@ -10,10 +10,17 @@ recommend using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
 We recommend installing Java 7 update 55 or later or Java 8 update 20 or later.
 Previous versions of Java 7 can cause data corruption and data loss.
 
-The documentation is built using Sphinx_ which requires Python_ 2.7 to be
-installed in addition to Java_. Make sure that there is a python executable
-called ``python2.7`` in the global system ``$PATH``. (Most distributions do that
-by default if python is installed)
+Writing Documentation
+=====================
+
+The documentation is written as `reStructuredText`_ (aka ``rst``) and is built
+using Sphinx_. The line length shall not exceed 80 characters. Most text
+editors support automatic line breaks at a certain line width if you don't want
+to insert line break manually ;)
+
+Sphinx_ requires Python_ 2.7 to be installed in addition to Java_. Make sure
+that there is a python executable called ``python2.7`` in the global system
+``$PATH`` (most distributions do that by default if Python is installed).
 
 Git checkout and submodules
 ===========================
@@ -65,8 +72,8 @@ above steps.
 .. note::
 
     To run the tests your network connection should be up and running, else
-    some of the tests will fail, because crate needs to bind to a network interface
-    that is capable of handling ip multicast requests.
+    some of the tests will fail, because crate needs to bind to a network
+    interface that is capable of handling ip multicast requests.
     This is not possible on localhost.
 
 Building and running Crate
@@ -200,7 +207,8 @@ A minimal example for the logging configuration looks like this::
           type: consolePattern
           conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
 
-In order for the admin interface to work please check out the crate admin repository::
+In order for the admin interface to work please check out the crate admin
+repository::
 
 	https://github.com/crate/crate-admin
 
@@ -242,8 +250,8 @@ A Benchmark for our SQL Interface can be run by calling::
 
   $ ./gradlew bench
 
-It will output some results to stdout (read between the lines) and finally you will
-receive information where more detailed benchmark-results got stored.
+It will output some results to stdout (read between the lines) and finally you
+will receive information where more detailed benchmark-results got stored.
 
 Preparing a new Release
 =======================
@@ -290,7 +298,7 @@ the grammer changed::
 
 .. _Sphinx: http://sphinx-doc.org/
 
-.. _ReStructuredText: http://docutils.sourceforge.net/rst.html
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
 
 .. _Gradle: http://www.gradle.org/
 
