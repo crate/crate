@@ -285,7 +285,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                     }
                 }
             }
-        });
+        }, 20L, TimeUnit.SECONDS);
     }
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
         waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
