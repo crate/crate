@@ -25,8 +25,21 @@ import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public abstract class OrderingByPosition<T> extends Ordering<T> {
+
+    public static Ordering<Row> ordering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {
+        List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
+        for (int i = 0; i < positions.length; i++) {
+            OrderingByPosition<Row> rowOrdering = OrderingByPosition.rowOrdering(
+                    positions[i], reverseFlags[i], nullsFirst[i]);
+            comparators.add(rowOrdering.reverse());
+        }
+        return Ordering.compound(comparators);
+    }
 
     public static OrderingByPosition<Row> rowOrdering(int position, boolean reverse, Boolean nullsFirst) {
         return new RowOrdering(position, reverse, nullsFirst);

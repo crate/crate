@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,9 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,59 +33,52 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
 import io.crate.operation.*;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * BucketMerger implementation that does not care about sorting
- * and just emits a stream of rows, whose order is undeterministic
- * as it is not guaranteed which row from which bucket ends up in the stream at which position.
- */
-public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
+public class IteratorPageDownstream implements PageDownstream, RowUpstream {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(NonSortingBucketMerger.class);
-
+    public static final Function<Bucket, Iterator<Row>> BUCKET_TO_ROW_ITERATOR = new Function<Bucket, Iterator<Row>>() {
+        @Nullable
+        @Override
+        public Iterator<Row> apply(Bucket input) {
+            return input.iterator();
+        }
+    };
     private final RowDownstreamHandle downstream;
-    private final AtomicBoolean alreadyFinished;
-    private final Optional<Executor>  executor;
+    private final Executor executor;
+    private final AtomicBoolean finished = new AtomicBoolean(false);
+    private final PagingIterator<Row> pagingIterator;
 
-    public NonSortingBucketMerger(RowDownstream rowDownstream) {
-        this(rowDownstream, Optional.<Executor>absent());
-    }
-
-    public NonSortingBucketMerger(RowDownstream rowDownstream, Optional<Executor> executor) {
-        this.downstream = rowDownstream.registerUpstream(this);
-        this.alreadyFinished = new AtomicBoolean(false);
-        this.executor = executor;
+    public IteratorPageDownstream(RowDownstream rowDownstream,
+                                  PagingIterator<Row> pagingIterator,
+                                  Optional<Executor> executor) {
+        this.pagingIterator = pagingIterator;
+        this.executor = executor.or(MoreExecutors.directExecutor());
+        downstream = rowDownstream.registerUpstream(this);
     }
 
     @Override
     public void nextPage(BucketPage page, final PageConsumeListener listener) {
-        final FutureCallback<List<Bucket>> callback = new FutureCallback<List<Bucket>>() {
+        FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
-                LOGGER.trace("received bucket");
-                for (Bucket bucket : buckets) {
-                    for (Row row : bucket) {
-                        try {
-                            if (alreadyFinished.get()) {
-                                listener.finish();
-                                return;
-                            }
-                            boolean needMore = downstream.setNextRow(row);
-                            if (!needMore) {
-                                listener.finish();
-                                return;
-                            }
-                        } catch (Throwable t) {
-                            onFailure(t);
-                            return;
-                        }
+                pagingIterator.merge(getBucketIterators(buckets));
+                while (pagingIterator.hasNext()) {
+                    if (finished.get()) {
+                        listener.finish();
+                        return;
+                    }
+                    Row row = pagingIterator.next();
+                    boolean wantMore = downstream.setNextRow(row);
+                    if (!wantMore) {
+                        listener.finish();
+                        return;
                     }
                 }
                 listener.needMore();
@@ -96,7 +91,6 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
             }
         };
 
-        Executor executor = RejectionAwareExecutor.wrapExecutor(this.executor.or(MoreExecutors.directExecutor()), callback);
         /**
          * Wait for all buckets to arrive before doing any work to make sure that the job context is present on all nodes
          * Otherwise there could be race condition.
@@ -106,8 +100,8 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
          * NOTE: this doesn't use Futures.allAsList because in the case of failures it should still wait for the other
          * upstreams before taking any action
          */
-
-        MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), callback);
+        Executor executor = RejectionAwareExecutor.wrapExecutor(this.executor, finalCallback);
+        MultiFutureCallback<Bucket> multiFutureCallback = new MultiFutureCallback<>(page.buckets().size(), finalCallback);
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
             Futures.addCallback(bucketFuture, multiFutureCallback, executor);
         }
@@ -115,18 +109,31 @@ public class NonSortingBucketMerger implements PageDownstream, RowUpstream {
 
     @Override
     public void finish() {
-        if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("NonSortingBucketMerger {} finished.", hashCode());
+        if (finished.compareAndSet(false, true)) {
+            consumeRemaining();
             downstream.finish();
         }
     }
 
+    private void consumeRemaining() {
+        pagingIterator.finish();
+        while (pagingIterator.hasNext()) {
+            Row row = pagingIterator.next();
+            boolean wantMore = downstream.setNextRow(row);
+            if (!wantMore) {
+                break;
+            }
+        }
+    }
 
     @Override
     public void fail(Throwable t) {
-        if (!alreadyFinished.getAndSet(true)) {
-            LOGGER.trace("NonSortingBucketMerger {} failed.", t, hashCode());
+        if (finished.compareAndSet(false, true)) {
             downstream.fail(t);
         }
+    }
+
+    private Iterable<Iterator<Row>> getBucketIterators(List<Bucket> buckets) {
+        return FluentIterable.from(buckets).transform(BUCKET_TO_ROW_ITERATOR);
     }
 }

@@ -23,13 +23,14 @@ package io.crate.operation;
 
 import com.google.common.base.Optional;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.merge.NonSortingBucketMerger;
-import io.crate.operation.merge.SortingBucketMerger;
+import io.crate.operation.merge.*;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -40,6 +41,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -86,19 +89,19 @@ public class PageDownstreamFactory {
             rowDownstream = projectorChain.firstProjector();
         }
 
-        PageDownstream pageDownstream;
+        PagingIterator<Row> pagingIterator;
         if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
-            pageDownstream = new SortingBucketMerger(
-                    rowDownstream,
-                    mergeNode.numUpstreams(),
-                    mergeNode.orderByIndices(),
-                    mergeNode.reverseFlags(),
-                    mergeNode.nullsFirst(),
-                    executorOptional
+            pagingIterator = new SortedPagingIterator(
+                    OrderingByPosition.ordering(
+                            mergeNode.orderByIndices(),
+                            mergeNode.reverseFlags(),
+                            mergeNode.nullsFirst()
+                    )
             );
         } else {
-            pageDownstream = new NonSortingBucketMerger(rowDownstream, executorOptional);
+            pagingIterator = new PassThroughPagingIterator<>();
         }
+        PageDownstream pageDownstream = new IteratorPageDownstream(rowDownstream, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
     }
 }
