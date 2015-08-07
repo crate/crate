@@ -214,7 +214,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                     throw Throwables.propagate(t);
                 }
             }
-        }, 500, TimeUnit.MILLISECONDS);
+        }, 5, TimeUnit.SECONDS);
     }
 
     /**
