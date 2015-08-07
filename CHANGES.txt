@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved retry logic of EC2 unicast host discovery mechanism
+
  - Updated crate-admin to 0.14.3 which includes the following changes:
 
    - fixed line wrapping in console result table
@@ -21,8 +23,8 @@ Unreleased
  - Fixed an issue that could cause a count function on partitioned tables
    to cause an error if a partition was deleted concurrently.
 
- 2015/07/29 0.51.0
- =================
+2015/07/29 0.51.0
+=================
 
  - Added the ``KILL 'job_id'`` statement.
 
@@ -56,8 +58,8 @@ Unreleased
 
  - Added ``date_format`` scalar function
 
- 2015/07/29 0.50.2
- =================
+2015/07/29 0.50.2
+=================
 
   - Fix: reduced the amount of unnecessary data handled on select queries
 
