@@ -42,13 +42,13 @@ public class StreamerVisitor {
     private static class ExecutionPhaseStreamerVisitor extends ExecutionPhaseVisitor<Void, Streamer<?>[]> {
 
         @Override
-        public Streamer<?>[] visitMergeNode(MergePhase node, Void context) {
-            return DataTypes.getStreamer(node.outputTypes());
+        public Streamer<?>[] visitMergePhase(MergePhase phase, Void context) {
+            return DataTypes.getStreamer(phase.outputTypes());
         }
 
         @Override
-        public Streamer<?>[] visitCollectNode(CollectPhase node, Void context) {
-            return DataTypes.getStreamer(node.outputTypes());
+        public Streamer<?>[] visitCollectPhase(CollectPhase phase, Void context) {
+            return DataTypes.getStreamer(phase.outputTypes());
         }
 
         @Override

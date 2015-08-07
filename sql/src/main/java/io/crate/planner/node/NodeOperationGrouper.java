@@ -66,7 +66,7 @@ public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGro
     }
 
     @Override
-    public Void visitCollectNode(CollectPhase node, Context context) {
+    public Void visitCollectPhase(CollectPhase phase, Context context) {
         /**
          * routing might contain a NULL_NODE_ID if there is no specific node which contains the indices or shards.
          * This is the case in information_schema queries (each node has those tables...)
@@ -92,12 +92,12 @@ public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGro
          * depending on which entry appears first in the executionPhases set.
          */
 
-        Set<String> executionNodes = node.executionNodes();
+        Set<String> executionNodes = phase.executionNodes();
         if (executionNodes.isEmpty()) {
             return null;
         }
-        if (node.routing().isNullRouting()) {
-            node.handlerSideCollect(context.localNodeId);
+        if (phase.routing().isNullRouting()) {
+            phase.handlerSideCollect(context.localNodeId);
             context.add(context.localNodeId);
             return null;
         }
@@ -105,9 +105,9 @@ public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGro
         for (String server : executionNodes) {
             context.add(server);
         }
-        Map<String, Map<String, List<Integer>>> locations = node.routing().locations();
+        Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
         if (locations != null && locations.containsKey(TableInfo.NULL_NODE_ID)) {
-            node.handlerSideCollect(executionNodes.iterator().next());
+            phase.handlerSideCollect(executionNodes.iterator().next());
         }
         return null;
     }

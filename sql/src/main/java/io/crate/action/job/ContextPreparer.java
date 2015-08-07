@@ -124,8 +124,8 @@ public class ContextPreparer {
     private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, Void> {
 
         @Override
-        public Void visitCountNode(CountPhase countNode, PreparerContext context) {
-            Map<String, Map<String, List<Integer>>> locations = countNode.routing().locations();
+        public Void visitCountPhase(CountPhase phase, PreparerContext context) {
+            Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
             if (locations == null) {
                 throw new IllegalArgumentException("locations are empty. Can't start count operation");
             }
@@ -140,67 +140,67 @@ public class ContextPreparer {
                     countOperation,
                     singleBucketBuilder,
                     indexShardMap,
-                    countNode.whereClause()
+                    phase.whereClause()
             );
             context.directResultFuture = singleBucketBuilder.result();
-            context.contextBuilder.addSubContext(countNode.executionPhaseId(), countContext);
+            context.contextBuilder.addSubContext(phase.executionPhaseId(), countContext);
             return null;
         }
 
         @Override
-        public Void visitMergeNode(final MergePhase node, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
+        public Void visitMergePhase(final MergePhase phase, final PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             ResultProvider downstream = resultProviderFactory.createDownstream(
                     context.nodeOperation,
-                    node.jobId(),
-                    Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / node.executionNodes().size()));
+                    phase.jobId(),
+                    Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size()));
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
-                            node,
+                            phase,
                             downstream,
                             ramAccountingContext,
                             // no separate executor because TransportDistributedResultAction already runs in a threadPool
                             Optional.<Executor>absent());
 
             PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
-                    node.name(),
+                    phase.name(),
                     pageDownstreamProjectorChain.v1(),
-                    DataTypes.getStreamer(node.inputTypes()),
+                    DataTypes.getStreamer(phase.inputTypes()),
                     ramAccountingContext,
-                    node.numUpstreams(),
+                    phase.numUpstreams(),
                     pageDownstreamProjectorChain.v2());
 
-            context.contextBuilder.addSubContext(node.executionPhaseId(), pageDownstreamContext);
+            context.contextBuilder.addSubContext(phase.executionPhaseId(), pageDownstreamContext);
             return null;
         }
 
         @Override
-        public Void visitCollectNode(final CollectPhase node, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, node);
+        public Void visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             String localNodeId = clusterService.localNode().id();
-            Routing routing = node.routing();
+            Routing routing = phase.routing();
             int numTotalShards = routing.numShards();
             int numShardsOnNode = routing.numShards(localNodeId);
             int pageSize = Paging.getWeightedPageSize(
-                    MoreObjects.firstNonNull(node.limit(), Paging.PAGE_SIZE),
+                    MoreObjects.firstNonNull(phase.limit(), Paging.PAGE_SIZE),
                     1.0 / numTotalShards * numShardsOnNode
             );
             LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
-            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, node.jobId(), pageSize);
+            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId(), pageSize);
 
             if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {
                 context.directResultFuture = downstream.result();
             }
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
-                    node,
+                    phase,
                     collectOperation,
                     ramAccountingContext,
                     downstream
             );
-            context.contextBuilder.addSubContext(node.executionPhaseId(), jobCollectContext);
+            context.contextBuilder.addSubContext(phase.executionPhaseId(), jobCollectContext);
             return null;
         }
     }

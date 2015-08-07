@@ -155,7 +155,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
-        return visitor.visitMergeNode(this, context);
+        return visitor.visitMergePhase(this, context);
     }
 
     @Override

@@ -95,7 +95,7 @@ public class CountPhase implements ExecutionPhase {
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
-        return visitor.visitCountNode(this, context);
+        return visitor.visitCountPhase(this, context);
     }
 
     @Override

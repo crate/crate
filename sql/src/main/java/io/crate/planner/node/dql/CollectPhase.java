@@ -175,7 +175,7 @@ public class CollectPhase extends AbstractDQLPlanPhase {
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
-        return visitor.visitCollectNode(this, context);
+        return visitor.visitCollectPhase(this, context);
     }
 
     @Override

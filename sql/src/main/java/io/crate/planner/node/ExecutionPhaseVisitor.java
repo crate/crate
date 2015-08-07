@@ -27,23 +27,23 @@ import io.crate.planner.node.dql.MergePhase;
 
 public class ExecutionPhaseVisitor<C, R> {
 
-    public R process(ExecutionPhase node, C context) {
-        return node.accept(this, context);
+    public R process(ExecutionPhase phase, C context) {
+        return phase.accept(this, context);
     }
 
-    protected R visitExecutionPhase(ExecutionPhase node, C context) {
+    protected R visitExecutionPhase(ExecutionPhase phase, C context) {
         return null;
     }
 
-    public R visitCollectNode(CollectPhase node, C context) {
-        return visitExecutionPhase(node, context);
+    public R visitCollectPhase(CollectPhase phase, C context) {
+        return visitExecutionPhase(phase, context);
     }
 
-    public R visitMergeNode(MergePhase node, C context) {
-        return visitExecutionPhase(node, context);
+    public R visitMergePhase(MergePhase phase, C context) {
+        return visitExecutionPhase(phase, context);
     }
 
-    public R visitCountNode(CountPhase countNode, C context) {
-        return visitExecutionPhase(countNode, context);
+    public R visitCountPhase(CountPhase phase, C context) {
+        return visitExecutionPhase(phase, context);
     }
 }
