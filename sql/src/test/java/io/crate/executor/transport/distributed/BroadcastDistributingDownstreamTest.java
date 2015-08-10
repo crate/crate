@@ -65,6 +65,7 @@ public class BroadcastDistributingDownstreamTest extends CrateUnitTest {
         downstream = new BroadcastDistributingDownstream(
                 UUID.randomUUID(),
                 1,
+                (byte) 0,
                 0,
                 downstreamNodes,
                 distributedResultAction,

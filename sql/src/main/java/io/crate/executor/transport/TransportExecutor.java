@@ -438,7 +438,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
                 ExecutionPhase previousPhase;
                 previousPhase = currentBranch.lastElement();
-                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase));
+                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, (byte) 0));
                 currentBranch.add(executionPhase);
             }
 
