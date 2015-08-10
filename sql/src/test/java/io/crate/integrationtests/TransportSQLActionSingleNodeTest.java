@@ -324,6 +324,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"KILLED", stmt});
             assertThat(response.rowCount(), is(1L));
         }
+        waitUntilShardOperationsFinished();
     }
 
     @After
