@@ -48,6 +48,12 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(new ColumnIdent("id"));
 
+    private static final Routing ROUTING = new Routing(
+            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+            NULL_NODE_ID,
+            TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()).map()
+    );
+
     private static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
@@ -104,12 +110,7 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return new Routing(
-                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                        NULL_NODE_ID,
-                        TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
-                ).map()
-        );
+        return ROUTING;
     }
 
     @Override
