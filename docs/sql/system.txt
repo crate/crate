@@ -677,6 +677,96 @@ deactivate the stats tracking. This will also wipe all existing log entries::
     reset the value of ``stats.enabled`` to its default which is false.
 
 
+Cluster checks
+===============
+
+The table ``sys.checks`` exposes a list of internal cluster checks and
+results of their validation.
+
+The table schema is following:
+
++------------------+----------------------------------+-------------+
+|       Name       |           Description            | Return Type |
++==================+==================================+=============+
+| id               | The unique check id.             | Integer     |
++------------------+----------------------------------+-------------+
+| severity         | The level of severity.           | Integer     |
+|                  | 1 - INFO, 2 - WARN, 3 - ERROR    |             |
++------------------+----------------------------------+-------------+
+| description      | The description message for the  | String      |
+|                  | setting check.                   |             |
++------------------+----------------------------------+-------------+
+| passed           | The flag determines whether the  | Boolean     |
+|                  | check for the setting has passed.|             |
++------------------+----------------------------------+-------------+
+
+There are currently four checks:
+
++------------------+------------------------------------+
+|       id         |           Check name               |
++==================+====================================+
+| 1                | Minimum master nodes.              |
++------------------+------------------------------------+
+| 2                | Recovery expected nodes.           |
++------------------+------------------------------------+
+| 3                | Recovery after nodes.              |
++------------------+------------------------------------+
+| 4                | Recovery after time.               |
++------------------+------------------------------------+
+
+Settings checks:
+----------------
+All of the settings must be present in the cluster configuration.
+
+Minimum master nodes
+....................
+The check for the :ref:`discovery.zen.minimum_master_nodes
+<discovery.zen.minimum_master_nodes>` setting verifies that the minimum
+number of nodes is greater than the half of maximum number of nodes in the
+cluster.
+::
+
+  (N / 2) + 1 < M
+
+where ``N`` is the number of nodes in the cluster, and ``M`` is the value of
+the setting :ref:`discovery.zen.minimum_master_nodes
+<discovery.zen.minimum_master_nodes>`.
+
+Recovery expected nodes
+.......................
+The check for the ``gateway.expected_nodes`` setting checks that the number of
+nodes which should be waited for the immediate cluster state recovery must be
+equal to the maximum number of nodes in the cluster.
+
+Recovery after nodes
+....................
+The check for the ``gateway.recover_after_nodes`` verifies that the number of
+started nodes before the cluster starts recovery must be equal/greater than
+the quorum and equal/less than number of nodes in the cluster.
+::
+  (N / 2) + 1 <= R <= E
+
+where ``N`` is the number of nodes in the cluster, ``R`` is the number of
+recovery nodes, ``E`` is the number of expected nodes.
+
+Recovery after time
+...................
+The check for the ``gateway.recover_after_time`` settings verifies that the
+time before recovery starts must not be less than default value of ``5m``.
+
+For instance, if the ``gateway.expected_nodes`` and
+``discovery.zen.minimum_master_nodes`` settings were misconfigured then the
+SQL query bellow would have the following results::
+
+  cr> select *
+  ... from sys.checks
+  ... order by id asc;
+  +--------+-------------+----------------------------------+---------------+
+  | id     | severity    | description                      | passed        |
+  +--------+-------------+----------------------------------+---------------+
+  SELECT 4 row in set (... sec)
+
+
 Graceful Stop
 =============
 
