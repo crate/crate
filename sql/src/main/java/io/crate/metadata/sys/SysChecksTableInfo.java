@@ -24,7 +24,11 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -33,27 +37,26 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 
 @Singleton
 public class SysChecksTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "checks");
-
-    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(new ColumnIdent("id"));
-
-    private static final Routing ROUTING = new Routing(
-            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-            NULL_NODE_ID,
-            TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()).map()
-    );
+    private static final ImmutableList<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
+    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     public static class Columns {
-        private static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent ID = new ColumnIdent("id");
         public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
         public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
         public static final ColumnIdent PASSED = new ColumnIdent("passed");
@@ -61,7 +64,7 @@ public class SysChecksTableInfo extends SysTableInfo {
     }
 
     private ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.CLUSTER, type);
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), GRANULARITY, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }
@@ -69,11 +72,10 @@ public class SysChecksTableInfo extends SysTableInfo {
         return info;
     }
 
-
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
-        register(Columns.ID, DataTypes.STRING);
+        register(Columns.ID, DataTypes.INTEGER);
         register(Columns.SEVERITY, DataTypes.INTEGER);
         register(Columns.DESCRIPTION, DataTypes.STRING);
         register(Columns.PASSED, DataTypes.BOOLEAN);
@@ -92,7 +94,7 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     @Override
     public RowGranularity rowGranularity() {
-        return RowGranularity.CLUSTER;
+        return GRANULARITY;
     }
 
     @Override
@@ -102,12 +104,16 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return ROUTING;
+        return new Routing(
+                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                        clusterService.localNode().id(),
+                        TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()).map()
+        );
     }
 
     @Override
     public List<ColumnIdent> primaryKey() {
-        return primaryKey;
+        return primaryKeys;
     }
 
     @Override
