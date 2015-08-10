@@ -397,6 +397,7 @@ processResources.dependsOn(downloadPlugins, downloadCrash)
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateF'
     debug = true
+    enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
     maxHeapSize = '512m'
 }
@@ -404,6 +405,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
 task(run, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateF'
     debug = false
+    enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
     maxHeapSize = '512m'
     systemProperties System.getProperties()

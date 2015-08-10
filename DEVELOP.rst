@@ -84,21 +84,32 @@ directly within the IDE. See the section further down for more information.
 
 Regardless, it is possible to compile and run crate using gradle.
 
-To compile run::
+To compile Crate sources execute::
 
     ./gradlew compileJava
+
+To run Crate as a Gradle task, a configuration file for logging (`log4j`_)
+needs to be present::
+
+    mkdir -pv config && touch config/logging.yml
+
+You can use a :ref:`minimal logging configuration <minimim_logging_config>`.
+For more information about logging, please refer to our
+`docs <https://crate.io/docs/en/stable/configuration.html#logging>`_.
 
 And to run::
 
     ./gradlew runDebug
 
-(And attach a remote debugger on port 5555)
+.. note::
 
-Or install the distribution locally::
+   Crate will wait for a remote debugger on port ``5005`` to fully start up!
+
+To install the distribution locally execute::
 
     ./gradlew installDist
 
-And start crate::
+And start Crate::
 
     ./app/build/install/crate/bin/crate
 
@@ -188,9 +199,12 @@ And add the following settings::
     In the second files the port number and node name has to be changed.
     19201 to 19202 and 19301 to 19302.
 
-In addition to the `crate.yml` file it is also recommended to create a logging
+In addition to the ``crate.yml`` file it is also recommended to create a logging
 configuration file for both nodes. To do so create the files
-`sandbox/crate_1/config/logging.yml` and `sandbox/crate_2/config/logging.yml`.
+``sandbox/crate_1/config/logging.yml`` and
+``sandbox/crate_2/config/logging.yml``.
+
+.. _minimum_logging_config:
 
 A minimal example for the logging configuration looks like this::
 
@@ -313,3 +327,7 @@ the grammer changed::
 .. _`jacoco`: http://www.eclemma.org/jacoco/
 
 .. _`FindBugs`: http://findbugs.sourceforge.net/
+
+.. _`log4j`: http://logging.apache.org/log4j/2.x/
+
+

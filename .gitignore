@@ -18,3 +18,5 @@ data/
 /docs/out
 /docs/clients/out
 /reports
+config/logging.yml
+
