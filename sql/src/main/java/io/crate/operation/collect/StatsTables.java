@@ -82,10 +82,6 @@ public class StatsTables {
         return activeRequests.longValue();
     }
 
-    public interface IterableGetter {
-        public Iterable<?> getIterable();
-    }
-
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
         int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);

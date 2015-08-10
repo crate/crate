@@ -22,13 +22,20 @@
 package io.crate.operation.reference.sys.job;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.sys.SysChecksTableInfo;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.sys.check.checks.SysCheck;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import org.apache.lucene.util.BytesRef;
@@ -53,6 +60,7 @@ public class RowContextDocLevelReferenceResolver implements DocLevelReferenceRes
         tableFactories.put(SysJobsLogTableInfo.IDENT, getSysJobsLogExpressions());
         tableFactories.put(SysOperationsTableInfo.IDENT, getSysOperationExpressions());
         tableFactories.put(SysOperationsLogTableInfo.IDENT, getSysOperationLogExpressions());
+        tableFactories.put(SysChecksTableInfo.IDENT, getSysChecksExpressions());
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {
@@ -299,6 +307,55 @@ public class RowContextDocLevelReferenceResolver implements DocLevelReferenceRes
                             @Override
                             public Long value() {
                                 return row.started;
+                            }
+                        };
+                    }
+                })
+                .build();
+    }
+
+    private ImmutableMap<ColumnIdent, RowCollectExpressionFactory> getSysChecksExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(SysChecksTableInfo.Columns.ID, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SysCheck, Integer>() {
+                            @Override
+                            public Integer value() {
+                                return row.id();
+                            }
+                        };
+                    }
+                })
+                .put(SysChecksTableInfo.Columns.DESCRIPTION, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SysCheck, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return row.description();
+                            }
+                        };
+                    }
+                })
+                .put(SysChecksTableInfo.Columns.SEVERITY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SysCheck, Integer>() {
+                            @Override
+                            public Integer value() {
+                                return row.severity().value();
+                            }
+                        };
+                    }
+                })
+                .put(SysChecksTableInfo.Columns.PASSED, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SysCheck, Boolean>() {
+                            @Override
+                            public Boolean value() {
+                                return row.validate();
                             }
                         };
                     }

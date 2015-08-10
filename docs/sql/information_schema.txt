@@ -35,6 +35,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     | information_schema | table_constraints |                1 |                  0 |
     | information_schema | table_partitions  |                1 |                  0 |
     | information_schema | tables            |                1 |                  0 |
+    | sys                | checks            |                1 |                  0 |
     | sys                | cluster           |                1 |                  0 |
     | sys                | jobs              |                1 |                  0 |
     | sys                | jobs_log          |                1 |                  0 |
@@ -43,7 +44,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     | sys                | operations_log    |                1 |                  0 |
     | sys                | shards            |                1 |                  0 |
     +--------------------+-------------------+------------------+--------------------+
-    SELECT 18 rows in set (... sec)
+    SELECT 19 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)

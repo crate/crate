@@ -40,17 +40,17 @@ public class SysSchemaInfo implements SchemaInfo {
     public SysSchemaInfo(ClusterService clusterService) {
 
         SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo(clusterService, this);
-
-
+        
         tableInfos = ImmutableMap.<String, SysTableInfo>builder()
-            .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
-            .put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo)
-            .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, this, sysNodesTableInfo))
-            .put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService, this))
-            .put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo(clusterService, this))
-            .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, this, sysNodesTableInfo))
-            .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService, this))
-        .build();
+                .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
+                .put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo)
+                .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, this, sysNodesTableInfo))
+                .put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService, this))
+                .put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo(clusterService, this))
+                .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, this, sysNodesTableInfo))
+                .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService, this))
+                .put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo(clusterService, this))
+                .build();
     }
 
     @Override

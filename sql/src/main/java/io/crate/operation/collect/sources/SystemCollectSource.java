@@ -25,13 +25,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.sys.SysChecksTableInfo;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.collect.*;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.IterableGetter;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.collect.StatsTables;
+import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -47,19 +54,20 @@ import java.util.Set;
 public class SystemCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<String, StatsTables.IterableGetter> iterableGetters;
+    private final ImmutableMap<String, IterableGetter> iterableGetters;
     private final DiscoveryService discoveryService;
 
 
     @Inject
-    public SystemCollectSource(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
+    public SystemCollectSource(DiscoveryService discoveryService, Functions functions, StatsTables statsTables, SysChecker sysChecker) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextDocLevelReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.of(
                 SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
                 SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter(),
                 SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter(),
-                SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter()
+                SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter(),
+                SysChecksTableInfo.IDENT.fqn(), sysChecker
         );
         this.discoveryService = discoveryService;
     }
@@ -68,7 +76,7 @@ public class SystemCollectSource implements CollectSource {
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
         Set<String> tables = collectPhase.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
-        StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
+        IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
         assert iterableGetter != null;
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 

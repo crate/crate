@@ -46,6 +46,7 @@ import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.reference.sys.check.SysChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
@@ -132,6 +133,7 @@ public class SQLPlugin extends AbstractPlugin {
         modules.add(AggregationImplModule.class);
         modules.add(ScalarFunctionModule.class);
         modules.add(BulkModule.class);
+        modules.add(SysChecksModule.class);
         return modules;
     }
 
