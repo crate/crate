@@ -76,7 +76,7 @@ public class CountConsumer implements Consumer {
             }
 
             TableInfo tableInfo = table.tableRelation().tableInfo();
-            Routing routing = tableInfo.getRouting(querySpec.where(), null);
+            Routing routing = context.plannerContext().allocateRouting(tableInfo, querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
             CountPhase countNode = new CountPhase(plannerContext.jobId(), plannerContext.nextExecutionPhaseId(), routing, querySpec.where());
             MergePhase mergeNode = new MergePhase(

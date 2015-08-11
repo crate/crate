@@ -87,7 +87,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                 return null;
             }
 
-            Routing routing = tableInfo.getRouting(table.querySpec().where(), null);
+            Routing routing = context.plannerContext().allocateRouting(tableInfo, table.querySpec().where(), null);
             if (routing.hasLocations() && routing.locations().size()>1) {
                 return null;
             }
@@ -100,7 +100,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if (table.querySpec().groupBy() == null) {
                 return null;
             }
-            Routing routing = table.tableRelation().tableInfo().getRouting(table.querySpec().where(), null);
+            Routing routing = context.plannerContext().allocateRouting(table.tableRelation().tableInfo(), table.querySpec().where(), null);
             return nonDistributedGroupBy(table, routing, context);
         }
 
