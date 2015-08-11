@@ -28,8 +28,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.testing.CollectingProjector;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingProjector;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -72,32 +72,42 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
         bucketsPerUpstream.add(upstream2);
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(numUpstreams*2);
+        final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
+
+        // register upstreams
+        for (int i = 0; i < bucketsPerUpstream.size(); i++) {
+            bucketMerger.registerUpstream(null);
+        }
+
         for (int i = 0; i < bucketsPerUpstream.size(); i++) {
             final int upstreamId = i;
 
-            for (final List<Object[]> bucket : bucketsPerUpstream.get(i)) {
-                bucketMerger.registerUpstream(null);
-                executorService.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        List<Row> rows1 = new ArrayList<>();
-                        for (Object[] row : bucket) {
-                            rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
-                        }
-                        try {
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        for (final List<Object[]> bucket : bucketsPerUpstream.get(upstreamId)) {
+                            List<Row> rows1 = new ArrayList<>();
+                            for (Object[] row : bucket) {
+                                rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
+                            }
                             bucketMerger.setNextBucket(rows1, upstreamId);
-                        } catch (Exception e) {
-                            setNextRowExceptions.add(e);
                         }
-                        bucketMerger.finish();
-                        latch.countDown();
+                    } catch (Throwable t) {
+                        setNextRowExceptions.add(t);
+                        bucketMerger.fail(t);
                     }
-                });
-            }
+                    try {
+                        bucketMerger.finish();
+                    } catch (Throwable t) {
+                        setNextRowExceptions.add(t);
+                    }
+                    latch.countDown();
+                }
+            });
         }
-        latch.await();
+        latch.await(10, TimeUnit.SECONDS);
         executorService.shutdown();
 
         assertThat(setNextRowExceptions, empty());
@@ -127,7 +137,7 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
 
     @Test
     public void testOneUpstreamWillFail() throws Exception {
-        int numUpstreams = 2;
+        final int numUpstreams = 2;
 
         CollectingProjector resultProvider = new CollectingProjector();
         final PositionalBucketMerger bucketMerger = new PositionalBucketMerger(resultProvider, numUpstreams, 1);
@@ -144,47 +154,48 @@ public class PositionalBucketMergerTest extends CrateUnitTest {
         bucketsPerUpstream.add(upstream2);
 
         final List<Throwable> setNextRowExceptions = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(numUpstreams*2);
+        final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
         // register upstreams
-        for (int i = 0; i < bucketsPerUpstream.size()*2; i++) {
+        for (int i = 0; i < bucketsPerUpstream.size(); i++) {
             bucketMerger.registerUpstream(null);
         }
 
         for (int i = 0; i < bucketsPerUpstream.size(); i++) {
             final int upstreamId = i;
 
-            if (upstreamId == numUpstreams-1) {
-                // last upstream will fail
-                bucketMerger.fail(new Throwable(String.format("[%d] I'm failing", upstreamId)));
-                // 2 buckets per node, count down 2 times
-                latch.countDown();
-                latch.countDown();
-                continue;
-            }
-
-            for (final List<Object[]> bucket : bucketsPerUpstream.get(i)) {
-                executorService.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        List<Row> rows1 = new ArrayList<>();
-                        for (Object[] row : bucket) {
-                            rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
-                        }
-                        try {
-                            bucketMerger.setNextBucket(rows1, upstreamId);
-                        } catch (Exception e) {
-                            setNextRowExceptions.add(e);
-                        }
-                        bucketMerger.finish();
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    if (upstreamId == numUpstreams - 1) {
+                        // last upstream will fail
+                        bucketMerger.fail(new Throwable(String.format("[%d] I'm failing", upstreamId)));
                         latch.countDown();
+                        return;
                     }
-                });
-            }
+                    try {
+                        for (final List<Object[]> bucket : bucketsPerUpstream.get(upstreamId)) {
+                            List<Row> rows1 = new ArrayList<>();
+                            for (Object[] row : bucket) {
+                                rows1.add(new PositionalRowDelegate(new RowN(row), (int) row[0]));
+                            }
+                            bucketMerger.setNextBucket(rows1, upstreamId);
+                        }
+                    } catch (Throwable t) {
+                        bucketMerger.fail(t);
+                        setNextRowExceptions.add(t);
+                    }
+                    try {
+                        bucketMerger.finish();
+                    } catch (Throwable t) {
+                        setNextRowExceptions.add(t);
+                    }
+                    latch.countDown();
+                }
+            });
         }
-        latch.await();
+        latch.await(10, TimeUnit.SECONDS);
         executorService.shutdown();
-        bucketMerger.finish();
 
         assertThat(setNextRowExceptions, empty());
 
