@@ -35,6 +35,7 @@ import io.crate.operation.NodeOperation;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -48,15 +49,18 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     public static final String ACTION_NAME = "crate/sql/job";
     private static final String EXECUTOR = ThreadPool.Names.SAME;
 
+    private final IndicesService indicesService;
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
 
     @Inject
     public TransportJobAction(TransportService transportService,
+                              IndicesService indicesService,
                               Transports transports,
                               JobContextService jobContextService,
                               ContextPreparer contextPreparer) {
+        this.indicesService = indicesService;
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
@@ -84,8 +88,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
 
         List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         for (NodeOperation nodeOperation : request.nodeOperations()) {
-            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder);
+            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(
+                    request.jobId(), nodeOperation, sharedShardContexts, contextBuilder);
             if (responseFuture != null) {
                 directResponseFutures.add(responseFuture);
             }

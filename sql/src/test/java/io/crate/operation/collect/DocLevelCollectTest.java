@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -45,6 +46,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -218,9 +220,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(CollectPhase collectNode) throws Exception {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), NodeOperation.withDownstream(collectNode,
-                mock(ExecutionPhase.class), (byte) 0), builder);
+                mock(ExecutionPhase.class), (byte) 0), sharedShardContexts, builder);
         assert future != null;
         JobExecutionContext context = contextService.createContext(builder);
         context.start();

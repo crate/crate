@@ -27,10 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
-import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.JobRequest;
-import io.crate.action.job.JobResponse;
-import io.crate.action.job.TransportJobAction;
+import io.crate.action.job.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
@@ -52,6 +49,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -70,6 +68,7 @@ public class ExecutionPhasesTask extends JobTask {
     private final JobContextService jobContextService;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ThreadPool threadPool;
+    private final IndicesService indicesService;
     private final CircuitBreaker circuitBreaker;
 
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
@@ -81,6 +80,7 @@ public class ExecutionPhasesTask extends JobTask {
                                   JobContextService jobContextService,
                                   PageDownstreamFactory pageDownstreamFactory,
                                   ThreadPool threadPool,
+                                  IndicesService indicesService,
                                   TransportJobAction transportJobAction,
                                   CircuitBreaker circuitBreaker,
                                   List<NodeOperationTree> nodeOperationTrees) {
@@ -90,6 +90,7 @@ public class ExecutionPhasesTask extends JobTask {
         this.jobContextService = jobContextService;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
+        this.indicesService = indicesService;
         this.circuitBreaker = circuitBreaker;
         this.transportJobAction = transportJobAction;
         this.nodeOperationTrees = nodeOperationTrees;
@@ -213,8 +214,9 @@ public class ExecutionPhasesTask extends JobTask {
         Collection<NodeOperation> localNodeOperations = operationsByServer.remove(localNodeId);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         if (localNodeOperations != null) {
+            SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
             for (NodeOperation nodeOperation : localNodeOperations) {
-                contextPreparer.prepare(jobId(), nodeOperation, builder);
+                contextPreparer.prepare(jobId(), nodeOperation, sharedShardContexts, builder);
             }
         }
         builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);

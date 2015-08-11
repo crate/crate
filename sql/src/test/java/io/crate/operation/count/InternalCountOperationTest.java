@@ -21,13 +21,16 @@
 
 package io.crate.operation.count;
 
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.symbol.Literal;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
@@ -49,8 +52,16 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
                 TestingHelpers.createReference("name", DataTypes.STRING),
                 Literal.newLiteral("Marvin"));
 
-        CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
-        assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
-        assertThat(countOperation.count("t", 0, whereClause), is(1L));
+        ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        DiscoveryNode localNode = clusterService.localNode();
+        String name = localNode.name();
+        CountOperation countOperation = internalCluster().getInstance(CountOperation.class, name);
+        IndicesService indicesService = internalCluster().getInstance(IndicesService.class, name);
+
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
+        assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL, sharedShardContexts), is(3L));
+
+        sharedShardContexts = new SharedShardContexts(indicesService);
+        assertThat(countOperation.count("t", 0, whereClause, sharedShardContexts), is(1L));
     }
 }

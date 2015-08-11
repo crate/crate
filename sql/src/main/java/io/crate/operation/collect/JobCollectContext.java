@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
@@ -53,6 +54,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final CollectPhase collectNode;
     private final CollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
+    private final SharedShardContexts sharedShardContexts;
     private final RowDownstream downstream;
 
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
@@ -71,11 +73,13 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                              final CollectPhase collectPhase,
                              CollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
-                             final RowDownstream rowDownstream) {
+                             final RowDownstream rowDownstream,
+                             SharedShardContexts sharedShardContexts) {
         id = jobId;
         this.collectNode = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
+        this.sharedShardContexts = sharedShardContexts;
         this.downstream = new RowDownstream() {
 
             final AtomicInteger numUpstreams = new AtomicInteger();
@@ -217,5 +221,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
         return queryPhaseRamAccountingContext;
+    }
+
+    public SharedShardContexts readerAllocation() {
+        return sharedShardContexts;
     }
 }

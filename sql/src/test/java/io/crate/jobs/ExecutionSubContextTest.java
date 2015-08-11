@@ -2,6 +2,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
@@ -97,8 +98,8 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 mock(CollectPhase.class),
                 mock(CollectOperation.class),
                 mock(RamAccountingContext.class),
-                new CollectingProjector()
-        ));
+                new CollectingProjector(),
+                mock(SharedShardContexts.class)));
     }
 
     @Test
@@ -108,16 +109,16 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 mock(CollectPhase.class),
                 mock(CollectOperation.class),
                 mock(RamAccountingContext.class),
-                new CollectingProjector()
-        ));
+                new CollectingProjector(),
+                mock(SharedShardContexts.class)));
     }
 
     private CountContext createCountContext() throws Throwable {
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(SettableFuture.<Long>create());
+        when(countOperation.count(anyMap(), any(WhereClause.class), any(SharedShardContexts.class))).thenReturn(SettableFuture.<Long>create());
         RowDownstream rowDownstream = mock(RowDownstream.class);
         when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
-        return new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        return new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL, mock(SharedShardContexts.class));
     }
 
     @Test

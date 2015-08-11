@@ -56,7 +56,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -73,7 +73,6 @@ public class ContextPreparer {
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
-    private final ThreadPool threadPool;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ResultProviderFactory resultProviderFactory;
     private final InnerPreparer innerPreparer;
@@ -82,7 +81,6 @@ public class ContextPreparer {
     public ContextPreparer(MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
-                           ThreadPool threadPool,
                            CountOperation countOperation,
                            PageDownstreamFactory pageDownstreamFactory,
                            ResultProviderFactory resultProviderFactory) {
@@ -90,7 +88,6 @@ public class ContextPreparer {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.threadPool = threadPool;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.resultProviderFactory = resultProviderFactory;
         innerPreparer = new InnerPreparer();
@@ -99,8 +96,13 @@ public class ContextPreparer {
     @Nullable
     public ListenableFuture<Bucket> prepare(UUID jobId,
                                             NodeOperation nodeOperation,
+                                            SharedShardContexts sharedShardContexts,
                                             JobExecutionContext.Builder contextBuilder) {
-        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, contextBuilder);
+        PreparerContext preparerContext = new PreparerContext(
+                sharedShardContexts,
+                jobId,
+                nodeOperation,
+                contextBuilder);
         innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
         return preparerContext.directResultFuture;
     }
@@ -110,15 +112,19 @@ public class ContextPreparer {
         private final UUID jobId;
         private final NodeOperation nodeOperation;
         private final JobExecutionContext.Builder contextBuilder;
+        private final SharedShardContexts sharedShardContexts;
         private ListenableFuture<Bucket> directResultFuture;
 
-        private PreparerContext(UUID jobId,
+        private PreparerContext(SharedShardContexts sharedShardContexts,
+                                UUID jobId,
                                 NodeOperation nodeOperation,
                                 JobExecutionContext.Builder contextBuilder) {
             this.nodeOperation = nodeOperation;
             this.contextBuilder = contextBuilder;
             this.jobId = jobId;
+            this.sharedShardContexts = sharedShardContexts;
         }
+
     }
 
     private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, Void> {
@@ -140,7 +146,8 @@ public class ContextPreparer {
                     countOperation,
                     singleBucketBuilder,
                     indexShardMap,
-                    phase.whereClause()
+                    phase.whereClause(),
+                    context.sharedShardContexts
             );
             context.directResultFuture = singleBucketBuilder.result();
             context.contextBuilder.addSubContext(phase.executionPhaseId(), countContext);
@@ -198,7 +205,8 @@ public class ContextPreparer {
                     phase,
                     collectOperation,
                     ramAccountingContext,
-                    downstream
+                    downstream,
+                    context.sharedShardContexts
             );
             context.contextBuilder.addSubContext(phase.executionPhaseId(), jobCollectContext);
             return null;

@@ -29,6 +29,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
+import io.crate.action.job.SharedShardContext;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -66,6 +68,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -152,10 +155,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (String nodeName : internalCluster().getNodeNames()) {
             ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class, nodeName);
             JobContextService contextService = internalCluster().getInstance(JobContextService.class, nodeName);
+            SharedShardContexts sharedShardContexts =
+                    new SharedShardContexts(internalCluster().getInstance(IndicesService.class, nodeName));
 
             JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
             ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(),
-                    NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0), builder);
+                    NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0), sharedShardContexts, builder);
             assert future != null;
 
             JobExecutionContext context = contextService.createContext(builder);

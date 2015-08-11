@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
 import io.crate.operation.RowDownstream;
@@ -46,6 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CountContext implements RowUpstream, ExecutionSubContext {
 
     private final CountOperation countOperation;
+    private final SharedShardContexts sharedShardContexts;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
     private final RowDownstreamHandle rowDownstreamHandle;
@@ -60,8 +62,10 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     public CountContext(CountOperation countOperation,
                         RowDownstream rowDownstream,
                         Map<String, List<Integer>> indexShardMap,
-                        WhereClause whereClause) {
+                        WhereClause whereClause,
+                        SharedShardContexts sharedShardContexts) {
         this.countOperation = countOperation;
+        this.sharedShardContexts = sharedShardContexts;
         rowDownstreamHandle = rowDownstream.registerUpstream(this);
         this.indexShardMap = indexShardMap;
         this.whereClause = whereClause;
@@ -69,7 +73,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     public void start() {
         try {
-            countFuture = countOperation.count(indexShardMap, whereClause);
+            countFuture = countOperation.count(indexShardMap, whereClause, sharedShardContexts);
             Futures.addCallback(countFuture, new FutureCallback<Long>() {
                 @Override
                 public void onSuccess(@Nullable Long result) {
