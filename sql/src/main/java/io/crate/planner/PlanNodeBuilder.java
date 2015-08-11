@@ -102,7 +102,7 @@ public class PlanNodeBuilder {
     }
 
     /**
-     * Create a MergeNode which uses a {@link io.crate.operation.merge.SortingBucketMerger}
+     * Create a MergeNode which uses a {@link io.crate.operation.merge.SortedPagingIterator}
      * as it expects sorted input and produces sorted output.
      *
      * @param projections    the projections to include in the resulting MergeNode
