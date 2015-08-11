@@ -46,11 +46,11 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
 
     private GroupQueryBuilder builder = null;
 
-    public MultiMatchQueryBuilder(SearchContext searchContext,
+    public MultiMatchQueryBuilder(MapperService mapperService,
                                   IndexCache indexCache,
                                   @Nullable BytesRef matchType,
                                   @Nullable Map options) throws IOException {
-        super(searchContext, indexCache, matchType, options);
+        super(mapperService, indexCache, matchType, options);
     }
 
     @Override
@@ -161,7 +161,7 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             List<Tuple<String, Float>> missing = new ArrayList<>();
             for (Map.Entry<String, Object> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
-                MapperService.SmartNameFieldMappers smartNameFieldMappers = searchContext.smartFieldMappers(name);
+                MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(name);
                 if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
                     Analyzer actualAnalyzer = getAnalyzer(smartNameFieldMappers.mapper(), smartNameFieldMappers);
                     name = smartNameFieldMappers.mapper().names().indexName();

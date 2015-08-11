@@ -44,7 +44,6 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -53,8 +52,8 @@ import java.util.Map;
 
 public class MatchQueryBuilder {
 
-    protected final SearchContext searchContext;
-    private final IndexCache indexCache;
+    protected final IndexCache indexCache;
+    protected final MapperService mapperService;
     protected final ParsedOptions options;
 
     final MultiMatchQueryBuilder.Type matchType;
@@ -68,11 +67,11 @@ public class MatchQueryBuilder {
             .put(new BytesRef("phrase_prefix"), MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
             .build();
 
-    public MatchQueryBuilder(SearchContext searchContext,
+    public MatchQueryBuilder(MapperService mapperService,
                              IndexCache indexCache,
                              @Nullable BytesRef matchType,
                              @Nullable Map options) throws IOException {
-        this.searchContext = searchContext;
+        this.mapperService = mapperService;
         this.indexCache = indexCache;
         if (matchType == null) {
             this.matchType = MultiMatchQueryBuilder.Type.BEST_FIELDS;
@@ -122,7 +121,7 @@ public class MatchQueryBuilder {
     protected Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
         FieldMapper mapper = null;
         final String field;
-        MapperService.SmartNameFieldMappers smartNameFieldMappers = searchContext.smartFieldMappers(fieldName);
+        MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(fieldName);
         if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
             mapper = smartNameFieldMappers.mapper();
             field = mapper.names().indexName();
@@ -247,10 +246,10 @@ public class MatchQueryBuilder {
                 analyzer = smartNameFieldMappers.searchAnalyzer();
             }
             if (analyzer == null) {
-                analyzer = searchContext.mapperService().searchAnalyzer();
+                analyzer = mapperService.searchAnalyzer();
             }
         } else {
-            analyzer = searchContext.mapperService().analysisService().analyzer(options.analyzer());
+            analyzer = mapperService.analysisService().analyzer(options.analyzer());
             if (analyzer == null) {
                 throw new IllegalArgumentException(
                         String.format("Analyzer \"%s\" not found.", options.analyzer()));

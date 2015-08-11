@@ -189,10 +189,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void doCollect() {
         // start collect
-        CollectorContext collectorContext = new CollectorContext()
-                .searchContext(searchContext)
-                .visitor(fieldsVisitor)
-                .jobSearchContextId((int) searchContext.id());
+        CollectorContext collectorContext = new CollectorContext(
+                searchContext.mapperService(),
+                searchContext.fieldData(),
+                fieldsVisitor
+        ).jobSearchContextId((int) searchContext.id());
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

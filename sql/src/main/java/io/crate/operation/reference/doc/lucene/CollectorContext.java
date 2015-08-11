@@ -22,37 +22,30 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.collect.LuceneDocCollector;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.search.lookup.SourceLookup;
 
 public class CollectorContext {
 
-    private SearchContext searchContext;
-    private SearchLookup searchLookup;
-    private LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+    private final MapperService mapperService;
+    private final IndexFieldDataService fieldData;
+    private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+
     private int jobSearchContextId;
+    private SourceLookup sourceLookup;
 
-    public CollectorContext() {
-    }
-
-    public SearchContext searchContext() {
-        return searchContext;
-    }
-
-    public CollectorContext searchContext(SearchContext searchContext) {
-        this.searchContext = searchContext;
-        return this;
-    }
-
-    public CollectorContext visitor(LuceneDocCollector.CollectorFieldsVisitor visitor) {
+    public CollectorContext(MapperService mapperService,
+                            IndexFieldDataService fieldData,
+                            LuceneDocCollector.CollectorFieldsVisitor visitor) {
+        this.mapperService = mapperService;
+        this.fieldData = fieldData;
         fieldsVisitor = visitor;
-        return this;
     }
 
     public LuceneDocCollector.CollectorFieldsVisitor visitor(){
         return fieldsVisitor;
     }
-
 
     public CollectorContext jobSearchContextId(int jobSearchContextId) {
         this.jobSearchContextId = jobSearchContextId;
@@ -63,15 +56,18 @@ public class CollectorContext {
         return jobSearchContextId;
     }
 
-    public CollectorContext searchLookup(SearchLookup searchLookup) {
-        this.searchLookup = searchLookup;
-        return this;
+    public MapperService mapperService() {
+        return mapperService;
     }
 
-    public SearchLookup searchLookup() {
-        if (searchLookup == null) {
-            return searchContext.lookup();
+    public IndexFieldDataService fieldData() {
+        return fieldData;
+    }
+
+    public SourceLookup sourceLookup() {
+        if (sourceLookup == null) {
+            sourceLookup = new SourceLookup();
         }
-        return searchLookup;
+        return sourceLookup;
     }
 }

@@ -310,6 +310,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause, searchContext, indexCache).query;
+        return builder.convert(clause, searchContext.mapperService(), searchContext.fieldData(), indexCache).query;
     }
 }

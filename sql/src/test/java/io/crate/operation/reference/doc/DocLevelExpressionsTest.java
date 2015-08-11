@@ -75,10 +75,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
         readerContext = directoryReader.leaves().get(0);
         fieldData.load(readerContext);
 
-        SearchContext searchContext = mock(SearchContext.class);
-        when(searchContext.mapperService()).thenReturn(mapperService);
-        when(searchContext.fieldData()).thenReturn(ifd);
-        ctx = new CollectorContext().searchContext(searchContext);
+        ctx = new CollectorContext(mapperService, ifd, null);
     }
 
     @After

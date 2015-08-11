@@ -39,8 +39,8 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
     }
 
     public void startCollect(CollectorContext context){
-        FieldMapper mapper = context.searchContext().mapperService().smartNameFieldMapper
+        FieldMapper mapper = context.mapperService().smartNameFieldMapper
                 (columnName, DEFAULT_MAPPING_TYPES);
-        indexFieldData = (IFD) context.searchContext().fieldData().getForField(mapper);
+        indexFieldData = (IFD) context.fieldData().getForField(mapper);
     }
 }

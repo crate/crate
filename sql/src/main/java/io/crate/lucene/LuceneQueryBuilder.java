@@ -78,6 +78,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
@@ -87,7 +88,6 @@ import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeFilter;
 import org.elasticsearch.index.search.geo.GeoPolygonFilter;
 import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxFilter;
-import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.*;
@@ -106,8 +106,11 @@ public class LuceneQueryBuilder {
         inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
     }
 
-    public Context convert(WhereClause whereClause, SearchContext searchContext, IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(inputSymbolVisitor, searchContext, indexCache);
+    public Context convert(WhereClause whereClause,
+                           MapperService mapperService,
+                           IndexFieldDataService indexFieldDataService,
+                           IndexCache indexCache) throws UnsupportedFeatureException {
+        Context ctx = new Context(inputSymbolVisitor, mapperService, indexFieldDataService, indexCache);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery();
         } else if (!whereClause.hasQuery()) {
@@ -123,15 +126,18 @@ public class LuceneQueryBuilder {
 
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
-        final SearchContext searchContext;
         final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+        final MapperService mapperService;
+        final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
 
         Context(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
-                SearchContext searchContext,
+                MapperService mapperService,
+                IndexFieldDataService fieldDataService,
                 IndexCache indexCache) {
             this.inputSymbolVisitor = inputSymbolVisitor;
-            this.searchContext = searchContext;
+            this.mapperService = mapperService;
+            this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
         }
 
@@ -489,7 +495,7 @@ public class LuceneQueryBuilder {
 
                     if (boolTermsFilter.clauses().isEmpty()) {
                         // all values are null...
-                        return genericFunctionQuery(input, context.inputSymbolVisitor, context.searchContext);
+                        return genericFunctionQuery(input, context);
                     }
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
@@ -498,7 +504,7 @@ public class LuceneQueryBuilder {
                     BooleanFilter filterClauses = new BooleanFilter();
                     filterClauses.add(boolTermsFilter, BooleanClause.Occur.MUST);
                     filterClauses.add(
-                            genericFunctionFilter(input, context.inputSymbolVisitor, context.searchContext),
+                            genericFunctionFilter(input, context),
                             BooleanClause.Occur.MUST);
                     return new FilteredQuery(Queries.newMatchAllQuery(), filterClauses);
                 }
@@ -668,9 +674,9 @@ public class LuceneQueryBuilder {
 
                 MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
-                    queryBuilder = new MatchQueryBuilder(context.searchContext, context.indexCache, matchType, options);
+                    queryBuilder = new MatchQueryBuilder(context.mapperService, context.indexCache, matchType, options);
                 } else {
-                    queryBuilder = new MultiMatchQueryBuilder(context.searchContext, context.indexCache, matchType, options);
+                    queryBuilder = new MultiMatchQueryBuilder(context.mapperService, context.indexCache, matchType, options);
                 }
                 return queryBuilder.query(fields, queryString);
             }
@@ -789,11 +795,11 @@ public class LuceneQueryBuilder {
                 }
                 GeoPointFieldMapper mapper = getGeoPointFieldMapper(
                         innerPair.reference().info().ident().columnIdent().fqn(),
-                        context.searchContext
+                        context.mapperService
                 );
                 Shape shape = (Shape) innerPair.input().value();
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
-                IndexGeoPointFieldData fieldData = context.searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
                 Filter filter;
                 if (geometry.isRectangle()) {
                     Rectangle boundingBox = shape.getBoundingBox();
@@ -850,9 +856,9 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.searchContext);
+                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.mapperService);
                 GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
-                IndexGeoPointFieldData fieldData = context.searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
 
                 Input geoPointInput = distanceRefLiteral.input();
                 Double[] pointValue = (Double[]) geoPointInput.value();
@@ -907,8 +913,8 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, SearchContext searchContext) {
-            MapperService.SmartNameFieldMappers smartMappers = searchContext.smartFieldMappers(fieldName);
+        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, MapperService mapperService) {
+            MapperService.SmartNameFieldMappers smartMappers = mapperService.smartName(fieldName);
             if (smartMappers == null || !smartMappers.hasMapper()) {
                 throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
             }
@@ -968,7 +974,7 @@ public class LuceneQueryBuilder {
 
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
             if (toQuery == null) {
-                return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
+                return genericFunctionQuery(function, context);
             }
 
             Query query;
@@ -977,12 +983,12 @@ public class LuceneQueryBuilder {
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToRuntime(e);
             } catch (UnsupportedOperationException e) {
-                return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
+                return genericFunctionQuery(function, context);
             }
             if (query == null) {
                 query = queryFromInnerFunction(function, context);
                 if (query == null) {
-                    return genericFunctionQuery(function, context.inputSymbolVisitor, context.searchContext);
+                    return genericFunctionQuery(function, context);
                 }
             }
             return query;
@@ -1052,9 +1058,7 @@ public class LuceneQueryBuilder {
             return function;
         }
 
-        private static Filter genericFunctionFilter(Function function,
-                                                    CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
-                                                    SearchContext searchContext) {
+        private static Filter genericFunctionFilter(Function function, Context context) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
@@ -1064,15 +1068,17 @@ public class LuceneQueryBuilder {
             // reason2: would have to load each value into the field cache
             function = (Function)DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
 
-            final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.extractImplementations(function);
+            final CollectInputSymbolVisitor.Context ctx = context.inputSymbolVisitor.extractImplementations(function);
             assert ctx.topLevelInputs().size() == 1;
             @SuppressWarnings("unchecked")
             final Input<Boolean> condition = (Input<Boolean>) ctx.topLevelInputs().get(0);
             @SuppressWarnings("unchecked")
             final List<LuceneCollectorExpression> expressions = ctx.docLevelExpressions();
-            final CollectorContext collectorContext = new CollectorContext();
-            collectorContext.searchContext(searchContext);
-            collectorContext.visitor(new LuceneDocCollector.CollectorFieldsVisitor(expressions.size()));
+            final CollectorContext collectorContext = new CollectorContext(
+                    context.mapperService,
+                    context.fieldDataService,
+                    new LuceneDocCollector.CollectorFieldsVisitor(expressions.size())
+            );
 
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
@@ -1098,12 +1104,8 @@ public class LuceneQueryBuilder {
             };
         }
 
-        private static Query genericFunctionQuery(Function function,
-                                                  CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
-                                                  SearchContext searchContext) {
-            return new FilteredQuery(
-                    Queries.newMatchAllQuery(),
-                    genericFunctionFilter(function, inputSymbolVisitor, searchContext));
+        private static Query genericFunctionQuery(Function function, Context context) {
+            return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function, context));
         }
 
         static class FunctionDocSet extends MatchDocIdSet {

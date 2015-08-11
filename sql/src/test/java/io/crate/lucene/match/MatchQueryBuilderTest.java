@@ -93,27 +93,24 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSimpleSingleMatchSingleTerm() throws Exception {
-        SearchContext searchContext = mockSearchContext();
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
-        MatchQueryBuilder builder = new MatchQueryBuilder(searchContext, cache, null, Collections.emptyMap());
+        MatchQueryBuilder builder = new MatchQueryBuilder(mockMapperService(), cache, null, Collections.emptyMap());
         Query query = builder.query(fields, new BytesRef("foo"));
         assertThat(query, instanceOf(TermQuery.class));
     }
 
     @Test
     public void testSimpleSingleMatchTwoTerms() throws Exception {
-        SearchContext searchContext = mockSearchContext();
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
-        MatchQueryBuilder builder = new MatchQueryBuilder(searchContext, cache, null, Collections.emptyMap());
+        MatchQueryBuilder builder = new MatchQueryBuilder(mockMapperService(), cache, null, Collections.emptyMap());
         Query query = builder.query(fields, new BytesRef("foo bar"));
         assertThat(query, instanceOf(BooleanQuery.class));
     }
 
     @Test
     public void testSingleFieldWithCutFrequency() throws Exception {
-        SearchContext searchContext = mockSearchContext();
         MatchQueryBuilder builder = new MatchQueryBuilder(
-                searchContext, cache, null, newMapBuilder().put("cutoff_frequency", 3).map());
+                mockMapperService(), cache, null, newMapBuilder().put("cutoff_frequency", 3).map());
 
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
         Query query = builder.query(fields, new BytesRef("foo bar"));
@@ -123,7 +120,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testTwoFieldsSingleTerm() throws Exception {
         MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
-                mockSearchContext(), cache, null, Collections.emptyMap());
+                mockMapperService(), cache, null, Collections.emptyMap());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder()
                 .put("col1", null)
                 .put("col2", null).map();
@@ -134,7 +131,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testTwoFieldsSingleTermMostFields() throws Exception {
         MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
-                mockSearchContext(), cache, new BytesRef("most_fields"), Collections.emptyMap());
+                mockMapperService(), cache, new BytesRef("most_fields"), Collections.emptyMap());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder()
                 .put("col1", null)
                 .put("col2", null).map();
@@ -145,20 +142,18 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testCrossFieldMatchType() throws Exception {
         Analyzer analyzer = new GermanAnalyzer();
-        SearchContext searchContext = mock(SearchContext.class);
         MapperService.SmartNameFieldMappers smartNameFieldMappers = mock(MapperService.SmartNameFieldMappers.class);
-        when(searchContext.smartFieldMappers(anyString())).thenReturn(smartNameFieldMappers);
         when(smartNameFieldMappers.hasMapper()).thenReturn(true);
         FieldMapper fieldMapper = mock(FieldMapper.class, Answers.RETURNS_MOCKS.get());
         when(smartNameFieldMappers.mapper()).thenReturn(fieldMapper);
         when(fieldMapper.searchAnalyzer()).thenReturn(analyzer);
 
         MapperService mapperService = mock(MapperService.class);
-        when(searchContext.mapperService()).thenReturn(mapperService);
+        when(mapperService.smartName(anyString())).thenReturn(smartNameFieldMappers);
         when(mapperService.searchAnalyzer()).thenReturn(analyzer);
 
         MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
-                searchContext, cache, new BytesRef("cross_fields"), Collections.emptyMap());
+                mapperService, cache, new BytesRef("cross_fields"), Collections.emptyMap());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder()
                 .put("col1", null)
                 .put("col2", null)
@@ -174,7 +169,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testFuzzyQuery() throws Exception {
         MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
-                mockSearchContext(), cache, null, newMapBuilder().put("fuzziness", 2).map());
+                mockMapperService(), cache, null, newMapBuilder().put("fuzziness", 2).map());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
 
         Query query = builder.query(fields, new BytesRef("foo"));
@@ -184,7 +179,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testPhraseQuery() throws Exception {
         MatchQueryBuilder builder = new MatchQueryBuilder(
-                mockSearchContext(), cache, new BytesRef("phrase"), Collections.emptyMap());
+                mockMapperService(), cache, new BytesRef("phrase"), Collections.emptyMap());
 
         Query query = builder.query(
                 MapBuilder.<String, Object>newMapBuilder().put("col1", null).map(),
@@ -196,18 +191,16 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testPhrasePrefix() throws Exception {
         MatchQueryBuilder builder = new MatchQueryBuilder(
-                mockSearchContext(), cache, new BytesRef("phrase_prefix"), Collections.emptyMap());
+                mockMapperService(), cache, new BytesRef("phrase_prefix"), Collections.emptyMap());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
         Query query = builder.query(fields, new BytesRef("foo"));
         assertThat(query, instanceOf(MultiPhrasePrefixQuery.class));
     }
 
-    private SearchContext mockSearchContext() {
+    private MapperService mockMapperService() {
         Analyzer analyzer = new GermanAnalyzer();
-        SearchContext searchContext = mock(SearchContext.class);
         MapperService mapperService = mock(MapperService.class);
-        when(searchContext.mapperService()).thenReturn(mapperService);
         when(mapperService.searchAnalyzer()).thenReturn(analyzer);
-        return searchContext;
+        return mapperService;
     }
 }

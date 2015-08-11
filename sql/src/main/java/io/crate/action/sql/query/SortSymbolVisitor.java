@@ -68,8 +68,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         public SortSymbolContext(SearchContext searchContext, boolean reverseFlag, Boolean nullFirst) {
             this.nullFirst = nullFirst;
-            this.context = new CollectorContext();
-            this.context.searchContext(searchContext);
+            this.context = new CollectorContext(
+                    searchContext.mapperService(),
+                    searchContext.fieldData(),
+                    null
+            );
             this.reverseFlag = reverseFlag;
         }
     }
@@ -117,17 +120,16 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         }
 
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
-        SearchContext searchContext = context.context.searchContext();
 
         String indexName;
         IndexFieldData.XFieldComparatorSource fieldComparatorSource;
-        FieldMapper fieldMapper = context.context.searchContext().smartNameFieldMapper(columnIdent.fqn());
+        FieldMapper fieldMapper = context.context.mapperService().smartNameFieldMapper(columnIdent.fqn());
         if (fieldMapper == null){
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
         } else {
             indexName = fieldMapper.names().indexName();
-            fieldComparatorSource = searchContext.fieldData()
+            fieldComparatorSource = context.context.fieldData()
                     .getForField(fieldMapper)
                     .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
         }

@@ -30,23 +30,15 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.EngineSearcher;
-import org.elasticsearch.cache.recycler.CacheRecycler;
-import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.internal.DefaultSearchContext;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -61,33 +53,17 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Singleton
 public class InternalCountOperation implements CountOperation {
 
-    private final ClusterService clusterService;
-    private final ScriptService scriptService;
-    private final CacheRecycler cacheRecycler;
-    private final PageCacheRecycler pageCacheRecycler;
     private final LuceneQueryBuilder queryBuilder;
-    private final BigArrays bigArrays;
     private final IndicesService indicesService;
     private final ThreadPoolExecutor executor;
     private final int corePoolSize;
-    private final ThreadPool threadPool;
 
     @Inject
-    public InternalCountOperation(ClusterService clusterService,
-                                  ScriptService scriptService,
-                                  CacheRecycler cacheRecycler,
-                                  PageCacheRecycler pageCacheRecycler,
+    public InternalCountOperation(ScriptService scriptService,
                                   LuceneQueryBuilder queryBuilder,
-                                  BigArrays bigArrays,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
-        this.clusterService = clusterService;
-        this.scriptService = scriptService;
-        this.cacheRecycler = cacheRecycler;
-        this.pageCacheRecycler = pageCacheRecycler;
         this.queryBuilder = queryBuilder;
-        this.bigArrays = bigArrays;
-        this.threadPool = threadPool;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         corePoolSize = executor.getCorePoolSize();
         this.indicesService = indicesService;
@@ -126,36 +102,15 @@ public class InternalCountOperation implements CountOperation {
             }
             throw new TableUnknownException(index, e);
         }
+
         IndexShard indexShard = indexService.shardSafe(shardId);
-
-        SearchShardTarget shardTarget = new SearchShardTarget(clusterService.localNode().id(), index, shardId);
-        SearchContext context = new DefaultSearchContext(0,
-                new ShardSearchLocalRequest(
-                        Strings.EMPTY_ARRAY,
-                        System.currentTimeMillis(),
-                        null
-                ),
-                shardTarget,
-                EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null),
-                indexService,
-                indexShard,
-                scriptService,
-                cacheRecycler,
-                pageCacheRecycler,
-                bigArrays,
-                threadPool.estimatedTimeInMillisCounter()
-        );
-        SearchContext.setCurrent(context);
-
-        try {
-            LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(whereClause, context, indexService.cache());
+        try (Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null)) {
+            LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
+                    whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
-            return Lucene.count(context.searcher(), queryCtx.query());
-        } finally {
-            context.close();
-            SearchContext.removeCurrent();
+            return Lucene.count(searcher.searcher(), queryCtx.query());
         }
     }
 

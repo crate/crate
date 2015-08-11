@@ -47,7 +47,7 @@ public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Ma
 
     @Override
     public void startCollect(CollectorContext context) {
-        sourceLookup = context.searchContext().lookup().source();
+        sourceLookup = context.sourceLookup();
     }
 
 

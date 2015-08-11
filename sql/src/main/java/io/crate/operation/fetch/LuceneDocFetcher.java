@@ -96,10 +96,11 @@ public class LuceneDocFetcher implements RowUpstream {
 
     public void doFetch(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
-        CollectorContext collectorContext = new CollectorContext()
-                .visitor(fieldsVisitor)
-                .searchContext(searchContext)
-                .searchLookup(searchContext.lookup(false));
+        CollectorContext collectorContext = new CollectorContext(
+                searchContext.mapperService(),
+                searchContext.fieldData(),
+                fieldsVisitor
+        );
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
