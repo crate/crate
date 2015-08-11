@@ -52,7 +52,7 @@ public class MultiUpstreamRowUpstreamTest extends CrateUnitTest {
             }
 
             @Override
-            public void resume() {
+            public void resume(boolean async) {
                 resume.incrementAndGet();
             }
         };
@@ -63,7 +63,7 @@ public class MultiUpstreamRowUpstreamTest extends CrateUnitTest {
         multiUpstreamRowUpstream.pause();
         assertThat(pause.get(), is(2));
 
-        multiUpstreamRowUpstream.resume();
+        multiUpstreamRowUpstream.resume(false);
         assertThat(resume.get(), is(2));
     }
 }

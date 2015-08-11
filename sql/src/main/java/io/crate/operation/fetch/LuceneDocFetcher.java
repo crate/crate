@@ -142,7 +142,7 @@ public class LuceneDocFetcher implements RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 }

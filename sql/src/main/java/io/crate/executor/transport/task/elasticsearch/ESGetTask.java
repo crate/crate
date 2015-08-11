@@ -234,7 +234,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 

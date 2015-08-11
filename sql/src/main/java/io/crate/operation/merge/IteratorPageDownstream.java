@@ -143,7 +143,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 }

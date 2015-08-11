@@ -227,7 +227,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 }

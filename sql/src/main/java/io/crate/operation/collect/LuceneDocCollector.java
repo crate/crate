@@ -288,7 +288,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         if (paused.compareAndSet(true, false)) {
             innerCollect();
         } else {
