@@ -23,6 +23,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.RowDownstream;
@@ -31,6 +32,8 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import org.mockito.Mock;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -41,17 +44,20 @@ import static org.mockito.Mockito.*;
 
 public class CountContextTest extends CrateUnitTest {
 
+    @Mock
+    public SharedShardContexts sharedShardContexts;
+
     @Test
     public void testClose() throws Exception {
 
         SettableFuture<Long> future = SettableFuture.create();
 
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
+        when(countOperation.count(anyMap(), any(WhereClause.class), any(SharedShardContexts.class))).thenReturn(future);
         RowDownstream rowDownstream = mock(RowDownstream.class);
         when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
 
-        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL, sharedShardContexts);
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
         countContext.start();
@@ -59,7 +65,7 @@ public class CountContextTest extends CrateUnitTest {
         verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         // on error
-        countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL, sharedShardContexts);
         callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
         countContext.start();
@@ -74,7 +80,7 @@ public class CountContextTest extends CrateUnitTest {
 
         RowDownstream rowDownstream = mock(RowDownstream.class);
         when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
-        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL, sharedShardContexts);
 
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
@@ -94,12 +100,14 @@ public class CountContextTest extends CrateUnitTest {
         }
 
         @Override
-        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException, InterruptedException {
+        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                            WhereClause whereClause,
+                                            SharedShardContexts sharedShardContexts) throws IOException, InterruptedException {
             return future;
         }
 
         @Override
-        public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+        public long count(String index, int shardId, WhereClause whereClause, SharedShardContexts sharedShardContexts) throws IOException, InterruptedException {
             return 0;
         }
     }

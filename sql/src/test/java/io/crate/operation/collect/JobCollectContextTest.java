@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
@@ -68,7 +69,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         jobCollectContext = new JobCollectContext(
                 UUID.randomUUID(),
                 mock(CollectPhase.class),
-                mock(CollectOperation.class), ramAccountingContext, new CollectingProjector());
+                mock(CollectOperation.class), ramAccountingContext, new CollectingProjector(), mock(SharedShardContexts.class));
     }
 
     @Test
@@ -116,7 +117,7 @@ public class JobCollectContextTest extends CrateUnitTest {
                 collectPhaseMock,
                 collectOperationMock,
                 ramAccountingContext,
-                projector);
+                projector, mock(SharedShardContexts.class));
 
         jobCtx.addContext(1, mock1);
         jobCtx.addCallback(new ContextCallback() {

@@ -24,20 +24,20 @@ package io.crate.operation.count;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.job.SharedShardContexts;
+import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
-import io.crate.operation.collect.EngineSearcher;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -54,23 +54,22 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class InternalCountOperation implements CountOperation {
 
     private final LuceneQueryBuilder queryBuilder;
-    private final IndicesService indicesService;
     private final ThreadPoolExecutor executor;
     private final int corePoolSize;
 
     @Inject
     public InternalCountOperation(ScriptService scriptService,
                                   LuceneQueryBuilder queryBuilder,
-                                  ThreadPool threadPool,
-                                  IndicesService indicesService) {
+                                  ThreadPool threadPool) {
         this.queryBuilder = queryBuilder;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         corePoolSize = executor.getCorePoolSize();
-        this.indicesService = indicesService;
     }
 
     @Override
-    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, final WhereClause whereClause)
+    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                        final WhereClause whereClause,
+                                        final SharedShardContexts sharedShardContexts)
             throws IOException, InterruptedException {
 
         List<Callable<Long>> callableList = new ArrayList<>();
@@ -80,7 +79,7 @@ public class InternalCountOperation implements CountOperation {
                 callableList.add(new Callable<Long>() {
                     @Override
                     public Long call() throws Exception {
-                        return count(index, shardId, whereClause);
+                        return count(index, shardId, whereClause, sharedShardContexts);
                     }
                 });
             }
@@ -92,25 +91,29 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
-        IndexService indexService;
-        try {
-            indexService = indicesService.indexServiceSafe(index);
-        } catch (IndexMissingException e) {
-            if (PartitionName.isPartition(index)) {
-                return 0L;
-            }
-            throw new TableUnknownException(index, e);
-        }
+    public long count(String index, int shardId, WhereClause whereClause, SharedShardContexts sharedShardContexts)
+            throws IOException, InterruptedException {
 
-        IndexShard indexShard = indexService.shardSafe(shardId);
-        try (Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null)) {
+        SharedShardContext allocatedShardContext = sharedShardContexts.getContext(new ShardId(index, shardId));
+        Engine.Searcher searcher = null;
+        try {
+            IndexService indexService = allocatedShardContext.indexService();
+            searcher = allocatedShardContext.searcher();
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                     whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
             return Lucene.count(searcher.searcher(), queryCtx.query());
+        } catch (IndexMissingException e) {
+            if (PartitionName.isPartition(index)) {
+                return 0L;
+            }
+            throw new TableUnknownException(index, e);
+        } finally {
+            if (searcher != null) {
+                searcher.close();
+            }
         }
     }
 

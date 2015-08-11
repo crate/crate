@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
@@ -37,7 +38,6 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -168,8 +168,9 @@ public class ShardCollectService {
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
                                                    int pageSize) throws Exception {
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
-        Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "search", null);
+        SharedShardContext sharedShardContext = jobCollectContext.readerAllocation().getContext(shardId);
+        Engine.Searcher searcher = sharedShardContext.searcher();
+        IndexShard indexShard = sharedShardContext.indexShard();
         CrateSearchContext searchContext = null;
         try {
              searchContext = searchContextFactory.createContext(
