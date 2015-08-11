@@ -36,5 +36,5 @@ public interface RowUpstream {
     /**
      * tells the RowUpstream that it should resume sending rows.
      */
-    void resume();
+    void resume(boolean async);
 }

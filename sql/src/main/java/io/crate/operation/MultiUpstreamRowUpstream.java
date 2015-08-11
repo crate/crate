@@ -39,10 +39,17 @@ public class MultiUpstreamRowUpstream implements RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         if (multiUpstreamRowDownstream.upstreamsRunning()) {
+            int i = 1;
             for (RowUpstream upstream : multiUpstreamRowDownstream.upstreams()) {
-                upstream.resume();
+                if (async && i == multiUpstreamRowDownstream.upstreams().size()) {
+                    // last upstream is started synchronous
+                    upstream.resume(false);
+                } else {
+                    upstream.resume(async);
+                }
+                i++;
             }
         }
    }

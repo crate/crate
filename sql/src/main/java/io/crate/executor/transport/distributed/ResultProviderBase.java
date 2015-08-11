@@ -93,7 +93,7 @@ public abstract class ResultProviderBase implements ResultProvider {
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 }

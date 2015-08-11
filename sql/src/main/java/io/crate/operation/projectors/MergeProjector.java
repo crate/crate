@@ -174,8 +174,8 @@ public class MergeProjector implements Projector  {
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {

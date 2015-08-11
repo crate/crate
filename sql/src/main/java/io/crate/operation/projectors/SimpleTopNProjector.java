@@ -109,7 +109,7 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 }
