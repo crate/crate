@@ -53,7 +53,10 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -159,11 +162,14 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         mockShard(operationRouting, 3);
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
+        // listener will be executed 2 times, once for the successfully added row and once for the failure
+        final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
         TransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new TransportShardUpsertActionDelegate() {
             @Override
             public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
+                listenerLatch.countDown();
             }
         };
 
@@ -216,7 +222,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
 
         listener.onFailure(new EsRejectedExecutionException());
         // wait, failure retry lock is done in decoupled thread
-        Thread.sleep(1);
+        listenerLatch.await(10, TimeUnit.SECONDS);
 
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
         try {
