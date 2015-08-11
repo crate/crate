@@ -78,7 +78,7 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 

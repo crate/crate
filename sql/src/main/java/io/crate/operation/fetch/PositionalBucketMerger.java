@@ -168,8 +168,8 @@ public class PositionalBucketMerger implements RowUpstream {
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 
     private static class UpstreamBucket implements Bucket {
