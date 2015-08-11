@@ -97,8 +97,9 @@ public class ContextPreparer {
 
     public List<ListenableFuture<Bucket>> prepareOnRemote(UUID jobId,
                                                           Iterable<? extends NodeOperation> nodeOperations,
-                                                          JobExecutionContext.Builder contextBuilder) {
-        PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory);
+                                                          JobExecutionContext.Builder contextBuilder,
+                                                          SharedShardContexts sharedShardContexts) {
+        PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory, sharedShardContexts);
         List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         processDownstreamExecutionPhaseIds(nodeOperations, preparerContext);
 
@@ -120,8 +121,10 @@ public class ContextPreparer {
     public List<ExecutionSubContext> prepareOnHandler(UUID jobId,
                                                       Iterable<? extends NodeOperation> nodeOperations,
                                                       JobExecutionContext.Builder contextBuilder,
-                                                      List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
-        ContextPreparer.PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory);
+                                                      List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
+                                                      @Nullable SharedShardContexts sharedShardContexts) {
+        ContextPreparer.PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory,
+                sharedShardContexts);
         processDownstreamExecutionPhaseIds(nodeOperations, preparerContext);
 
 
@@ -208,12 +211,17 @@ public class ContextPreparer {
         private final Map<Tuple<Integer, Byte>, Boolean> phaseHasSameNodeUpstream = new HashMap<>();
         private final IntObjectOpenHashMap<NodeOperation> phaseIdToNodeOperations = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new IntObjectOpenHashMap<>();
-
         private final List<ExecutionPhase> executionPhasesToProcess = new ArrayList<>();
 
-        public PreparerContext(UUID jobId, RowDownstreamFactory rowDownstreamFactory) {
+        @Nullable
+        private final SharedShardContexts sharedShardContexts;
+
+        public PreparerContext(UUID jobId,
+                               RowDownstreamFactory rowDownstreamFactory,
+                               @Nullable SharedShardContexts sharedShardContexts) {
             this.jobId = jobId;
             this.rowDownstreamFactory = rowDownstreamFactory;
+            this.sharedShardContexts = sharedShardContexts;
         }
 
         public boolean getPhaseHasSameNodeUpstream(int executionPhaseId, byte inputId) {
@@ -390,7 +398,8 @@ public class ContextPreparer {
                     phase,
                     collectOperation,
                     ramAccountingContext,
-                    rowReceiver
+                    rowReceiver,
+                    context.sharedShardContexts
             );
         }
     }

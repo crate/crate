@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -46,6 +47,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -88,13 +90,11 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
-    private MapSideDataCollectOperation operation;
     private Functions functions;
     private DocSchemaInfo docSchemaInfo;
 
     @Before
     public void prepare() {
-        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
         functions = internalCluster().getDataNodeInstance(Functions.class);
         docSchemaInfo = internalCluster().getDataNodeInstance(DocSchemaInfo.class);
 
@@ -125,7 +125,6 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @After
     public void cleanUp() {
-        operation = null;
         functions = null;
         docSchemaInfo = null;
     }
@@ -224,11 +223,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(CollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0,
                 "remoteNode");
 
-        List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(collectNode.jobId(), ImmutableList.of(nodeOperation), builder);
+        List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
+                collectNode.jobId(), ImmutableList.of(nodeOperation), builder, sharedShardContexts);
         JobExecutionContext context = contextService.createContext(builder);
         context.start();
         return results.get(0).get(2, TimeUnit.SECONDS);

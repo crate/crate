@@ -27,7 +27,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.symbol.Literal;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 

@@ -24,6 +24,7 @@ package io.crate.operation.fetch;
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
@@ -99,7 +100,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(new JobCollectContext(
                 mock(CollectPhase.class), mock(MapSideDataCollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, new CollectingRowReceiver()));
+                RAM_ACCOUNTING_CONTEXT, new CollectingRowReceiver(), mock(SharedShardContexts.class)));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(

@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.ListenableRowReceiver;
@@ -47,6 +48,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final RowReceiver rowReceiver;
+    private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
     private final Object subContextLock = new Object();
@@ -56,11 +58,13 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
-                             final RowReceiver rowReceiver) {
+                             final RowReceiver rowReceiver,
+                             SharedShardContexts sharedShardContexts) {
         super(collectPhase.executionPhaseId());
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
+        this.sharedShardContexts = sharedShardContexts;
 
         ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
         Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
@@ -178,5 +182,9 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
 
     public KeepAliveListener keepAliveListener() {
         return keepAliveListener;
+    }
+
+    public SharedShardContexts readerAllocation() {
+        return sharedShardContexts;
     }
 }

@@ -54,6 +54,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -71,6 +72,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
+    private final IndicesService indicesService;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
@@ -89,6 +91,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
+                             IndicesService indicesService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
@@ -97,6 +100,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.showStatementDispatcherProvider = showStatementDispatcherProvider;
         this.clusterService = clusterService;
+        this.indicesService = indicesService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         nodeVisitor = new NodeVisitor();
         planVisitor = new TaskCollectingVisitor();
@@ -194,6 +198,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     clusterService,
                     contextPreparer,
                     jobContextService,
+                    indicesService,
                     transportActionProvider.transportJobInitAction(),
                     nodeOperationTrees
             );

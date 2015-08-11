@@ -34,5 +34,6 @@ public interface CountOperation {
 
     ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
                                  WhereClause whereClause) throws IOException, InterruptedException;
+
     long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException;
 }

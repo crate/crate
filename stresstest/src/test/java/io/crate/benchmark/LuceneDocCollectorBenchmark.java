@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
@@ -229,10 +230,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
 
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(
+                CLUSTER.getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         jobCollectContext = new JobCollectContext(node,
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, collectingRowReceiver);
+                RAM_ACCOUNTING_CONTEXT, collectingRowReceiver, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
         return (LuceneDocCollector)shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);

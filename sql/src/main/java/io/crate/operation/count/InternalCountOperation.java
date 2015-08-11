@@ -59,7 +59,7 @@ public class InternalCountOperation implements CountOperation {
     private final int corePoolSize;
 
     @Inject
-    public InternalCountOperation(ScriptService scriptService,
+    public InternalCountOperation(ScriptService scriptService, // DO NOT REMOVE, RESULTS IN WEIRD GUICE DI ERRORS
                                   LuceneQueryBuilder queryBuilder,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
@@ -70,8 +70,8 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, final WhereClause whereClause)
-            throws IOException, InterruptedException {
+    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                        final WhereClause whereClause) throws IOException, InterruptedException {
 
         List<Callable<Long>> callableList = new ArrayList<>();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {

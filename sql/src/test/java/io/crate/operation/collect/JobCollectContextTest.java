@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.RowReceiver;
@@ -58,7 +59,10 @@ public class JobCollectContextTest extends CrateUnitTest {
         super.setUp();
         jobCollectContext = new JobCollectContext(
                 mock(CollectPhase.class),
-                mock(MapSideDataCollectOperation.class), ramAccountingContext, new CollectingRowReceiver());
+                mock(MapSideDataCollectOperation.class),
+                ramAccountingContext,
+                new CollectingRowReceiver(),
+                mock(SharedShardContexts.class));
     }
 
     @Test
@@ -102,7 +106,8 @@ public class JobCollectContextTest extends CrateUnitTest {
                 collectPhaseMock,
                 collectOperationMock,
                 ramAccountingContext,
-                rowReceiver);
+                rowReceiver,
+                mock(SharedShardContexts.class));
 
         jobCtx.addSearchContext(1, mock1);
         CrateCollector collectorMock1 = mock(CrateCollector.class);

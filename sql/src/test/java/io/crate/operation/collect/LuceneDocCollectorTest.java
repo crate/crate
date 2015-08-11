@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -160,7 +161,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         return createDocCollector(orderBy, limit, toCollect, WhereClause.MATCH_ALL, PAGE_SIZE);
     }
 
-    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize, RowReceiver projector) throws Exception{
+    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize, RowReceiver projector) throws Exception {
         UUID jobId = UUID.randomUUID();
         CollectPhase node = new CollectPhase(
                 jobId,
@@ -179,13 +180,14 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(
+                internalCluster().getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        jobCollectContext = new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector);
+        jobCollectContext = new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getDocCollector(
+        return (LuceneDocCollector)shardCollectService.getDocCollector(
                 node, projectorChain, jobCollectContext, 0, pageSize);
-        return collector;
     }
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
@@ -207,7 +209,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector docCollector = createDocCollector(orderBy, 15, orderBy.orderBySymbols());
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(15));
-        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria") );
+        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
         assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("USA"));
@@ -489,9 +491,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         );
         node.orderBy(orderBy);
 
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(
+                internalCluster().getDataNodeInstance(IndicesService.class));
+
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());
         builder.addSubContext(
-                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
+                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts));
         jobContextService.createContext(builder);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
@@ -516,10 +521,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         rowReceiver = new CollectingRowReceiver();
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(rowReceiver);
+        sharedShardContexts = new SharedShardContexts(
+                internalCluster().getDataNodeInstance(IndicesService.class));
+
         // Nulls first
         builder = jobContextService.newBuilder(node.jobId());
         builder.addSubContext(
-                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
+                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts));
         jobContextService.createContext(builder);
         jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
 

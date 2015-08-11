@@ -95,7 +95,8 @@ public class CountContextTest extends CrateUnitTest {
         }
 
         @Override
-        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, WhereClause whereClause) throws IOException, InterruptedException {
+        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                            WhereClause whereClause) throws IOException, InterruptedException {
             return future;
         }
 
