@@ -30,7 +30,6 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;

@@ -265,7 +265,7 @@ public class QueryAndFetchConsumer implements Consumer {
             this.allOutputs = allOutputs;
             this.orderBy = querySpec.orderBy();
             this.offset = querySpec.offset();
-            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);;
+            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset();
         }
     }
 
