@@ -35,15 +35,18 @@ import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -84,6 +87,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
+    protected final ThreadPoolExecutor executor;
     private final RowDownstreamHandle downstream;
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
@@ -101,15 +105,17 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private InternalCollectContext internalCollectContext;
     private int currentDocBase = 0;
 
-    public LuceneDocCollector(CrateSearchContext searchContext,
+    public LuceneDocCollector(ThreadPool threadPool,
+                              CrateSearchContext searchContext,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              CollectPhase collectNode,
+                              CollectPhase collectPhase,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {
+        this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
-        this.limit = collectNode.limit();
+        this.limit = collectPhase.limit();
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -288,7 +294,24 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void resume(boolean async) {
         if (paused.compareAndSet(true, false)) {
-            innerCollect();
+            if (!async) {
+                innerCollect();
+            } else {
+                try {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            SearchContext.setCurrent(searchContext);
+                            searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
+                            innerCollect();
+                        }
+                    });
+                } catch (EsRejectedExecutionException e) {
+                    // fallback to synchronous
+                    LOGGER.trace("Got rejected exception, will resume synchronous");
+                    innerCollect();
+                }
+            }
         } else {
             LOGGER.trace("Collector was not paused and so will not resume");
             pendingPause = false;

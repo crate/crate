@@ -55,6 +55,7 @@ public class ShardCollectService {
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
+    private final ThreadPool threadPool;
     private final ShardId shardId;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
@@ -78,6 +79,7 @@ public class ShardCollectService {
                                BlobShardReferenceResolver blobShardReferenceResolver,
                                MapperService mapperService) {
         this.searchContextFactory = searchContextFactory;
+        this.threadPool = threadPool;
         this.shardId = shardId;
         this.indexService = indexService;
         this.blobIndices = blobIndices;
@@ -135,6 +137,7 @@ public class ShardCollectService {
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
                     return getLuceneIndexCollector(
+                            threadPool,
                             normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
                 }
             } else if (granularity == RowGranularity.SHARD) {
@@ -162,7 +165,8 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(final CollectPhase collectNode,
+    private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
+                                                   final CollectPhase collectNode,
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
@@ -181,6 +185,7 @@ public class ShardCollectService {
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             if (collectNode.orderBy() != null) {
                 return new OrderedLuceneDocCollector(
+                        threadPool,
                         searchContext,
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
@@ -192,6 +197,7 @@ public class ShardCollectService {
                 );
             } else {
                 return new LuceneDocCollector(
+                        threadPool,
                         searchContext,
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),

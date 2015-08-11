@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -67,6 +68,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.*;
@@ -85,6 +87,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         private Throwable failure;
         private int pauseAfter = 5;
         private boolean finished = false;
+        private SettableFuture finishedCalled = SettableFuture.create();
 
         @Override
         public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
@@ -95,6 +98,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         @Override
         protected Bucket doFinish() {
             finished = true;
+            finishedCalled.set(true);
             return new CollectionBucket(rows);
         }
 
@@ -278,8 +282,29 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         projector.pauseAfter = NUMBER_OF_DOCS - 1;
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, projector);
         docCollector.doCollect();
-        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS - 1));
+        assertThat(projector.rows.size(), is(projector.pauseAfter));
         docCollector.resume(false);
+        assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
+        assertThat(new ArrayList<>(projector.rows), containsInAnyOrder(new ArrayList() {{
+            for (int i = 0; i < NUMBER_OF_DOCS; i++) {
+                add(equalTo(new Object[]{i}));
+            }
+        }}));
+    }
+
+    @Test
+    public void testAsynchronousResume() throws Exception {
+        PausingCollectingProjector projector = new PausingCollectingProjector();
+        ReferenceIdent populationIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "population");
+        Reference population = new Reference(new ReferenceInfo(populationIdent, RowGranularity.DOC, DataTypes.INTEGER));
+        projector.pauseAfter = NUMBER_OF_DOCS - 100;
+        LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, projector);
+        docCollector.doCollect();
+        assertThat(projector.rows.size(), is(projector.pauseAfter));
+        docCollector.resume(true);
+        assertThat(projector.rows.size(), lessThan(NUMBER_OF_DOCS));
+        // wait till collector is finished
+        projector.finishedCalled.get(10, TimeUnit.SECONDS);
         assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(new ArrayList<>(projector.rows), containsInAnyOrder(new ArrayList() {{
             for (int i = 0; i < NUMBER_OF_DOCS; i++) {
