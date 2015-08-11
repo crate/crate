@@ -40,6 +40,7 @@ import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -57,7 +58,8 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
 
     private InternalCollectContext internalCollectContext;
 
-    public OrderedLuceneDocCollector(CrateSearchContext searchContext,
+    public OrderedLuceneDocCollector(ThreadPool threadPool,
+                                     CrateSearchContext searchContext,
                                      List<Input<?>> inputs,
                                      List<LuceneCollectorExpression<?>> collectorExpressions,
                                      CollectInputSymbolVisitor<?> inputSymbolVisitor,
@@ -65,7 +67,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                                      RowDownstream downStreamProjector,
                                      RamAccountingContext ramAccountingContext,
                                      int batchSizeHint) throws Exception {
-        super(searchContext, inputs, collectorExpressions, collectNode,
+        super(threadPool, searchContext, inputs, collectorExpressions, collectNode,
                 downStreamProjector, ramAccountingContext);
         orderBy = collectNode.orderBy();
         this.batchSizeHint = batchSizeHint;
