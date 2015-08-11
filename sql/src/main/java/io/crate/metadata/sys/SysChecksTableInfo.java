@@ -33,12 +33,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.List;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
 
 @Singleton
@@ -54,8 +49,8 @@ public class SysChecksTableInfo extends SysTableInfo {
             TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()).map()
     );
 
-    private static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
+    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     public static class Columns {
         private static final ColumnIdent ID = new ColumnIdent("id");
@@ -65,14 +60,7 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     }
 
-    static {
-        register(Columns.ID, DataTypes.STRING);
-        register(Columns.SEVERITY, DataTypes.INTEGER);
-        register(Columns.DESCRIPTION, DataTypes.STRING);
-        register(Columns.PASSED, DataTypes.BOOLEAN);
-    }
-
-    private static ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
+    private ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
         ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.CLUSTER, type);
         if (info.ident().isColumn()) {
             columns.add(info);
@@ -85,6 +73,10 @@ public class SysChecksTableInfo extends SysTableInfo {
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
+        register(Columns.ID, DataTypes.STRING);
+        register(Columns.SEVERITY, DataTypes.INTEGER);
+        register(Columns.DESCRIPTION, DataTypes.STRING);
+        register(Columns.PASSED, DataTypes.BOOLEAN);
     }
 
     @Nullable
