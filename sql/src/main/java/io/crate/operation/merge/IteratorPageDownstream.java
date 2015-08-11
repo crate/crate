@@ -74,7 +74,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         if (paused.compareAndSet(true, false)) {
             processBuckets(pausedIterator, pausedListener);
         } else {

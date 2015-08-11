@@ -388,8 +388,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 
     private static class NodeBucket {

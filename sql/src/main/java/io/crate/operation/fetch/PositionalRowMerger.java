@@ -138,8 +138,8 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void resume() {
-        multiUpstreamRowUpstream.resume();
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 
     static class UpstreamBuffer implements RowDownstreamHandle {
