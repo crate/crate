@@ -64,8 +64,10 @@ public class MultiUpstreamRowDownstream implements RowDownstream, RowDownstreamH
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        pendingUpstreams.incrementAndGet();
-        registeredUpstreams.add(upstream);
+        synchronized (pendingUpstreams) {
+            pendingUpstreams.incrementAndGet();
+            registeredUpstreams.add(upstream);
+        }
         return this;
     }
 
@@ -81,20 +83,24 @@ public class MultiUpstreamRowDownstream implements RowDownstream, RowDownstreamH
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public void finish() {
-        int upstreams = pendingUpstreams.decrementAndGet();
-        assert upstreams >= 0 : "upstreams may not get negative";
-        if (upstreams == 0 && failure.get() == null) {
-            downstreamHandleProxy.finish();
+        synchronized (pendingUpstreams) {
+            int upstreams = pendingUpstreams.decrementAndGet();
+            assert upstreams >= 0 : "upstreams may not get negative";
+            if (upstreams == 0 && failure.get() == null) {
+                downstreamHandleProxy.finish();
+            }
         }
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public void fail(Throwable throwable) {
-        int upstreams = pendingUpstreams.decrementAndGet();
-        assert upstreams >= 0 : "upstreams may not get negative";
-        if (failure.compareAndSet(null, throwable)) {
-            downstreamHandleProxy.fail(throwable);
+        synchronized (pendingUpstreams) {
+            int upstreams = pendingUpstreams.decrementAndGet();
+            assert upstreams >= 0 : "upstreams may not get negative";
+            if (failure.compareAndSet(null, throwable)) {
+                downstreamHandleProxy.fail(throwable);
+            }
         }
     }
 
@@ -121,7 +127,9 @@ public class MultiUpstreamRowDownstream implements RowDownstream, RowDownstreamH
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     public boolean allUpstreamsFinishedSuccessful() {
-        return pendingUpstreams.get() == 0 && failure.get() == null;
+        synchronized (pendingUpstreams) {
+            return pendingUpstreams.get() == 0 && failure.get() == null;
+        }
     }
 
     public Throwable failure() {
