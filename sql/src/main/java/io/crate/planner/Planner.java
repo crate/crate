@@ -83,6 +83,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
         private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
+        private final Map<TableRouting, Routing> allocatedRouting = new HashMap<>();
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
@@ -161,6 +162,29 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public int nextExecutionPhaseId() {
             return executionPhaseId++;
+        }
+
+        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
+            TableRouting tr = new TableRouting(tableInfo, where, preference);
+
+            Routing routing = allocatedRouting.get(tr);
+            if (routing == null) {
+                routing = tableInfo.getRouting(where, preference);
+                allocatedRouting.put(tr, routing);
+            }
+            return routing;
+        }
+
+        private static class TableRouting {
+            final TableInfo tableInfo;
+            final WhereClause whereClause;
+            final String preference;
+
+            public TableRouting(TableInfo tableInfo, WhereClause whereClause, String preference) {
+                this.tableInfo = tableInfo;
+                this.whereClause = whereClause;
+                this.preference = preference;
+            }
         }
     }
 

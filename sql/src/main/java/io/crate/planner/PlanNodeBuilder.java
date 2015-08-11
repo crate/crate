@@ -54,7 +54,7 @@ public class PlanNodeBuilder {
                                                    WhereClause whereClause,
                                                    List<Symbol> toCollect,
                                                    ImmutableList<Projection> projections) {
-        Routing routing = tableInfo.getRouting(whereClause, null);
+        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, null);
         plannerContext.allocateJobSearchContextIds(routing);
         CollectPhase node = new CollectPhase(
                 jobId,
@@ -148,7 +148,7 @@ public class PlanNodeBuilder {
                                        @Nullable String routingPreference,
                                        @Nullable OrderBy orderBy,
                                        @Nullable Integer limit) {
-        Routing routing = tableInfo.getRouting(whereClause, routingPreference);
+        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, routingPreference);
         return collect(jobId, tableInfo, plannerContext, whereClause, routing, toCollect, projections, partitionIdent, orderBy, limit);
     }
 
