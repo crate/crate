@@ -21,13 +21,14 @@
 
 package io.crate.operation.collect.sources;
 
+import io.crate.action.job.SharedShardContext;
+import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Paging;
 import io.crate.operation.RowDownstream;
@@ -52,6 +53,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -100,8 +102,6 @@ public class ShardCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
-        int jobSearchContextId = collectPhase.routing().jobSearchContextIdBase();
-
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
@@ -132,70 +132,77 @@ public class ShardCollectSource implements CollectSource {
                 jobCollectContext.queryPhaseRamAccountingContext()
         );
 
-        Integer limit = collectPhase.limit();
-
-        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
-        LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
-                batchSizeHint, limit, batchSizeHint);
-        final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
-        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
-            if (nodeEntry.getKey().equals(localNodeId)) {
-                Map<String, List<Integer>> shardIdMap = nodeEntry.getValue();
-                for (Map.Entry<String, List<Integer>> entry : shardIdMap.entrySet()) {
-                    String indexName = entry.getKey();
-                    IndexService indexService;
-                    try {
-                        indexService = indicesService.indexServiceSafe(indexName);
-                    } catch (IndexMissingException e) {
-                        if (PartitionName.isPartition(indexName)) {
-                            continue;
-                        }
-                        throw new TableUnknownException(entry.getKey(), e);
-                    }
-
-                    for (Integer shardId : entry.getValue()) {
-                        Injector shardInjector;
-                        try {
-                            shardInjector = indexService.shardInjectorSafe(shardId);
-                            ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                            CrateCollector collector = shardCollectService.getCollector(
-                                    normalizedPhase,
-                                    projectorChain,
-                                    jobCollectContext,
-                                    jobSearchContextId,
-                                    batchSizeHint
-                            );
-                            shardCollectors.add(collector);
-                        } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
-                            throw e;
-                        } catch (Exception e) {
-                            throw new UnhandledServerException(e);
-                        }
-                        jobSearchContextId++;
-                    }
-                }
-            } else if (TableInfo.NULL_NODE_ID.equals(nodeEntry.getKey()) && localNodeId.equals(collectPhase.handlerSideCollect())) {
-                // unassigned shards
-                RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorFactory);
-
-                // use collectPhase that is only cluster-normalized as un-assigned shards aren't really on a node
-                shardCollectors.addAll(unassignedShardsCollectSource.getCollectors(
-                        collectPhase, projectorChainDownstream, jobCollectContext));
-
-            } else if (jobSearchContextId > -1) {
-                // just increase jobSearchContextId by shard size of foreign node(s) indices
-                for (List<Integer> shardIdMap : nodeEntry.getValue().values()) {
-                    jobSearchContextId += shardIdMap.size();
-                }
-            }
+        Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
+        if (locations == null) {
+            throw new IllegalStateException("locations must not be null");
         }
 
+        final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
+        if (localNodeId.equals(collectPhase.handlerSideCollect())) {
+            RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorFactory);
+            // use collectPhase that is only cluster-normalized as un-assigned shards aren't really on a node
+            shardCollectors.addAll(unassignedShardsCollectSource.getCollectors(
+                    collectPhase, projectorChainDownstream, jobCollectContext));
+        }
+
+        Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+        if (indexShards != null) {
+            shardCollectors.addAll(retrieveShardCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
+        }
         if (shardCollectors.isEmpty()) {
             projectorChain.finish();
         } else {
             projectorChain.startProjections(jobCollectContext);
         }
         return shardCollectors;
+    }
+
+    private Collection<CrateCollector> retrieveShardCollectors(JobCollectContext jobCollectContext,
+                                                               CollectPhase collectPhase,
+                                                               ShardProjectorChain projectorChain,
+                                                               Map<String, List<Integer>> indexShards) {
+
+        Integer limit = collectPhase.limit();
+        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), collectPhase.routing().numShards());
+        LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
+                batchSizeHint, limit, batchSizeHint);
+
+        List<CrateCollector> crateCollectors = new ArrayList<>();
+        SharedShardContexts sharedShardContexts = jobCollectContext.sharedShardContexts();
+        for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
+            String indexName = entry.getKey();
+            IndexService indexService;
+            try {
+                indexService = indicesService.indexServiceSafe(indexName);
+            } catch (IndexMissingException e) {
+                if (PartitionName.isPartition(indexName)) {
+                    continue;
+                }
+                throw new TableUnknownException(entry.getKey(), e);
+            }
+
+            for (Integer shardId : entry.getValue()) {
+                SharedShardContext context = sharedShardContexts.getOrCreateContext(new ShardId(indexName, shardId));
+                Injector shardInjector;
+                try {
+                    shardInjector = indexService.shardInjectorSafe(shardId);
+                    ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
+                    CrateCollector collector = shardCollectService.getCollector(
+                            collectPhase,
+                            projectorChain,
+                            jobCollectContext,
+                            context.readerId(),
+                            batchSizeHint
+                    );
+                    crateCollectors.add(collector);
+                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new UnhandledServerException(e);
+                }
+            }
+        }
+        return crateCollectors;
     }
 
 }

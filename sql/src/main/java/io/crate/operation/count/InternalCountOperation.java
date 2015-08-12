@@ -94,7 +94,7 @@ public class InternalCountOperation implements CountOperation {
     public long count(String index, int shardId, WhereClause whereClause, SharedShardContexts sharedShardContexts)
             throws IOException, InterruptedException {
 
-        SharedShardContext allocatedShardContext = sharedShardContexts.getContext(new ShardId(index, shardId));
+        SharedShardContext allocatedShardContext = sharedShardContexts.getOrCreateContext(new ShardId(index, shardId));
         Engine.Searcher searcher = null;
         try {
             IndexService indexService = allocatedShardContext.indexService();

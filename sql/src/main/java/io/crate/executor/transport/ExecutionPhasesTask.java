@@ -216,7 +216,7 @@ public class ExecutionPhasesTask extends JobTask {
         if (localNodeOperations != null) {
             SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
             for (NodeOperation nodeOperation : localNodeOperations) {
-                contextPreparer.prepare(jobId(), nodeOperation, sharedShardContexts, builder);
+                contextPreparer.prepare(jobId(), nodeOperation, sharedShardContexts, builder, localNodeOperations);
             }
         }
         builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);

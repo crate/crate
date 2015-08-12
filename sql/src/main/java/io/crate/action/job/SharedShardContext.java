@@ -25,30 +25,37 @@ import io.crate.operation.collect.EngineSearcher;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SharedShardContext {
 
+    private final static ESLogger LOGGER = Loggers.getLogger(SharedShardContext.class);
+
     private final Object mutex = new Object();
     private final IndicesService indicesService;
     private final ShardId shardId;
+    private final int readerId;
 
     private volatile RefCountSearcher searcher;
     private IndexService indexService;
     private IndexShard indexShard;
 
-    public SharedShardContext(IndicesService indicesService, ShardId shardId) {
+    public SharedShardContext(IndicesService indicesService, ShardId shardId, int readerId) {
         this.indicesService = indicesService;
         this.shardId = shardId;
+        this.readerId = readerId;
     }
 
-    public Engine.Searcher searcher() {
+    public Engine.Searcher searcher() throws IndexMissingException {
         if (searcher != null) {
             searcher.inc();
             return searcher;
@@ -70,11 +77,15 @@ public class SharedShardContext {
         return indexShard;
     }
 
-    public synchronized IndexService indexService() {
+    public synchronized IndexService indexService() throws IndexMissingException {
         if (indexService == null) {
             indexService = indicesService.indexServiceSafe(shardId.getIndex());
         }
         return indexService;
+    }
+
+    public int readerId() {
+        return readerId;
     }
 
     private static class RefCountSearcher extends Engine.Searcher {
@@ -104,13 +115,16 @@ public class SharedShardContext {
 
         @Override
         public void close() throws ElasticsearchException {
-            if (refs.decrementAndGet() == 0) {
+            int remainingRefs = refs.decrementAndGet();
+            LOGGER.trace("Close called on RefCountSearcher; Remaining refs: {}", remainingRefs);
+            if (remainingRefs == 0) {
                 searcher.close();
             }
         }
 
         void inc() {
-            refs.incrementAndGet();
+            int newRefs = refs.incrementAndGet();
+            LOGGER.trace("Searcher refs increased: {}", newRefs);
         }
     }
 }

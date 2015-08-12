@@ -45,7 +45,6 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
@@ -57,7 +56,6 @@ public class ShardCollectService {
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
     private final ShardId shardId;
-    private final IndexService indexService;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -72,7 +70,6 @@ public class ShardCollectService {
                                TransportActionProvider transportActionProvider,
                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                ShardId shardId,
-                               IndexService indexService,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
@@ -80,7 +77,6 @@ public class ShardCollectService {
                                MapperService mapperService) {
         this.searchContextFactory = searchContextFactory;
         this.shardId = shardId;
-        this.indexService = indexService;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -168,7 +164,7 @@ public class ShardCollectService {
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
                                                    int pageSize) throws Exception {
-        SharedShardContext sharedShardContext = jobCollectContext.readerAllocation().getContext(shardId);
+        SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
         IndexShard indexShard = sharedShardContext.indexShard();
         CrateSearchContext searchContext = null;

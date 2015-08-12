@@ -32,7 +32,6 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -133,7 +132,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectStar() throws Exception {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
-        waitForRelocation(ClusterHealthStatus.GREEN);
+        ensureYellow();
         execute("select * from test");
         assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
         assertEquals(0, response.rowCount());

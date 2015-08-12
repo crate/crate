@@ -31,21 +31,17 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectOperation;
-import io.crate.operation.collect.JobCollectContext;
+import io.crate.metadata.Routing;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -58,9 +54,6 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
     static ThreadPool threadPool;
     static JobContextService jobContextService;
-
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     @BeforeClass
     public static void beforeClass() {
@@ -98,9 +91,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     public void testFetchOperationNoCollectContext() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(1, new JobCollectContext(jobId,
-                mock(CollectPhase.class), mock(CollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, new CollectingProjector(), mock(SharedShardContexts.class)));
+        builder.addSubContext(1, new FetchContext("dummyNodeId", mock(SharedShardContexts.class), Collections.<Routing>emptyList()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
@@ -113,8 +104,8 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(Functions.class),
                 mock(RamAccountingContext.class));
 
-        expectedException.expect(ContextMissingException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "SearchContext for job %s with id '%s' not found", jobId, 0));
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Reader with id %d not found", jobId, 0));
 
         SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[0]);
         nodeFetchOperation.fetch(singleBucketBuilder);

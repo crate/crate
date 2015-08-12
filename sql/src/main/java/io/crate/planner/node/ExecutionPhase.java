@@ -25,6 +25,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Set;
@@ -44,7 +45,8 @@ public interface ExecutionPhase extends Streamable {
         COLLECT(CollectPhase.FACTORY),
         COUNT(CountPhase.FACTORY),
         FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
-        MERGE(MergePhase.FACTORY);
+        MERGE(MergePhase.FACTORY),
+        FETCH(FetchPhase.FACTORY);
 
         private final ExecutionPhaseFactory factory;
 

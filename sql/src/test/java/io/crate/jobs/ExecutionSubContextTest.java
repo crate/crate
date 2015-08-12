@@ -7,6 +7,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.metadata.Routing;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -14,6 +15,7 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.count.CountOperation;
+import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
@@ -23,10 +25,13 @@ import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.indices.IndicesService;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,6 +129,24 @@ public class ExecutionSubContextTest extends CrateUnitTest {
     @Test
     public void testParallelCloseCountContext() throws Throwable {
         verifyParallelClose(createCountContext());
+    }
+
+    @Test
+    public void testParallelCloseFetchContext() throws Throwable {
+        verifyParallelClose(createFetchContext());
+    }
+
+    @Test
+    public void testParallelKillFetchContext() throws Throwable {
+        verifyParallelKill(createFetchContext());
+    }
+
+    @Nonnull
+    private FetchContext createFetchContext() {
+        return new FetchContext(
+                "dummy",
+                new SharedShardContexts(mock(IndicesService.class)),
+                Collections.<Routing>emptyList());
     }
 
     @Test

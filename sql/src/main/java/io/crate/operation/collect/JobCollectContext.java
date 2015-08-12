@@ -46,7 +46,6 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class JobCollectContext implements ExecutionSubContext, RowUpstream, ExecutionState {
 
@@ -99,9 +98,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                     public void finish() {
                         rowDownstreamHandle.finish();
                         if (numUpstreams.decrementAndGet() == 0) {
-                            if (!collectPhase.keepContextForFetcher()) {
-                                close();
-                            }
+                            close();
                         }
                     }
 
@@ -223,7 +220,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         return queryPhaseRamAccountingContext;
     }
 
-    public SharedShardContexts readerAllocation() {
+    public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
     }
 }

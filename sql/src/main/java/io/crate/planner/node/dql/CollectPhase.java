@@ -63,7 +63,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
 
     private boolean isPartitioned = false;
-    private boolean keepContextForFetcher = false;
     private @Nullable String handlerSideCollect = null;
 
     private @Nullable Integer limit = null;
@@ -200,7 +199,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         }
 
         whereClause = new WhereClause(in);
-        keepContextForFetcher = in.readBoolean();
 
         if( in.readBoolean()) {
             limit = in.readVInt();
@@ -233,7 +231,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         }
         whereClause.writeTo(out);
 
-        out.writeBoolean(keepContextForFetcher);
         if (limit != null ) {
             out.writeBoolean(true);
             out.writeVInt(limit);
@@ -267,20 +264,11 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         if (changed) {
             result = new CollectPhase(jobId(), executionPhaseId(), name(), routing, newToCollect, projections);
             result.maxRowGranularity = maxRowGranularity;
-            result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
             result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);
         }
         return result;
-    }
-
-    public void keepContextForFetcher(boolean keepContextForFetcher) {
-        this.keepContextForFetcher = keepContextForFetcher;
-    }
-
-    public boolean keepContextForFetcher() {
-        return keepContextForFetcher;
     }
 
     public void handlerSideCollect(String handlerSideCollect) {

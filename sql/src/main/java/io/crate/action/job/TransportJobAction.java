@@ -89,16 +89,25 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
         List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
-        for (NodeOperation nodeOperation : request.nodeOperations()) {
-            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(
-                    request.jobId(), nodeOperation, sharedShardContexts, contextBuilder);
-            if (responseFuture != null) {
-                directResponseFutures.add(responseFuture);
+        JobExecutionContext context = null;
+        try {
+            for (NodeOperation nodeOperation : request.nodeOperations()) {
+                ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(
+                        request.jobId(), nodeOperation, sharedShardContexts, contextBuilder, request.nodeOperations());
+                if (responseFuture != null) {
+                    directResponseFutures.add(responseFuture);
+                }
             }
-        }
 
-        JobExecutionContext context = jobContextService.createContext(contextBuilder);
-        context.start();
+            context = jobContextService.createContext(contextBuilder);
+            context.start();
+        } catch (Throwable t) {
+            if (context != null) {
+                context.close();
+            }
+            actionListener.onFailure(t);
+            return;
+        }
 
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());

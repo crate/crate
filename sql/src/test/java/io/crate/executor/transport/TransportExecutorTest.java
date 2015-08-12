@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -46,6 +47,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
@@ -141,9 +143,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 null,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection((DocTableInfo) characters, (List<Symbol>) collectSymbols, (List<Symbol>) outputSymbols, (CollectPhase) collectNode, ctx);
+        FetchPhase fetchPhase = new FetchPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                ImmutableSet.of(collectNode.executionPhaseId()),
+                collectNode.executionNodes()
+        );
+        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = PlanNodeBuilder.localMerge(
                 ctx.jobId(),
@@ -151,7 +158,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -190,9 +197,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 null,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
+        FetchPhase fetchPhase = new FetchPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                ImmutableSet.of(collectNode.executionPhaseId()),
+                collectNode.executionNodes()
+        );
+        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = PlanNodeBuilder.localMerge(
                 ctx.jobId(),
@@ -200,7 +212,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -209,12 +221,16 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(rows, contains(isRow(2, "Ford")));
     }
 
-    private FetchProjection getFetchProjection(DocTableInfo characters, List<Symbol> collectSymbols, List<Symbol> outputSymbols, CollectPhase collectNode, Planner.Context ctx) {
+    private FetchProjection getFetchProjection(DocTableInfo characters,
+                                               List<Symbol> collectSymbols,
+                                               List<Symbol> outputSymbols,
+                                               FetchPhase fetchPhase,
+                                               Planner.Context ctx) {
         return new FetchProjection(
-                collectNode.executionPhaseId(),
+                fetchPhase.executionPhaseId(),
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
-                collectNode.executionNodes(),
+                fetchPhase.executionNodes(),
                 ctx.jobSearchContextIdToNode(),
                 ctx.jobSearchContextIdToShard()
         );
@@ -253,9 +269,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 orderBy,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
+        FetchPhase fetchPhase = new FetchPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                ImmutableSet.of(collectNode.executionPhaseId()),
+                collectNode.executionNodes()
+        );
+        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = PlanNodeBuilder.sortedLocalMerge(
                 ctx.jobId(),
@@ -266,7 +287,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -328,19 +349,24 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 null,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.keepContextForFetcher(true);
 
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
         topN.outputs(Collections.<Symbol>singletonList(new InputColumn(0)));
 
-        FetchProjection fetchProjection = getFetchProjection(searchf, collectSymbols, Arrays.asList(id_ref, function), collectNode, ctx);
+        FetchPhase fetchPhase = new FetchPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                ImmutableSet.of(collectNode.executionPhaseId()),
+                collectNode.executionNodes()
+        );
+        FetchProjection fetchProjection = getFetchProjection(searchf, collectSymbols, Arrays.asList(id_ref, function), fetchPhase, ctx);
 
         MergePhase mergeNode = PlanNodeBuilder.localMerge(
                 jobId,
                 ImmutableList.of(topN, fetchProjection),
                 collectNode,
                 ctx);
-        Plan plan = new QueryThenFetch(collectNode, mergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, fetchPhase, mergeNode, jobId);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -371,9 +397,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 null,
                 Constants.DEFAULT_SELECT_LIMIT
         );
-        collectNode.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, collectNode, ctx);
+        FetchPhase fetchPhase = new FetchPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                ImmutableSet.of(collectNode.executionPhaseId()),
+                collectNode.executionNodes()
+        );
+        FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = PlanNodeBuilder.localMerge(
                 jobId,
@@ -381,7 +412,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode,
                 ctx);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMergeNode, jobId);
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));

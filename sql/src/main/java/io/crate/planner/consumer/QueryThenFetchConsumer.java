@@ -25,29 +25,27 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.Functions;
+import io.crate.metadata.OutputName;
 import io.crate.operation.Paging;
 import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.MergeProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.planner.projection.builder.SplitPoints;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -131,8 +129,14 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectPhase.limit(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
             }
 
+            FetchPhase fetchPhase = new FetchPhase(
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    ImmutableList.of(collectPhase.executionPhaseId()),
+                    collectPhase.executionNodes()
+            );
             FetchProjection fp = new FetchProjection(
-                    collectPhase.executionPhaseId(),
+                    fetchPhase.executionPhaseId(),
                     DEFAULT_DOC_ID_INPUT_COLUMN,
                     collectPhase.toCollect(),
                     outputs,
@@ -141,8 +145,6 @@ public class QueryThenFetchConsumer implements Consumer {
                     context.plannerContext().jobSearchContextIdToNode(),
                     context.plannerContext().jobSearchContextIdToShard()
             );
-
-            collectPhase.keepContextForFetcher(true);
 
             MergePhase localMergePhase;
             assert qaf.localMergeNode() == null : "subRelation shouldn't plan localMerge";
@@ -175,7 +177,7 @@ public class QueryThenFetchConsumer implements Consumer {
             if (limit != null && limit + querySpec.offset() > Paging.PAGE_SIZE) {
                 localMergePhase.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
             }
-            return new QueryThenFetch(collectPhase, localMergePhase, context.plannerContext().jobId());
+            return new QueryThenFetch(collectPhase, fetchPhase, localMergePhase, context.plannerContext().jobId());
         }
 
         @Override

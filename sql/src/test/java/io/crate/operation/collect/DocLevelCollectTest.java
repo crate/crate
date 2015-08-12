@@ -223,7 +223,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(), NodeOperation.withDownstream(collectNode,
-                mock(ExecutionPhase.class), (byte) 0), sharedShardContexts, builder);
+                mock(ExecutionPhase.class), (byte) 0), sharedShardContexts, builder, Collections.<NodeOperation>emptyList());
         assert future != null;
         JobExecutionContext context = contextService.createContext(builder);
         context.start();

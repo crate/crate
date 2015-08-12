@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
@@ -30,11 +31,13 @@ import java.util.UUID;
 public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectPhase collectNode;
-    private MergePhase mergeNode;
+    private final FetchPhase fetchPhase;
+    private final MergePhase mergeNode;
     private final UUID id;
 
-    public QueryThenFetch(CollectPhase collectNode, MergePhase mergeNode, UUID id) {
+    public QueryThenFetch(CollectPhase collectNode, FetchPhase fetchPhase, MergePhase mergeNode, UUID id) {
         this.collectNode = collectNode;
+        this.fetchPhase = fetchPhase;
         this.mergeNode = mergeNode;
         this.id = id;
     }
@@ -45,6 +48,10 @@ public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
 
     public MergePhase mergeNode() {
         return mergeNode;
+    }
+
+    public FetchPhase fetchPhase() {
+        return fetchPhase;
     }
 
     @Override
