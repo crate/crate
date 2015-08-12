@@ -21,7 +21,6 @@
 
 package io.crate.operation.fetch;
 
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.*;
@@ -32,7 +31,9 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
-import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.MapperService;
 
 import java.io.IOException;
 import java.util.List;
@@ -40,6 +41,9 @@ import java.util.concurrent.CancellationException;
 
 public class LuceneDocFetcher implements RowUpstream {
 
+    private final MapperService mapperService;
+    private final IndexFieldDataService fieldDataService;
+    private final Engine.Searcher searcher;
     private final JobCollectContext jobCollectContext;
     private RamAccountingContext ramAccountingContext;
 
@@ -47,8 +51,6 @@ public class LuceneDocFetcher implements RowUpstream {
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final RowDownstreamHandle downstream;
     private final NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket;
-    private final boolean closeContext;
-    private final CrateSearchContext searchContext;
     private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
@@ -57,11 +59,13 @@ public class LuceneDocFetcher implements RowUpstream {
                             List<LuceneCollectorExpression<?>> collectorExpressions,
                             RowDownstream downstream,
                             NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket,
-                            boolean closeContext,
-                            CrateSearchContext searchContext,
+                            MapperService mapperService,
+                            IndexFieldDataService fieldDataService,
+                            Engine.Searcher searcher,
                             JobCollectContext jobCollectContext) {
-        this.closeContext = closeContext;
-        this.searchContext = searchContext;
+        this.mapperService = mapperService;
+        this.fieldDataService = fieldDataService;
+        this.searcher = searcher;
         this.jobCollectContext = jobCollectContext;
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -97,15 +101,14 @@ public class LuceneDocFetcher implements RowUpstream {
     public void doFetch(RamAccountingContext ramAccountingContext) {
         this.ramAccountingContext = ramAccountingContext;
         CollectorContext collectorContext = new CollectorContext(
-                searchContext.mapperService(),
-                searchContext.fieldData(),
+                mapperService,
+                fieldDataService,
                 fieldsVisitor
         );
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
-        SearchContext.setCurrent(searchContext);
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
@@ -114,8 +117,8 @@ public class LuceneDocFetcher implements RowUpstream {
                 }
 
                 int docId = shardDocIdsBucket.docId(index);
-                int readerIndex = ReaderUtil.subIndex(docId, searchContext.searcher().getIndexReader().leaves());
-                AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
+                int readerIndex = ReaderUtil.subIndex(docId, searcher.searcher().getIndexReader().leaves());
+                AtomicReaderContext subReaderContext = searcher.searcher().getIndexReader().leaves().get(readerIndex);
                 int subDoc = docId - subReaderContext.docBase;
                 setNextReader(subReaderContext);
                 boolean needMoreRows = fetch(shardDocIdsBucket.position(index), subDoc);
@@ -125,15 +128,7 @@ public class LuceneDocFetcher implements RowUpstream {
             }
             downstream.finish();
         } catch (Exception e) {
-            searchContext.close();
             downstream.fail(e);
-        } finally {
-            assert SearchContext.current() == searchContext;
-            searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
-            SearchContext.removeCurrent();
-            if (closeContext) {
-                searchContext.close();
-            }
         }
     }
 }

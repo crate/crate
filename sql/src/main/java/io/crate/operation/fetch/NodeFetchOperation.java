@@ -28,9 +28,11 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -49,12 +51,11 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -126,14 +127,19 @@ public class NodeFetchOperation implements RowUpstream {
         final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionPhaseId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(resultProvider, toFetchReferences.size());
-        if (closeContext) {
-            resultProvider.result().addListener(new Runnable() {
-                @Override
-                public void run() {
+        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
+            @Override
+            public void onSuccess(@Nullable Bucket result) {
+                if (closeContext) {
                     jobCollectContext.close();
                 }
-            }, MoreExecutors.directExecutor());
-        }
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                jobCollectContext.closeDueToFailure(t);
+            }
+        });
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
@@ -149,8 +155,9 @@ public class NodeFetchOperation implements RowUpstream {
                             docCtx.docLevelExpressions(),
                             upstreamsRowMerger,
                             entry.value,
-                            closeContext,
-                            searchContext,
+                            searchContext.mapperService(),
+                            searchContext.fieldData(),
+                            searchContext.engineSearcher(),
                             jobCollectContext));
         }
         try {

@@ -50,6 +50,8 @@ import java.util.Set;
 
 public class CrateSearchContext extends DefaultSearchContext {
 
+    private final Engine.Searcher engineSearcher;
+
     public CrateSearchContext(long id,
                               final long nowInMillis,
                               SearchShardTarget shardTarget,
@@ -71,6 +73,11 @@ public class CrateSearchContext extends DefaultSearchContext {
             scroll(scroll.get());
         }
         keepAlive(keepAlive);
+        this.engineSearcher = engineSearcher;
+    }
+
+    public Engine.Searcher engineSearcher() {
+        return engineSearcher;
     }
 
     private static class CrateSearchShardRequest implements ShardSearchRequest {
