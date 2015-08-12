@@ -1153,6 +1153,7 @@ optional settings.
 
 Metadata
 --------
+
 .. _cluster.info.update.interval:
 
 **cluster.info.update.interval**
@@ -1161,6 +1162,49 @@ Metadata
 
   Defines how often the cluster collect metadata information
   (e.g. disk usages etc.) if no concrete  event is triggered.
+
+Metadata Gateway
+~~~~~~~~~~~~~~~~
+
+  The gateway persists cluster meta data on disk every time the meta data
+  changes. This data is stored persistently across full cluster restarts and
+  recovered after nodes are started again.
+
+.. _gateway.expected_nodes:
+
+**gateway.expected_nodes**
+  | *Default:*   ``-1``
+  | *Runtime:*  ``no``
+
+  The setting ``gateway.expected_nodes`` defines the number of nodes that
+  should be waited for until the cluster state is recovered immediately.
+  The value of the setting should be equal to the number of nodes in the
+  cluster, because you only want the cluster state to be recovered after all
+  nodes are started.
+
+.. _gateway.recover_after_time:
+
+**gateway.recover_after_time**
+  | *Default:*   ``5m``
+  | *Runtime:*  ``no``
+
+  The ``gateway.recover_after_time`` setting defines the time to wait before
+  starting starting the recovery once the number of nodes defined in
+  ``gateway.recover_after_nodes`` are started. The setting is relevant if
+  ``gateway.recover_after_nodes`` is less than ``gateway.expected_nodes``.
+
+.. _gateway.recover_after_nodes:
+
+**gateway.recover_after_nodes**
+  | *Default:*   ``-1``
+  | *Runtime:*  ``no``
+
+  The ``gateway.recover_after_nodes`` setting defines the number of nodes that
+  need to be started before the cluster state recovery will start. Ideally the
+  value of the setting should be equal to the number of nodes in the cluster,
+  because you only want the cluster state to be recovered once all nodes are
+  started. However, the value must be bigger than the half of the expected
+  number of nodes in the cluster.
 
 Logging
 =======

@@ -1977,6 +1977,14 @@ public class CrateSettings {
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_REQUEST_TIMEOUT))
             .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(),
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT))
+            .put(CrateSettings.GATEWAY.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.GATEWAY))
+            .put(CrateSettings.GATEWAY_EXPECTED_NODES.settingName(),
+                    new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_EXPECTED_NODES))
+            .put(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.settingName(),
+                    new SettingsAppliers.TimeSettingsApplier(CrateSettings.GATEWAY_RECOVER_AFTER_TIME))
+            .put(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.settingName(),
+                    new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
             .build();
 
     @Nullable

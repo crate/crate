@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Exposed missing cluster gateway settings
+
  - Throw an exception when someone attempts to change non-runtime changeable
    settings
 
