@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added ``os_info`` column to ``sys.nodes`` table.
+   Currently the column only lists the number of available processors in the JVM
+   (which is usually equal to the number of cores of the CPU).
+
  - Improved retry logic of EC2 unicast host discovery mechanism
 
  - Fixed a deadlock that could occur if queries with high offset or limit were

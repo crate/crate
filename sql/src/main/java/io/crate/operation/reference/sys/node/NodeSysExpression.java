@@ -30,6 +30,7 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.sigar.SigarService;
@@ -82,6 +83,8 @@ public class NodeSysExpression extends NestedObjectExpression {
                 new NodeVersionExpression());
         childImplementations.put(NodeThreadPoolsExpression.NAME,
                 new NodeThreadPoolsExpression(threadPool));
+        childImplementations.put(NodeOsInfoExpression.NAME,
+                new NodeOsInfoExpression(osService.info()));
     }
 
     @Override
