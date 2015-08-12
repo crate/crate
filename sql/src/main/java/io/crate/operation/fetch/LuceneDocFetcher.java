@@ -27,7 +27,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.collect.JobCollectContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -48,7 +48,7 @@ public class LuceneDocFetcher implements RowUpstream {
     private final MapperService mapperService;
     private final IndexFieldDataService fieldDataService;
     private final Engine.Searcher searcher;
-    private final JobCollectContext jobCollectContext;
+    private final ExecutionState executionState;
     private RamAccountingContext ramAccountingContext;
 
     private final InputRow inputRow;
@@ -66,11 +66,11 @@ public class LuceneDocFetcher implements RowUpstream {
                             MapperService mapperService,
                             IndexFieldDataService fieldDataService,
                             Engine.Searcher searcher,
-                            JobCollectContext jobCollectContext) {
+                            ExecutionState executionState) {
         this.mapperService = mapperService;
         this.fieldDataService = fieldDataService;
         this.searcher = searcher;
-        this.jobCollectContext = jobCollectContext;
+        this.executionState = executionState;
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.downstream = downstream.newRowReceiver();
@@ -117,7 +117,7 @@ public class LuceneDocFetcher implements RowUpstream {
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
-                if (jobCollectContext.isKilled()) {
+                if (executionState.isKilled()) {
                     throw new CancellationException();
                 }
 
