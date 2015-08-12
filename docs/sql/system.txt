@@ -152,8 +152,12 @@ currently applied cluster settings.
     | settings['bulk']                                                                  | object    |
     | settings['bulk']['request_timeout']                                               | string    |
     | settings['bulk']['partition_creation_timeout']                                    | string    |
+    | settings['gateway']                                                               | object    |
+    | settings['gateway']['expected_nodes']                                             | integer   |
+    | settings['gateway']['recover_after_nodes']                                        | integer   |
+    | settings['gateway']['recover_after_time']                                         | string    |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 82 rows in set (... sec)
+    SELECT 86 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 

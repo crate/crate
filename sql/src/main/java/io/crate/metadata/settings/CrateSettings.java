@@ -1232,8 +1232,71 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting GATEWAY = new NestedSetting() {
+        @Override
+        public String name() {
+            return "gateway";
+        }
 
-    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK);
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(GATEWAY_RECOVERY_AFTER_NODES, GATEWAY_EXPECTED_NODES, GATEWAY_RECOVER_AFTER_TIME);
+        }
+    };
+
+    public static final IntSetting GATEWAY_RECOVERY_AFTER_NODES = new IntSetting() {
+        @Override
+        public String name() {
+            return "recover_after_nodes";
+        }
+
+        @Override
+        public Integer defaultValue() {
+            return -1;
+        }
+
+        @Override
+        public Setting parent() {
+            return GATEWAY;
+        }
+    };
+
+    public static final IntSetting GATEWAY_EXPECTED_NODES = new IntSetting() {
+        @Override
+        public String name() {
+            return "expected_nodes";
+        }
+
+        @Override
+        public Integer defaultValue() {
+            return -1;
+        }
+
+        @Override
+        public Setting parent() {
+            return GATEWAY;
+        }
+    };
+
+    public static final TimeSetting GATEWAY_RECOVER_AFTER_TIME = new TimeSetting() {
+        @Override
+        public String name() {
+            return "recover_after_time";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueMinutes(5);
+        }
+
+        @Override
+        public Setting parent() {
+            return GATEWAY;
+        }
+    };
+
+
+    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(CrateSettings.STATS.settingName(),
@@ -1388,6 +1451,14 @@ public class CrateSettings {
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_REQUEST_TIMEOUT))
             .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(),
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT))
+            .put(CrateSettings.GATEWAY.settingName(),
+                    new SettingsAppliers.ObjectSettingsApplier(CrateSettings.GATEWAY))
+            .put(CrateSettings.GATEWAY_EXPECTED_NODES.settingName(),
+                    new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_EXPECTED_NODES))
+            .put(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.settingName(),
+                    new SettingsAppliers.TimeSettingsApplier(CrateSettings.GATEWAY_RECOVER_AFTER_TIME))
+            .put(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.settingName(),
+                    new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
             .build();
 
     @Nullable

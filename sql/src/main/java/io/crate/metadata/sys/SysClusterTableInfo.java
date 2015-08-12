@@ -349,6 +349,14 @@ public class SysClusterTableInfo extends SysTableInfo {
                 CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.BULK.name(),
                 CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+
+        register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.GATEWAY.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.GATEWAY.name(),
+                CrateSettings.GATEWAY_EXPECTED_NODES.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.GATEWAY.name(),
+                CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.GATEWAY.name(),
+                CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()));
     }
 
     @Inject

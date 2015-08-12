@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Exposed the cluster gateway settings
+
  - Added ``os_info`` column to ``sys.nodes`` table.
    Currently the column only lists the number of available processors in the JVM
    (which is usually equal to the number of cores of the CPU).
