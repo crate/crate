@@ -178,7 +178,7 @@ public class ShardCollectService {
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
                                                    int pageSize) throws Exception {
-        SharedShardContext sharedShardContext = jobCollectContext.readerAllocation().getContext(shardId);
+        SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
         IndexShard indexShard = sharedShardContext.indexShard();
         CrateSearchContext searchContext = null;

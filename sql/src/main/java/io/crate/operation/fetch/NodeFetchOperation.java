@@ -30,7 +30,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.ContextMissingException;
@@ -42,12 +41,13 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -120,25 +120,27 @@ public class NodeFetchOperation {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionPhaseId);
+        final FetchContext fetchContext = jobExecutionContext.getSubContext(executionPhaseId);
 
         RowDownstream upstreamsRowMerger = new PositionalRowMerger(bucketBuilder, toFetchReferences.size());
         Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
-                jobCollectContext.close();
+                fetchContext.close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                jobCollectContext.closeDueToFailure(t);
+                fetchContext.close(); // closeDueToFailure(t);
             }
         });
 
         List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
         for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
-            CrateSearchContext searchContext = jobCollectContext.getContext(entry.key);
-            if (searchContext == null) {
+            Engine.Searcher searcher = fetchContext.searcher(entry.key);
+            IndexService indexService = fetchContext.indexService(entry.key);
+            if (searcher == null) {
+                // TODO: correct contextType
                 throw new ContextMissingException(ContextMissingException.ContextType.SEARCH_CONTEXT, jobId, entry.key);
             }
             // create new collect expression for every shard (collect expressions are not thread-safe)
@@ -149,10 +151,10 @@ public class NodeFetchOperation {
                             docCtx.docLevelExpressions(),
                             upstreamsRowMerger,
                             entry.value,
-                            searchContext.mapperService(),
-                            searchContext.fieldData(),
-                            searchContext.engineSearcher(),
-                            jobCollectContext));
+                            indexService.mapperService(),
+                            indexService.fieldData(),
+                            searcher,
+                            fetchContext));
         }
         try {
             runFetchThreaded(shardFetchers, ramAccountingContext);

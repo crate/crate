@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;

@@ -60,6 +60,13 @@ public class NodeOperation implements Streamable {
         readFrom(in);
     }
 
+    public static NodeOperation withoutDownstream(ExecutionPhase executionPhase) {
+        return new NodeOperation(executionPhase,
+                ImmutableList.<String>of(),
+                ExecutionPhase.NO_EXECUTION_PHASE,
+                (byte) 0);
+    }
+
     public static NodeOperation withDownstream(ExecutionPhase executionPhase,
                                                ExecutionPhase downstreamExecutionPhase,
                                                byte inputId,
@@ -146,4 +153,5 @@ public class NodeOperation implements Streamable {
     public byte downstreamExecutionPhaseInputId() {
         return downstreamExecutionPhaseInputId;
     }
+
 }

@@ -70,9 +70,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
             @Override
             public void onSuccess(@Nullable Void result) {
-                if (!collectPhase.keepContextForFetcher()) {
-                    close();
-                }
+                close();
             }
 
             @Override
@@ -184,7 +182,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         return keepAliveListener;
     }
 
-    public SharedShardContexts readerAllocation() {
+    public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
     }
 }

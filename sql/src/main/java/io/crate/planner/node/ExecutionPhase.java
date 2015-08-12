@@ -25,6 +25,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Set;
@@ -34,6 +35,8 @@ public interface ExecutionPhase extends Streamable {
 
     String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
 
+    int NO_EXECUTION_PHASE = Integer.MAX_VALUE;
+
     interface ExecutionPhaseFactory<T extends ExecutionPhase> {
         T create();
     }
@@ -42,7 +45,8 @@ public interface ExecutionPhase extends Streamable {
         COLLECT(CollectPhase.FACTORY),
         COUNT(CountPhase.FACTORY),
         FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
-        MERGE(MergePhase.FACTORY);
+        MERGE(MergePhase.FACTORY),
+        FETCH(FetchPhase.FACTORY);
 
         private final ExecutionPhaseFactory factory;
 

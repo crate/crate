@@ -70,6 +70,10 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
+    public R visitQueryThenFetch(QueryThenFetch plan, C context) {
+        return visitPlan(plan, context);
+    }
+
     public R visitCountPlan(CountPlan countPlan, C context) {
         return visitPlan(countPlan, context);
     }
@@ -81,4 +85,5 @@ public class PlanVisitor<C, R> {
     public R visitGenericShowPlan(GenericShowPlan genericShowPlan, C context) {
         return visitPlan(genericShowPlan, context);
     }
+
 }

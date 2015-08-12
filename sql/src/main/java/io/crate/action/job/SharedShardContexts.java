@@ -31,19 +31,29 @@ public class SharedShardContexts {
 
     private final IndicesService indicesService;
     private final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
+    private int readerId = 0;
 
     public SharedShardContexts(IndicesService indicesService) {
         this.indicesService = indicesService;
     }
 
-    public SharedShardContext getContext(ShardId shardId) {
+
+    public SharedShardContext createContext(ShardId shardId, int readerId) {
+        assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
+        SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+        allocatedShards.put(shardId, sharedShardContext);
+        return sharedShardContext;
+    }
+
+    public SharedShardContext getOrCreateContext(ShardId shardId) {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
             synchronized (this) {
                 sharedShardContext = allocatedShards.get(shardId);
                 if (sharedShardContext == null) {
-                    sharedShardContext = new SharedShardContext(indicesService, shardId);
+                    sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
                     allocatedShards.put(shardId, sharedShardContext);
+                    readerId++;
                 }
                 return sharedShardContext;
             }

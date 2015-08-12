@@ -29,9 +29,9 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.IntegerType;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -108,7 +108,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
                 mock(CollectPhase.class),
                 mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
-                new CollectingRowReceiver(),
+                mock(RowReceiver.class),
                 mock(SharedShardContexts.class));
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
                 2, "dummy",
