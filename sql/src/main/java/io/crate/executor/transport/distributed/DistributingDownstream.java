@@ -53,6 +53,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     protected final BlockingQueue<Row> rowQueue;
     protected final Downstream[] downstreams;
     protected final int pageSize;
+    private volatile boolean killed = false;
 
     public DistributingDownstream(UUID jobId,
                                   int targetExecutionNodeId,
@@ -156,6 +157,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
         if (t instanceof CancellationException) {
             // fail without sending anything
             logger().debug("{} killed", getClass().getSimpleName());
+            killed = true;
         } else {
             forwardFailures(t);
         }
@@ -175,7 +177,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             }
         }
 
-        if (needMore && !lastPageSent.get()) {
+        if (needMore && !lastPageSent.get() && !killed) {
             sendRequestsIfNeeded();
         }
     }
