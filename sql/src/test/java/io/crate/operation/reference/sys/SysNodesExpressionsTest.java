@@ -57,6 +57,7 @@ import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.network.NetworkProbe;
 import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.network.NetworkStats;
+import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessInfo;
@@ -139,6 +140,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             when(mem.actualUsed()).thenReturn(byteSizeValue);
             when(mem.usedPercent()).thenReturn((short) 22);
             when(mem.freePercent()).thenReturn((short) 78);
+
+            OsInfo osInfo = mock(OsInfo.class);
+            when(osService.info()).thenReturn(osInfo);
+            when(osInfo.availableProcessors()).thenReturn(4);
 
             bind(OsService.class).toInstance(osService);
 
@@ -537,6 +542,16 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         cpuObj.put("system", 1000L);
         cpuObj.put("user", 500L);
         assertEquals(cpuObj, v.get("cpu"));
+    }
+
+    @Test
+    public void testOsInfo() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os_info");
+        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(ident);
+
+        Map<String, Object> v = ref.value();
+        int cores = (int) v.get("available_processors");
+        assertEquals(4, cores);
     }
 
     @Test

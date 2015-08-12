@@ -407,10 +407,23 @@ os
 |                           | of the OS probe.                             |             |
 +---------------------------+----------------------------------------------+-------------+
 
-The cpu information values are cached for 1s. They might differ from the actual values 
-at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
-cpu usage over time, always use ``os['probe_timestamp']`` to calculate the time difference 
-between 2 probes.
+The cpu information values are cached for 1s. They might differ from the actual
+values at query time. Use the probe timestamp to get the time of the collect.
+When analyzing the cpu usage over time, always use ``os['probe_timestamp']`` to
+calculate the time difference between 2 probes.
+
+os_info
+-------
+
++-------------------------------------+----------------------------------------------+-------------+
+|       Column Name                   |                 Description                  | Return Type |
++=====================================+==============================================+=============+
+| ``os_info``                         | Operating system information                 | ``Object``  |
++-------------------------------------+----------------------------------------------+-------------+
+| ``os_info['available_processors']`` | Number of processors that are available in   | ``Integer`` |
+|                                     | the JVM. This is usually equal to the number |             |
+|                                     | of cores of the CPU.                         |             |
++-------------------------------------+----------------------------------------------+-------------+
 
 network
 -------
