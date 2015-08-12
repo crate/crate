@@ -23,8 +23,8 @@ package io.crate.operation.fetch;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.*;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -44,7 +44,7 @@ public class LuceneDocFetcher implements RowUpstream {
     private final MapperService mapperService;
     private final IndexFieldDataService fieldDataService;
     private final Engine.Searcher searcher;
-    private final JobCollectContext jobCollectContext;
+    private final ExecutionState executionState;
     private RamAccountingContext ramAccountingContext;
 
     private final InputRow inputRow;
@@ -62,11 +62,11 @@ public class LuceneDocFetcher implements RowUpstream {
                             MapperService mapperService,
                             IndexFieldDataService fieldDataService,
                             Engine.Searcher searcher,
-                            JobCollectContext jobCollectContext) {
+                            ExecutionState executionState) {
         this.mapperService = mapperService;
         this.fieldDataService = fieldDataService;
         this.searcher = searcher;
-        this.jobCollectContext = jobCollectContext;
+        this.executionState = executionState;
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.downstream = downstream.registerUpstream(this);
@@ -112,7 +112,7 @@ public class LuceneDocFetcher implements RowUpstream {
 
         try {
             for (int index = 0; index < shardDocIdsBucket.size(); index++) {
-                if (jobCollectContext.isKilled()) {
+                if (executionState.isKilled()) {
                     throw new CancellationException();
                 }
 
