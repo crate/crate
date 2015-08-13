@@ -78,7 +78,6 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.downstream = new RowDownstream() {
 
-            final AtomicLong rowCount = new AtomicLong();
             final AtomicInteger numUpstreams = new AtomicInteger();
 
             @Override
@@ -89,7 +88,6 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
                     @Override
                     public boolean setNextRow(Row row) {
-                        rowCount.incrementAndGet();
                         return rowDownstreamHandle.setNextRow(row);
                     }
 
@@ -97,7 +95,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                     public void finish() {
                         rowDownstreamHandle.finish();
                         if (numUpstreams.decrementAndGet() == 0) {
-                            if (rowCount.get() == 0 || !collectPhase.keepContextForFetcher()) {
+                            if (!collectPhase.keepContextForFetcher()) {
                                 close();
                             }
                         }
