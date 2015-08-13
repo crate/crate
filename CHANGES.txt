@@ -11,15 +11,31 @@ Unreleased
    Currently the column only lists the number of available processors in the JVM
    (which is usually equal to the number of cores of the CPU).
 
- - Improved retry logic of EC2 unicast host discovery mechanism
-
- - Fixed a deadlock that could occur if queries with high offset or limit were
-   executed concurrently
-
  - Upgraded Elasticsearch to 1.7.1
    This update changes the default value for delayed allocation of unassigned
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).
    Also updated the upstream of EC2 discovery module
+
+2015/08/13 0.51.1
+=================
+
+ - Improved retry logic of EC2 unicast host discovery mechanism
+
+ - Updated crate-admin to 0.14.3 which includes the following changes:
+
+   - fixed line wrapping in console result table
+
+ - Fixed an issue which could cause the blob recovery process to hang under some
+   rare circumstances
+
+ - Fixed an issue that caused ``COPY TO .. s3`` statements to leave the cluster
+   in an inaccessible state
+
+ - Fixed a deadlock that could occur if queries with high offset or limit were
+   executed concurrently
+
+ - Fixed an issue that could cause a count function on partitioned tables
+   to cause an error if a partition was deleted concurrently.
 
 2015/08/06 0.50.3
 =================
