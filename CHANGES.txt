@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/08/13 0.51.1
+=================
+
  - Improved retry logic of EC2 unicast host discovery mechanism
 
  - Updated crate-admin to 0.14.3 which includes the following changes:
