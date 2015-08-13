@@ -161,7 +161,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             e.setNextDocId(doc);
         }
         boolean wantMore = downstream.setNextRow(inputRow);
-        if (!wantMore || (limit != null && rowCount == limit)) {
+        if (!wantMore || (limit != null && rowCount >= limit)) {
             // no more rows required, we can stop here
             throw new CollectionFinishedEarlyException();
         }
@@ -216,9 +216,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             searchContext.close();
             downstream.fail(e);
         } finally {
-            if (rowCount == 0) {
-                searchContext.close();
-            }
             searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
             assert SearchContext.current() == searchContext;
             searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
