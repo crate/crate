@@ -120,7 +120,6 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                 request.executionPhaseId(),
                 request.jobSearchContextDocIds(),
                 request.toFetchReferences(),
-                request.closeContext(),
                 jobContextService,
                 threadPool,
                 functions,

@@ -64,7 +64,6 @@ public class NodeFetchOperation implements RowUpstream {
     private final UUID jobId;
     private final int executionPhaseId;
     private final List<Reference> toFetchReferences;
-    private final boolean closeContext;
     private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
 
     private final JobContextService jobContextService;
@@ -81,7 +80,6 @@ public class NodeFetchOperation implements RowUpstream {
                               int executionPhaseId,
                               LongArrayList jobSearchContextDocIds,
                               List<Reference> toFetchReferences,
-                              boolean closeContext,
                               JobContextService jobContextService,
                               ThreadPool threadPool,
                               Functions functions,
@@ -89,7 +87,6 @@ public class NodeFetchOperation implements RowUpstream {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.toFetchReferences = toFetchReferences;
-        this.closeContext = closeContext;
         this.jobContextService = jobContextService;
         this.ramAccountingContext = ramAccountingContext;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
@@ -130,9 +127,7 @@ public class NodeFetchOperation implements RowUpstream {
         Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
-                if (closeContext) {
-                    jobCollectContext.close();
-                }
+                jobCollectContext.close();
             }
 
             @Override

@@ -39,7 +39,6 @@ public class NodeFetchRequest extends TransportRequest {
     private int executionPhaseId;
     private LongArrayList jobSearchContextDocIds;
     private List<Reference> toFetchReferences;
-    private boolean closeContext = true;
 
     public NodeFetchRequest() {
     }
@@ -76,14 +75,6 @@ public class NodeFetchRequest extends TransportRequest {
         return toFetchReferences;
     }
 
-    public void closeContext(boolean closeContext) {
-        this.closeContext = closeContext;
-    }
-
-    public boolean closeContext() {
-        return closeContext;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -99,7 +90,6 @@ public class NodeFetchRequest extends TransportRequest {
         for (int i = 0; i < symbolsSize; i++) {
             toFetchReferences.add(Reference.fromStream(in));
         }
-        closeContext = in.readBoolean();
     }
 
     @Override
@@ -116,7 +106,6 @@ public class NodeFetchRequest extends TransportRequest {
         for (Reference reference : toFetchReferences) {
             Reference.toStream(reference, out);
         }
-        out.writeBoolean(closeContext);
     }
 
 }

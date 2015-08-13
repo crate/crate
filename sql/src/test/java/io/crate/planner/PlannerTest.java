@@ -23,7 +23,6 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.projectors.FetchProjector;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -591,7 +590,6 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
 
         // with offset
         plan = (QueryThenFetch)plan("select name from users offset 20");
@@ -607,7 +605,6 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(FetchProjector.NO_BULK_REQUESTS));
     }
 
     @Test
@@ -625,7 +622,6 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(-1));
 
         // with offset
         plan = (QueryThenFetch)plan("select name from users limit 100000 offset 20");
@@ -641,7 +637,6 @@ public class PlannerTest extends CrateUnitTest {
         assertNull(topN.orderBy());
 
         fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-        assertThat(fetchProjection.bulkSize(), is(-1));
     }
 
 

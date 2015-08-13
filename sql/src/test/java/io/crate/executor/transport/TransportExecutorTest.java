@@ -34,23 +34,13 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
-import io.crate.planner.IterablePlan;
-import io.crate.planner.Plan;
-import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.Planner;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
@@ -61,12 +51,7 @@ import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -78,9 +63,7 @@ import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 
@@ -232,7 +215,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
                 characters.partitionedByColumns(),
                 collectNode.executionNodes(),
-                false,
                 ctx.jobSearchContextIdToNode(),
                 ctx.jobSearchContextIdToShard()
         );

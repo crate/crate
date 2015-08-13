@@ -348,8 +348,7 @@ public class ProjectionToProjectorVisitor
                 projection.partitionedBy(),
                 projection.jobSearchContextIdToNode(),
                 projection.jobSearchContextIdToShard(),
-                projection.executionNodes(),
-                projection.closeContexts());
+                projection.executionNodes());
     }
 
     @Override

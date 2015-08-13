@@ -24,7 +24,6 @@ package io.crate.planner.projection;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -51,8 +50,6 @@ public class FetchProjection extends Projection {
     private List<Symbol> outputSymbols;
     private List<ReferenceInfo> partitionBy;
     private Set<String> executionNodes;
-    private int bulkSize = FetchProjector.NO_BULK_REQUESTS;
-    private boolean closeContexts;
     private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
     private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
 
@@ -65,7 +62,6 @@ public class FetchProjection extends Projection {
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
-                           boolean closeContexts,
                            IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                            IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
         this.executionPhaseId = executionPhaseId;
@@ -74,7 +70,6 @@ public class FetchProjection extends Projection {
         this.outputSymbols = outputSymbols;
         this.partitionBy = partitionBy;
         this.executionNodes = executionNodes;
-        this.closeContexts = closeContexts;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
     }
@@ -102,25 +97,6 @@ public class FetchProjection extends Projection {
     public Set<String> executionNodes() {
         return executionNodes;
     }
-
-    /**
-     * Removed paging support:
-     *  - As there is no client-paging yet the FetchProjector must always fetch all rows anyway.
-     *  - There was a race condition: Fetch requests could arrive out of order on the FetchNode
-     *    and this could lead to the JobExecutionContext being closed by the "last" request before a "previous"
-     *    request arrived.
-     *
-     * the field is still here for serialization compatibility
-     */
-    @Deprecated
-    public int bulkSize() {
-        return bulkSize;
-    }
-
-    public boolean closeContexts() {
-        return closeContexts;
-    }
-
 
     public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
         return jobSearchContextIdToNode;
@@ -153,8 +129,6 @@ public class FetchProjection extends Projection {
         FetchProjection that = (FetchProjection) o;
 
         if (executionPhaseId != that.executionPhaseId) return false;
-        if (closeContexts != that.closeContexts) return false;
-        if (bulkSize != that.bulkSize) return false;
         if (executionNodes != that.executionNodes) return false;
         if (!docIdSymbol.equals(that.docIdSymbol)) return false;
         if (!inputSymbols.equals(that.inputSymbols)) return false;
@@ -172,8 +146,6 @@ public class FetchProjection extends Projection {
         result = 31 * result + outputSymbols.hashCode();
         result = 31 * result + partitionBy.hashCode();
         result = 31 * result + executionNodes.hashCode();
-        result = 31 * result + bulkSize;
-        result = 31 * result + (closeContexts ? 1 : 0);
         return result;
     }
 
@@ -203,8 +175,6 @@ public class FetchProjection extends Projection {
         for (int i = 0; i < executionNodesSize; i++) {
             executionNodes.add(in.readString());
         }
-        bulkSize = in.readVInt();
-        closeContexts = in.readBoolean();
 
         int numJobSearchContextIdToNode = in.readVInt();
         jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
@@ -238,8 +208,6 @@ public class FetchProjection extends Projection {
         for (String nodeId : executionNodes) {
             out.writeString(nodeId);
         }
-        out.writeVInt(bulkSize);
-        out.writeBoolean(closeContexts);
 
         out.writeVInt(jobSearchContextIdToNode.size());
         for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {

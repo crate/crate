@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongArrayList;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
@@ -68,7 +69,6 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final List<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<String> jobSearchContextIdToNode;
     private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
-    private final boolean closeContexts;
     private final RowDelegate collectRowDelegate = new RowDelegate();
     private final RowDelegate fetchRowDelegate = new RowDelegate();
     private final RowDelegate partitionRowDelegate = new RowDelegate();
@@ -83,6 +83,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     private final Map<String, Row> partitionRowsCache = new HashMap<>();
     private final Object partitionRowsCacheLock = new Object();
     private final List <Throwable> failures = Collections.synchronizedList(new ArrayList<Throwable>());
+    private final Set<String> nodesWithOpenContexts;
 
     private int inputCursor = 0;
     private boolean consumedRows = false;
@@ -102,8 +103,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                           List<ReferenceInfo> partitionedBy,
                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
                           IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard,
-                          Set<String> executionNodes,
-                          boolean closeContexts) {
+                          Set<String> executionNodes) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.transportCloseContextNodeAction = transportCloseContextNodeAction;
         this.jobId = jobId;
@@ -112,9 +112,9 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         this.partitionedBy = partitionedBy;
         this.jobSearchContextIdToNode = jobSearchContextIdToNode;
         this.jobSearchContextIdToShard = jobSearchContextIdToShard;
-        this.closeContexts = closeContexts;
         numNodes = executionNodes.size();
         this.executionNodes = new ArrayList<>(executionNodes);
+        nodesWithOpenContexts = Sets.newConcurrentHashSet(executionNodes);
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
@@ -209,7 +209,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
             // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
             if (!consumedRows) {
-                closeContextsIfRequiredAndFinish();
+                closeContextsAndFinish();
             } else {
                 finishDownstream();
                 // projector registered itself as an upstream to prevent downstream of
@@ -229,7 +229,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                     return;
                 }
             }
-            downstream.fail(failures.get(failures.size()-1));
+            downstream.fail(failures.get(failures.size() - 1));
         }
     }
 
@@ -276,6 +276,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
         transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
             @Override
             public void onResponse(NodeFetchResponse response) {
+                nodesWithOpenContexts.remove(nodeBucket.nodeId);
                 List<Row> rows = new ArrayList<>(response.rows().size());
                 int idx = 0;
                 synchronized (rowDelegateLock) {
@@ -301,7 +302,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
                     consumingRows.set(false);
                 }
                 if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
-                    closeContextsIfRequiredAndFinish();
+                    closeContextsAndFinish();
                 } else {
                     downstream.finish();
                 }
@@ -309,6 +310,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
             @Override
             public void onFailure(Throwable e) {
+                nodesWithOpenContexts.remove(nodeBucket.nodeId);
                 consumingRows.set(false);
                 if (executionState.isKilled()) {
                     downstream.fail(new CancellationException());
@@ -320,19 +322,13 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
 
     }
 
-    /**
-     * close job contexts on all affected nodes
-     */
-    private void closeContextsIfRequiredAndFinish() {
-        if (closeContexts) {
-            closeContextsAndFinish();
-        } else {
-            finishDownstream();
-        }
-    }
-
     private void closeContextsAndFinish() {
-        LOGGER.trace("closing job context {} on {} nodes", jobId, numNodes);
+        if (nodesWithOpenContexts.isEmpty()) {
+            finishDownstream();
+            return;
+        }
+
+        LOGGER.trace("closing job context {} on {} nodes", jobId, nodesWithOpenContexts.size());
         final SettableFuture<Void> allClosed = SettableFuture.create();
         allClosed.addListener(new Runnable() {
             @Override
@@ -341,8 +337,8 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
             }
         }, MoreExecutors.directExecutor());
 
-        final AtomicInteger pendingRequests = new AtomicInteger(executionNodes.size());
-        for (final String nodeId : executionNodes) {
+        final AtomicInteger pendingRequests = new AtomicInteger(nodesWithOpenContexts.size());
+        for (final String nodeId : nodesWithOpenContexts) {
             try {
                 transportCloseContextNodeAction.execute(nodeId,
                         new NodeCloseContextRequest(jobId, executionPhaseId),

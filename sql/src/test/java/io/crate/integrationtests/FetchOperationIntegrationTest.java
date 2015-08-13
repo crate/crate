@@ -237,7 +237,6 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             nodeFetchRequest.jobId(plan.collectNode().jobId());
             nodeFetchRequest.executionPhaseId(plan.collectNode().executionPhaseId());
             nodeFetchRequest.toFetchReferences(context.references());
-            nodeFetchRequest.closeContext(true);
             nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());
 
             transportFetchNodeAction.execute(nodeEntry.getKey(), nodeFetchRequest, new ActionListener<NodeFetchResponse>() {

@@ -70,8 +70,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 Collections.<ReferenceInfo>emptyList(),
                 IntObjectOpenHashMap.<String>newInstance(),
                 IntObjectOpenHashMap.<ShardId>newInstance(),
-                ImmutableSet.of("missing-node"),
-                true);
+                ImmutableSet.of("missing-node"));
         projector.registerUpstream(mock(RowUpstream.class));
         projector.downstream(downstream);
         projector.fail(new Throwable("Something when wrong"));

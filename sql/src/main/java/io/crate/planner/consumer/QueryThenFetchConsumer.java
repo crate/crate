@@ -138,7 +138,6 @@ public class QueryThenFetchConsumer implements Consumer {
                     outputs,
                     table.tableRelation().tableInfo().partitionedByColumns(),
                     collectPhase.executionNodes(),
-                    querySpec.isLimited(),
                     context.plannerContext().jobSearchContextIdToNode(),
                     context.plannerContext().jobSearchContextIdToShard()
             );
