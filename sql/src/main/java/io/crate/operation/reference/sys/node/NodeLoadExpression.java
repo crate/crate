@@ -45,7 +45,7 @@ public class NodeLoadExpression extends SysNodeObjectReference {
         });
     }
 
-    class LoadExpression extends SysNodeExpression<Double> {
+    static class LoadExpression extends SysNodeExpression<Double> {
 
         private final int idx;
         private final OsStats stats;

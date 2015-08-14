@@ -39,7 +39,6 @@ public abstract class ResultProviderBase implements ResultProvider {
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    protected ExecutionState executionState;
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
@@ -49,7 +48,6 @@ public abstract class ResultProviderBase implements ResultProvider {
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        this.executionState = executionState;
     }
 
     /**

@@ -81,7 +81,7 @@ public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
         return diskRefs;
     }
 
-    private class NodeFsDiskChildExpression extends SysNodeObjectReference {
+    private static class NodeFsDiskChildExpression extends SysNodeObjectReference {
 
         public static final String DEV = "dev";
         public static final String SIZE = "size";

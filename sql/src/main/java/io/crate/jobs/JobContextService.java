@@ -36,7 +36,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -125,7 +124,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "context for job %s already exists:\n%s", jobId, existing));
+                        String.format(Locale.ENGLISH, "context for job %s already exists:%n%s", jobId, existing));
             }
         } finally {
             readLock.unlock();
@@ -137,10 +136,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         long numKilled = 0L;
         long now = System.nanoTime();
         writeLock.lock();
-        for (KillAllListener killAllListener : killAllListeners) {
-            killAllListener.killAllJobs(now);
-        }
         try {
+            for (KillAllListener killAllListener : killAllListeners) {
+                killAllListener.killAllJobs(now);
+            }
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
                 jobExecutionContext.kill();
                  // don't use  numKilled = activeContext.size() because the content of activeContexts could change
@@ -157,12 +156,12 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     public long killJobs(Collection<UUID> toKill) {
         long numKilled = 0L;
         writeLock.lock();
-        for (KillAllListener killAllListener : killAllListeners) {
-            for (UUID job : toKill) {
-                killAllListener.killJob(job);
-            }
-        }
         try {
+            for (KillAllListener killAllListener : killAllListeners) {
+                for (UUID job : toKill) {
+                    killAllListener.killJob(job);
+                }
+            }
             for (UUID jobId : toKill) {
                 JobExecutionContext ctx = activeContexts.get(jobId);
                 if (ctx != null) {

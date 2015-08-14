@@ -121,7 +121,7 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
         }
     }
 
-    private class SubclassOfMatcher extends AbstractMatcher<TypeLiteral<?>> {
+    private static class SubclassOfMatcher extends AbstractMatcher<TypeLiteral<?>> {
 
         private final Class<?> klass;
 
@@ -135,7 +135,7 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
         }
     }
 
-    private class CrateRestMainActionListener implements TypeListener {
+    private static class CrateRestMainActionListener implements TypeListener {
 
         private final SettableFuture<CrateRestMainAction> instanceFuture;
 

@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
@@ -52,7 +55,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +73,7 @@ public class UpdateConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
 
         @Override
         public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
@@ -194,12 +196,11 @@ public class UpdateConsumer implements Consumer {
         private Tuple<String[], Symbol[]> convertAssignments(Map<Reference, Symbol> assignments) {
             String[] assignmentColumns = new String[assignments.size()];
             Symbol[] assignmentSymbols = new Symbol[assignments.size()];
-            Iterator<Reference> it = assignments.keySet().iterator();
             int i = 0;
-            while(it.hasNext()) {
-                Reference key = it.next();
+            for (Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
+                Reference key = entry.getKey();
                 assignmentColumns[i] = key.ident().columnIdent().fqn();
-                assignmentSymbols[i] = assignments.get(key);
+                assignmentSymbols[i] = entry.getValue();
                 i++;
             }
             return new Tuple<>(assignmentColumns, assignmentSymbols);

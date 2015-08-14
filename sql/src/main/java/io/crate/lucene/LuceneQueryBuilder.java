@@ -826,9 +826,9 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class DistanceQuery implements InnerFunctionToQuery {
+        static class DistanceQuery implements InnerFunctionToQuery {
 
-            final GeoDistance geoDistance = GeoDistance.DEFAULT;
+            final static GeoDistance GEO_DISTANCE = GeoDistance.DEFAULT;
             final String optimizeBox = "memory";
 
             /**
@@ -904,7 +904,7 @@ public class LuceneQueryBuilder {
                         to,
                         includeLower,
                         includeUpper,
-                        geoDistance,
+                        GEO_DISTANCE,
                         geoMapper,
                         fieldData,
                         optimizeBox

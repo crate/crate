@@ -33,7 +33,7 @@ import org.mockito.MockitoAnnotations;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
-public class CrateUnitTest extends AbstractRandomizedTest {
+public abstract class CrateUnitTest extends AbstractRandomizedTest {
 
     static {
         // mute ES loggings

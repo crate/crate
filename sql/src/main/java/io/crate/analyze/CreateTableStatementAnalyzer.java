@@ -40,7 +40,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
-    class Context {
+    static class Context {
         Analysis analysis;
         CreateTableAnalyzedStatement statement;
 

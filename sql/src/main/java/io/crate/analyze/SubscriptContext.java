@@ -34,7 +34,7 @@ public class SubscriptContext {
 
     private Expression expression;
 
-    private List<String> parts = new ArrayList<>();
+    private final List<String> parts = new ArrayList<>();
     private Integer index;
 
     public SubscriptContext() {
@@ -56,7 +56,7 @@ public class SubscriptContext {
         parts.add(0, part);
     }
 
-    public void index(Integer index) {
+    public void index(int index) {
         this.index = index;
     }
 

@@ -102,7 +102,7 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
                     String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
                             MAX_VALUE));
         }
-        context.index(new Long(node.getValue()).intValue());
+        context.index((int) value);
         return null;
     }
 

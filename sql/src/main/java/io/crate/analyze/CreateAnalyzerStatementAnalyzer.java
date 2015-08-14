@@ -50,7 +50,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         return super.process(node, new Context(analysis));
     }
 
-    class Context{
+    static class Context{
 
         Analysis analysis;
         CreateAnalyzerAnalyzedStatement statement;

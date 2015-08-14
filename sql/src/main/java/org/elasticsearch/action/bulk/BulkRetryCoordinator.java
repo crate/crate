@@ -149,7 +149,7 @@ public class BulkRetryCoordinator {
      * precedence over readers, a writer will block all readers.
      * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
      */
-    class ReadWriteLock {
+    static class ReadWriteLock {
         private final Semaphore readLock = new Semaphore(1, true);
         private final Semaphore writeLock = new Semaphore(1, true);
         private final AtomicInteger activeWriters = new AtomicInteger(0);

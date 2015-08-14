@@ -70,7 +70,6 @@ public class ShardProjectorChain {
 
     private UUID jobId;
     private final List<Projection> projections;
-    private ExecutionState executionState;
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
     protected final List<Projector> nodeProjectors;
@@ -86,7 +85,6 @@ public class ShardProjectorChain {
                                RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
         this.projections = projections;
-        this.executionState = executionState;
         this.ramAccountingContext = ramAccountingContext;
         nodeProjectors = new ArrayList<>();
         int idx = 0;
