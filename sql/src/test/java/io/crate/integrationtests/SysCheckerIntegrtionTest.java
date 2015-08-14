@@ -32,9 +32,13 @@ import static org.hamcrest.Matchers.is;
 public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testChecksPresence() throws Exception {
-        SQLResponse response = execute("select * from sys.checks");
+    public void testChecksPresenceAndSeverityLevels() throws Exception {
+        SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
         assertThat(response.rowCount(), equalTo(4L));
+        assertThat((Integer) response.rows()[0][0], is(new Integer(Severity.HIGH.value())));
+        assertThat((Integer) response.rows()[1][0], is(new Integer(Severity.HIGH.value())));
+        assertThat((Integer) response.rows()[2][0], is(new Integer(Severity.HIGH.value())));
+        assertThat((Integer) response.rows()[3][0], is(new Integer(Severity.MEDIUM.value())));
     }
 
     @Test
@@ -53,19 +57,6 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat((Integer) response.rows()[0][0], is(new Integer(Severity.HIGH.value())));
         assertThat((Boolean) response.rows()[0][1], is(new Boolean(true)));
-    }
-
-    @Test
-    public void testGatewayRecoverySettingsFailOnDefaultValues() {
-        SQLResponse response = execute("select id, severity, passed from sys.checks where id in(2, 3, 4) order by id asc");
-        assertThat((Integer) response.rows()[0][1], is(new Integer(Severity.HIGH.value())));
-        assertThat((Boolean) response.rows()[0][2], is(false));
-
-        assertThat((Integer) response.rows()[1][1], is(new Integer(Severity.HIGH.value())));
-        assertThat((Boolean) response.rows()[1][2], is(false));
-
-        assertThat((Integer) response.rows()[2][1], is(new Integer(Severity.MEDIUM.value())));
-        assertThat((Boolean) response.rows()[2][2], is(true));
     }
 
     @After

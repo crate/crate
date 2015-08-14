@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys.check.checks;
 
 import io.crate.metadata.settings.CrateSettings;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -30,16 +31,18 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class RecoveryAfterNodesSysCheck extends AbstractSysCheck {
 
+    private final ClusterService clusterService;
     private final Settings settings;
 
     private static final int ID = 3;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_nodes' " +
-            "needs to be greater than half of the maximum/expected number of nodes and equal or less than" +
+            "needs to be greater than half of the maximum/expected number of nodes and equal or less than " +
             "the maximum/expected number of nodes in the cluster.";
 
     @Inject
-    public RecoveryAfterNodesSysCheck(Settings settings) {
+    public RecoveryAfterNodesSysCheck(ClusterService clusterService, Settings settings) {
         super(ID, new BytesRef(DESCRIPTION), Severity.HIGH);
+        this.clusterService = clusterService;
         this.settings = settings;
     }
 
@@ -52,7 +55,8 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysCheck {
     }
 
     protected boolean validate(int afterNodes, int expectedNodes) {
-        return (expectedNodes / 2) < afterNodes && afterNodes <= expectedNodes;
+        return clusterService.state().nodes().getSize() == 1
+                || (expectedNodes / 2) < afterNodes && afterNodes <= expectedNodes;
     }
 
 }

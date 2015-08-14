@@ -25,16 +25,21 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SysChecksTest extends CrateUnitTest {
 
     private static ClusterService clusterService = mock(ClusterService.class);
+    private static ClusterState clusterState = mock(ClusterState.class);
+    private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
 
     @Test
     public void testMaxMasterNodesCheckWithEmptySetting() {
@@ -81,7 +86,7 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(recoveryExpectedNodesCheck.id(), is(2));
         assertThat(recoveryExpectedNodesCheck.severity(), is(Severity.HIGH));
         assertThat( recoveryExpectedNodesCheck.validate(1,
-                CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()), is(false));
+                CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()), is(true));
     }
 
     @Test
@@ -117,21 +122,28 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithDefaultSetting() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+
+        when(clusterService.state()).thenReturn(clusterState);
+        when(clusterState.nodes()).thenReturn(discoveryNodes);
+        when(discoveryNodes.getSize()).thenReturn(1);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.HIGH));
         assertThat(   recoveryAfterNodesCheck.validate(
                 CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue(),
                 CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()
-        ), is(false));
+        ), is(true));
     }
 
     @Test
     public void testRecoveryAfterNodesCheckWithLessThanQuorum() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
 
+        when(clusterService.state()).thenReturn(clusterState);
+        when(clusterState.nodes()).thenReturn(discoveryNodes);
+        when(discoveryNodes.getSize()).thenReturn(8);
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.HIGH));
         assertThat(recoveryAfterNodesCheck.validate(4, 8), is(false));
@@ -140,7 +152,11 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithCorrectSetting() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+
+        when(clusterService.state()).thenReturn(clusterState);
+        when(clusterState.nodes()).thenReturn(discoveryNodes);
+        when(discoveryNodes.getSize()).thenReturn(8);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.HIGH));

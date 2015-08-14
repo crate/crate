@@ -53,6 +53,6 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysCheck {
     }
 
     protected boolean validate(int clusterSize, int expectedNodes) {
-        return clusterSize == expectedNodes;
+        return clusterSize == 1 || clusterSize == expectedNodes;
     }
 }

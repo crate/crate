@@ -53,6 +53,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     }
 
     protected boolean validate( int clusterSize, int minMasterNodes) {
-        return ((clusterSize / 2) + 1) <= minMasterNodes && minMasterNodes <= clusterSize;
+        return clusterSize == 1
+                || ((clusterSize / 2) + 1) <= minMasterNodes && minMasterNodes <= clusterSize;
     }
 }
