@@ -787,7 +787,7 @@ SQL query bellow would have the following results::
     |  1 |        3 | The value of the cluster setting 'discovery.zen.minimum_master_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less thanthe maximum/expected number of nodes in the cluster. | TRUE   |
     |  2 |        3 | The value of the cluster setting 'gateway.expected_nodes' must be equal to the maximum/expected number of nodes in the cluster.                                                                                        | FALSE  |
     |  3 |        3 | The value of the cluster setting 'gateway.recover_after_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less thanthe maximum/expected number of nodes in the cluster.        | FALSE  |
-    |  4 |        1 | The value of the cluster setting 'gateway.recover_after_time' must not be less than its default value (5m).                                                                                                            | TRUE   |
+    |  4 |        2 | The value of the cluster setting 'gateway.recover_after_time' must not be less than its default value (5m).                                                                                                            | TRUE   |
     +----+----------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
     SELECT 4 rows in set (... sec)
 

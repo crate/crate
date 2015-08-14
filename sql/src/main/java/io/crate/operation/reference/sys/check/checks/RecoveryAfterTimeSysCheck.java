@@ -39,7 +39,7 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysCheck {
 
     @Inject
     public RecoveryAfterTimeSysCheck(Settings settings) {
-        super(ID, new BytesRef(DESCRIPTION), Severity.LOW);
+        super(ID, new BytesRef(DESCRIPTION), Severity.MEDIUM);
         this.settings = settings;
     }
 

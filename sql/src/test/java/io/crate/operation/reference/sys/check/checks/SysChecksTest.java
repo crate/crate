@@ -153,7 +153,7 @@ public class SysChecksTest extends CrateUnitTest {
                 new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
-        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.LOW));
+        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(6), 1, 4), is(true));
     }
 
@@ -163,7 +163,7 @@ public class SysChecksTest extends CrateUnitTest {
                 new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
-        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.LOW));
+        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(
                 CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue(),
                 CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue(),
@@ -177,7 +177,7 @@ public class SysChecksTest extends CrateUnitTest {
                 new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
-        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.LOW));
+        assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
     }
 

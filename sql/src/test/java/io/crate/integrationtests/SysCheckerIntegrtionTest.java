@@ -64,7 +64,7 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         assertThat((Integer) response.rows()[1][1], is(new Integer(Severity.HIGH.value())));
         assertThat((Boolean) response.rows()[1][2], is(false));
 
-        assertThat((Integer) response.rows()[2][1], is(new Integer(Severity.LOW.value())));
+        assertThat((Integer) response.rows()[2][1], is(new Integer(Severity.MEDIUM.value())));
         assertThat((Boolean) response.rows()[2][2], is(true));
     }
 
