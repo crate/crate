@@ -33,10 +33,7 @@ import io.crate.jobs.CountContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Routing;
-import io.crate.operation.NodeOperation;
-import io.crate.operation.PageDownstream;
-import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.Paging;
+import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
@@ -150,7 +147,7 @@ public class ContextPreparer {
         @Override
         public Void visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            ResultProvider downstream = resultProviderFactory.createDownstream(
+            RowDownstream downstream = resultProviderFactory.createDownstream(
                     context.nodeOperation,
                     phase.jobId(),
                     Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size()));
@@ -188,10 +185,10 @@ public class ContextPreparer {
             );
             LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
-            ResultProvider downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId(), pageSize);
+            RowDownstream downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId(), pageSize);
 
             if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {
-                context.directResultFuture = downstream.result();
+                context.directResultFuture = ((ResultProvider) downstream).result();
             }
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
