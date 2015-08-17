@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
@@ -632,7 +633,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertFromSubQueryWithVersion() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
-        execute("create table users (name string)");
+        execute("create table users (name string) clustered into 1 shards");
         ensureYellow();
         execute("insert into users (name) (select name from users where _version = 1)");
     }

@@ -158,6 +158,13 @@ public class ShardProjectorChain {
         }
     }
 
+    public void fail(Throwable t) {
+        if (firstNodeProjector == null) {
+            return;
+        }
+        firstNodeProjector.registerUpstream(null).fail(t);
+    }
+
     public void finish() {
         if (firstNodeProjector != null) {
             firstNodeProjector.registerUpstream(null).finish();

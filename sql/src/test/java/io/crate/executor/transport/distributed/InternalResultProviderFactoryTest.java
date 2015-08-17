@@ -19,18 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.executor.transport.distributed;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.executor.transport.distributed.BroadcastDistributingDownstream;
-import io.crate.executor.transport.distributed.ModuloDistributingDownstream;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
-import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.projectors.InternalResultProviderFactory;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -38,7 +36,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,11 +53,10 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
     public void before() {
         resultProviderFactory = new InternalResultProviderFactory(
                 new NoopClusterService(),
-                mock(TransportDistributedResultAction.class),
-                ImmutableSettings.EMPTY);
+                mock(TransportDistributedResultAction.class));
     }
 
-    private ResultProvider createDownstream(Set<String> downstreamExecutionNodes) {
+    private RowDownstream createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
@@ -75,19 +71,20 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
 
     @Test
     public void testCreateDownstreamLocalNode() throws Exception {
-        ResultProvider downstream = createDownstream(ImmutableSet.<String>of());
+        RowDownstream downstream = createDownstream(ImmutableSet.<String>of());
         assertThat(downstream, instanceOf(SingleBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        ResultProvider downstream = createDownstream(ImmutableSet.of("downstream_node"));
-        assertThat(downstream, instanceOf(BroadcastDistributingDownstream.class));
+        RowDownstream downstream = createDownstream(ImmutableSet.of("downstream_node"));
+        assertThat(downstream, instanceOf(DistributingDownstream.class));
+        assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        ResultProvider downstream = createDownstream(ImmutableSet.of("downstream_node1","downstream_node2"));
-        assertThat(downstream, instanceOf(ModuloDistributingDownstream.class));
+        RowDownstream downstream = createDownstream(ImmutableSet.of("downstream_node1","downstream_node2"));
+        assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }
