@@ -89,7 +89,7 @@ public class StreamBucket implements Bucket, Streamable {
         }
 
         public void reset() {
-            out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
+            out.reset();
             size = 0;
         }
     }
