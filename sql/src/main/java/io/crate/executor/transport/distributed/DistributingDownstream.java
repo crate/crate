@@ -21,247 +21,244 @@
 
 package io.crate.executor.transport.distributed;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class DistributingDownstream extends ResultProviderBase {
+public class DistributingDownstream implements RowDownstream, RowDownstreamHandle {
 
-    public static final String PAGES_BUFFER_SIZE = "node.downstream.pages_buffer_size";
-    public static final int DEFAULT_PAGES_BUFFER_SIZE = 1;
+    private final static ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
+    private static final ActionListener<DistributedResultResponse> NO_OP_ACTION_LISTENER = new ActionListener<DistributedResultResponse>() {
+        @Override
+        public void onResponse(DistributedResultResponse distributedResultResponse) {
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            LOGGER.trace("Received failure from downstream: {}", e);
+        }
+    };
+
+    @VisibleForTesting
+    final MultiBucketBuilder multiBucketBuilder;
+
+    private final UUID jobId;
+    private final int targetExecutionPhaseId;
+    private final byte inputId;
+    private final int bucketIdx;
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final Streamer<?>[] streamers;
+    private final int pageSize;
+    private final List<RowUpstream> upstreams = new ArrayList<>(1);
+    private final AtomicInteger numActiveUpstreams = new AtomicInteger();
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final AtomicInteger requestsPending = new AtomicInteger(0);
+    private final Downstream[] downstreams;
+    private final Object lock = new Object();
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
-    private final AtomicInteger currentPageProcessed = new AtomicInteger(0);
-    private final AtomicBoolean requestsPending = new AtomicBoolean(false);
-    private final AtomicBoolean lastPageSent = new AtomicBoolean(false);
+    private final Bucket[] buckets;
 
-    protected final Collection<Row> currentPage;
-    protected final BlockingQueue<Row> rowQueue;
-    protected final Downstream[] downstreams;
-    protected final int pageSize;
-    private volatile boolean killed = false;
+    private volatile boolean gatherMoreRows = true;
 
     public DistributingDownstream(UUID jobId,
-                                  int targetExecutionNodeId,
+                                  MultiBucketBuilder multiBucketBuilder,
+                                  int targetExecutionPhaseId,
                                   byte inputId,
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
                                   Streamer<?>[] streamers,
-                                  Settings settings,
                                   int pageSize) {
+        this.jobId = jobId;
+        this.multiBucketBuilder = multiBucketBuilder;
+        this.targetExecutionPhaseId = targetExecutionPhaseId;
+        this.inputId = inputId;
+        this.bucketIdx = bucketIdx;
         this.transportDistributedResultAction = transportDistributedResultAction;
-
-        downstreams = new Downstream[downstreamNodeIds.size()];
-
-        int idx = 0;
-        for (String downstreamNodeId : downstreamNodeIds) {
-            downstreams[idx] = new Downstream(downstreamNodeId, jobId, targetExecutionNodeId,
-                    inputId, bucketIdx, streamers);
-            idx++;
-        }
-
+        this.streamers = streamers;
         this.pageSize = pageSize;
-        currentPage = new ArrayList<>(pageSize);
-        int pagesBufferSize = settings.getAsInt(PAGES_BUFFER_SIZE, DEFAULT_PAGES_BUFFER_SIZE);
-        rowQueue = new ArrayBlockingQueue<>(pageSize * pagesBufferSize);
+
+        buckets = new Bucket[downstreamNodeIds.size()];
+        downstreams = new Downstream[downstreamNodeIds.size()];
+        int i = 0;
+        for (String downstreamNodeId : downstreamNodeIds) {
+            downstreams[i] = new Downstream(downstreamNodeId);
+            i++;
+        }
     }
 
     @Override
     public boolean setNextRow(Row row) {
-        if (allDownstreamsFinished()) {
-            return false;
-        }
-
-        try {
-            rowQueue.put(new RowN(row.materialize()));
-            if (allDownstreamsFinished()) {
-                // in case the Q just got unblocked from a response with needMore=false
-                return false;
-            }
-            sendRequestsIfNeeded();
-        } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            fail(e);
-            return false;
-        }
-        return true;
-    }
-
-    private void sendRequestsIfNeeded() {
-        synchronized (rowQueue) {
-            if (!requestsPending.get() && (fullPageInQueue() || multiUpstreamRowDownstream.pendingUpstreams() == 0)) {
-                if (!requestsPending.compareAndSet(false, true)) {
-                    return;
+        multiBucketBuilder.add(row);
+        synchronized (lock) {
+            if (multiBucketBuilder.size() >= pageSize) {
+                if (requestsPending.get() > 0) {
+                    LOGGER.trace("page is full and requests are pending.. pausing upstream");
+                    pause();
+                } else {
+                    LOGGER.trace("page is full. Sending request");
+                    multiBucketBuilder.build(buckets);
+                    sendRequests(false);
                 }
-                if (multiUpstreamRowDownstream.pendingUpstreams() == 0) {
-                    lastPageSent.set(true);
-                }
-                drainPageFromQueue();
-                sendRequests();
             }
         }
+        return gatherMoreRows;
     }
 
-    private void drainPageFromQueue() {
-        currentPage.clear();
-        rowQueue.drainTo(currentPage, pageSize);
-    }
-
-    private boolean fullPageInQueue() {
-        return rowQueue.size() >= pageSize;
-    }
-
-    protected boolean isLast() {
-        return multiUpstreamRowDownstream.pendingUpstreams() == 0 && rowQueue.size() <= pageSize;
-    }
-
-    private void onAllUpstreamsFinished() {
-        sendRequestsIfNeeded();
-    }
-
-    private void forwardFailures(Throwable throwable) {
-        for (Downstream downstream : downstreams) {
-            downstream.sendRequest(throwable);
+    private void sendRequests(boolean isLast) {
+        requestsPending.addAndGet(downstreams.length);
+        for (int i = 0; i < buckets.length; i++) {
+            downstreams[i].sendRequest(buckets[i], isLast);
         }
     }
 
-    protected boolean allDownstreamsFinished() {
-        return finishedDownstreams.get() == downstreams.length;
+    private void pause() {
+        for (RowUpstream upstream : upstreams) {
+            upstream.pause();
+        }
+    }
+
+    private void resume() {
+        for (RowUpstream upstream : upstreams) {
+            upstream.resume(true);
+        }
     }
 
     @Override
-    public Bucket doFinish() {
-        onAllUpstreamsFinished();
-        return null;
+    public void finish() {
+        upstreamFinished();
     }
 
     @Override
-    public Throwable doFail(Throwable t) {
-        if (t instanceof CancellationException) {
-            // fail without sending anything
-            logger().debug("{} killed", getClass().getSimpleName());
-            killed = true;
+    public void fail(Throwable throwable) {
+        if (throwable instanceof CancellationException) {
+            failure.set(throwable);
         } else {
-            forwardFailures(t);
+            failure.compareAndSet(null, throwable);
         }
-        return t;
+        gatherMoreRows = false;
+        upstreamFinished();
     }
 
-    private void onDownstreamResponse(boolean needMore) {
-        if (!needMore) {
-            if (finishedDownstreams.incrementAndGet() == downstreams.length) {
-                drainPageFromQueue();
-            }
-        }
-        synchronized (requestsPending) {
-            if (currentPageProcessed.incrementAndGet() == downstreams.length) {
-                currentPageProcessed.set(0);
-                requestsPending.set(false);
-            }
-        }
+    @Override
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        upstreams.add(upstream);
+        numActiveUpstreams.incrementAndGet();
+        return this;
+    }
 
-        if (needMore && !lastPageSent.get() && !killed) {
-            sendRequestsIfNeeded();
+    private void upstreamFinished() {
+        final int numUpstreams = numActiveUpstreams.decrementAndGet();
+        if (numUpstreams == 0) {
+            final Throwable throwable = failure.get();
+            if (throwable == null) {
+                if (requestsPending.get() == 0) {
+                    LOGGER.trace("all upstreams finished. Sending last requests");
+                    multiBucketBuilder.build(buckets);
+                    sendRequests(true);
+                } else if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("all upstreams finished. Doing nothing since there are pending requests");
+                }
+            } else if (!(throwable instanceof CancellationException)) { // no need to forward kill - downstream will receive it too
+                LOGGER.trace("all upstreams finished; forwarding failure");
+                for (Downstream downstream : downstreams) {
+                    downstream.forwardFailure(throwable);
+                }
+            }
+        } else {
+            LOGGER.trace("Upstream finished, {} remaining", numUpstreams);
         }
     }
 
-    protected abstract void sendRequests();
+    private class Downstream implements ActionListener<DistributedResultResponse> {
 
-    protected abstract ESLogger logger();
+        private final String node;
+        private boolean finished = false;
 
-    protected class Downstream implements ActionListener<DistributedResultResponse> {
-
-        final AtomicBoolean wantMore = new AtomicBoolean(true);
-        final String node;
-
-        final UUID jobId;
-        final int targetExecutionPhaseId;
-        private final byte inputId;
-        final int bucketIdx;
-        final Streamer<?>[] streamers;
-
-        public Downstream(String node,
-                          UUID jobId,
-                          int targetExecutionPhaseId,
-                          byte inputId,
-                          int bucketIdx,
-                          Streamer<?>[] streamers) {
+        public Downstream(String node) {
             this.node = node;
-            this.jobId = jobId;
-            this.targetExecutionPhaseId = targetExecutionPhaseId;
-            this.inputId = inputId;
-            this.bucketIdx = bucketIdx;
-            this.streamers = streamers;
         }
 
-        public void sendRequest(Throwable t) {
-            DistributedResultRequest request = new DistributedResultRequest(
-                    jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, t);
-            sendRequest(request);
+        public void forwardFailure(Throwable throwable) {
+            LOGGER.trace("Sending failure to {}", node);
+            transportDistributedResultAction.pushResult(
+                    node,
+                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
+                    NO_OP_ACTION_LISTENER
+            );
         }
 
-        public void sendRequest(Bucket bucket) {
-            DistributedResultRequest request = new DistributedResultRequest(jobId, targetExecutionPhaseId,
-                    inputId, bucketIdx, streamers, bucket != null ? bucket : Bucket.EMPTY, isLast());
-            sendRequest(request);
-        }
-
-        private void sendRequest(final DistributedResultRequest request) {
-            if (logger().isTraceEnabled()) {
-                logger().trace("[{}] sending distributing result request to {} {} input {}, isLast? {}, size {} ...",
-                        jobId.toString(),
-                        node, inputId, request.isLast(), request.rows().size());
+        public void sendRequest(Bucket bucket, boolean isLast) {
+            if (finished) {
+                return;
             }
-            try {
-                transportDistributedResultAction.pushResult(
-                        node,
-                        request,
-                        this
-                );
-            } catch (IllegalArgumentException e) {
-                logger().error(e.getMessage(), e);
-                wantMore.set(false);
-            }
+            LOGGER.trace("Sending request to {}", node);
+            transportDistributedResultAction.pushResult(
+                    node,
+                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
+                    this
+            );
         }
 
         @Override
-        public void onResponse(DistributedResultResponse response) {
-            if (logger().isTraceEnabled()) {
-                logger().trace("[{}] successfully sent distributing result request to {} {} input {}, needMore? {}",
-                         jobId,
-                         targetExecutionPhaseId,
-                         node,
-                         inputId,
-                         response.needMore());
-            }
-
-            wantMore.set(response.needMore());
-
-            onDownstreamResponse(response.needMore());
+        public void onResponse(DistributedResultResponse distributedResultResponse) {
+            onResponse(distributedResultResponse.needMore());
         }
 
         @Override
-        public void onFailure(Throwable exp) {
-            logger().error("[{}] Exception sending distributing collect results to {}", exp, jobId, node);
-            wantMore.set(false);
-            onDownstreamResponse(false);
+        public void onFailure(Throwable e) {
+            gatherMoreRows = false;
+            onResponse(false);
+        }
+
+        private void onResponse(boolean needMore) {
+            finished = !needMore;
+            final int numPending = requestsPending.decrementAndGet();
+            final int activeUpstreams = numActiveUpstreams.get();
+
+            LOGGER.trace("Received response from downstream: {}; requires more: {}, other pending requests: {}, activeUpstreams: {}",
+                    node, needMore, numPending, activeUpstreams);
+            if (numPending > 0) {
+                return;
+            }
+            if (activeUpstreams == 0) {
+                multiBucketBuilder.build(buckets);
+                sendRequests(true);
+            } else if (needMore) {
+                boolean resume = false;
+                synchronized (lock) {
+                    if (multiBucketBuilder.size() >= pageSize) {
+                        multiBucketBuilder.build(buckets);
+                        sendRequests(false);
+                    } else {
+                        resume = true;
+                    }
+                }
+                if (resume) {
+                    resume();
+                }
+            } else {
+                if (finishedDownstreams.incrementAndGet() == downstreams.length) {
+                    gatherMoreRows = false;
+                }
+                resume();
+            }
         }
     }
 }

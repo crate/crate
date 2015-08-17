@@ -21,32 +21,36 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
+import org.junit.Test;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import static org.hamcrest.core.Is.is;
 
-/**
- * Builder used to build one or more buckets
- */
-public interface MultiBucketBuilder {
+public class ModuloBucketBuilderTest extends CrateUnitTest {
 
-    /**
-     * add a row to the page
-     */
-    void add(Row row);
+    @Test
+    public void testRowsAreDistributedByModulo() throws Exception {
+        final ModuloBucketBuilder builder = new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 2);
 
-    /**
-     * current number of rows within the page.
-     * Will be reset to 0 on each build call.
-     */
-    int size();
+        builder.add(new Row1(1));
+        builder.add(new Row1(2));
+        builder.add(new Row1(3));
+        builder.add(new Row1(4));
 
-    /**
-     * Builds the buckets and writes them into the provided array.
-     * The provided array must have size N where N is the number of buckets the page contains.
-     *
-     * N is usually specified in the constructor of a specific PageBuilder implementation.
-     */
-    void build(Bucket[] buckets);
+        Bucket[] buckets = new Bucket[2];
+        builder.build(buckets);
+
+        final Bucket rowsD1 = buckets[0];
+        assertThat(rowsD1.size(), is(2));
+        assertThat(TestingHelpers.printedTable(rowsD1), is("2\n4\n"));
+
+        final Bucket rowsD2 = buckets[1];
+        assertThat(rowsD2.size(), is(2));
+        assertThat(TestingHelpers.printedTable(rowsD2), is("1\n3\n"));
+    }
 }
