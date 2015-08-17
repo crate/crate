@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.check.checks;
 
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
@@ -40,10 +41,11 @@ public class SysChecksTest extends CrateUnitTest {
     private static ClusterService clusterService = mock(ClusterService.class);
     private static ClusterState clusterState = mock(ClusterState.class);
     private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
+    private static NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
 
     @Test
     public void testMaxMasterNodesCheckWithEmptySetting() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService);
+        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
 
         assertThat(minMasterNodesCheck.id(), is(1));
         assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
@@ -53,16 +55,16 @@ public class SysChecksTest extends CrateUnitTest {
 
     @Test
     public void testMaxMasterNodesCheckWithCorrectSetting() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService);
+        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
 
         assertThat(minMasterNodesCheck.id(), is(1));
         assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
-        assertThat(minMasterNodesCheck.validate(6, 4), is(true));
+        assertThat(minMasterNodesCheck.validate(8, 5), is(true));
     }
 
     @Test
     public void testMaxMasterNodesCheckWithLessThanQuorum() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService);
+        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
 
         assertThat(minMasterNodesCheck.id(), is(1));
         assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
@@ -71,7 +73,7 @@ public class SysChecksTest extends CrateUnitTest {
 
     @Test
     public void testMaxMasterNodesCheckWithGreaterThanNodes() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService);
+        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
 
         assertThat(minMasterNodesCheck.id(), is(1));
         assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
