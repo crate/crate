@@ -21,32 +21,27 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
+import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import static org.junit.Assert.assertThat;
 
-/**
- * Builder used to build one or more buckets
- */
-public interface MultiBucketBuilder {
+public class BroadcastingBucketBuilderTest {
 
-    /**
-     * add a row to the page
-     */
-    void add(Row row);
+    @Test
+    public void testBucketIsReUsed() throws Exception {
+        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3);
+        builder.add(new Row1(10));
 
-    /**
-     * current number of rows within the page.
-     * Will be reset to 0 on each build call.
-     */
-    int size();
+        Bucket[] buckets = new Bucket[3];
+        builder.build(buckets);
 
-    /**
-     * Builds the buckets and writes them into the provided array.
-     * The provided array must have size N where N is the number of buckets the page contains.
-     *
-     * N is usually specified in the constructor of a specific PageBuilder implementation.
-     */
-    void build(Bucket[] buckets);
+        final Bucket rows = buckets[0];
+        assertThat(rows, Matchers.sameInstance(buckets[1]));
+        assertThat(rows, Matchers.sameInstance(buckets[2]));
+    }
 }
