@@ -43,6 +43,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -110,10 +111,6 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         return info;
     }
 
-    public DocTableInfo getDocTableInfo(TableIdent ident) {
-        return (DocTableInfo) getTableInfo(ident);
-    }
-
     private SchemaInfo getSchemaInfo(TableIdent ident) {
         String schemaName = firstNonNull(ident.schema(), DEFAULT_SCHEMA_NAME);
         SchemaInfo schemaInfo = schemas.get(schemaName);
@@ -124,6 +121,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     }
 
     @Override
+    @Nonnull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
     }

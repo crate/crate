@@ -26,6 +26,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 
 @Singleton
@@ -33,10 +34,10 @@ public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
-    public final ImmutableMap<String, InformationTableInfo> tableInfoMap;
+    public final ImmutableMap<String, TableInfo> tableInfoMap;
 
     public InformationSchemaInfo() {
-        this.tableInfoMap = ImmutableMap.<String, InformationTableInfo>builder()
+        this.tableInfoMap = ImmutableMap.<String, TableInfo>builder()
                 .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this))
                 .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this))
                 .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this))
@@ -67,7 +68,8 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<? extends TableInfo> iterator() {
+    @Nonnull
+    public Iterator<TableInfo> iterator() {
         return tableInfoMap.values().iterator();
     }
 

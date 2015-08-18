@@ -46,7 +46,10 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class CollectSourceResolver {
@@ -95,14 +98,11 @@ public class CollectSourceResolver {
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
 
         ProjectorSetupCollectSource isSource = new ProjectorSetupCollectSource(informationSchemaCollectSource, projectorFactory);
-        for (Iterator<? extends TableInfo> iterator = informationSchemaInfo.iterator(); iterator.hasNext(); ) {
-            TableInfo tableInfo = iterator.next();
+        for (TableInfo tableInfo : informationSchemaInfo) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), isSource);
         }
-
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
-        for (Iterator<? extends TableInfo> iterator = sysSchemaInfo.iterator(); iterator.hasNext(); ) {
-            TableInfo tableInfo = iterator.next();
+        for (TableInfo tableInfo : sysSchemaInfo) {
             if (tableInfo.rowGranularity().equals(RowGranularity.DOC)) {
                 nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
             }

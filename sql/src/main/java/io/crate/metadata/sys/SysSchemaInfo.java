@@ -28,20 +28,21 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 
 @Singleton
 public class SysSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "sys";
-    private final ImmutableMap<String, SysTableInfo> tableInfos;
+    private final ImmutableMap<String, TableInfo> tableInfos;
 
     @Inject
     public SysSchemaInfo(ClusterService clusterService) {
 
         SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo(clusterService, this);
         
-        tableInfos = ImmutableMap.<String, SysTableInfo>builder()
+        tableInfos = ImmutableMap.<String, TableInfo>builder()
                 .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
                 .put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo)
                 .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, this, sysNodesTableInfo))
@@ -74,7 +75,8 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<? extends TableInfo> iterator() {
+    @Nonnull
+    public Iterator<TableInfo> iterator() {
         return tableInfos.values().iterator();
     }
 
