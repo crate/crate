@@ -45,19 +45,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class GroupingProjector implements Projector, RowDownstreamHandle {
 
 
     private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     private Grouper grouper;
     private RowDownstreamHandle downstream;
-    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
@@ -67,6 +65,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
         this.ramAccountingContext = ramAccountingContext;
+        registerDownstreamHandleProxy();
 
         Aggregator[] aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
@@ -85,6 +84,39 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         } else {
             grouper = new ManyKeyGrouper(keyInputs, keyTypes, collectExpressions, aggregators);
         }
+    }
+
+    private void registerDownstreamHandleProxy() {
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                if (grouper != null) {
+                    grouper.finish();
+                    cleanUp();
+                }
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                if (downstream != null) {
+                    downstream.fail(t);
+                }
+                cleanUp();
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                try {
+                    return grouper.setNextRow(row);
+                } catch (CircuitBreakingException e) {
+                    if (downstream != null) {
+                        downstream.fail(e);
+                        downstream = null;
+                    }
+                    throw e;
+                }
+            }
+        });
     }
 
     private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
@@ -108,31 +140,18 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public synchronized boolean setNextRow(Row row) {
-        try {
-            return grouper.setNextRow(row);
-        } catch (CircuitBreakingException e) {
-            if (downstream != null) {
-                downstream.fail(e);
-                downstream = null;
-            }
-            throw e;
-        }
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (grouper != null) {
-                grouper.finish();
-                cleanUp();
-            }
-        }
+        multiUpstreamRowDownstream.finish();
         if (logger.isDebugEnabled()) {
             logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
         }
@@ -140,14 +159,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public void fail(Throwable throwable) {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstream != null) {
-                downstream.fail(throwable);
-            }
-            cleanUp();
-            return;
-        }
-        failure.set(throwable);
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     /**
@@ -185,6 +197,16 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
 
     private void cleanUp() {
         grouper = null;
+    }
+
+    @Override
+    public void pause() {
+        multiUpstreamRowUpstream.pause();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 
     private interface Grouper {
@@ -389,7 +411,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
         if (downstream == null){
             return true;
         }
-        Throwable throwable = failure.get();
+        Throwable throwable = multiUpstreamRowDownstream.failure();
         if (throwable != null) {
             downstream.fail(throwable);
             return true;

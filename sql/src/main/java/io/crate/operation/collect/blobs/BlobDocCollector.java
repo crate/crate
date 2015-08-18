@@ -72,6 +72,16 @@ public class BlobDocCollector implements CrateCollector {
         killed = true;
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
+
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
         private final InputRow row = new InputRow(inputs);

@@ -30,9 +30,7 @@ import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
@@ -47,16 +45,12 @@ import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateProjector implements Projector, RowDownstreamHandle {
 
     public static final int DEFAULT_BULK_SIZE = 1024;
 
     private RowDownstreamHandle downstream;
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectUidExpression;
@@ -66,6 +60,8 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     private final Object lock = new Object();
 
     private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,
@@ -100,6 +96,45 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                 transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
                 jobId
         );
+        registerDownstreamHandleProxy();
+    }
+
+    private void registerDownstreamHandleProxy() {
+        multiUpstreamRowDownstream.downstreamHandleProxy(new RowDownstreamHandle() {
+            @Override
+            public void finish() {
+                bulkShardProcessor.close();
+                if (downstream != null) {
+                    collectUpdateResultsAndPassOverRowCount();
+                }
+            }
+
+            @Override
+            public void fail(Throwable t) {
+                if (t instanceof CancellationException) {
+                    bulkShardProcessor.kill();
+                } else {
+                    bulkShardProcessor.close();
+                }
+
+                if (downstream != null) {
+                    collectUpdateResultsAndPassOverRowCount();
+                }
+            }
+
+            @Override
+            public boolean setNextRow(Row row) {
+                final Uid uid;
+                synchronized (lock) {
+                    // resolve the Uid
+                    collectUidExpression.setNextRow(row);
+                    uid = Uid.createUid(((BytesRef) collectUidExpression.value()).utf8ToString());
+                }
+                // routing is already resolved
+                bulkShardProcessor.addForExistingShard(shardId, uid.id(), assignments, null, null, requiredVersion);
+                return true;
+            }
+        });
     }
 
     @Override
@@ -108,50 +143,23 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
 
     @Override
     public boolean setNextRow(Row row) {
-        final Uid uid;
-        synchronized (lock) {
-            // resolve the Uid
-            collectUidExpression.setNextRow(row);
-            uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
-        }
-        // routing is already resolved
-        bulkShardProcessor.addForExistingShard(shardId, uid.id(), assignments, null, null, requiredVersion);
-        return true;
+        return multiUpstreamRowDownstream.setNextRow(row);
     }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
         return this;
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-
-        bulkShardProcessor.close();
-        if (downstream != null) {
-            collectUpdateResultsAndPassOverRowCount();
-        }
+        multiUpstreamRowDownstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        upstreamFailure.set(throwable);
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (throwable instanceof CancellationException) {
-            bulkShardProcessor.kill();
-        } else {
-            bulkShardProcessor.close();
-        }
-
-        if (downstream != null) {
-            collectUpdateResultsAndPassOverRowCount();
-        }
+        multiUpstreamRowDownstream.fail(throwable);
     }
 
     @Override
@@ -165,7 +173,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
             public void onSuccess(@Nullable BitSet result) {
                 assert result != null : "BulkShardProcessor result is null";
                 downstream.setNextRow(new Row1(result.cardinality()));
-                Throwable throwable = upstreamFailure.get();
+                Throwable throwable = multiUpstreamRowDownstream.failure();
                 if (throwable == null) {
                     downstream.finish();
                 } else {
@@ -179,5 +187,15 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                 downstream.fail(t);
             }
         });
+    }
+
+    @Override
+    public void pause() {
+        multiUpstreamRowUpstream.pause();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 }

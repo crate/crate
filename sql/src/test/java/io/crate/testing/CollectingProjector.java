@@ -53,5 +53,4 @@ public class CollectingProjector extends ResultProviderBase {
     public Throwable doFail(Throwable t) {
         return t;
     }
-
 }

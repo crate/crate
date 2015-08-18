@@ -154,6 +154,4 @@ public class SortingTopNProjector extends ResultProviderBase {
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
     }
-
-
 }

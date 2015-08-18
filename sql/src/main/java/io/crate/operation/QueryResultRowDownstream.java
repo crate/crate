@@ -31,7 +31,6 @@ import io.crate.operation.projectors.Projector;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
@@ -40,7 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class QueryResultRowDownstream implements Projector {
 
     private final List<SettableFuture<TaskResult>> results;
-    private final AtomicInteger registeredUpstreams = new AtomicInteger(0);
+    private final MultiUpstreamRowDownstream multiUpstreamRowDownstream = new MultiUpstreamRowDownstream();
+    private final MultiUpstreamRowUpstream multiUpstreamRowUpstream = new MultiUpstreamRowUpstream(multiUpstreamRowDownstream);
 
     public QueryResultRowDownstream(List<SettableFuture<TaskResult>> results) {
         this.results = results;
@@ -48,7 +48,8 @@ public class QueryResultRowDownstream implements Projector {
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        int upstreamId = registeredUpstreams.getAndIncrement();
+        multiUpstreamRowDownstream.registerUpstream(upstream);
+        int upstreamId = multiUpstreamRowDownstream.pendingUpstreams() - 1;
         final SettableFuture<TaskResult> result = results.get(upstreamId);
         return new RowDownstreamHandle() {
 
@@ -80,5 +81,15 @@ public class QueryResultRowDownstream implements Projector {
     @Override
     public void downstream(RowDownstream downstream) {
         throw new UnsupportedOperationException("QueryResultRowDownstream can't have another downstream");
+    }
+
+    @Override
+    public void pause() {
+        multiUpstreamRowUpstream.pause();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        multiUpstreamRowUpstream.resume(async);
     }
 }

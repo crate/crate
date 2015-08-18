@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,35 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.executor.transport.distributed;
 
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
+import io.crate.Streamer;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row1;
+import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-public class NoopCrateCollector implements CrateCollector {
+import static org.junit.Assert.assertThat;
 
-    private RowDownstreamHandle downstream;
+public class BroadcastingBucketBuilderTest {
 
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
+    @Test
+    public void testBucketIsReUsed() throws Exception {
+        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3);
+        builder.add(new Row1(10));
 
-    @Override
-    public void doCollect() {
-        downstream.finish();
-    }
+        Bucket[] buckets = new Bucket[3];
+        builder.build(buckets);
 
-    @Override
-    public void kill() {
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
+        final Bucket rows = buckets[0];
+        assertThat(rows, Matchers.sameInstance(buckets[1]));
+        assertThat(rows, Matchers.sameInstance(buckets[2]));
     }
 }

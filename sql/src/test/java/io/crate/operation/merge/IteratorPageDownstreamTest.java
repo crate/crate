@@ -24,9 +24,7 @@ package io.crate.operation.merge;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.BucketPage;
-import io.crate.core.collections.Row;
+import io.crate.core.collections.*;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
@@ -42,11 +40,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 
 public class IteratorPageDownstreamTest extends CrateUnitTest {
@@ -122,7 +123,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
          expectedException.expectCause(Matchers.<Throwable>instanceOf(EsRejectedExecutionException.class));
          final CollectingProjector rowDownstream = new CollectingProjector();
 
-         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+         final IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                  rowDownstream,
                  new PassThroughPagingIterator<Row>(),
                  Optional.<Executor>of(new Executor() {
@@ -137,14 +138,65 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
          pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), new PageConsumeListener() {
              @Override
              public void needMore() {
-                 rowDownstream.finish();
+                 pageDownstream.finish();
              }
 
              @Override
              public void finish() {
-                 rowDownstream.finish();
+                 pageDownstream.finish();
              }
          });
          rowDownstream.result().get(20, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void testPauseAndResume() throws Exception {
+        final List<Row> collectedRows = new ArrayList<>();
+        RowDownstream rowDownstream = new RowDownstream() {
+            @Override
+            public RowDownstreamHandle registerUpstream(final RowUpstream upstream) {
+                return new RowDownstreamHandle() {
+
+                    int rows = 0;
+
+                    @Override
+                    public boolean setNextRow(Row row) {
+                        collectedRows.add(new RowN(row.materialize()));
+                        rows++;
+                        if (rows == 2) {
+                            upstream.pause();
+                            return true;
+                        }
+                        return true;
+                    }
+
+                    @Override
+                    public void finish() {
+                    }
+
+                    @Override
+                    public void fail(Throwable throwable) {
+                    }
+                };
+            }
+        };
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+                rowDownstream,
+                new PassThroughPagingIterator<Row>(),
+                Optional.<Executor>absent()
+        );
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        b1.set(new ArrayBucket(
+                new Object[][] {
+                        new Object[] {"a"},
+                        new Object[] {"b"},
+                        new Object[] {"c"}
+                }
+        ));
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        assertThat(collectedRows.size(), is(2));
+        pageDownstream.resume(false);
+        assertThat(collectedRows.size(), is(3));
     }
 }
