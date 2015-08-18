@@ -268,7 +268,7 @@ public abstract class AbstractIndexWriterProjector implements
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 }

@@ -115,7 +115,7 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 }

@@ -196,7 +196,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         ));
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
         assertThat(collectedRows.size(), is(2));
-        pageDownstream.resume();
+        pageDownstream.resume(false);
         assertThat(collectedRows.size(), is(3));
     }
 }

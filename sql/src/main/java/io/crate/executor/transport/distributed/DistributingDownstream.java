@@ -192,7 +192,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 

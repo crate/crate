@@ -173,7 +173,7 @@ public class PositionalBucketMerger implements RowUpstream {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 

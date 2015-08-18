@@ -163,7 +163,7 @@ public class MergeProjector implements Projector  {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 

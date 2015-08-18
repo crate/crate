@@ -245,7 +245,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector docCollector = createDocCollector(orderBy, 15, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, projection);
         docCollector.doCollect(); // start collection
         assertThat(projection.rows.size(), is(3));
-        docCollector.resume(); // continue
+        docCollector.resume(false); // continue
         assertThat(projection.rows.size(), is(15));
         for (int i = 0; i < projection.rows.size();  i++) {
             assertThat((Integer)projection.rows.get(i)[0], is(i));
@@ -261,7 +261,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)population), new boolean[]{false}, new Boolean[]{false});
         LuceneDocCollector docCollector = createDocCollector(orderBy, 20, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, 5, projection);
         docCollector.doCollect();
-        docCollector.resume();
+        docCollector.resume(false);
         assertThat(projection.rows.size(), is(20));
         for (int i = 0; i < projection.rows.size();  i++) {
             assertThat((Integer)projection.rows.get(i)[0], is(i));
@@ -279,7 +279,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, projector);
         docCollector.doCollect();
         assertThat(projector.rows.size(), is(NUMBER_OF_DOCS - 1));
-        docCollector.resume();
+        docCollector.resume(false);
         assertThat(projector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(new ArrayList<>(projector.rows), containsInAnyOrder(new ArrayList() {{
             for (int i = 0; i < NUMBER_OF_DOCS; i++) {

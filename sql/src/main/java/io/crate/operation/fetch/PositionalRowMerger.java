@@ -143,7 +143,7 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
     }
 
     @Override
-    public void resume() {
+    public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
 
