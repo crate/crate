@@ -5,16 +5,21 @@
 Launching EC2 Instances with the Crate AMI
 =============================================
 
-Crate provides custom `AMI`_'s that can be launched from every
-EC2 user by using the AWS Management Console or `AWS CLI`_. The naming
-convention is as follows:
+Crate provides custom public `AMI`_ s that can be launched by every EC2 user
+by using the AWS Management Console or `AWS CLI`_. The naming convention
+is as follows:
 
-  ``Crate-AWS-AMI-<VERSION>-<REVISION>``
+  ``crate-<VERSION>-<REVISION>-<BASE_AMI>``
 
-The placeholder ``<VERSION>`` is the Crate version in the *x.y.z* format and
-``<REVISION>`` describes its build revision. The Crate AWS AMI is based on
-the Amazon Linux (`Amazon Linux AMI`_ ``ami-a10897d6``) and comes with
-Java 8 and Crate pre-installed.
+``<VERSION>`` is the Crate version in the format ``x.y.z``, ``<REVISION>`` is
+the build revision and ``<BASE_AMI>`` is the full name of the  `Amazon Linux`_
+base image.
+
+Example::
+
+    crate-0.51.1-1-amzn-ami-hvm-2015.03.0.x86_64
+
+The Crate AMI is based on comes with Java 8 and Crate pre-installed.
 
 Finding the Crate AMI
 =====================
@@ -37,7 +42,7 @@ The following command lists every available Crate AMI on the AWS platform.
 
 .. code-block:: bash
 
-    $ aws ec2 describe-images --filters "Name=name,Values=Crate-AWS-AMI-*"
+    $ aws ec2 describe-images --filters "Name=name,Values=crate-0.51.1-*"
 
 
 Launch the AMI
@@ -182,4 +187,4 @@ directory of Crate is set to ``/var/lib/crate``. The data paths are set in
 .. _Solid-State-Drives: https://en.wikipedia.org/wiki/Solid-state_drive
 .. _AWS CLI: https://aws.amazon.com/cli/
 .. _Cloud-Init: http://cloudinit.readthedocs.org/en/latest/
-.. _Amazon Linux Ami: https://aws.amazon.com/amazon-linux-ami/
+.. _Amazon Linux: https://aws.amazon.com/amazon-linux-ami/
