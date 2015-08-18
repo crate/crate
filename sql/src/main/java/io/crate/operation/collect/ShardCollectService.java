@@ -131,7 +131,7 @@ public class ShardCollectService {
         RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
-            return new NoopCrateCollector(downstream);
+            return RowsCollector.empty(downstream);
         } else {
             RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
@@ -144,7 +144,7 @@ public class ShardCollectService {
                 }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.extractImplementations(normalizedCollectNode);
-                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), downstream);
+                return RowsCollector.single(shardCtx.topLevelInputs(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
         }

@@ -27,7 +27,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.SimpleOneRowCollector;
+import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
@@ -57,6 +57,6 @@ public class SingleRowSource implements CollectSource {
                 RowGranularity.NODE
         );
         ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase);
-        return ImmutableList.<CrateCollector>of(new SimpleOneRowCollector(ctx.topLevelInputs(), downstream));
+        return ImmutableList.<CrateCollector>of(RowsCollector.single(ctx.topLevelInputs(), downstream));
     }
 }

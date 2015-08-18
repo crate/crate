@@ -21,9 +21,13 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.core.collections.Row;
 import io.crate.operation.*;
 import io.crate.operation.projectors.RowFilter;
+import io.crate.planner.symbol.Literal;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
@@ -35,8 +39,28 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     private final RowFilter<R> rowFilter;
     private volatile boolean killed;
 
+    public static <T> RowsCollector<T> empty(RowDownstream rowDownstream) {
+        return new RowsCollector<>(
+                ImmutableList.<Input<?>>of(),
+                ImmutableList.<CollectExpression<T, ?>>of(),
+                rowDownstream,
+                ImmutableList.<T>of(),
+                Literal.BOOLEAN_FALSE
+        );
+    }
+
+    public static RowsCollector<Row> single(List<Input<?>> inputs, RowDownstream rowDownstream) {
+        return new RowsCollector<>(
+                inputs,
+                ImmutableList.<CollectExpression<Row, ?>>of(),
+                rowDownstream,
+                ImmutableList.<Row>of(new InputRow(inputs)),
+                Literal.BOOLEAN_TRUE
+        );
+    }
+
     public RowsCollector(List<Input<?>> inputs,
-                         List<CollectExpression<R, ?>> collectExpressions,
+                         Collection<CollectExpression<R, ?>> collectExpressions,
                          RowDownstream rowDownstream,
                          Iterable<R> rows,
                          Input<Boolean> condition) {
