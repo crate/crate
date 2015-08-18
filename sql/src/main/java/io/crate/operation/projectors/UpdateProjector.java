@@ -50,7 +50,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector implements Projector, RowDownstreamHandle {
+public class UpdateProjector extends RowDownstreamAndHandle implements Projector {
 
     public static final int DEFAULT_BULK_SIZE = 1024;
 
@@ -122,7 +122,7 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override
@@ -179,15 +179,5 @@ public class UpdateProjector implements Projector, RowDownstreamHandle {
                 downstream.fail(t);
             }
         });
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
     }
 }

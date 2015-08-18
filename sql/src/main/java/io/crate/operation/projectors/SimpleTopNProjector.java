@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstreamHandle {
+public class SimpleTopNProjector extends RowDownstreamAndHandle implements Projector {
 
     private final CollectExpression<Row, ?>[] collectExpressions;
     private final InputRow inputRow;
@@ -91,7 +91,7 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override
@@ -118,15 +118,5 @@ public class SimpleTopNProjector implements Projector, RowUpstream, RowDownstrea
             return;
         }
         failure.set(throwable);
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
     }
 }

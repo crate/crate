@@ -154,15 +154,4 @@ public class SortingTopNProjector extends ResultProviderBase {
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
     }
-
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
 }
