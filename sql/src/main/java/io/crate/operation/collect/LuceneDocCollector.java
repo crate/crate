@@ -56,6 +56,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneDocCollector.class);
 
+     // cache exception to avoid expensive stacktrace generation
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
+    private static final CollectionTerminatedException COLLECTION_TERMINATED_EXCEPTION = new CollectionTerminatedException();
+
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
         final HashSet<String> requiredFields;
@@ -170,11 +174,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected boolean skipDoc(int doc) {
         ScoreDoc after = internalCollectContext.lastCollected;
         if (after != null) {
-            if (currentDocBase == internalCollectContext.lastDocBase && doc <= after.doc) {
-                // doc was already collected, skip
-                LOGGER.trace("skipping doc {} <= {} of docBase {}", doc, after.doc, currentDocBase);
-                return true;
-            }
+            return currentDocBase == internalCollectContext.lastDocBase && doc <= after.doc;
         }
         return false;
     }
@@ -201,9 +201,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected void skipSegmentReader() {
         if (currentDocBase < internalCollectContext.lastDocBase) {
             // skip this segment reader, all docs of this segment are already collected
-            LOGGER.trace("skipping segment reader with docBase {} < {}",
-                    currentDocBase, internalCollectContext.lastDocBase);
-            throw new CollectionTerminatedException();
+            throw COLLECTION_TERMINATED_EXCEPTION;
         }
     }
 
