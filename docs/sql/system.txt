@@ -740,8 +740,8 @@ Minimum master nodes
 ....................
 The check for the :ref:`discovery.zen.minimum_master_nodes
 <discovery.zen.minimum_master_nodes>` setting verifies that the minimum
-number of nodes is equal/greater than the half of maximum number of nodes in the
-cluster.
+number of nodes is equal/greater than the half of maximum number of nodes in
+the cluster.
 ::
 
   (N / 2) + 1 <= M
@@ -752,16 +752,17 @@ the setting :ref:`discovery.zen.minimum_master_nodes
 
 Recovery expected nodes
 .......................
-The check for the ``gateway.expected_nodes`` setting checks that the number of
-nodes which should be waited for the immediate cluster state recovery must be
-equal to the maximum number of nodes in the cluster.
+The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
+setting checks that the number of nodes which should be waited for the
+immediate cluster state recovery must be equal to the maximum number of nodes
+in the cluster.
 
 Recovery after nodes
 ....................
-The check for the ``gateway.recover_after_nodes`` verifies that the number of
-started nodes before the cluster starts must be greater than the half
-of the expected number of nodes and equal/less than number of
-nodes in the cluster.
+The check for the :ref:`gateway.recover_after_nodes
+<gateway.recover_after_nodes>` verifies that the number of started nodes before
+the cluster starts must be greater than the half of the expected number of
+nodes and equal/less than number of nodes in the cluster.
 ::
 
   (E / 2) < R <= E
@@ -771,12 +772,15 @@ nodes.
 
 Recovery after time
 ...................
-The check for the ``gateway.recover_after_time`` settings verifies that the
-time before recovery starts must not be less than default value of ``5m``.
+The check for the :ref:`gateway.recover_after_time
+<gateway.recover_after_time>` settings verifies that the time before recovery
+starts must not be less than default value of ``5m``.
 
-For instance, if the ``gateway.expected_nodes`` and
-``discovery.zen.minimum_master_nodes`` settings were misconfigured then the
-SQL query bellow would have the following results::
+For instance, if the :ref:`gateway.expected_nodes <gateway.expected_nodes>` and
+:ref:`discovery.zen.minimum_master_nodes <discovery.zen.minimum_master_nodes>`
+settings were misconfigured then the SQL query bellow would have the following
+results
+::
 
     cr> select *
     ... from sys.checks
