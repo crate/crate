@@ -6,9 +6,10 @@ jdk:
 sudo: false
 env:
   global:
-    CRATE_TESTS_SQL_REQUEST_TIMEOUT="10"
-    JAVA7_HOME="/usr/lib/jvm/java-7-oracle"
-    _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
+    - secure: "LLqhKxqgRMp/C/TzZWv8YuhpmEm1twggm76NBUAQfZmOPLCkQSpAO8hoBM3qaIlDPSKPgoYj9f0TBuNi0iIFghQf0Xc4pXPCV0AnoGpXwRGiJATTAXfnG7RBa/hXRRBeAKlGmAI9GLtIoCQbUKYhq8gqwbzQVQXq+90rhsMH4zo="
+    - CRATE_TESTS_SQL_REQUEST_TIMEOUT="10"
+    - JAVA7_HOME="/usr/lib/jvm/java-7-oracle"
+    - _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
 
 cache:
   directories:
@@ -30,3 +31,12 @@ after_success:
 branches:
   except:
     - /.*\/.*/
+
+
+addons:
+  coverity_scan:
+    project:
+      name: "crate/crate"
+    build_command_prepend: "./gradlew clean"
+    build_command:   "./gradlew compileJava"
+    branch_pattern: coverity_scan
