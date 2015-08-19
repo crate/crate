@@ -142,26 +142,27 @@ public class CrateCorePlugin extends AbstractPlugin {
         String trustPassword = "changeit";
 
         // load our key store as a stream and initialize a KeyStore
-        InputStream trustStream = this.getClass().getResourceAsStream(trustStorePath);
-        if (trustStream == null) {
-            throw new FileNotFoundException("Resource [" + trustStorePath + "] not found in classpath");
+        try (InputStream trustStream = this.getClass().getResourceAsStream(trustStorePath)) {
+            if (trustStream == null) {
+                throw new FileNotFoundException("Resource [" + trustStorePath + "] not found in classpath");
+            }
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+            // load the stream to our store
+            trustStore.load(trustStream, trustPassword.toCharArray());
+
+            // initialize a trust manager factory with the trusted store
+            TrustManagerFactory trustFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustFactory.init(trustStore);
+
+            // get the trust managers from the factory
+            TrustManager[] trustManagers = trustFactory.getTrustManagers();
+
+            // initialize an ssl context to use these managers and set as default
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustManagers, null);
+            SSLContext.setDefault(sslContext);
         }
-        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-
-        // load the stream to our store
-        trustStore.load(trustStream, trustPassword.toCharArray());
-
-        // initialize a trust manager factory with the trusted store
-        TrustManagerFactory trustFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustFactory.init(trustStore);
-
-        // get the trust managers from the factory
-        TrustManager[] trustManagers = trustFactory.getTrustManagers();
-
-        // initialize an ssl context to use these managers and set as default
-        SSLContext sslContext = SSLContext.getInstance("SSL");
-        sslContext.init(null, trustManagers, null);
-        SSLContext.setDefault(sslContext);
     }
 }
