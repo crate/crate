@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.Streams;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
+import java.io.IOException;
 import java.util.Properties;
 
 public class Build {
@@ -40,7 +41,9 @@ public class Build {
         try {
             String properties = Streams.copyToStringFromClasspath("/crate-build.properties");
             Properties props = new Properties();
-            props.load(new FastStringReader(properties));
+            try (FastStringReader fsr = new FastStringReader(properties)) {
+                props.load(fsr);
+            }
             hash = props.getProperty("hash", hash);
             if (!hash.equals("NA")) {
                 hashShort = hash.substring(0, 7);
@@ -49,7 +52,7 @@ public class Build {
             if (gitTimestampRaw != null) {
                 timestamp = ISODateTimeFormat.dateTimeNoMillis().withZone(DateTimeZone.UTC).print(Long.parseLong(gitTimestampRaw));
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             // just ignore...
         }
 
