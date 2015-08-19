@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WriterProjector implements Projector, RowDownstreamHandle {
+public class WriterProjector extends RowDownstreamAndHandle implements Projector {
 
     private static final byte NEW_LINE = (byte) '\n';
 
@@ -191,7 +191,7 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override
@@ -211,7 +211,6 @@ public class WriterProjector implements Projector, RowDownstreamHandle {
     public void downstream(RowDownstream downstream) {
         this.downstream = downstream.registerUpstream(this);
     }
-
 
     interface RowWriter {
         void write(Row row);

@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.operation.NodeOperation;
+import io.crate.operation.RowDownstream;
 import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.common.inject.ImplementedBy;
 
@@ -30,5 +31,5 @@ import java.util.UUID;
 @ImplementedBy(InternalResultProviderFactory.class)
 public interface ResultProviderFactory {
 
-    ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize);
+    RowDownstream createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize);
 }

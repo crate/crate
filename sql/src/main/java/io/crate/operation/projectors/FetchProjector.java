@@ -53,7 +53,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FetchProjector implements Projector, RowDownstreamHandle {
+public class FetchProjector extends RowDownstreamAndHandle implements Projector {
 
     public static final int NO_BULK_REQUESTS = -1;
 
@@ -193,7 +193,7 @@ public class FetchProjector implements Projector, RowDownstreamHandle {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override

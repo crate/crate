@@ -67,12 +67,10 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractIndexWriterProjector implements
-        Projector, RowUpstream, RowDownstreamHandle {
+public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandle {
 
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<Row, ?>[] collectExpressions;
-    private UUID jobId;
     private final TableIdent tableIdent;
     @Nullable
     private final String partitionIdent;
@@ -118,7 +116,6 @@ public abstract class AbstractIndexWriterProjector implements
         this.partitionIdent = partitionIdent;
         this.partitionedByInputs = partitionedByInputs;
         this.collectExpressions = collectExpressions;
-        this.jobId = jobId;
         if (partitionedByInputs.size() > 0) {
             partitionIdentCache = CacheBuilder.newBuilder()
                     .initialCapacity(10)

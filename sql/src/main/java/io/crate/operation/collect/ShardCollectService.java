@@ -57,12 +57,13 @@ public class ShardCollectService {
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
+    private final ThreadPool threadPool;
     private final ShardId shardId;
-    private final IndexService indexService;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
+    private final IndexService indexService;
     private final BlobIndices blobIndices;
 
     @Inject
@@ -80,6 +81,7 @@ public class ShardCollectService {
                                BlobShardReferenceResolver blobShardReferenceResolver,
                                MapperService mapperService) {
         this.searchContextFactory = searchContextFactory;
+        this.threadPool = threadPool;
         this.shardId = shardId;
         this.indexService = indexService;
         this.blobIndices = blobIndices;
@@ -137,6 +139,7 @@ public class ShardCollectService {
                     return getBlobIndexCollector(normalizedCollectNode, downstream);
                 } else {
                     return getLuceneIndexCollector(
+                            threadPool,
                             normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
                 }
             } else if (granularity == RowGranularity.SHARD) {
@@ -164,7 +167,8 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(final CollectPhase collectNode,
+    private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
+                                                   final CollectPhase collectNode,
                                                    final RowDownstream downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
@@ -181,16 +185,29 @@ public class ShardCollectService {
             );
             jobCollectContext.addContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
-            return new LuceneDocCollector(
-                    searchContext,
-                    docCtx.topLevelInputs(),
-                    docCtx.docLevelExpressions(),
-                    docInputSymbolVisitor,
-                    collectNode,
-                    downstream,
-                    jobCollectContext.queryPhaseRamAccountingContext(),
-                    pageSize
-            );
+            if (collectNode.orderBy() != null) {
+                return new OrderedLuceneDocCollector(
+                        threadPool,
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        docInputSymbolVisitor,
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        pageSize
+                );
+            } else {
+                return new LuceneDocCollector(
+                        threadPool,
+                        searchContext,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        collectNode,
+                        downstream,
+                        jobCollectContext.queryPhaseRamAccountingContext()
+                );
+            }
         } catch (Throwable t) {
             if (searchContext == null) {
                 searcher.close();

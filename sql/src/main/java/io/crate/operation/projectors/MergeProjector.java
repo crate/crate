@@ -39,6 +39,7 @@ public class MergeProjector implements Projector  {
 
     private final Ordering<Row> ordering;
     private final List<MergeProjectorDownstreamHandle> downstreamHandles = new ArrayList<>();
+    private final List<RowUpstream> upstreams = new ArrayList<>();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
     private RowDownstreamHandle downstreamContext;
@@ -65,6 +66,7 @@ public class MergeProjector implements Projector  {
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        upstreams.add(upstream);
         remainingUpstreams.incrementAndGet();
         MergeProjectorDownstreamHandle handle = new MergeProjectorDownstreamHandle(this);
         downstreamHandles.add(handle);
@@ -155,6 +157,20 @@ public class MergeProjector implements Projector  {
             }
         }
         return lowest;
+    }
+
+    @Override
+    public void pause() {
+        for (RowUpstream upstream : upstreams) {
+            upstream.pause();
+        }
+    }
+
+    @Override
+    public void resume(boolean async) {
+        for (RowUpstream upstream : upstreams) {
+            upstream.resume(async);
+        }
     }
 
     public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {

@@ -71,4 +71,14 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     public void kill() {
         killed = true;
     }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
 }

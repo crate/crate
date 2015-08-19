@@ -69,6 +69,16 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
+
     private static class VoidFunction<Arg> implements Function<Arg, Void> {
         @Nullable
         @Override

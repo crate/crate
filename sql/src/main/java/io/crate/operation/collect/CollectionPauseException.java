@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to CRATE.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -21,33 +21,11 @@
 
 package io.crate.operation.collect;
 
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
+import java.io.IOException;
 
-public class NoopCrateCollector implements CrateCollector {
-
-    private RowDownstreamHandle downstream;
-
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public void doCollect() {
-        downstream.finish();
-    }
-
-    @Override
-    public void kill() {
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
+/**
+ * Throw this exception inside a {@link org.apache.lucene.search.Collector#collect} in order to
+ * pause the collection.
+ */
+public class CollectionPauseException extends IOException {
 }

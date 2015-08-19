@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,35 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.projectors;
 
-import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 
-public class NoopCrateCollector implements CrateCollector {
+import java.util.ArrayList;
+import java.util.List;
 
-    private RowDownstreamHandle downstream;
+public abstract class RowDownstreamAndHandle implements Projector, RowDownstreamHandle {
 
-    public NoopCrateCollector(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public void doCollect() {
-        downstream.finish();
-    }
+    private final List<RowUpstream> upstreams = new ArrayList<>(1);
 
     @Override
-    public void kill() {
+    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        upstreams.add(upstream);
+        return this;
     }
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        for (RowUpstream upstream : upstreams) {
+            upstream.pause();
+        }
     }
 
     @Override
     public void resume(boolean async) {
-        throw new UnsupportedOperationException();
+        for (RowUpstream upstream : upstreams) {
+            upstream.resume(false);
+        }
     }
 }

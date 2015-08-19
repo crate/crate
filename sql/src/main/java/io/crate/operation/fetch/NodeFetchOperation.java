@@ -187,6 +187,16 @@ public class NodeFetchOperation implements RowUpstream {
         );
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
+
 
     static class ShardDocIdsBucket {
 

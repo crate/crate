@@ -48,7 +48,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class GroupingProjector implements Projector, RowDownstreamHandle {
+public class GroupingProjector extends RowDownstreamAndHandle implements Projector {
 
 
     private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
@@ -122,7 +122,7 @@ public class GroupingProjector implements Projector, RowDownstreamHandle {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override

@@ -22,35 +22,32 @@
 package io.crate.operation.collect;
 
 import io.crate.action.sql.query.CrateSearchContext;
-import io.crate.action.sql.query.LuceneSortGenerator;
-import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.operation.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import org.apache.lucene.index.*;
+import org.apache.lucene.index.AtomicReader;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -58,6 +55,10 @@ import java.util.concurrent.CancellationException;
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneDocCollector.class);
+
+     // cache exception to avoid expensive stacktrace generation
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
+    private static final CollectionTerminatedException COLLECTION_TERMINATED_EXCEPTION = new CollectionTerminatedException();
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -90,47 +91,39 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    private CollectInputSymbolVisitor<?> inputSymbolVisitor;
-
+    protected final ThreadPoolExecutor executor;
     private final RowDownstreamHandle downstream;
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
-    private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
-    private final Integer limit;
-    private final OrderBy orderBy;
-    private final CrateSearchContext searchContext;
+    protected final Integer limit;
+    protected final CrateSearchContext searchContext;
     private final RamAccountingContext ramAccountingContext;
+    private final AtomicBoolean paused = new AtomicBoolean(false);
 
-    private volatile boolean killed = false;
+    protected volatile boolean killed = false;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
-    private int rowCount = 0;
-    private int batchSizeHint;
+    protected int rowCount = 0;
+    private volatile boolean pendingPause = false;
+    private InternalCollectContext internalCollectContext;
+    private int currentDocBase = 0;
 
-    public LuceneDocCollector(CrateSearchContext searchContext,
+    public LuceneDocCollector(ThreadPool threadPool,
+                              CrateSearchContext searchContext,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              CollectInputSymbolVisitor<?> inputSymbolVisitor,
-                              CollectPhase collectNode,
+                              CollectPhase collectPhase,
                               RowDownstream downStreamProjector,
-                              RamAccountingContext ramAccountingContext,
-                              int batchSizeHint) throws Exception {
+                              RamAccountingContext ramAccountingContext) throws Exception {
+        this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
-        this.limit = collectNode.limit();
-        this.orderBy = collectNode.orderBy();
+        this.limit = collectPhase.limit();
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
-        for (LuceneCollectorExpression expr : collectorExpressions) {
-            if ( expr instanceof OrderByCollectorExpression) {
-                orderByCollectorExpressions.add((OrderByCollectorExpression)expr);
-            }
-        }
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
-        this.inputSymbolVisitor = inputSymbolVisitor;
-        this.batchSizeHint = batchSizeHint;
     }
 
     @Override
@@ -142,6 +135,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void collect(int doc) throws IOException {
+        if (shouldPause()) {
+            throw new CollectionPauseException();
+        }
+
         if (killed) {
             throw new CancellationException();
         }
@@ -150,6 +147,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             throw new UnexpectedCollectionTerminatedException(
                     CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                             ramAccountingContext.limit()));
+        }
+
+        if (skipDoc(doc)) {
+            return;
         }
 
         rowCount++;
@@ -161,29 +162,53 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             e.setNextDocId(doc);
         }
         boolean wantMore = downstream.setNextRow(inputRow);
+
+        postCollectDoc(doc);
+
         if (!wantMore || (limit != null && rowCount >= limit)) {
             // no more rows required, we can stop here
             throw new CollectionFinishedEarlyException();
         }
     }
 
+    protected boolean skipDoc(int doc) {
+        ScoreDoc after = internalCollectContext.lastCollected;
+        if (after != null) {
+            return currentDocBase == internalCollectContext.lastDocBase && doc <= after.doc;
+        }
+        return false;
+    }
+
+    protected void postCollectDoc(int doc) {
+        if (internalCollectContext.lastCollected == null) {
+            internalCollectContext.lastCollected = new ScoreDoc(doc, Float.NaN);
+        }
+        internalCollectContext.lastCollected.doc = doc;
+        internalCollectContext.lastDocBase = currentDocBase;
+    }
+
+
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
-        this.currentReader = context.reader();
+        currentReader = context.reader();
+        currentDocBase = context.docBase;
+        skipSegmentReader();
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }
     }
 
-    public void setNextOrderByValues(ScoreDoc scoreDoc) {
-        for (OrderByCollectorExpression expr : orderByCollectorExpressions) {
-            expr.setNextFieldDoc((FieldDoc) scoreDoc);
+    protected void skipSegmentReader() {
+        if (currentDocBase < internalCollectContext.lastDocBase) {
+            // skip this segment reader, all docs of this segment are already collected
+            throw COLLECTION_TERMINATED_EXCEPTION;
         }
     }
 
+
     @Override
     public boolean acceptsDocsOutOfOrder() {
-        return true;
+        return false;
     }
 
     @Override
@@ -200,22 +225,49 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         visitorEnabled = fieldsVisitor.required();
         SearchContext.setCurrent(searchContext);
         searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-        Query query = searchContext.query();
 
+        Query query = searchContext.query();
+        LOGGER.trace("query {}", query);
+        assert query != null : "query must not be null";
+
+        buildContext(query);
+
+        innerCollect();
+    }
+
+    protected void buildContext(Query query) {
+        if (internalCollectContext == null) {
+            internalCollectContext = new InternalCollectContext(query);
+        }
+    }
+
+    protected void searchAndCollect() throws IOException {
+        searchContext.searcher().search(internalCollectContext.query, this);
+    }
+
+    private void innerCollect() {
         try {
-            assert query != null : "query must not be null";
-            if(orderBy != null) {
-                searchWithOrderBy(query);
-            } else {
-                searchContext.searcher().search(query, this);
+            searchAndCollect();
+
+            if (!paused.get()) {
+                downstream.finish();
             }
-            downstream.finish();
         } catch (CollectionFinishedEarlyException e) {
+            paused.set(false);
             downstream.finish();
+        } catch (CollectionPauseException e) {
+            // paused - do nothing
         } catch (Throwable e) {
+            paused.set(false);
             searchContext.close();
             downstream.fail(e);
         } finally {
+            finishCollect();
+        }
+    }
+
+    private void finishCollect() {
+        if (!paused.get()) {
             searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
             assert SearchContext.current() == searchContext;
             searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
@@ -226,94 +278,61 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void kill() {
         killed = true;
+        if (paused.get()) {
+            downstream.fail(new CancellationException());
+            finishCollect();
+        }
     }
 
-    private void searchWithOrderBy(Query query) throws IOException {
-        Integer batchSize = batchSizeHint;
-        Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
-        LOGGER.trace("Collecting data: batchSize: {}", batchSize);
-        TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
-        int collected = topFieldDocs.scoreDocs.length;
+    @Override
+    public void pause() {
+        pendingPause = true;
+    }
 
-        Collection<ScoreCollectorExpression> scoreExpressions = getScoreExpressions();
-        ScoreDoc lastCollected = collectTopFields(topFieldDocs, scoreExpressions);
-        while ((limit == null || collected < limit) && topFieldDocs.scoreDocs.length >= batchSize && lastCollected != null) {
-
-            if (killed) {
-                throw new CancellationException();
-            }
-
-
-            batchSize = limit == null ? batchSizeHint : Math.min(batchSizeHint, limit - collected);
-            LOGGER.trace("Collecting data: batchSize: {}; already collected: {} ", batchSize, collected);
-            Query alreadyCollectedQuery = alreadyCollectedQuery((FieldDoc)lastCollected);
-            if (alreadyCollectedQuery != null) {
-                BooleanQuery searchAfterQuery = new BooleanQuery();
-                searchAfterQuery.add(query, BooleanClause.Occur.MUST);
-                searchAfterQuery.add(alreadyCollectedQuery, BooleanClause.Occur.MUST_NOT);
-                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, searchAfterQuery, batchSize, sort);
+    @Override
+    public void resume(boolean async) {
+        if (paused.compareAndSet(true, false)) {
+            if (!async) {
+                innerCollect();
             } else {
-                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, batchSize, sort);
-            }
-            collected += topFieldDocs.scoreDocs.length;
-            lastCollected = collectTopFields(topFieldDocs, scoreExpressions);
-        }
-    }
-
-    private Collection<ScoreCollectorExpression> getScoreExpressions() {
-        List<ScoreCollectorExpression> scoreCollectorExpressions = new ArrayList<>();
-        for (LuceneCollectorExpression<?> expression : collectorExpressions) {
-            if (expression instanceof ScoreCollectorExpression) {
-                scoreCollectorExpressions.add((ScoreCollectorExpression) expression);
-            }
-        }
-        return scoreCollectorExpressions;
-    }
-
-    public void batchSizeHint(int batchSizeHint) {
-        this.batchSizeHint = batchSizeHint;
-    }
-
-    private ScoreDoc collectTopFields(TopFieldDocs topFieldDocs, Collection<ScoreCollectorExpression> scoreExpressions) throws IOException{
-        IndexReaderContext indexReaderContext = searchContext.searcher().getTopReaderContext();
-        ScoreDoc lastDoc = null;
-        if(!indexReaderContext.leaves().isEmpty()) {
-            for (ScoreDoc scoreDoc : topFieldDocs.scoreDocs) {
-                int readerIndex = ReaderUtil.subIndex(scoreDoc.doc, searchContext.searcher().getIndexReader().leaves());
-                AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
-                int subDoc = scoreDoc.doc - subReaderContext.docBase;
-                setNextReader(subReaderContext);
-                setNextOrderByValues(scoreDoc);
-                for (LuceneCollectorExpression<?> scoreExpression : scoreExpressions) {
-                    ((ScoreCollectorExpression) scoreExpression).score(scoreDoc.score);
-                }
-                collect(subDoc);
-                lastDoc = scoreDoc;
-            }
-        }
-        return lastDoc;
-    }
-
-    private @Nullable Query alreadyCollectedQuery(FieldDoc lastCollected) {
-        BooleanQuery query = new BooleanQuery();
-        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-            Symbol order = orderBy.orderBySymbols().get(i);
-            Object value = lastCollected.fields[i];
-            // only filter for null values if nulls last
-            if (order instanceof Reference && (value != null || !orderBy.nullsFirst()[i])) {
-                QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
-                String columnName = ((Reference) order).info().ident().columnIdent().fqn();
-                if (orderBy.reverseFlags()[i]) {
-                    query.add(helper.rangeQuery(columnName, value, null, false, false), BooleanClause.Occur.MUST);
-                } else {
-                    query.add(helper.rangeQuery(columnName, null, value, false, false), BooleanClause.Occur.MUST);
+                try {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            SearchContext.setCurrent(searchContext);
+                            searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
+                            innerCollect();
+                        }
+                    });
+                } catch (EsRejectedExecutionException e) {
+                    // fallback to synchronous
+                    LOGGER.trace("Got rejected exception, will resume synchronous");
+                    innerCollect();
                 }
             }
-        }
-        if (query.clauses().size() > 0) {
-            return query;
         } else {
-            return null;
+            LOGGER.trace("Collector was not paused and so will not resume");
+            pendingPause = false;
+        }
+    }
+
+    public boolean shouldPause() {
+        if (pendingPause) {
+            paused.set(true);
+            pendingPause = false;
+            return true;
+        }
+        return false;
+    }
+
+    protected static class InternalCollectContext {
+
+        protected final Query query;
+        protected int lastDocBase = 0;
+        @Nullable protected ScoreDoc lastCollected;
+
+        public InternalCollectContext(Query query) {
+            this.query = query;
         }
     }
 }

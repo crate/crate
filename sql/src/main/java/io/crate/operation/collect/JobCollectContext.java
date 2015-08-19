@@ -45,7 +45,6 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class JobCollectContext implements ExecutionSubContext, RowUpstream, ExecutionState {
 
@@ -217,5 +216,15 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
         return queryPhaseRamAccountingContext;
+    }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
     }
 }

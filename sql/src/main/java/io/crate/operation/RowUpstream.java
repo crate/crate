@@ -26,4 +26,15 @@ package io.crate.operation;
  */
 public interface RowUpstream {
 
+    /**
+     * tells the RowUpstream to stop sending rows until resume is called.
+     *
+     * pause() must be called in the same thread that is also calling setNextRow
+     */
+    void pause();
+
+    /**
+     * tells the RowUpstream that it should resume sending rows.
+     */
+    void resume(boolean async);
 }

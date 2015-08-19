@@ -29,11 +29,12 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ResultProvider;
+import io.crate.operation.projectors.RowDownstreamAndHandle;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class ResultProviderBase implements ResultProvider {
+public abstract class ResultProviderBase extends RowDownstreamAndHandle implements ResultProvider {
 
     private final SettableFuture<Bucket> result = SettableFuture.create();
     private final AtomicBoolean failed = new AtomicBoolean(false);
@@ -43,7 +44,7 @@ public abstract class ResultProviderBase implements ResultProvider {
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         remainingUpstreams.incrementAndGet();
-        return this;
+        return super.registerUpstream(upstream);
     }
 
     @Override

@@ -137,6 +137,16 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
         downstream.fail(throwable);
     }
 
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        throw new UnsupportedOperationException();
+    }
+
     static class UpstreamBuffer implements RowDownstreamHandle {
 
         private final LinkedList<Row> rows = new LinkedList<>();
