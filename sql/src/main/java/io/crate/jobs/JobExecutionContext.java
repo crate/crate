@@ -53,7 +53,7 @@ public class JobExecutionContext {
 
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
 
-    private volatile long lastAccessTime = -1;
+    private volatile long lastAccessTime;
 
     public static class Builder {
 

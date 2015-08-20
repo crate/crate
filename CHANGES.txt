@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused stuck jobs to return an empty result instead of
+   an error.
+
 2015/08/13 0.51.1
 =================
 

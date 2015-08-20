@@ -36,6 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +48,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
@@ -257,14 +260,19 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobContextService.KEEP_ALIVE = timeValueMillis(0).millis();
         JobContextService jobContextService1 = new JobContextService(settings, testThreadPool, mock(StatsTables.class));
 
-        JobExecutionContext jobExecutionContext = getJobExecutionContextWithOneActiveSubContext(jobContextService1);
-        jobExecutionContext.getSubContextOrNull(1);
+        final ExecutionSubContext executionSubContext = mock(ExecutionSubContext.class);
+
+        JobExecutionContext.Builder builder = jobContextService1.newBuilder(UUID.randomUUID());
+        builder.addSubContext(0, executionSubContext);
+        jobContextService1.createContext(builder);
+
         Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);
+        assertThat(((Map) activeContexts.get(jobContextService1)).size(), is(1));
 
         Thread.sleep(300);
 
-        assertThat(((Map) activeContexts.get(jobContextService1)).size(), is(0));
+        verify(executionSubContext, times(1)).kill();
 
         // close service, stop reaper thread
         jobContextService1.close();

@@ -24,7 +24,7 @@ package io.crate.exceptions;
 public class JobKilledException extends RuntimeException implements CrateException {
 
     public JobKilledException() {
-        super("Job killed by user");
+        super("Job killed");
     }
 
     @Override
