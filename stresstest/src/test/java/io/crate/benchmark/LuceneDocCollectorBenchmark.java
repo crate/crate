@@ -282,7 +282,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         topNProjector.startProjection(jobCollectContext);
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
-        topNProjector.doFinish();
+        topNProjector.finish();
         collectingProjector.finish();
     }
 
