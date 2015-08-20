@@ -92,7 +92,7 @@ public class PageDownstreamFactory {
 
         PagingIterator<Row> pagingIterator;
         if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
-            pagingIterator = new SortedPagingIterator(
+            pagingIterator = new SortedPagingIterator<>(
                     OrderingByPosition.ordering(
                             mergeNode.orderByIndices(),
                             mergeNode.reverseFlags(),

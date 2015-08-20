@@ -24,24 +24,28 @@ package io.crate.operation.merge;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 
 import java.util.*;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterators.peekingIterator;
 
-public class SortedPagingIterator implements PagingIterator<Row> {
+/**
+ * A pagingIterator that sorts on consumption
+ *
+ * {@link #hasNext()} might call next() on a backing iterator. So if one or more of the backing iterators contains shared
+ * objects these should be consumed after a next() call and before the next hasNext() or next() call or they'll change.
+ */
+public class SortedPagingIterator<T> implements PagingIterator<T> {
 
-    private final RowMergingIterator mergingIterator;
+    private final SortedMergeIterator<T> mergingIterator;
     private boolean ignoreLeastExhausted = false;
 
-    public SortedPagingIterator(Ordering<Row> ordering) {
-        mergingIterator = new RowMergingIterator(Collections.<Iterator<? extends Row>>emptyList(), ordering);
+    public SortedPagingIterator(Ordering<T> ordering) {
+        mergingIterator = new SortedMergeIterator<>(Collections.<Iterator<? extends T>>emptyList(), ordering);
     }
 
     @Override
-    public void merge(Iterable<? extends Iterator<Row>> iterators) {
+    public void merge(Iterable<? extends Iterator<T>> iterators) {
         mergingIterator.merge(iterators);
     }
 
@@ -52,12 +56,11 @@ public class SortedPagingIterator implements PagingIterator<Row> {
 
     @Override
     public boolean hasNext() {
-        return (ignoreLeastExhausted || !mergingIterator.leastExhausted)
-                && mergingIterator.hasNext();
+        return mergingIterator.hasNext() && (ignoreLeastExhausted || !mergingIterator.leastExhausted);
     }
 
     @Override
-    public Row next() {
+    public T next() {
         return mergingIterator.next();
     }
 
@@ -66,74 +69,28 @@ public class SortedPagingIterator implements PagingIterator<Row> {
         throw new UnsupportedOperationException();
     }
 
-    private static class PeekingRowIterator implements PeekingIterator<Row> {
-
-        private final Iterator<? extends Row> iterator;
-        private boolean hasPeeked;
-        private Row peekedElement;
-
-        public PeekingRowIterator(Iterator<? extends Row> iterator) {
-            this.iterator = iterator;
-        }
-
-        @Override
-        public Row peek() {
-            if (!hasPeeked) {
-                peekedElement = new RowN(iterator.next().materialize());
-                hasPeeked = true;
-            }
-            return peekedElement;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return hasPeeked || iterator.hasNext();
-        }
-
-        @Override
-        public Row next() {
-            if (!hasPeeked) {
-                return iterator.next();
-            }
-            Row result = peekedElement;
-            hasPeeked = false;
-            peekedElement = null;
-            return result;
-        }
-
-        @Override
-        public void remove() {
-            checkState(!hasPeeked, "Can't remove after you've peeked at next");
-            iterator.remove();
-        }
-    }
-
-    private static PeekingRowIterator peekingIterator(Iterator<? extends Row> iterator) {
-        if (iterator instanceof PeekingRowIterator) {
-            return (PeekingRowIterator) iterator;
-        }
-        return new PeekingRowIterator(iterator);
-    }
-
     /**
      * MergingIterator like it is used in guava Iterators.mergedSort
-     * but uses a custom PeekingRowIterator which materializes the rows on peek()
+     * It has (limited) shared object support.
+     *
+     * And it also has a merge function with which additional backing iterators can be added to enable paging
      */
-    private static class RowMergingIterator extends UnmodifiableIterator<Row> {
+    private static class SortedMergeIterator<T> extends UnmodifiableIterator<T> {
 
-        final Queue<PeekingRowIterator> queue;
+        final Queue<PeekingIterator<T>> queue;
+        private PeekingIterator<T> lastUsedIter = null;
         private boolean leastExhausted = false;
 
-        public RowMergingIterator(Iterable<? extends Iterator<? extends Row>> iterators, final Comparator<? super Row> itemComparator) {
-            Comparator<PeekingRowIterator> heapComparator = new Comparator<PeekingRowIterator>() {
+        public SortedMergeIterator(Iterable<? extends Iterator<? extends T>> iterators, final Comparator<? super T> itemComparator) {
+            Comparator<PeekingIterator<T>> heapComparator = new Comparator<PeekingIterator<T>>() {
                 @Override
-                public int compare(PeekingRowIterator o1, PeekingRowIterator o2) {
+                public int compare(PeekingIterator<T> o1, PeekingIterator<T> o2) {
                     return itemComparator.compare(o1.peek(), o2.peek());
                 }
             };
             queue = new PriorityQueue<>(2, heapComparator);
 
-            for (Iterator<? extends Row> iterator : iterators) {
+            for (Iterator<? extends T> iterator : iterators) {
                 if (iterator.hasNext()) {
                     queue.add(peekingIterator(iterator));
                 }
@@ -142,23 +99,36 @@ public class SortedPagingIterator implements PagingIterator<Row> {
 
         @Override
         public boolean hasNext() {
+            reAddLastIterator();
             return !queue.isEmpty();
         }
 
-        @Override
-        public Row next() {
-            PeekingRowIterator nextIter = queue.remove();
-            Row next = nextIter.next();
-            if (nextIter.hasNext()) {
-                queue.add(nextIter);
-            } else {
-                leastExhausted = true;
+        private void reAddLastIterator() {
+            if (lastUsedIter != null) {
+                if (lastUsedIter.hasNext()) {
+                    queue.add(lastUsedIter);
+                } else {
+                    leastExhausted = true;
+                }
+                lastUsedIter = null;
             }
-            return next;
         }
 
-        void merge(Iterable<? extends Iterator<Row>> iterators) {
-            for (Iterator<Row> rowIterator : iterators) {
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            lastUsedIter = queue.remove();
+            return lastUsedIter.next();
+        }
+
+        void merge(Iterable<? extends Iterator<T>> iterators) {
+            if (lastUsedIter != null && lastUsedIter.hasNext()) {
+                queue.add(lastUsedIter);
+                lastUsedIter = null;
+            }
+            for (Iterator<T> rowIterator : iterators) {
                 if (rowIterator.hasNext()) {
                     queue.add(peekingIterator(rowIterator));
                 }

@@ -23,7 +23,6 @@ package io.crate.operation.merge;
 
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class SortedPagingIteratorTest {
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
-        SortedPagingIterator pagingIterator = new SortedPagingIterator(ORDERING);
+        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING);
 
         pagingIterator.merge(Arrays.asList(
                 new ArrayBucket(new Object[][] {
@@ -83,7 +82,7 @@ public class SortedPagingIteratorTest {
         assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\nd\ne\nx\ny\ny\nz\n"));
     }
 
-    private void consumeRows(SortedPagingIterator pagingIterator, List<Object[]> rows) {
+    private void consumeRows(SortedPagingIterator<Row> pagingIterator, List<Object[]> rows) {
         while (pagingIterator.hasNext()) {
             rows.add(pagingIterator.next().materialize());
         }
