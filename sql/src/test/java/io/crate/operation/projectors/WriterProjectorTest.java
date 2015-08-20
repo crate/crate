@@ -74,7 +74,7 @@ public class WriterProjectorTest extends CrateUnitTest {
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
-        ResultProvider downstream = new CollectingProjector();
+        CollectingProjector downstream = new CollectingProjector();
         projector.downstream(downstream);
 
         projector.startProjection(mock(ExecutionState.class));

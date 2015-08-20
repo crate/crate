@@ -67,7 +67,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -164,31 +163,9 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new Boolean[]{null, null}
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        SortingTopNProjector projector = (SortingTopNProjector) visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
-
-        projector.startProjection(mock(ExecutionState.class));
-        int i;
-        for (i = 20; i > 0; i--) {
-            if (!handle.setNextRow(spare(i % 4, i))) {
-                break;
-            }
-        }
-        handle.finish();
-        Bucket rows = ((ResultProvider) projector).result().get();
-        assertThat(printedTable(rows), is(
-                "foo| 0| 4\n" +
-                        "foo| 0| 8\n" +
-                        "foo| 0| 12\n" +
-                        "foo| 0| 16\n" +
-                        "foo| 0| 20\n" +
-                        "foo| 1| 1\n" +
-                        "foo| 1| 5\n" +
-                        "foo| 1| 9\n" +
-                        "foo| 1| 13\n" +
-                        "foo| 1| 17\n"
-        ));
     }
 
     @Test
@@ -238,11 +215,18 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
         SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
-        topNProjector.startProjection(mock(ExecutionState.class));
+
+        CollectingProjector collector = new CollectingProjector();
+        topNProjector.downstream(collector);
+
+        ExecutionState state = mock(ExecutionState.class);
+
+        collector.startProjection(state);
+        topNProjector.startProjection(state);
+        projector.startProjection(state);
 
         assertThat(projector, instanceOf(GroupingProjector.class));
 
-        projector.startProjection(mock(ExecutionState.class));
         BytesRef human = new BytesRef("human");
         BytesRef vogon = new BytesRef("vogon");
         BytesRef male = new BytesRef("male");
@@ -254,7 +238,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         handle.setNextRow(spare(human, 34, male));
         handle.finish();
 
-        Bucket rows = topNProjector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(
                 isRow(human, female, 22.0, 1L),
                 isRow(human, male, 34.0, 2L),

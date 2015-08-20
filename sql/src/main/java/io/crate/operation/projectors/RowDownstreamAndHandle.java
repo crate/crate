@@ -21,20 +21,42 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class RowDownstreamAndHandle implements Projector, RowDownstreamHandle {
+public abstract class RowDownstreamAndHandle implements RowDownstream, RowUpstream, RowDownstreamHandle {
 
     private final List<RowUpstream> upstreams = new ArrayList<>(1);
+    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
         upstreams.add(upstream);
         return this;
+    }
+
+    @Override
+    public void finish() {
+        if (remainingUpstreams.decrementAndGet() == 0 && !failed.get()) {
+            onAllUpstreamsFinished();
+        }
+    }
+
+    protected void onAllUpstreamsFinished() {
+
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        failed.set(true);
     }
 
     @Override

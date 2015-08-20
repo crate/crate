@@ -31,7 +31,6 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageResultListener;
-import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -105,10 +104,6 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     private void nodeOperation(final DistributedResultRequest request,
                                final ActionListener<DistributedResultResponse> listener,
                                final int retry) {
-        if (request.executionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE) {
-            listener.onFailure(new IllegalStateException("request must contain a valid executionPhaseId"));
-            return;
-        }
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
         if (context == null) {
             retryOrFailureResponse(request, listener, retry);

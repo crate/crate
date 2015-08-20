@@ -21,11 +21,14 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
-import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.NodeOperation;
+import io.crate.operation.RowDownstream;
+import org.elasticsearch.common.inject.ImplementedBy;
 
-public interface ResultProvider extends Projector, RowDownstreamHandle {
+import java.util.UUID;
 
-    ListenableFuture<Bucket> result();
+@ImplementedBy(InternalRowDownstreamFactory.class)
+public interface RowDownstreamFactory {
+
+    RowDownstream createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize);
 }

@@ -22,22 +22,19 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.ArrayBucket;
-import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.executor.transport.distributed.ResultProviderBase;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
 
-public class AggregationProjector extends ResultProviderBase implements Projector, RowUpstream {
+public class AggregationProjector extends RowDownstreamAndHandle implements Projector, RowUpstream {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<Row, ?>> collectExpressions;
@@ -90,15 +87,15 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
     }
 
     @Override
-    public Throwable doFail(Throwable t) {
+    public void fail(Throwable t) {
+        super.fail(t);
         if (downstream != null) {
             downstream.fail(t);
         }
-        return t;
     }
 
     @Override
-    public Bucket doFinish() {
+    public void onAllUpstreamsFinished() {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
@@ -106,6 +103,5 @@ public class AggregationProjector extends ResultProviderBase implements Projecto
             downstream.setNextRow(row);
             downstream.finish();
         }
-        return new ArrayBucket(new Object[][]{cells});
     }
 }

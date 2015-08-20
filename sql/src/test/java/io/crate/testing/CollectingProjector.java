@@ -25,6 +25,9 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.ResultProviderBase;
+import io.crate.jobs.ExecutionState;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.projectors.Projector;
 
 import java.util.Vector;
 
@@ -34,7 +37,7 @@ import java.util.Vector;
  * there are no other projectors in a chain but the result needs to be fetched at once after all
  * upstreams provided their rows.
  */
-public class CollectingProjector extends ResultProviderBase {
+public class CollectingProjector extends ResultProviderBase implements Projector {
 
     public final Vector<Object[]> rows = new Vector<>();
 
@@ -62,5 +65,15 @@ public class CollectingProjector extends ResultProviderBase {
     @Override
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void startProjection(ExecutionState executionState) {
+
+    }
+
+    @Override
+    public void downstream(RowDownstream downstream) {
+
     }
 }

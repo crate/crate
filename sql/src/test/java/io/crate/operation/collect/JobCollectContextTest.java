@@ -27,7 +27,6 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
@@ -109,7 +108,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         CollectOperation collectOperationMock = mock(CollectOperation.class);
         CollectPhase collectPhaseMock = mock(CollectPhase.class);
         UUID jobId = UUID.randomUUID();
-        ResultProvider projector = new CollectingProjector();
+        CollectingProjector projector = new CollectingProjector();
 
         JobCollectContext jobCtx = new JobCollectContext(
                 jobId,

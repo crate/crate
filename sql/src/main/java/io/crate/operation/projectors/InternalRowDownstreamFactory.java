@@ -26,7 +26,6 @@ import io.crate.Streamer;
 import io.crate.executor.transport.distributed.*;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.RowDownstream;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
@@ -38,53 +37,49 @@ import java.util.Collections;
 import java.util.UUID;
 
 @Singleton
-public class InternalResultProviderFactory implements ResultProviderFactory {
+public class InternalRowDownstreamFactory implements RowDownstreamFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
 
     @Inject
-    public InternalResultProviderFactory(ClusterService clusterService,
-                                         TransportDistributedResultAction transportDistributedResultAction) {
+    public InternalRowDownstreamFactory(ClusterService clusterService,
+                                        TransportDistributedResultAction transportDistributedResultAction) {
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
     }
 
     public RowDownstream createDownstream(NodeOperation nodeOperation, UUID jobId, int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+        assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes());
+        assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
-        if (nodeOperation.downstreamExecutionPhaseId() == ExecutionPhase.NO_EXECUTION_PHASE ||
-                ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-            return new SingleBucketBuilder(streamers);
+        // TODO: set bucketIdx properly
+        ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().executionNodes());
+        Collections.sort(server);
+        int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
+
+        MultiBucketBuilder multiBucketBuilder;
+        if (nodeOperation.downstreamNodes().size() == 1) {
+            // using modulo based distribution does not make sense if distributing to 1 node only
+            // lets use the broadcast distribution which simply passes every bucket to every node
+
+            multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
         } else {
-            assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
-
-            // TODO: set bucketIdx properly
-            ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().executionNodes());
-            Collections.sort(server);
-            int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
-
-            MultiBucketBuilder multiBucketBuilder;
-            if (nodeOperation.downstreamNodes().size() == 1) {
-                // using modulo based distribution does not make sense if distributing to 1 node only
-                // lets use the broadcast distribution which simply passes every bucket to every node
-
-                multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
-            } else {
-                multiBucketBuilder = new ModuloBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
-            }
-
-            return new DistributingDownstream(
-                    jobId,
-                    multiBucketBuilder,
-                    nodeOperation.downstreamExecutionPhaseId(),
-                    nodeOperation.downstreamExecutionPhaseInputId(),
-                    bucketIdx,
-                    nodeOperation.downstreamNodes(),
-                    transportDistributedResultAction,
-                    streamers,
-                    pageSize
-            );
+            multiBucketBuilder = new ModuloBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
         }
+
+        return new DistributingDownstream(
+                jobId,
+                multiBucketBuilder,
+                nodeOperation.downstreamExecutionPhaseId(),
+                nodeOperation.downstreamExecutionPhaseInputId(),
+                bucketIdx,
+                nodeOperation.downstreamNodes(),
+                transportDistributedResultAction,
+                streamers,
+                pageSize
+        );
+
     }
 }

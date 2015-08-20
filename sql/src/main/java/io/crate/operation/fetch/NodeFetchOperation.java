@@ -34,6 +34,7 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.ContextMissingException;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
@@ -43,7 +44,6 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.symbol.Reference;
@@ -117,14 +117,14 @@ public class NodeFetchOperation implements RowUpstream {
         }
     }
 
-    public void fetch(ResultProvider resultProvider) throws Exception {
+    public void fetch(SingleBucketBuilder bucketBuilder) throws Exception {
         int numShards = shardBuckets.size();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
         final JobCollectContext jobCollectContext = jobExecutionContext.getSubContext(executionPhaseId);
 
-        RowDownstream upstreamsRowMerger = new PositionalRowMerger(resultProvider, toFetchReferences.size());
-        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
+        RowDownstream upstreamsRowMerger = new PositionalRowMerger(bucketBuilder, toFetchReferences.size());
+        Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
             @Override
             public void onSuccess(@Nullable Bucket result) {
                 jobCollectContext.close();
@@ -158,7 +158,7 @@ public class NodeFetchOperation implements RowUpstream {
         try {
             runFetchThreaded(shardFetchers, ramAccountingContext);
         } catch (RejectedExecutionException e) {
-            resultProvider.registerUpstream(this).fail(e);
+            bucketBuilder.registerUpstream(this).fail(e);
         }
 
         if (LOGGER.isTraceEnabled()) {

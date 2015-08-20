@@ -28,7 +28,7 @@ import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.projectors.InternalResultProviderFactory;
+import io.crate.operation.projectors.InternalRowDownstreamFactory;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -45,13 +45,13 @@ import java.util.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class InternalResultProviderFactoryTest extends CrateUnitTest {
+public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
 
-    private InternalResultProviderFactory resultProviderFactory;
+    private InternalRowDownstreamFactory rowDownstreamFactory;
 
     @Before
     public void before() {
-        resultProviderFactory = new InternalResultProviderFactory(
+        rowDownstreamFactory = new InternalRowDownstreamFactory(
                 new NoopClusterService(),
                 mock(TransportDistributedResultAction.class));
     }
@@ -66,13 +66,7 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1, ImmutableList.<DataType>of(LongType.INSTANCE), ImmutableList.<Projection>of());
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
-        return resultProviderFactory.createDownstream(nodeOperation, jobId, Paging.PAGE_SIZE);
-    }
-
-    @Test
-    public void testCreateDownstreamLocalNode() throws Exception {
-        RowDownstream downstream = createDownstream(ImmutableSet.<String>of());
-        assertThat(downstream, instanceOf(SingleBucketBuilder.class));
+        return rowDownstreamFactory.createDownstream(nodeOperation, jobId, Paging.PAGE_SIZE);
     }
 
     @Test

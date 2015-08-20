@@ -23,10 +23,8 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
-import io.crate.core.collections.ArrayBucket;
-import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.distributed.ResultProviderBase;
+import io.crate.core.collections.RowN;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
@@ -37,7 +35,7 @@ import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Comparator;
 
-public class SortingTopNProjector extends ResultProviderBase {
+public class SortingTopNProjector extends RowDownstreamAndHandle implements Projector {
 
     private final int offset;
     private final int maxSize;
@@ -91,9 +89,8 @@ public class SortingTopNProjector extends ResultProviderBase {
 
     @Override
     public void startProjection(ExecutionState executionState) {
-        super.startProjection(executionState);
-        synchronized (this){
-            if (pq==null) {
+        synchronized (this) {
+            if (pq == null) {
                 pq = new RowPriorityQueue<>(maxSize, comparators);
             }
         }
@@ -120,34 +117,30 @@ public class SortingTopNProjector extends ResultProviderBase {
     }
 
     @Override
-    public Bucket doFinish() {
-        Bucket bucket;
-        if (pq != null){
+    public void onAllUpstreamsFinished() {
+        assert downstream != null;
+        if (pq != null) {
+            RowN row = new RowN(numOutputs);
             final int resultSize = Math.max(pq.size() - offset, 0);
             Object[][] rows = new Object[resultSize][];
             for (int i = resultSize - 1; i >= 0; i--) {
                 rows[i] = pq.pop();
             }
             pq.clear();
-            bucket = new ArrayBucket(rows, numOutputs);
-        } else {
-            bucket = Bucket.EMPTY;
-        }
-        if (downstream != null) {
-            for (Row row : bucket) {
+            for (Object[] cells : rows) {
+                row.cells(cells);
                 downstream.setNextRow(row);
             }
-            downstream.finish();
         }
-        return bucket;
+        downstream.finish();
     }
 
     @Override
-    public Throwable doFail(Throwable t) {
+    public void fail(Throwable t) {
+        super.fail(t);
         if (downstream != null) {
             downstream.fail(t);
         }
-        return t;
     }
 
     @Override

@@ -38,10 +38,10 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ResultProvider;
-import io.crate.operation.projectors.ResultProviderFactory;
+import io.crate.operation.projectors.RowDownstreamFactory;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -53,7 +53,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -70,26 +69,23 @@ public class ContextPreparer {
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
-    private final ThreadPool threadPool;
     private final PageDownstreamFactory pageDownstreamFactory;
-    private final ResultProviderFactory resultProviderFactory;
+    private final RowDownstreamFactory rowDownstreamFactory;
     private final InnerPreparer innerPreparer;
 
     @Inject
     public ContextPreparer(MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
-                           ThreadPool threadPool,
                            CountOperation countOperation,
                            PageDownstreamFactory pageDownstreamFactory,
-                           ResultProviderFactory resultProviderFactory) {
+                           RowDownstreamFactory rowDownstreamFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
-        this.threadPool = threadPool;
         this.pageDownstreamFactory = pageDownstreamFactory;
-        this.resultProviderFactory = resultProviderFactory;
+        this.rowDownstreamFactory = rowDownstreamFactory;
         innerPreparer = new InnerPreparer();
     }
 
@@ -99,7 +95,10 @@ public class ContextPreparer {
                                             JobExecutionContext.Builder contextBuilder) {
         PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, contextBuilder);
         innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
-        return preparerContext.directResultFuture;
+        if (preparerContext.bucketBuilder != null){
+            return preparerContext.bucketBuilder.result();
+        }
+        return null;
     }
 
     private static class PreparerContext {
@@ -107,7 +106,7 @@ public class ContextPreparer {
         private final UUID jobId;
         private final NodeOperation nodeOperation;
         private final JobExecutionContext.Builder contextBuilder;
-        private ListenableFuture<Bucket> directResultFuture;
+        private final SingleBucketBuilder bucketBuilder;
 
         private PreparerContext(UUID jobId,
                                 NodeOperation nodeOperation,
@@ -115,10 +114,26 @@ public class ContextPreparer {
             this.nodeOperation = nodeOperation;
             this.contextBuilder = contextBuilder;
             this.jobId = jobId;
+            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
+                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+                bucketBuilder = new SingleBucketBuilder(streamers);
+            } else {
+                bucketBuilder = null;
+            }
         }
+
+
     }
 
     private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, Void> {
+
+        RowDownstream getDownstream(PreparerContext context, int pageSize) {
+            if (context.bucketBuilder != null) {
+                return context.bucketBuilder;
+            } else {
+                return rowDownstreamFactory.createDownstream(context.nodeOperation, context.jobId, pageSize);
+            }
+        }
 
         @Override
         public Void visitCountPhase(CountPhase phase, PreparerContext context) {
@@ -132,14 +147,12 @@ public class ContextPreparer {
                 throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
             }
 
-            final SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG});
             CountContext countContext = new CountContext(
                     countOperation,
-                    singleBucketBuilder,
+                    getDownstream(context, 1),
                     indexShardMap,
                     phase.whereClause()
             );
-            context.directResultFuture = singleBucketBuilder.result();
             context.contextBuilder.addSubContext(phase.executionPhaseId(), countContext);
             return null;
         }
@@ -147,9 +160,8 @@ public class ContextPreparer {
         @Override
         public Void visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            RowDownstream downstream = resultProviderFactory.createDownstream(
-                    context.nodeOperation,
-                    phase.jobId(),
+
+            RowDownstream downstream = getDownstream(context,
                     Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size()));
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
@@ -185,11 +197,8 @@ public class ContextPreparer {
             );
             LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
-            RowDownstream downstream = resultProviderFactory.createDownstream(context.nodeOperation, phase.jobId(), pageSize);
 
-            if (ExecutionPhases.hasDirectResponseDownstream(context.nodeOperation.downstreamNodes())) {
-                context.directResultFuture = ((ResultProvider) downstream).result();
-            }
+            RowDownstream downstream = getDownstream(context, pageSize);
             final JobCollectContext jobCollectContext = new JobCollectContext(
                     context.jobId,
                     phase,

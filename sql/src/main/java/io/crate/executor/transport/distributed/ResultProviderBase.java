@@ -24,32 +24,11 @@ package io.crate.executor.transport.distributed;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.RowDownstreamAndHandle;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-public abstract class ResultProviderBase extends RowDownstreamAndHandle implements ResultProvider {
+public abstract class ResultProviderBase extends RowDownstreamAndHandle {
 
     private final SettableFuture<Bucket> result = SettableFuture.create();
-    private final AtomicBoolean failed = new AtomicBoolean(false);
-
-    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return super.registerUpstream(upstream);
-    }
-
-    @Override
-    public void startProjection(ExecutionState executionState) {
-    }
 
     /**
      * Do the things necessary to finish this projection and produce
@@ -69,25 +48,21 @@ public abstract class ResultProviderBase extends RowDownstreamAndHandle implemen
     protected abstract Throwable doFail(Throwable t);
 
     @Override
-    public void finish() {
-        if (remainingUpstreams.decrementAndGet() == 0 && !failed.get()) {
-            result.set(doFinish());
-        }
+    public void onAllUpstreamsFinished() {
+        result.set(doFinish());
     }
 
-    @Override
-    public void fail(Throwable throwable) {
-        failed.set(true);
-        result.setException(doFail(throwable));
-    }
-
-    @Override
     public ListenableFuture<Bucket> result() {
         return result;
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
-        throw new UnsupportedOperationException("Setting downstream isn't supported on ResultProvider");
+    public void fail(Throwable throwable) {
+        super.fail(throwable);
+        result.setException(doFail(throwable));
     }
+
+
+
+
 }

@@ -31,7 +31,6 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isNullRow;
@@ -55,6 +54,8 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         return spare;
     }
 
+
+
     @Test
     public void testOrderByWithoutLimitAndOffset() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
@@ -66,8 +67,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!projector.setNextRow(spare(i))) {
@@ -76,61 +76,25 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.finish();
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows.size(), is(10));
         int iterateLength = 0;
-        for (Row row : projector.result().get()) {
+        for (Row row : collector.result().get()) {
             assertThat(row, isRow(iterateLength + 1, true));
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
     }
 
-    @Test
-    public void testDownstreamResultEqualsResultProviderResult() throws Exception {
-        SortingTopNProjector[] projectors = new SortingTopNProjector[2];
-        CollectingProjector collector = new CollectingProjector();
-        for (int i = 0; i < projectors.length; i++) {
-            SortingTopNProjector projector = new SortingTopNProjector(
-                    new Input<?>[]{INPUT},
-                    new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                    1,
-                    new int[]{0},
-                    new boolean[]{false},
-                    new Boolean[]{null},
-                    2,
-                    1
-            );
-            projectors[i] = projector;
-            projector.registerUpstream(null);
-
-            if (i == 1) {
-                projector.downstream(collector);
-            }
-
-            projector.startProjection(mock(ExecutionState.class));
-            projector.setNextRow(spare(1));
-            projector.setNextRow(spare(2));
-            projector.setNextRow(spare(3));
-            projector.setNextRow(spare(4));
-            projector.finish();
-        }
-
-        Matcher<Iterable<? extends Row>> expected = contains(
-                isRow(2),
-                isRow(3)
-        );
-
-
-        Bucket rowsFromBucket = projectors[0].result().get();
-        assertThat(rowsFromBucket, expected);
-
-        Bucket rowsFromIter = collector.result().get();
-        assertThat(rowsFromIter, expected);
-
-
+    private CollectingProjector collectingProjector(SortingTopNProjector projector) {
+        ExecutionState state = mock(ExecutionState.class);
+                projector.registerUpstream(null);
+        CollectingProjector collectingProjector = new CollectingProjector();
+        projector.downstream(collectingProjector);
+        collectingProjector.startProjection(state);
+        projector.startProjection(state);
+        return collectingProjector;
     }
-
 
     @Test
     public void testWithHighOffset() throws Exception {
@@ -144,8 +108,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 2,
                 30
         );
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         for (int i = 0; i < 10; i++) {
             if (!projector.setNextRow(spare(i))) {
                 break;
@@ -153,7 +116,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         }
 
         projector.finish();
-        assertThat(projector.result().get().size(), is(0));
+        assertThat(collector.result().get().size(), is(0));
     }
 
     @Test
@@ -167,8 +130,8 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null},
                 TopN.NO_LIMIT,
                 5);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
+
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!projector.setNextRow(spare(i))) {
@@ -177,7 +140,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.finish();
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows.size(), is(5));
         int iterateLength = 0;
         for (Row row : rows) {
@@ -198,15 +161,14 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null},
                 3,
                 5);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             projector.setNextRow(spare(i));
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.finish();
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows.size(), is(3));
 
         int iterateLength = 0;
@@ -228,13 +190,12 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{true},
                 100,
                 0);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
@@ -249,13 +210,12 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{false},
                 100,
                 0);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
@@ -270,13 +230,12 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{false},
                 100,
                 0);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
@@ -291,13 +250,12 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{true},
                 100,
                 0);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         projector.setNextRow(spare(1));
         projector.setNextRow(spare(new Object[]{null}));
         projector.finish();
 
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
@@ -312,15 +270,14 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null},
                 3,
                 5);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         int i;
         for (i = 0; i < 10; i++) {   // 0 --> 9
             projector.setNextRow(spare(i));
         }
         assertThat(i, is(10)); // needs to collect all it can get
         projector.finish();
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(
                 isRow(4, true),
                 isRow(3, true),
@@ -361,14 +318,13 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
                 new Boolean[]{null, null},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
-        projector.registerUpstream(null);
-        projector.startProjection(mock(ExecutionState.class));
+        CollectingProjector collector = collectingProjector(projector);
         int i;
         for (i = 0; i < 7; i++) {
             projector.setNextRow(spare(i, i % 4));
         }
         projector.finish();
-        Bucket rows = projector.result().get();
+        Bucket rows = collector.result().get();
         assertThat(rows, contains(
                 isRow(0, 0),
                 isRow(0, 4),

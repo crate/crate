@@ -34,8 +34,6 @@ public interface ExecutionPhase extends Streamable {
 
     String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
 
-    int NO_EXECUTION_PHASE = Integer.MAX_VALUE;
-
     interface ExecutionPhaseFactory<T extends ExecutionPhase> {
         T create();
     }
