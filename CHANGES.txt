@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused stuck jobs to return an empty result instead of
+   an error.
+
  - Added cluster checks which are exposed via the ``sys.checks`` table.
 
  - Exposed the cluster gateway settings
