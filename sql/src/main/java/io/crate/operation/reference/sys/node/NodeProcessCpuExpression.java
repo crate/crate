@@ -32,39 +32,35 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
     public static final String SYSTEM = "system";
 
     public NodeProcessCpuExpression(ProcessStats stats) {
-        addChildImplementations(stats);
+        ProcessStats.Cpu cpu = stats.cpu();
+        if (cpu == null) {
+            childImplementations.put(PERCENT, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(USER, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(SYSTEM, UNKNOWN_VALUE_EXPRESSION);
+        } else {
+            addChildImplementations(cpu);
+        }
     }
 
-    private void addChildImplementations(final ProcessStats stats) {
+    private void addChildImplementations(final ProcessStats.Cpu cpu) {
         childImplementations.put(PERCENT, new SysNodeExpression<Short>() {
             @Override
             public Short value() {
-                if (stats != null) {
-                    return stats.cpu().getPercent();
-                } else {
-                    return -1;
-                }
+                return cpu.getPercent();
             }
         });
         childImplementations.put(USER, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                if (stats != null) {
-                    return stats.cpu().getUser().millis();
-                } else {
-                    return -1L;
-                }
+                return cpu.getUser().millis();
             }
         });
         childImplementations.put(SYSTEM, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                if (stats != null) {
-                    return stats.cpu().getSys().millis();
-                } else {
-                    return -1L;
-                }
+                return cpu.getSys().millis();
             }
         });
     }
+
 }
