@@ -1841,8 +1841,14 @@ public class PlannerTest extends CrateUnitTest {
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
         CollectPhase collectNode = new CollectPhase(
                 plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(), "collect", shardRouting,
-                ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+                plannerContext.nextExecutionPhaseId(),
+                "collect",
+                shardRouting,
+                RowGranularity.DOC,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
         int shardNum = collectNode.routing().numShards();
 
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
@@ -1875,19 +1881,9 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
-        CollectPhase collectNode1 = new CollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(), "collect1", shardRouting,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.<Projection>of());
-        CollectPhase collectNode2 = new CollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(), "collect2", shardRouting,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.<Projection>of());
 
-        assertThat(collectNode1.executionPhaseId(), is(0));
-        assertThat(collectNode2.executionPhaseId(), is(1));
+        assertThat(plannerContext.nextExecutionPhaseId(), is(0));
+        assertThat(plannerContext.nextExecutionPhaseId(), is(1));
     }
 
 

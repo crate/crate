@@ -23,9 +23,11 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NodeOperationGrouper;
 import io.crate.planner.node.dql.CollectPhase;
@@ -44,7 +46,6 @@ import static org.mockito.Mockito.mock;
 
 public class ExecutionPhasesTaskTest {
 
-
     @Test
     public void testGroupByServer() throws Exception {
         Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
@@ -53,7 +54,16 @@ public class ExecutionPhasesTaskTest {
                 .map());
 
         UUID jobId = UUID.randomUUID();
-        CollectPhase c1 = new CollectPhase(jobId, 1, "c1", twoNodeRouting, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+        CollectPhase c1 = new CollectPhase(
+                jobId,
+                1,
+                "c1",
+                twoNodeRouting,
+                RowGranularity.DOC,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
 
         MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of());
         m1.executionNodes(Sets.newHashSet("node3", "node4"));

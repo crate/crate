@@ -29,7 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.PlanNodeBuilder;
+import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
@@ -67,7 +67,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     statement.tableInfo().isPartitioned()
             );
 
-            PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(
+            Planner.Context plannerContext = context.plannerContext();
+            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(
                     statement.subQueryRelation(), context);
             if (plannedSubQuery == null) {
                 return null;
@@ -79,14 +80,14 @@ public class InsertFromSubQueryConsumer implements Consumer {
             if (plannedSubQuery.resultIsDistributed()) {
                 // add local merge Node which aggregates the distributed results
                 AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
-                mergeNode = PlanNodeBuilder.localMerge(
-                        context.plannerContext().jobId(),
+                mergeNode = MergePhase.localMerge(
+                        plannerContext.jobId(),
+                        plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(aggregationProjection),
-                        plannedSubQuery.resultNode(),
-                        context.plannerContext());
-                mergeNode.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
+                        plannedSubQuery.resultNode());
+                mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
-            return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, context.plannerContext().jobId());
+            return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());
         }
 
         @Override

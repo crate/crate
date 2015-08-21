@@ -25,16 +25,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.Functions;
+import io.crate.metadata.OutputName;
 import io.crate.operation.Paging;
-import io.crate.planner.PlanNodeBuilder;
-import io.crate.planner.RowGranularity;
+import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -42,12 +40,11 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.MergeProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.planner.projection.builder.SplitPoints;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -93,8 +90,9 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
 
+            Planner.Context plannerContext = context.plannerContext();
             if (querySpec.where().noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+                return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
             }
 
             OrderBy orderBy = querySpec.orderBy();
@@ -115,7 +113,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     outputNames,
                     pushedDownSpec
             );
-            PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(subRelation, context);
+            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
             if (plannedSubQuery == null) {
                 return null;
             }
@@ -138,8 +136,8 @@ public class QueryThenFetchConsumer implements Consumer {
                     outputs,
                     table.tableRelation().tableInfo().partitionedByColumns(),
                     collectPhase.executionNodes(),
-                    context.plannerContext().jobSearchContextIdToNode(),
-                    context.plannerContext().jobSearchContextIdToShard()
+                    plannerContext.jobSearchContextIdToNode(),
+                    plannerContext.jobSearchContextIdToShard()
             );
 
             collectPhase.keepContextForFetcher(true);
@@ -155,27 +153,29 @@ public class QueryThenFetchConsumer implements Consumer {
                     null
             );
             if (orderBy == null || !orderBy.isSorted()) {
-                localMergePhase = PlanNodeBuilder.localMerge(
-                        context.plannerContext().jobId(),
+                localMergePhase = MergePhase.localMerge(
+                        plannerContext.jobId(),
+                        plannerContext.nextExecutionPhaseId(),
                         ImmutableList.of(topN, fp),
-                        collectPhase,
-                        context.plannerContext());
+                        collectPhase
+                );
             } else {
-                localMergePhase = PlanNodeBuilder.sortedLocalMerge(
-                        context.plannerContext().jobId(),
-                        ImmutableList.of(topN, fp),
+                localMergePhase = MergePhase.sortedMerge(
+                        plannerContext.jobId(),
+                        plannerContext.nextExecutionPhaseId(),
                         orderBy,
                         collectPhase.toCollect(),
                         null,
-                        collectPhase,
-                        context.plannerContext());
+                        ImmutableList.of(topN, fp),
+                        collectPhase
+                );
             }
 
             Integer limit = querySpec.limit();
             if (limit != null && limit + querySpec.offset() > Paging.PAGE_SIZE) {
-                localMergePhase.executionNodes(Sets.newHashSet(context.plannerContext().clusterService().localNode().id()));
+                localMergePhase.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
-            return new QueryThenFetch(collectPhase, localMergePhase, context.plannerContext().jobId());
+            return new QueryThenFetch(collectPhase, localMergePhase, plannerContext.jobId());
         }
 
         @Override

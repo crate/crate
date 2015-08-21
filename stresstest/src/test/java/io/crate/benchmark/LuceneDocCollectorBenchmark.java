@@ -181,12 +181,17 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, Projector projector, List<Symbol> input) throws Exception{
         UUID jobId = UUID.randomUUID();
-        CollectPhase node = new CollectPhase(jobId, 0, "collect", null, input, ImmutableList.<Projection>of());
-        node.whereClause(WhereClause.MATCH_ALL);
+        CollectPhase node = new CollectPhase(
+                jobId,
+                0,
+                "collect",
+                null,
+                RowGranularity.DOC,
+                input,
+                ImmutableList.<Projection>of(), WhereClause.MATCH_ALL
+        );
         node.orderBy(orderBy);
         node.limit(limit);
-        node.whereClause(WhereClause.MATCH_ALL);
-        node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
@@ -196,9 +201,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingProjector);
         builder.addSubContext(node.executionPhaseId(), jobCollectContext);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
-                node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
-        return collector;
+        return (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
     }
 
     @Override

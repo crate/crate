@@ -22,13 +22,15 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import io.crate.analyze.OrderBy;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -63,8 +65,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
 
-    public MergePhase() {
-        numUpstreams = 0;
+    private MergePhase() {
     }
 
     public MergePhase(UUID jobId,
@@ -83,23 +84,47 @@ public class MergePhase extends AbstractDQLPlanPhase {
         }
     }
 
-    public static MergePhase sortedMergeNode(UUID jobId,
-                                            Collection<? extends DataType> inputTypes,
-                                            List<Projection> projections,
-                                            int executionNodeId,
-                                            String name,
-                                            int numUpstreams,
-                                            int[] orderByIndices,
-                                            boolean[] reverseFlags,
-                                            Boolean[] nullsFirst) {
-        Preconditions.checkArgument(
-                orderByIndices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length,
-                "ordering parameters must be of the same length");
-        MergePhase mergeNode = new MergePhase(jobId, executionNodeId, name, numUpstreams, inputTypes, projections);
+    public static MergePhase localMerge(UUID jobId,
+                                        int executionPhaseId,
+                                        List<Projection> projections,
+                                        DQLPlanNode previousPhase) {
+        return new MergePhase(
+                jobId,
+                executionPhaseId,
+                "localMerge",
+                previousPhase.executionNodes().size(),
+                previousPhase.outputTypes(),
+                projections
+        );
+    }
+
+    public static MergePhase sortedMerge(UUID jobId,
+                                         int executionPhaseId,
+                                         OrderBy orderBy,
+                                         List<Symbol> sourceSymbols,
+                                         @Nullable List<Symbol> orderBySymbolOverwrite,
+                                         List<Projection> projections,
+                                         DQLPlanNode previousPhase) {
+
+        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
+                MoreObjects.firstNonNull(orderBySymbolOverwrite, orderBy.orderBySymbols()),
+                sourceSymbols
+        );
+        assert orderBy.reverseFlags().length == orderByIndices.length :
+                "length of reverseFlags and orderByIndices must match";
+
+        MergePhase mergeNode = new MergePhase(
+                jobId,
+                executionPhaseId,
+                "sortedLocalMerge",
+                previousPhase.executionNodes().size(),
+                previousPhase.outputTypes(),
+                projections
+        );
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
-        mergeNode.reverseFlags = reverseFlags;
-        mergeNode.nullsFirst = nullsFirst;
+        mergeNode.reverseFlags = orderBy.reverseFlags();
+        mergeNode.nullsFirst = orderBy.nullsFirst();
         return mergeNode;
     }
 

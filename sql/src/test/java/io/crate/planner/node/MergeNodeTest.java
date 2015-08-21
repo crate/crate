@@ -74,7 +74,7 @@ public class MergeNodeTest extends CrateUnitTest {
 
 
         BytesStreamInput input = new BytesStreamInput(output.bytes());
-        MergePhase node2 = new MergePhase();
+        MergePhase node2 = MergePhase.FACTORY.create();
         node2.readFrom(input);
 
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));

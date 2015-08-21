@@ -70,17 +70,31 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         localNodeId = internalCluster().getDataNodeInstance(ClusterService.class).state().nodes().localNodeId();
     }
 
-    private CollectPhase collectNode(Routing routing, List<Symbol> toCollect) {
-        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "dummy", routing, toCollect, ImmutableList.<Projection>of());
-        return collectNode;
+    private CollectPhase collectNode(Routing routing,
+                                     List<Symbol> toCollect,
+                                     RowGranularity rowGranularity,
+                                     WhereClause whereClause) {
+        return new CollectPhase(
+                UUID.randomUUID(),
+                0,
+                "dummy",
+                routing,
+                rowGranularity,
+                toCollect,
+                ImmutableList.<Projection>of(),
+                whereClause
+        );
+    }
+
+    private CollectPhase collectNode(Routing routing, List<Symbol> toCollect, RowGranularity rowGranularity) {
+        return collectNode(routing, toCollect, rowGranularity, WhereClause.MATCH_ALL);
     }
 
     @Test
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
-        CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef));
-        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
+        CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
@@ -112,15 +126,12 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Function whereClause = new Function(eqImpl.info(),
                 Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
-        CollectPhase collectNode = collectNode(routing, toCollect);
-        collectNode.whereClause(new WhereClause(whereClause));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+        CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         System.out.println(TestingHelpers.printedTable(result));
         assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| strict| NULL\n", TestingHelpers.printedTable(result));
     }
-
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
@@ -133,8 +144,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        CollectPhase collectNode = collectNode(routing, toCollect);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+        CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
 

@@ -146,21 +146,24 @@ public class UpdateConsumer implements Consumer {
                         assignments.v2(),
                         version);
 
+                Planner.Context plannerContext = consumerContext.plannerContext();
                 CollectPhase collectNode = PlanNodeBuilder.collect(
-                        consumerContext.plannerContext().jobId(),
+                        plannerContext.jobId(),
                         tableInfo,
-                        consumerContext.plannerContext(),
+                        plannerContext,
                         whereClause,
                         ImmutableList.<Symbol>of(uidReference),
                         ImmutableList.<Projection>of(updateProjection),
                         null,
                         Preference.PRIMARY.type()
                 );
-                MergePhase mergeNode = PlanNodeBuilder.localMerge(
-                        consumerContext.plannerContext().jobId(),
-                        ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode,
-                        consumerContext.plannerContext());
-                return new CollectAndMerge(collectNode, mergeNode, consumerContext.plannerContext().jobId());
+                MergePhase mergeNode = MergePhase.localMerge(
+                        plannerContext.jobId(),
+                        plannerContext.nextExecutionPhaseId(),
+                        ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                        collectNode
+                );
+                return new CollectAndMerge(collectNode, mergeNode, plannerContext.jobId());
             } else {
                 return null;
             }

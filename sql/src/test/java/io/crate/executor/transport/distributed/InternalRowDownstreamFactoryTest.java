@@ -23,12 +23,14 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.InternalRowDownstreamFactory;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -62,7 +64,16 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
                         .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Arrays.asList(1, 2)).map()).map());
-        CollectPhase collectPhase = new CollectPhase(jobId, 1, "collect", routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+        CollectPhase collectPhase = new CollectPhase(
+                jobId,
+                1,
+                "collect",
+                routing,
+                RowGranularity.DOC,
+                ImmutableList.<Symbol>of(),
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1, ImmutableList.<DataType>of(LongType.INSTANCE), ImmutableList.<Projection>of());
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);

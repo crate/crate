@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
@@ -45,8 +46,16 @@ public class CollectNodeTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
         UUID jobId = UUID.randomUUID();
-        CollectPhase cn = new CollectPhase(jobId, 0, "cn", new Routing(), toCollect, ImmutableList.<Projection>of());
-        cn.maxRowGranularity(RowGranularity.DOC);
+        CollectPhase cn = new CollectPhase(
+                jobId,
+                0,
+                "cn",
+                new Routing(),
+                RowGranularity.DOC,
+                toCollect,
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);

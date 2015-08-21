@@ -195,11 +195,18 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize, ResultProviderBase projector) throws Exception{
         UUID jobId = UUID.randomUUID();
-        CollectPhase node = new CollectPhase(jobId, 0, "collect", mock(Routing.class), toCollect, ImmutableList.<Projection>of());
-        node.whereClause(whereClause);
+        CollectPhase node = new CollectPhase(
+                jobId,
+                0,
+                "collect",
+                mock(Routing.class),
+                RowGranularity.DOC,
+                toCollect,
+                ImmutableList.<Projection>of(),
+                whereClause
+        );
         node.orderBy(orderBy);
         node.limit(limit);
-        node.maxRowGranularity(RowGranularity.DOC);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
@@ -475,10 +482,17 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, false});
 
-        CollectPhase node = new CollectPhase(UUID.randomUUID(), 0, "collect", mock(Routing.class), orderBy.orderBySymbols(), ImmutableList.<Projection>of());
-        node.whereClause(WhereClause.MATCH_ALL);
+        CollectPhase node = new CollectPhase(
+                UUID.randomUUID(),
+                0,
+                "collect",
+                mock(Routing.class),
+                RowGranularity.DOC,
+                orderBy.orderBySymbols(),
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
         node.orderBy(orderBy);
-        node.maxRowGranularity(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());
         builder.addSubContext(node.executionPhaseId(),

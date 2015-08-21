@@ -26,6 +26,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.files.FileReadingCollector;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -56,12 +57,12 @@ public class FileUriCollectPhase extends CollectPhase {
                                int executionNodeId,
                                String name,
                                Routing routing,
-                               Symbol targetUri,
+                               RowGranularity rowGranularity, Symbol targetUri,
                                List<Symbol> toCollect,
                                List<Projection> projections,
                                String compression,
                                Boolean sharedStorage) {
-        super(jobId, executionNodeId, name, routing, toCollect, projections);
+        super(jobId, executionNodeId, name, routing, rowGranularity, toCollect, projections, WhereClause.MATCH_ALL);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -84,27 +85,21 @@ public class FileUriCollectPhase extends CollectPhase {
     public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer) {
         List<Symbol> normalizedToCollect = normalizer.normalize(toCollect());
         Symbol normalizedTargetUri = normalizer.normalize(targetUri);
-        WhereClause normalizedWhereClause = whereClause().normalize(normalizer);
-        boolean changed =
-                (normalizedToCollect != toCollect() )
-                        || (normalizedTargetUri != targetUri)
-                        || (normalizedWhereClause != whereClause());
+        boolean changed = normalizedToCollect != toCollect() || (normalizedTargetUri != targetUri);
         if (!changed) {
             return this;
         }
-        FileUriCollectPhase result = new FileUriCollectPhase(
+        return new FileUriCollectPhase(
                 jobId(),
                 executionPhaseId(),
                 name(),
                 routing(),
+                maxRowGranularity(),
                 normalizedTargetUri,
                 normalizedToCollect,
                 projections(),
                 compression(),
                 sharedStorage());
-        result.maxRowGranularity(maxRowGranularity());
-        result.whereClause(normalizedWhereClause);
-        return result;
     }
 
     @Nullable

@@ -175,7 +175,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 ));
             }
 
-            CollectPhase collectNode = PlanNodeBuilder.collect(
+            CollectPhase collectPhase = PlanNodeBuilder.collect(
                     context.plannerContext().jobId(),
                     tableInfo,
                     context.plannerContext(),
@@ -186,7 +186,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
-            MergePhase localMergeNode;
+            MergePhase localMerge;
             if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
@@ -199,10 +199,15 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                                 table.querySpec().outputs()
                         )
                 );
-                localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+                localMerge = MergePhase.sortedMerge(
                         context.plannerContext().jobId(),
-                        handlerProjections, orderBy, table.querySpec().outputs(), null,
-                        collectNode, context.plannerContext());
+                        context.plannerContext().nextExecutionPhaseId(),
+                        orderBy,
+                        table.querySpec().outputs(),
+                        null,
+                        handlerProjections,
+                        collectPhase
+                );
             } else {
                 handlerProjections.add(
                         projectionBuilder.topNProjection(
@@ -214,10 +219,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         )
                 );
                 // fallback - unsorted local merge
-                localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), handlerProjections, collectNode,
-                        context.plannerContext());
+                localMerge = MergePhase.localMerge(
+                        context.plannerContext().jobId(),
+                        context.plannerContext().nextExecutionPhaseId(),
+                        handlerProjections,
+                        collectPhase
+                );
             }
-            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
+            return new NonDistributedGroupBy(collectPhase, localMerge, context.plannerContext().jobId());
         }
 
 

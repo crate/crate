@@ -28,6 +28,7 @@ import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
@@ -114,6 +115,7 @@ public class MapSideDataCollectOperationTest {
                 0,
                 "test",
                 routing,
+                RowGranularity.DOC,
                 Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
                 Arrays.<Symbol>asList(
                         createReference("name", DataTypes.STRING),

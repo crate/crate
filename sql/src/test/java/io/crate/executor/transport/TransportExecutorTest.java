@@ -143,14 +143,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         );
         collectNode.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection((DocTableInfo) characters, (List<Symbol>) collectSymbols, (List<Symbol>) outputSymbols, (CollectPhase) collectNode, ctx);
+        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
 
-        MergePhase localMergeNode = PlanNodeBuilder.localMerge(
+        MergePhase localMergeNode = MergePhase.localMerge(
                 ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(fetchProjection),
-                collectNode,
-                ctx);
-
+                collectNode
+        );
         Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
@@ -194,12 +194,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
 
-        MergePhase localMergeNode = PlanNodeBuilder.localMerge(
+        MergePhase localMergeNode = MergePhase.localMerge(
                 ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(fetchProjection),
-                collectNode,
-                ctx);
-
+                collectNode
+        );
         Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
@@ -257,16 +257,16 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
 
-        MergePhase localMergeNode = PlanNodeBuilder.sortedLocalMerge(
+        MergePhase localMerge = MergePhase.sortedMerge(
                 ctx.jobId(),
-                ImmutableList.<Projection>of(fetchProjection),
+                ctx.nextExecutionPhaseId(),
                 orderBy,
                 collectSymbols,
                 null,
-                collectNode,
-                ctx);
-
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+                ImmutableList.<Projection>of(fetchProjection),
+                collectNode
+        );
+        Plan plan = new QueryThenFetch(collectNode, localMerge, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -335,12 +335,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         FetchProjection fetchProjection = getFetchProjection(searchf, collectSymbols, Arrays.asList(id_ref, function), collectNode, ctx);
 
-        MergePhase mergeNode = PlanNodeBuilder.localMerge(
+        MergePhase localMerge = MergePhase.localMerge(
                 jobId,
+                ctx.nextExecutionPhaseId(),
                 ImmutableList.of(topN, fetchProjection),
-                collectNode,
-                ctx);
-        Plan plan = new QueryThenFetch(collectNode, mergeNode, jobId);
+                collectNode
+        );
+        Plan plan = new QueryThenFetch(collectNode, localMerge, jobId);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -375,13 +376,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, collectNode, ctx);
 
-        MergePhase localMergeNode = PlanNodeBuilder.localMerge(
+        MergePhase localMerge = MergePhase.localMerge(
                 jobId,
+                ctx.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(fetchProjection),
-                collectNode,
-                ctx);
+                collectNode);
 
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMerge, jobId);
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));

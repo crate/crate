@@ -152,8 +152,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocLevel() throws Exception {
         List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
-        CollectPhase collectNode = getCollectNode(toCollect);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+        CollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
                 isRow(2, "{\"id\":1,\"doc\":2}", "1"),
@@ -166,27 +165,32 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
-        CollectPhase collectNode = getCollectNode(toCollect);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.whereClause(new WhereClause(new Function(
+        WhereClause whereClause = new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
-        ));
+        );
+        CollectPhase collectNode = getCollectNode(toCollect, whereClause);
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect, Routing routing) {
-        CollectPhase collectNode = new CollectPhase(UUID.randomUUID(), 0, "docCollect", routing, toCollect,
-                ImmutableList.<Projection>of());
-        return collectNode;
+    private CollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
+        return new CollectPhase(
+                UUID.randomUUID(),
+                0,
+                "docCollect",
+                routing,
+                RowGranularity.DOC,
+                toCollect,
+                ImmutableList.<Projection>of(),
+                whereClause
+        );
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect) {
-        return getCollectNode(toCollect, routing(TEST_TABLE_NAME));
+    private CollectPhase getCollectNode(List<Symbol> toCollect, WhereClause whereClause) {
+        return getCollectNode(toCollect, routing(TEST_TABLE_NAME), whereClause);
     }
-
 
     @Test
     public void testCollectWithPartitionedColumns() throws Exception {
@@ -200,8 +204,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                         new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "date"),
                                 RowGranularity.SHARD,
                                 DataTypes.TIMESTAMP))),
-                routing);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+                routing,
+                WhereClause.MATCH_ALL
+        );
 
         Bucket result = collect(collectNode);
         for (Row row : result) {

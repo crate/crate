@@ -21,21 +21,15 @@
 
 package io.crate.planner;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -47,95 +41,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 public class PlanNodeBuilder {
-
-    public static CollectPhase distributingCollect(UUID jobId,
-                                                   DocTableInfo tableInfo,
-                                                   Planner.Context plannerContext,
-                                                   WhereClause whereClause,
-                                                   List<Symbol> toCollect,
-                                                   ImmutableList<Projection> projections) {
-        Routing routing = tableInfo.getRouting(whereClause, null);
-        plannerContext.allocateJobSearchContextIds(routing);
-        CollectPhase node = new CollectPhase(
-                jobId,
-                plannerContext.nextExecutionPhaseId(),
-                "distributing collect",
-                routing,
-                toCollect,
-                projections
-        );
-        node.whereClause(whereClause);
-        node.maxRowGranularity(tableInfo.rowGranularity());
-        return node;
-    }
-
-    public static MergePhase distributedMerge(UUID jobId,
-                                              CollectPhase collectNode,
-                                              Planner.Context plannerContext,
-                                              List<Projection> projections) {
-        MergePhase node = new MergePhase(
-                jobId,
-                plannerContext.nextExecutionPhaseId(),
-                "distributed merge",
-                collectNode.executionNodes().size(),
-                collectNode.outputTypes(),
-                projections
-        );
-
-        node.executionNodes(ImmutableSet.copyOf(collectNode.executionNodes()));
-        return node;
-    }
-
-    public static MergePhase localMerge(UUID jobId,
-                                        List<Projection> projections,
-                                        DQLPlanNode previousNode,
-                                        Planner.Context plannerContext) {
-        return new MergePhase(
-                jobId,
-                plannerContext.nextExecutionPhaseId(),
-                "localMerge",
-                previousNode.executionNodes().size(),
-                previousNode.outputTypes(),
-                projections
-        );
-    }
-
-    /**
-     * Create a MergeNode which uses a {@link io.crate.operation.merge.SortedPagingIterator}
-     * as it expects sorted input and produces sorted output.
-     *
-     * @param projections    the projections to include in the resulting MergeNode
-     * @param orderBy        {@linkplain io.crate.analyze.OrderBy} containing sorting parameters
-     * @param sourceSymbols  the input symbols for this mergeNode
-     * @param orderBySymbols the symbols to sort on. If this is null,
-     *                       {@linkplain io.crate.analyze.OrderBy#orderBySymbols()}
-     *                       will be used
-     * @param previousNode   the previous planNode to derive inputtypes from
-     */
-    public static MergePhase sortedLocalMerge(UUID jobId,
-                                              List<Projection> projections,
-                                              OrderBy orderBy,
-                                              List<Symbol> sourceSymbols,
-                                              @Nullable List<Symbol> orderBySymbols,
-                                              DQLPlanNode previousNode,
-                                              Planner.Context plannerContext) {
-        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
-                MoreObjects.firstNonNull(orderBySymbols, orderBy.orderBySymbols()),
-                sourceSymbols
-        );
-        return MergePhase.sortedMergeNode(
-                jobId,
-                previousNode.outputTypes(),
-                projections,
-                plannerContext.nextExecutionPhaseId(),
-                "sortedLocalMerge",
-                previousNode.executionNodes().size(),
-                orderByIndices,
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-        );
-    }
-
 
     public static CollectPhase collect(UUID jobId,
                                        TableInfo tableInfo,
@@ -172,10 +77,10 @@ public class PlanNodeBuilder {
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
                 routing,
+                tableInfo.rowGranularity(),
                 toCollect,
-                projections);
-        node.whereClause(whereClause);
-        node.maxRowGranularity(tableInfo.rowGranularity());
+                projections,
+                whereClause);
         node.orderBy(orderBy);
         node.limit(limit);
         return node;

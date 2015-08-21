@@ -138,9 +138,11 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
                 tableInfo.getRouting(WhereClause.MATCH_ALL, null),
+                RowGranularity.DOC,
                 toCollect,
-                ImmutableList.<Projection>of());
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+                ImmutableList.<Projection>of(),
+                WhereClause.MATCH_ALL
+        );
         collectNode.keepContextForFetcher(keepContextForFetcher);
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
 

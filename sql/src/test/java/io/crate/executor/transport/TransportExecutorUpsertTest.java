@@ -322,10 +322,11 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 null,
                 Preference.PRIMARY.type()
         );
-        MergePhase mergeNode1 = PlanNodeBuilder.localMerge(
+        MergePhase mergeNode1 = MergePhase.localMerge(
                 plannerContext.jobId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode1,
-                plannerContext);
+                plannerContext.nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                collectNode1);
         childNodes.add(new CollectAndMerge(collectNode1, mergeNode1, UUID.randomUUID()));
 
         // 2nd collect and merge nodes
@@ -344,10 +345,11 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 null,
                 Preference.PRIMARY.type()
         );
-        MergePhase mergeNode2 = PlanNodeBuilder.localMerge(
+        MergePhase mergeNode2 = MergePhase.localMerge(
                 plannerContext.jobId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode2,
-                plannerContext);
+                plannerContext.nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                collectNode2);
         childNodes.add(new CollectAndMerge(collectNode2, mergeNode2, UUID.randomUUID()));
 
         Upsert plan = new Upsert(childNodes, UUID.randomUUID());

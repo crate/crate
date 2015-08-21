@@ -284,7 +284,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }
-        CollectPhase collectNode = PlanNodeBuilder.collect(
+        CollectPhase collectPhase = PlanNodeBuilder.collect(
                 context.jobId(),
                 tableInfo,
                 context,
@@ -294,9 +294,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.partitionIdent()
         );
 
-        MergePhase mergeNode = PlanNodeBuilder.localMerge(context.jobId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context);
-        return new CollectAndMerge(collectNode, mergeNode, context.jobId());
+        MergePhase mergePhase = MergePhase.localMerge(
+                context.jobId(),
+                context.nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                collectPhase);
+        return new CollectAndMerge(collectPhase, mergePhase, context.jobId());
     }
 
     private Plan copyFromPlan(CopyAnalyzedStatement analysis, Context context) {
@@ -386,6 +389,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 context.nextExecutionPhaseId(),
                 "copyFrom",
                 generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
+                table.rowGranularity(),
                 analysis.uri(),
                 toCollect,
                 projections,
@@ -393,8 +397,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.settings().getAsBoolean("shared", null)
         );
 
-        return new CollectAndMerge(collectNode, PlanNodeBuilder.localMerge(context.jobId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION), collectNode, context), context.jobId());
+        return new CollectAndMerge(collectNode, MergePhase.localMerge(
+                context.jobId(),
+                context.nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                collectNode), context.jobId());
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {

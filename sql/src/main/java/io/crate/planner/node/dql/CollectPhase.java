@@ -57,6 +57,7 @@ public class CollectPhase extends AbstractDQLPlanPhase {
             return new CollectPhase();
         }
     };
+
     private Routing routing;
     private List<Symbol> toCollect;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
@@ -73,9 +74,18 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         super();
     }
 
-    public CollectPhase(UUID jobId, int executionNodeId, String name, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+    public CollectPhase(UUID jobId,
+                        int executionNodeId,
+                        String name,
+                        Routing routing,
+                        RowGranularity maxRowGranularity,
+                        List<Symbol> toCollect,
+                        List<Projection> projections,
+                        WhereClause whereClause) {
         super(jobId, executionNodeId, name, projections);
+        this.whereClause = whereClause;
         this.routing = routing;
+        this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
@@ -127,11 +137,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         return whereClause;
     }
 
-    public void whereClause(WhereClause whereClause) {
-        assert whereClause != null;
-        this.whereClause = whereClause;
-    }
-
     public Routing routing() {
         return routing;
     }
@@ -146,12 +151,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
 
     public RowGranularity maxRowGranularity() {
         return maxRowGranularity;
-    }
-
-    public void maxRowGranularity(RowGranularity newRowGranularity) {
-        if (maxRowGranularity.compareTo(newRowGranularity) < 0) {
-            maxRowGranularity = newRowGranularity;
-        }
     }
 
     @Override
@@ -251,11 +250,17 @@ public class CollectPhase extends AbstractDQLPlanPhase {
             changed = changed || newWhereClause != whereClause();
         }
         if (changed) {
-            result = new CollectPhase(jobId(), executionPhaseId(), name(), routing, newToCollect, projections);
-            result.maxRowGranularity = maxRowGranularity;
+            result = new CollectPhase(
+                    jobId(),
+                    executionPhaseId(),
+                    name(),
+                    routing,
+                    maxRowGranularity,
+                    newToCollect,
+                    projections,
+                    newWhereClause);
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
-            result.whereClause(newWhereClause);
         }
         return result;
     }

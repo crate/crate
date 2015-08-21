@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.PlanNodeBuilder;
+import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GlobalAggregate;
@@ -106,8 +107,9 @@ public class GlobalAggregateConsumer implements Consumer {
             return null;
         }
 
+        Planner.Context plannerContext = context.plannerContext();
         if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
-            return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+            return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
         }
 
         validateAggregationOutputs(tableRelation, table.querySpec().outputs());
@@ -123,9 +125,9 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.PARTIAL);
 
         CollectPhase collectNode = PlanNodeBuilder.collect(
-                context.plannerContext().jobId(),
+                plannerContext.jobId(),
                 tableRelation.tableInfo(),
-                context.plannerContext(),
+                plannerContext,
                 whereClause,
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(ap)
@@ -142,7 +144,7 @@ public class GlobalAggregateConsumer implements Consumer {
         HavingClause havingClause = table.querySpec().having();
         if(havingClause != null){
             if (havingClause.noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+                return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
             } else if (havingClause.hasQuery()){
                 projections.add(projectionBuilder.filterProjection(
                         splitPoints.aggregates(),
@@ -155,11 +157,14 @@ public class GlobalAggregateConsumer implements Consumer {
                 splitPoints.aggregates(),
                 null, 0, 1,
                 table.querySpec().outputs()
-                );
+        );
         projections.add(topNProjection);
-        MergePhase localMergeNode = PlanNodeBuilder.localMerge(context.plannerContext().jobId(), projections, collectNode,
-                context.plannerContext());
-        return new GlobalAggregate(collectNode, localMergeNode, context.plannerContext().jobId());
+        MergePhase localMergeNode = MergePhase.localMerge(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                projections,
+                collectNode);
+        return new GlobalAggregate(collectNode, localMergeNode, plannerContext.jobId());
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
