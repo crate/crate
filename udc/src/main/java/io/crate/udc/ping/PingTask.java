@@ -28,20 +28,26 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.node.service.NodeService;
 import org.hyperic.sigar.OperatingSystem;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -72,7 +78,14 @@ public class PingTask extends TimerTask {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getKernelData() {
-        return OperatingSystem.getInstance().toMap();
+        try {
+            return OperatingSystem.getInstance().toMap();
+        } catch (Throwable t) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Error getting kernel data", t);
+            }
+        }
+        return Collections.emptyMap();
     }
 
     public @Nullable String getClusterId() {

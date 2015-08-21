@@ -37,39 +37,47 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     public static final String USED_PERCENT = "used_percent";
     public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeMemoryExpression(OsStats stats) {
-        addChildImplementations(stats);
+    public NodeMemoryExpression(final OsStats stats) {
+        OsStats.Mem mem = stats.mem();
+        if (mem == null) {
+            childImplementations.put(FREE, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(USED, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(FREE_PERCENT, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(USED_PERCENT, UNKNOWN_VALUE_EXPRESSION);
+        } else {
+            addChildImplementations(mem);
+        }
+        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                return stats.timestamp();
+            }
+        });
     }
 
-    private void addChildImplementations(final OsStats stats) {
+    private void addChildImplementations(final OsStats.Mem mem) {
         childImplementations.put(FREE, new MemoryExpression() {
             @Override
             public Long value() {
-                return stats.mem().actualFree().bytes();
+                return mem.actualFree().bytes();
             }
         });
         childImplementations.put(USED, new MemoryExpression() {
             @Override
             public Long value() {
-                return stats.mem().actualUsed().bytes();
+                return mem.actualUsed().bytes();
             }
         });
         childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return stats.mem().freePercent();
+                return mem.freePercent();
             }
         });
         childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
-                return stats.mem().usedPercent();
-            }
-        });
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.timestamp();
+                return mem.usedPercent();
             }
         });
     }

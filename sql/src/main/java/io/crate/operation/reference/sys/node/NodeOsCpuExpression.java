@@ -40,59 +40,49 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeOsCpuExpression(OsStats stats) {
-        addChildImplementations(stats);
+        OsStats.Cpu cpu = stats.cpu();
+        if (cpu == null) {
+            childImplementations.put(SYS, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(USER, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(IDLE, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(USAGE, UNKNOWN_VALUE_EXPRESSION);
+            childImplementations.put(STOLEN, UNKNOWN_VALUE_EXPRESSION);
+        } else {
+            addChildImplementations(cpu);
+        }
     }
 
-    private void addChildImplementations(final OsStats os) {
+    private void addChildImplementations(final OsStats.Cpu cpu) {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {
-                if (os != null) {
-                    return os.cpu().sys();
-                } else {
-                    return -1;
-                }
+                return cpu.sys();
             }
         });
         childImplementations.put(USER, new CpuExpression() {
             @Override
             public Short value() {
-                if (os != null) {
-                    return os.cpu().user();
-                } else {
-                    return -1;
-                }
+                return cpu.user();
             }
         });
         childImplementations.put(IDLE, new CpuExpression() {
             @Override
             public Short value() {
-                if (os != null) {
-                    return os.cpu().idle();
-                } else {
-                    return -1;
-                }
+                return cpu.idle();
             }
         });
         childImplementations.put(USAGE, new CpuExpression() {
             @Override
             public Short value() {
-                if (os != null) {
-                    return (short) (os.cpu().sys() + os.cpu().user());
-                } else {
-                    return -1;
-                }
+                return (short) (cpu.sys() + cpu.user());
             }
         });
         childImplementations.put(STOLEN, new CpuExpression() {
             @Override
             public Short value() {
-                if (os != null) {
-                    return os.cpu().stolen();
-                } else {
-                    return -1;
-                }
+                return cpu.stolen();
             }
         });
     }
+
 }
