@@ -47,6 +47,8 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     private volatile boolean leftFinished = false;
     private volatile boolean rightFinished = false;
 
+    volatile boolean leftIsPaused = false;
+    volatile boolean rightIsPaused = false;
 
     public NestedLoopOperation() {
         leftDownstreamHandle = new LeftDownstreamHandle();
@@ -72,12 +74,19 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        leftUpstream.pause();
+        rightUpstream.pause();
     }
 
     @Override
     public void resume(boolean async) {
-        throw new UnsupportedOperationException();
+        // only resume upstreams from which data are actually required
+        if (!leftIsPaused) {
+            leftUpstream.resume(async);
+        }
+        if (!rightIsPaused) {
+            rightUpstream.resume(async);
+        }
     }
 
     @Override
@@ -137,7 +146,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 }
                 lastRow = row;
                 leftUpstream.pause();
-                rightDownstreamHandle.leftIsPaused = true;
+                leftIsPaused = true;
             }
             return rightDownstreamHandle.resume();
         }
@@ -149,6 +158,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (rightFinished) {
                     downstream.finish();
                 } else {
+                    rightIsPaused = false;
                     rightUpstream.resume(false);
                 }
             }
@@ -167,7 +177,6 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
         Row lastRow = null;
 
         boolean receivedRows = false;
-        boolean leftIsPaused = false;
 
         public RightDownstreamHandle() {
         }
@@ -188,6 +197,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                     }
                     lastRow = rightRow;
                     rightUpstream.pause();
+                    rightIsPaused = true;
                     return true;
                 }
             }
@@ -208,6 +218,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (leftFinished) {
                     downstream.finish();
                 } else {
+                    leftIsPaused = false;
                     leftUpstream.resume(false);
                 }
             }
@@ -220,6 +231,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
 
         public boolean resume() {
             boolean wantMore = true;
+            rightIsPaused = false;
             if (lastRow != null) {
                 wantMore = emitRow(lastRow);
                 lastRow = null;
