@@ -202,7 +202,6 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                                 DataTypes.TIMESTAMP))),
                 routing);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.isPartitioned(true);
 
         Bucket result = collect(collectNode);
         for (Row row : result) {

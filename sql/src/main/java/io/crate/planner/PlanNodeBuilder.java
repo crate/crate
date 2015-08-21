@@ -66,7 +66,6 @@ public class PlanNodeBuilder {
         );
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        node.isPartitioned(tableInfo.isPartitioned());
         return node;
     }
 
@@ -177,10 +176,6 @@ public class PlanNodeBuilder {
                 projections);
         node.whereClause(whereClause);
         node.maxRowGranularity(tableInfo.rowGranularity());
-        // TODO: use polymorphism if possible, need to investigate the hierarchy of callers to this util class
-        if (tableInfo instanceof DocTableInfo){
-            node.isPartitioned(((DocTableInfo)tableInfo).isPartitioned());
-        }
         node.orderBy(orderBy);
         node.limit(limit);
         return node;

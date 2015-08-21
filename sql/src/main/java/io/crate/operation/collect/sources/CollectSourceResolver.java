@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -121,10 +122,6 @@ public class CollectSourceResolver {
         if (collectPhase instanceof FileUriCollectPhase) {
             return fileCollectSource;
         }
-        if (collectPhase.maxRowGranularity() == RowGranularity.DOC && collectPhase.isPartitioned()) {
-            // partitioned table without any shards; nothing to collect
-            return VOID_COLLECT_SERVICE;
-        }
 
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards == null) {
@@ -135,8 +132,16 @@ public class CollectSourceResolver {
             return singleRowSource;
         }
 
-        assert indexShards.size() == 1 : "routing without shards that operate on non user-tables may only contain 1 index/table";
-        CollectSource collectSource = nodeDocCollectSources.get(Iterables.getOnlyElement(indexShards.keySet()));
+        String indexName = Iterables.getFirst(indexShards.keySet(), null);
+        if (indexName == null) {
+            throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
+        }
+        if (collectPhase.maxRowGranularity() == RowGranularity.DOC && PartitionName.isPartition(indexName)) {
+            // partitioned table without any shards; nothing to collect
+            return VOID_COLLECT_SERVICE;
+        }
+        assert indexShards.size() == 1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
+        CollectSource collectSource = nodeDocCollectSources.get(indexName);
         if (collectSource == null) {
             throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
         }

@@ -103,7 +103,6 @@ public class FileUriCollectPhase extends CollectPhase {
                 compression(),
                 sharedStorage());
         result.maxRowGranularity(maxRowGranularity());
-        result.isPartitioned(isPartitioned());
         result.whereClause(normalizedWhereClause);
         return result;
     }

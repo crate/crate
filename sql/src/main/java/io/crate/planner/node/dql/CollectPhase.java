@@ -144,20 +144,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         return routing != null && routing.hasLocations();
     }
 
-    /**
-     * Whether collect operates on a partitioned table.
-     * Only used on local collect, so no serialization is needed.
-     *
-     * @return true if collect operates on a partitioned table, false otherwise
-     */
-    public boolean isPartitioned() {
-        return isPartitioned;
-    }
-
-    public void isPartitioned(boolean isPartitioned) {
-        this.isPartitioned = isPartitioned;
-    }
-
     public RowGranularity maxRowGranularity() {
         return maxRowGranularity;
     }
@@ -269,7 +255,6 @@ public class CollectPhase extends AbstractDQLPlanPhase {
             result.maxRowGranularity = maxRowGranularity;
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
-            result.isPartitioned(isPartitioned);
             result.whereClause(newWhereClause);
         }
         return result;
