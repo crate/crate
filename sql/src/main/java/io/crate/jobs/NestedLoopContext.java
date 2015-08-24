@@ -58,6 +58,7 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
     private final RamAccountingContext ramAccountingContext;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final ThreadPool threadPool;
+    private final FlatProjectorChain flatProjectorChain;
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private final NestedLoopOperation nestedLoopOperation;
@@ -66,11 +67,13 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
                              RowDownstream downstream,
                              RamAccountingContext ramAccountingContext,
                              PageDownstreamFactory pageDownstreamFactory,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             FlatProjectorChain flatProjectorChain) {
         this.nestedLoopPhase = nestedLoopPhase;
         this.ramAccountingContext = ramAccountingContext;
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.threadPool = threadPool;
+        this.flatProjectorChain = flatProjectorChain;
 
         nestedLoopOperation = new NestedLoopOperation();
         nestedLoopOperation.downstream(downstream);
@@ -102,6 +105,9 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
 
     @Override
     public void start() {
+        if (flatProjectorChain != null) {
+            flatProjectorChain.startProjections(this);
+        }
         if (leftDownstreamContext != null) {
             leftDownstreamContext.start();
         }

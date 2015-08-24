@@ -25,16 +25,21 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.Routing;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowDownstreamFactory;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
@@ -42,6 +47,7 @@ import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
@@ -49,6 +55,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -66,23 +73,41 @@ public class ContextPreparer {
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final ThreadPool threadPool;
+    private final ProjectorFactory projectorFactory;
     private final CircuitBreaker circuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final RowDownstreamFactory rowDownstreamFactory;
     private final InnerPreparer innerPreparer;
 
     @Inject
-    public ContextPreparer(MapSideDataCollectOperation collectOperation,
+    public ContextPreparer(Settings settings,
+                           MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
+                           Functions functions,
+                           TransportActionProvider transportActionProvider,
+                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                           NestedReferenceResolver nestedReferenceResolver,
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         this.threadPool = threadPool;
+        this.projectorFactory = new ProjectionToProjectorVisitor(
+                clusterService,
+                threadPool,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                new ImplementationSymbolVisitor(
+                        nestedReferenceResolver,
+                        functions,
+                        RowGranularity.CLUSTER
+                )
+        );
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
@@ -206,12 +231,25 @@ public class ContextPreparer {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             RowDownstream downstream = getDownstream(context, DistributionType.BROADCAST, Paging.PAGE_SIZE);
+            FlatProjectorChain flatProjectorChain = null;
+            if (!phase.projections().isEmpty()) {
+                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                        projectorFactory,
+                        ramAccountingContext,
+                        phase.projections(),
+                        downstream,
+                        phase.jobId()
+                );
+                downstream = flatProjectorChain.firstProjector();
+            }
             return new NestedLoopContext(
                     phase,
                     downstream,
                     ramAccountingContext,
                     pageDownstreamFactory,
-                    threadPool);
+                    threadPool,
+                    flatProjectorChain
+            );
         }
     }
 }

@@ -35,9 +35,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.MergeProjection;
@@ -128,7 +129,8 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 RowGranularity.DOC,
                 outerLeftCollectSymbols,
                 ImmutableList.<Projection>of(outerLeftMergeProjection),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         outerLeftCollectPhase.orderBy(outerLeftOrderBy);
 
@@ -146,7 +148,8 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 RowGranularity.DOC,
                 innerLeftCollectSymbols,
                 ImmutableList.<Projection>of(innerLeftMergeProjection),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         innerLeftCollectPhase.orderBy(innerLeftOrderBy);
 
@@ -164,7 +167,8 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 RowGranularity.DOC,
                 innerRightCollectSymbols,
                 ImmutableList.<Projection>of(innerRightMergeProjection),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         innerRightCollectPhase.orderBy(innerRightOrderBy);
 
@@ -198,10 +202,10 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
         );
         PlannedAnalyzedRelation innerPlan = new NestedLoop(
                 jobId,
-                new QueryAndFetch(innerLeftCollectPhase, null, jobId),
-                new QueryAndFetch(innerRightCollectPhase, null, jobId),
+                new CollectAndMerge(innerLeftCollectPhase, null, jobId),
+                new CollectAndMerge(innerRightCollectPhase, null, jobId),
                 innerNestedLoopPhase,
-                false, null);
+                false);
 
         // outer nested loop node
         List<Symbol> outerRightCollectSymbols = Lists.newArrayList(innerLeftCollectSymbols);
@@ -238,26 +242,14 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 localExecutionNode
         );
 
-        // final local merge
-        MergePhase localMergePhase = MergePhase.sortedMerge(
-                jobId,
-                plannerContext.nextExecutionPhaseId(),
-                innerLeftOrderBy,
-                outputSymbols,
-                null,
-                ImmutableList.<Projection>of(),
-                outerNestedLoopPhase
-        );
-        localMergePhase.executionNodes(localExecutionNode);
-
         // nested loop plan
         NestedLoop nestedLoopPlan = new NestedLoop(
                 jobId,
-                new QueryAndFetch(outerLeftCollectPhase, null, jobId),
+                new CollectAndMerge(outerLeftCollectPhase, null, jobId),
                 innerPlan,
                 outerNestedLoopPhase,
-                false,
-                localMergePhase);
+                false
+        );
 
         Job job = executor.newJob(nestedLoopPlan);
         assertThat(job.tasks().size(), is(1));
