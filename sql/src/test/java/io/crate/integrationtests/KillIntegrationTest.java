@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
@@ -145,6 +146,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 500)
     public void testKillSelectDocTable() throws Exception {
         setup.setUpEmployees();
         assertGotCancelled("SELECT name, department, sleep(500) FROM employees ORDER BY name", null, true);
