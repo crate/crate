@@ -22,41 +22,28 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Streamer;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.PageDownstreamContext;
+import io.crate.jobs.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.Executor;
 
 
 public class ExecutionPhasesTask extends JobTask {
@@ -68,9 +55,6 @@ public class ExecutionPhasesTask extends JobTask {
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
-    private final PageDownstreamFactory pageDownstreamFactory;
-    private final ThreadPool threadPool;
-    private final CircuitBreaker circuitBreaker;
 
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
@@ -79,18 +63,12 @@ public class ExecutionPhasesTask extends JobTask {
                                   ClusterService clusterService,
                                   ContextPreparer contextPreparer,
                                   JobContextService jobContextService,
-                                  PageDownstreamFactory pageDownstreamFactory,
-                                  ThreadPool threadPool,
                                   TransportJobAction transportJobAction,
-                                  CircuitBreaker circuitBreaker,
                                   List<NodeOperationTree> nodeOperationTrees) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.jobContextService = jobContextService;
-        this.pageDownstreamFactory = pageDownstreamFactory;
-        this.threadPool = threadPool;
-        this.circuitBreaker = circuitBreaker;
         this.transportJobAction = transportJobAction;
         this.nodeOperationTrees = nodeOperationTrees;
 
@@ -99,6 +77,7 @@ public class ExecutionPhasesTask extends JobTask {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
                 if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                     hasDirectResponse = true;
+                    break;
                 }
             }
         }
@@ -126,60 +105,31 @@ public class ExecutionPhasesTask extends JobTask {
             rowDownstream = new QueryResultRowDownstream(results);
         }
 
-        ExecutionPhase leaf = nodeOperationTrees.get(0).leaf();
-        // TODO: remove MergePhase casts
-        Streamer<?>[] streamers = DataTypes.getStreamer(((MergePhase) leaf).inputTypes());
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
-
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(
-                    circuitBreaker, nodeOperationTree.leaf());
-
-            PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(
-                    ramAccountingContext, streamers, (MergePhase) nodeOperationTree.leaf(), rowDownstream);
+            DownstreamExecutionSubContext executionSubContext =
+                    contextPreparer.prepare(jobId(), nodeOperationTree.leaf(), rowDownstream);
             if (operationByServer.isEmpty()) {
-                pageDownstreamContext.finish();
+                executionSubContext.close();
                 continue;
             }
-            if (!hasDirectResponse) {
+            if (hasDirectResponse) {
+                executionSubContext.start();
+                pageDownstreamContexts.add(executionSubContext.pageDownstreamContext((byte) 0));
+            } else {
                 createLocalContextAndStartOperation(
-                        pageDownstreamContext,
+                        executionSubContext,
                         operationByServer,
                         nodeOperationTree.leaf().executionPhaseId());
-            } else {
-                pageDownstreamContext.start();
             }
-            pageDownstreamContexts.add(pageDownstreamContext);
         }
         if (operationByServer.isEmpty()) {
             return;
         }
-        sendJobRequests(streamers, pageDownstreamContexts, operationByServer);
+        sendJobRequests(pageDownstreamContexts, operationByServer);
     }
 
-    private PageDownstreamContext createPageDownstreamContext(
-            RamAccountingContext ramAccountingContext,
-            Streamer<?>[] streamers,
-            MergePhase mergeNode,
-            RowDownstream rowDownstream) {
-        Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain = pageDownstreamFactory.createMergeNodePageDownstream(
-                mergeNode,
-                rowDownstream,
-                ramAccountingContext,
-                Optional.<Executor>absent()
-        );
-        return new PageDownstreamContext(
-                mergeNode.name(),
-                pageDownstreamProjectorChain.v1(),
-                streamers,
-                ramAccountingContext,
-                mergeNode.numUpstreams(),
-                pageDownstreamProjectorChain.v2()
-        );
-    }
-
-    private void sendJobRequests(Streamer<?>[] streamers,
-                                 List<PageDownstreamContext> pageDownstreamContexts,
+    private void sendJobRequests(List<PageDownstreamContext> pageDownstreamContexts,
                                  Map<String, Collection<NodeOperation>> operationsByServer) {
         int idx = 0;
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationsByServer.entrySet()) {
@@ -191,8 +141,7 @@ public class ExecutionPhasesTask extends JobTask {
 
             JobRequest request = new JobRequest(jobId(), nodeOperations);
             if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request,
-                        new DirectResponseListener(idx, streamers, pageDownstreamContexts));
+                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, pageDownstreamContexts));
             } else {
                 transportJobAction.execute(serverNodeId, request,
                         new FailureOnlyResponseListener(results));
@@ -206,7 +155,7 @@ public class ExecutionPhasesTask extends JobTask {
      *
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
-    private void createLocalContextAndStartOperation(PageDownstreamContext finalLocalMerge,
+    private void createLocalContextAndStartOperation(ExecutionSubContext finalLocalMerge,
                                                      Map<String, Collection<NodeOperation>> operationsByServer,
                                                      int localMergeExecutionNodeId) {
         String localNodeId = clusterService.localNode().id();
@@ -214,7 +163,7 @@ public class ExecutionPhasesTask extends JobTask {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         if (localNodeOperations != null) {
             for (NodeOperation nodeOperation : localNodeOperations) {
-                contextPreparer.prepare(jobId(), nodeOperation, builder);
+                contextPreparer.prepare(jobId(), nodeOperation, builder, null);
             }
         }
         builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
@@ -235,20 +184,18 @@ public class ExecutionPhasesTask extends JobTask {
     private static class DirectResponseListener implements ActionListener<JobResponse> {
 
         private final int bucketIdx;
-        private final Streamer<?>[] streamer;
         private final List<PageDownstreamContext> pageDownstreamContexts;
 
-        public DirectResponseListener(int bucketIdx, Streamer<?>[] streamer, List<PageDownstreamContext> pageDownstreamContexts) {
+        public DirectResponseListener(int bucketIdx, List<PageDownstreamContext> pageDownstreamContexts) {
             this.bucketIdx = bucketIdx;
-            this.streamer = streamer;
             this.pageDownstreamContexts = pageDownstreamContexts;
         }
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            jobResponse.streamers(streamer);
             for (int i = 0; i < pageDownstreamContexts.size(); i++) {
                 PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
+                jobResponse.streamers(pageDownstreamContext.streamer());
                 Bucket bucket = jobResponse.directResponse().get(i);
                 if (bucket == null) {
                     pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));

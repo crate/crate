@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Streamer;
 import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -41,6 +42,7 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportFetchNodeAction;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
@@ -57,6 +59,7 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
 import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
@@ -73,6 +76,8 @@ import org.junit.Test;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -149,20 +154,21 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         return collectNode;
     }
 
-    private List<Bucket> getBuckets(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
+    private List<Bucket> getBuckets(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException, TimeoutException {
         List<Bucket> results = new ArrayList<>();
         for (String nodeName : internalCluster().getNodeNames()) {
             ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class, nodeName);
             JobContextService contextService = internalCluster().getInstance(JobContextService.class, nodeName);
 
+            NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0);
+            Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+            SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
             JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
-            ListenableFuture<Bucket> future = contextPreparer.prepare(collectNode.jobId(),
-                    NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0), builder);
-            assert future != null;
+            contextPreparer.prepare(collectNode.jobId(), nodeOperation, builder, bucketBuilder);
 
             JobExecutionContext context = contextService.createContext(builder);
             context.start();
-            results.add(future.get());
+            results.add(bucketBuilder.result().get(2, TimeUnit.SECONDS));
         }
         return results;
     }

@@ -24,14 +24,18 @@ package io.crate.action.job;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
+import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.NodeOperation;
+import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -85,10 +89,15 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
         List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         for (NodeOperation nodeOperation : request.nodeOperations()) {
-            ListenableFuture<Bucket> responseFuture = contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder);
-            if (responseFuture != null) {
-                directResponseFutures.add(responseFuture);
+
+            SingleBucketBuilder bucketBuilder = null;
+            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
+                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+                bucketBuilder = new SingleBucketBuilder(streamers);
+                directResponseFutures.add(bucketBuilder.result());
             }
+
+            contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder, bucketBuilder);
         }
 
         JobExecutionContext context = jobContextService.createContext(contextBuilder);

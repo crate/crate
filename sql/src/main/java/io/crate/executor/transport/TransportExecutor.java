@@ -204,10 +204,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     clusterService,
                     contextPreparer,
                     jobContextService,
-                    pageDownstreamFactory,
-                    threadPool,
                     transportActionProvider.transportJobInitAction(),
-                    circuitBreaker,
                     nodeOperationTrees
             );
         }

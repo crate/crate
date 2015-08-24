@@ -23,13 +23,10 @@ package io.crate.action.job;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
+import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Routing;
@@ -39,9 +36,8 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowDownstreamFactory;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -89,54 +85,47 @@ public class ContextPreparer {
         innerPreparer = new InnerPreparer();
     }
 
-    @Nullable
-    public ListenableFuture<Bucket> prepare(UUID jobId,
-                                            NodeOperation nodeOperation,
-                                            JobExecutionContext.Builder contextBuilder) {
-        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, contextBuilder);
-        innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
-        if (preparerContext.bucketBuilder != null){
-            return preparerContext.bucketBuilder.result();
-        }
-        return null;
+    public void prepare(UUID jobId,
+                        NodeOperation nodeOperation,
+                        JobExecutionContext.Builder contextBuilder,
+                        @Nullable RowDownstream rowDownstream) {
+        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, rowDownstream);
+        ExecutionSubContext subContext = innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
+        contextBuilder.addSubContext(nodeOperation.executionPhase().executionPhaseId(), subContext);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ExecutionSubContext> T prepare(UUID jobId, ExecutionPhase executionPhase, RowDownstream rowDownstream) {
+        PreparerContext preparerContext = new PreparerContext(jobId, null, rowDownstream);
+        return (T) innerPreparer.process(executionPhase, preparerContext);
     }
 
     private static class PreparerContext {
 
         private final UUID jobId;
         private final NodeOperation nodeOperation;
-        private final JobExecutionContext.Builder contextBuilder;
-        private final SingleBucketBuilder bucketBuilder;
+        private final RowDownstream rowDownstream;
 
-        private PreparerContext(UUID jobId,
-                                NodeOperation nodeOperation,
-                                JobExecutionContext.Builder contextBuilder) {
+        private PreparerContext(UUID jobId, NodeOperation nodeOperation, @Nullable RowDownstream rowDownstream) {
             this.nodeOperation = nodeOperation;
-            this.contextBuilder = contextBuilder;
             this.jobId = jobId;
-            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-                bucketBuilder = new SingleBucketBuilder(streamers);
-            } else {
-                bucketBuilder = null;
-            }
+            this.rowDownstream = rowDownstream;
         }
-
-
     }
 
-    private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, Void> {
+    private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, ExecutionSubContext> {
 
         RowDownstream getDownstream(PreparerContext context, int pageSize) {
-            if (context.bucketBuilder != null) {
-                return context.bucketBuilder;
+            if (context.rowDownstream != null) {
+                return context.rowDownstream;
             } else {
+                assert context.nodeOperation != null : "nodeOperation shouldn't be null if context.rowDownstream hasn't been set";
                 return rowDownstreamFactory.createDownstream(context.nodeOperation, context.jobId, pageSize);
             }
         }
 
         @Override
-        public Void visitCountPhase(CountPhase phase, PreparerContext context) {
+        public ExecutionSubContext visitCountPhase(CountPhase phase, PreparerContext context) {
             Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
             if (locations == null) {
                 throw new IllegalArgumentException("locations are empty. Can't start count operation");
@@ -147,18 +136,16 @@ public class ContextPreparer {
                 throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
             }
 
-            CountContext countContext = new CountContext(
+            return new CountContext(
                     countOperation,
                     getDownstream(context, 1),
                     indexShardMap,
                     phase.whereClause()
             );
-            context.contextBuilder.addSubContext(phase.executionPhaseId(), countContext);
-            return null;
         }
 
         @Override
-        public Void visitMergePhase(final MergePhase phase, final PreparerContext context) {
+        public ExecutionSubContext visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             RowDownstream downstream = getDownstream(context,
@@ -171,20 +158,17 @@ public class ContextPreparer {
                             // no separate executor because TransportDistributedResultAction already runs in a threadPool
                             Optional.<Executor>absent());
 
-            PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
+            return new PageDownstreamContext(
                     phase.name(),
                     pageDownstreamProjectorChain.v1(),
                     DataTypes.getStreamer(phase.inputTypes()),
                     ramAccountingContext,
                     phase.numUpstreams(),
                     pageDownstreamProjectorChain.v2());
-
-            context.contextBuilder.addSubContext(phase.executionPhaseId(), pageDownstreamContext);
-            return null;
         }
 
         @Override
-        public Void visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
+        public ExecutionSubContext visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             String localNodeId = clusterService.localNode().id();
@@ -199,15 +183,13 @@ public class ContextPreparer {
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
 
             RowDownstream downstream = getDownstream(context, pageSize);
-            final JobCollectContext jobCollectContext = new JobCollectContext(
+            return new JobCollectContext(
                     context.jobId,
                     phase,
                     collectOperation,
                     ramAccountingContext,
                     downstream
             );
-            context.contextBuilder.addSubContext(phase.executionPhaseId(), jobCollectContext);
-            return null;
         }
     }
 }
