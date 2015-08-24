@@ -223,7 +223,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
-        SearchContext.setCurrent(searchContext);
         searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
 
         Query query = searchContext.query();
@@ -269,9 +268,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private void finishCollect() {
         if (!paused.get()) {
             searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-            assert SearchContext.current() == searchContext;
             searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
-            SearchContext.removeCurrent();
         }
     }
 
