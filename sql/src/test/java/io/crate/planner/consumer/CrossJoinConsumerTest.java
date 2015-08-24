@@ -174,14 +174,14 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     @Test
     public void testFunctionWithJoinCondition() throws Exception {
         NestedLoop plan = plan("select u1.name || u2.name from users u1, users u2");
-        TopNProjection topN = (TopNProjection) plan.localMergePhase().projections().get(0);
+        TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
         assertThat(topN.outputs().get(0), isFunction("concat"));
     }
 
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
         NestedLoop plan = plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
-        Projection projection = plan.localMergePhase().projections().get(0);
+        Projection projection = plan.nestedLoopPhase().projections().get(0);
         assertThat(projection, instanceOf(FilterProjection.class));
         Symbol query = ((FilterProjection) projection).query();
         assertThat(query, isFunction(EqOperator.NAME));
@@ -191,8 +191,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
          NestedLoop plan = plan("select u1.name, u2.name from users u1 cross join users u2");
 
-         assertThat(plan.localMergePhase().projections().size(), is(1));
-         TopNProjection topN = ((TopNProjection) plan.localMergePhase().projections().get(0));
+         assertThat(plan.nestedLoopPhase().projections().size(), is(1));
+         TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(0));
 
          assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
          assertThat(topN.offset(), is(0));
@@ -244,10 +244,10 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     @Test
     public void testCrossJoinWithMoreThanTwoTables() throws Exception {
         NestedLoop plan = plan("select * from users u1, users u2, users u3");
-        assertThat(plan.left().plan(), instanceOf(QueryAndFetch.class));
+        assertThat(plan.left().plan(), instanceOf(CollectAndMerge.class));
         assertThat(plan.right().plan(), instanceOf(NestedLoop.class));
         NestedLoop innerPlan = (NestedLoop) plan.right().plan();
-        assertThat(innerPlan.left().plan(), instanceOf(QueryAndFetch.class));
-        assertThat(innerPlan.right().plan(), instanceOf(QueryAndFetch.class));
+        assertThat(innerPlan.left().plan(), instanceOf(CollectAndMerge.class));
+        assertThat(innerPlan.right().plan(), instanceOf(CollectAndMerge.class));
     }
 }

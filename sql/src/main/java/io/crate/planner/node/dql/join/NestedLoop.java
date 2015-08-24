@@ -24,9 +24,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.Nullable;
 
 import java.util.UUID;
 
@@ -62,9 +60,6 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
 
-    @Nullable
-    private MergePhase localMergePhase;
-
     private boolean leftOuterLoop = true;
 
     /**
@@ -98,14 +93,12 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
                       NestedLoopPhase nestedLoopPhase,
-                      boolean leftOuterLoop,
-                      @Nullable MergePhase localMergePhase) {
+                      boolean leftOuterLoop) {
         this.jobId = jobId;
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
-        this.localMergePhase = localMergePhase;
     }
 
     public PlannedAnalyzedRelation left() {
@@ -132,18 +125,9 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
         return nestedLoopPhase;
     }
 
-    @Nullable
-    public MergePhase localMergePhase() {
-        return localMergePhase;
-    }
-
     @Override
     public void addProjection(Projection projection) {
-        if (localMergePhase != null) {
-            localMergePhase.addProjection(projection);
-        } else {
-            nestedLoopPhase.addProjection(projection);
-        }
+        nestedLoopPhase.addProjection(projection);
     }
 
     @Override
@@ -153,13 +137,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public DQLPlanNode resultNode() {
-        if (localMergePhase != null) {
-            return localMergePhase;
-        } else if (nestedLoopPhase != null) {
-            return nestedLoopPhase;
-        } else {
-            return outer().resultNode();
-        }
+        return nestedLoopPhase;
     }
 
     @Override

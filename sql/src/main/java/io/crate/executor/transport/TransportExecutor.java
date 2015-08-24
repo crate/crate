@@ -511,7 +511,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.localMergePhase());
             context.addPhase(plan.nestedLoopPhase());
 
             context.branch((byte) 0);

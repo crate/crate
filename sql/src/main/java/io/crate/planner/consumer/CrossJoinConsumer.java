@@ -178,7 +178,7 @@ public class CrossJoinConsumer implements Consumer {
 
             ImmutableList<Projection> projections = projectionBuilder.build();
             for (Projection projection : projections) {
-                nl.localMergePhase().addProjection(projection);
+                nl.addProjection(projection);
             }
             return nl;
         }
@@ -288,15 +288,7 @@ public class CrossJoinConsumer implements Consumer {
                         rightMerge,
                         localExecutionNodes
                 );
-                MergePhase localMerge = MergePhase.localMerge(
-                        jobId,
-                        context.plannerContext().nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(),
-                        nestedLoopPhase
-                );
-                localMerge.executionNodes(localExecutionNodes);
-
-                nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, true, localMerge);
+                nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, true);
             }
             return nl;
         }
