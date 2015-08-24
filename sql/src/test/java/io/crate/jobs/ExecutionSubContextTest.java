@@ -211,14 +211,14 @@ public class ExecutionSubContextTest extends CrateUnitTest {
     public void testParallelCloseNestedLoopContext() throws Throwable {
         verifyParallelClose(new NestedLoopContext(mock(NestedLoopPhase.class),
                 mock(RowDownstream.class), mock(RamAccountingContext.class),
-                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
+                mock(PageDownstreamFactory.class), mock(ThreadPool.class), null));
     }
 
     @Test
     public void testParallelKillNestedLoopContext() throws Throwable {
         verifyParallelKill(new NestedLoopContext(mock(NestedLoopPhase.class),
                 mock(RowDownstream.class), mock(RamAccountingContext.class),
-                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
+                mock(PageDownstreamFactory.class), mock(ThreadPool.class), null));
     }
 
 }
