@@ -201,7 +201,7 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 new QueryAndFetch(innerLeftCollectPhase, null, jobId),
                 new QueryAndFetch(innerRightCollectPhase, null, jobId),
                 innerNestedLoopPhase,
-                false, null);
+                false);
 
         // outer nested loop node
         List<Symbol> outerRightCollectSymbols = Lists.newArrayList(innerLeftCollectSymbols);
@@ -238,26 +238,14 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 localExecutionNode
         );
 
-        // final local merge
-        MergePhase localMergePhase = MergePhase.sortedMerge(
-                jobId,
-                plannerContext.nextExecutionPhaseId(),
-                innerLeftOrderBy,
-                outputSymbols,
-                null,
-                ImmutableList.<Projection>of(),
-                outerNestedLoopPhase
-        );
-        localMergePhase.executionNodes(localExecutionNode);
-
         // nested loop plan
         NestedLoop nestedLoopPlan = new NestedLoop(
                 jobId,
                 new QueryAndFetch(outerLeftCollectPhase, null, jobId),
                 innerPlan,
                 outerNestedLoopPhase,
-                false,
-                localMergePhase);
+                false
+        );
 
         Job job = executor.newJob(nestedLoopPlan);
         assertThat(job.tasks().size(), is(1));
