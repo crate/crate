@@ -23,7 +23,10 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -33,7 +36,6 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -101,18 +103,19 @@ public class QueryAndFetchConsumer implements Consumer {
                     outputSymbols.add(symbol);
                 }
             }
-            return normalSelect(table, table.querySpec().where(), context, outputSymbols);
+            return normalSelect(table, context, outputSymbols);
         }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (table.querySpec().hasAggregates()) {
+            QuerySpec querySpec = table.querySpec();
+            if (querySpec.hasAggregates()) {
                 return null;
             }
-            if (table.querySpec().where().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(table.querySpec().where().query());
+            if (querySpec.where().hasQuery()) {
+                ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
-            return normalSelect(table, table.querySpec().where(), context, table.querySpec().outputs());
+            return normalSelect(table, context, querySpec.outputs());
         }
 
         @Override
@@ -138,13 +141,11 @@ public class QueryAndFetchConsumer implements Consumer {
         }
 
         private PlannedAnalyzedRelation normalSelect(QueriedTableRelation table,
-                                                     WhereClause whereClause,
                                                      ConsumerContext context,
                                                      List<Symbol> outputSymbols){
             QuerySpec querySpec = table.querySpec();
-            TableInfo tableInfo = table.tableRelation().tableInfo();
 
-            CollectPhase collectNode;
+            CollectPhase collectPhase;
             MergePhase mergeNode = null;
             OrderBy orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
@@ -153,8 +154,8 @@ public class QueryAndFetchConsumer implements Consumer {
                  * select id, name, order by id, date
                  *
                  * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
-                 * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectNode
-                 * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectNode AND handler
+                 * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectPhase
+                 * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectPhase AND handler
                  * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
                  */
 
@@ -188,16 +189,14 @@ public class QueryAndFetchConsumer implements Consumer {
                         new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
 
                 List<Projection> collectPhaseProjections = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
-                collectNode = PlanNodeBuilder.collect(
-                        plannerContext.jobId(),
-                        tableInfo,
+                collectPhase = CollectPhase.forQueriedTable(
                         plannerContext,
-                        whereClause,
+                        table,
                         toCollect,
-                        collectPhaseProjections,
-                        projectionBuilderContext.orderBy,
-                        projectionBuilderContext.limit);
-
+                        collectPhaseProjections
+                );
+                collectPhase.limit(projectionBuilderContext.limit);
+                collectPhase.orderBy(projectionBuilderContext.orderBy);
 
                 // MERGE
                 if (context.rootRelation() == table) {
@@ -209,7 +208,7 @@ public class QueryAndFetchConsumer implements Consumer {
                                 plannerContext.jobId(),
                                 plannerContext.nextExecutionPhaseId(),
                                 ImmutableList.<Projection>of(tnp),
-                                collectNode
+                                collectPhase
                         );
                     } else {
                         // no order by needed in TopN as we already sorted on collector
@@ -221,16 +220,14 @@ public class QueryAndFetchConsumer implements Consumer {
                                 allOutputs,
                                 orderByInputColumns,
                                 ImmutableList.<Projection>of(tnp),
-                                collectNode
+                                collectPhase
                         );
                     }
                 }
             } else {
-                collectNode = PlanNodeBuilder.collect(
-                        plannerContext.jobId(),
-                        tableInfo,
+                collectPhase = CollectPhase.forQueriedTable(
                         plannerContext,
-                        whereClause,
+                        table,
                         outputSymbols,
                         ImmutableList.<Projection>of()
                 );
@@ -239,10 +236,10 @@ public class QueryAndFetchConsumer implements Consumer {
                             plannerContext.jobId(),
                             plannerContext.nextExecutionPhaseId(),
                             ImmutableList.<Projection>of(),
-                            collectNode);
+                            collectPhase);
                 }
             }
-            return new QueryAndFetch(collectNode, mergeNode, plannerContext.jobId());
+            return new QueryAndFetch(collectPhase, mergeNode, plannerContext.jobId());
         }
 
         private static List<Symbol> toInputColumns(List<Symbol> symbols) {

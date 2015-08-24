@@ -27,9 +27,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -280,5 +282,25 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     @Nullable
     public String handlerSideCollect() {
         return handlerSideCollect;
+    }
+
+    public static CollectPhase forQueriedTable(Planner.Context plannerContext,
+                                               QueriedTableRelation table,
+                                               List<Symbol> toCollect,
+                                               List<Projection> projections) {
+        TableInfo tableInfo = table.tableRelation().tableInfo();
+        WhereClause where = table.querySpec().where();
+        Routing routing = tableInfo.getRouting(where, null);
+        plannerContext.allocateJobSearchContextIds(routing);
+        return new CollectPhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "collect",
+                routing,
+                tableInfo.rowGranularity(),
+                toCollect,
+                projections,
+                where
+        );
     }
 }

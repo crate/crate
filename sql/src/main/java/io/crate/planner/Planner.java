@@ -261,6 +261,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         projection.settings(analysis.settings());
 
         List<Symbol> outputs;
+        String partitionIdent = analysis.partitionIdent();
+
         if (analysis.selectedColumns() != null && !analysis.selectedColumns().isEmpty()) {
             outputs = new ArrayList<>(analysis.selectedColumns().size());
             List<Symbol> columnSymbols = new ArrayList<>(analysis.selectedColumns().size());
@@ -271,7 +273,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             projection.inputs(columnSymbols);
         } else {
             Reference sourceRef;
-            if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
+            if (analysis.table().isPartitioned() && partitionIdent == null) {
                 // table is partitioned, insert partitioned columns into the output
                 sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.DOC));
                 Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
@@ -284,16 +286,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }
-        CollectPhase collectPhase = PlanNodeBuilder.collect(
+
+        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
+        if (partitionIdent != null) {
+            routing = Routing.filter(routing, PartitionName.fromPartitionIdent(
+                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent).stringValue());
+        }
+        CollectPhase collectPhase = new CollectPhase(
                 context.jobId(),
-                tableInfo,
-                context,
-                WhereClause.MATCH_ALL,
+                context.nextExecutionPhaseId(),
+                "collect",
+                routing,
+                tableInfo.rowGranularity(),
                 outputs,
                 ImmutableList.<Projection>of(projection),
-                analysis.partitionIdent()
+                WhereClause.MATCH_ALL
         );
-
         MergePhase mergePhase = MergePhase.localMerge(
                 context.jobId(),
                 context.nextExecutionPhaseId(),

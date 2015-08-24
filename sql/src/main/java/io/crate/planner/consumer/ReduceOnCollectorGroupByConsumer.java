@@ -30,7 +30,6 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -175,11 +174,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 ));
             }
 
-            CollectPhase collectPhase = PlanNodeBuilder.collect(
-                    context.plannerContext().jobId(),
-                    tableInfo,
+            CollectPhase collectPhase = CollectPhase.forQueriedTable(
                     context.plannerContext(),
-                    table.querySpec().where(),
+                    table,
                     splitPoints.leaves(),
                     ImmutableList.copyOf(projections)
             );

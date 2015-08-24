@@ -301,7 +301,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                         RowGranularity.DOC, DataTypes.STRING));
 
         // 1st collect and merge nodes
-        Function whereClause1 = new Function(new FunctionInfo(
+        Function query = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
@@ -312,15 +312,16 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")},
                 null);
 
-        CollectPhase collectNode1 = PlanNodeBuilder.collect(
+        WhereClause whereClause = new WhereClause(query);
+        CollectPhase collectNode1 = new CollectPhase(
                 plannerContext.jobId(),
-                tableInfo,
-                plannerContext,
-                new WhereClause(whereClause1),
+                plannerContext.nextExecutionPhaseId(),
+                "collect",
+                tableInfo.getRouting(whereClause, Preference.PRIMARY.type()),
+                RowGranularity.DOC,
                 ImmutableList.<Symbol>of(uidReference),
                 ImmutableList.<Projection>of(updateProjection),
-                null,
-                Preference.PRIMARY.type()
+                whereClause
         );
         MergePhase mergeNode1 = MergePhase.localMerge(
                 plannerContext.jobId(),
@@ -330,20 +331,21 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         childNodes.add(new CollectAndMerge(collectNode1, mergeNode1, UUID.randomUUID()));
 
         // 2nd collect and merge nodes
-        Function whereClause2 = new Function(new FunctionInfo(
+        Function query2 = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
 
-        CollectPhase collectNode2 = PlanNodeBuilder.collect(
+        final WhereClause whereClause1 = new WhereClause(query2);
+        CollectPhase collectNode2 = new CollectPhase(
                 plannerContext.jobId(),
-                tableInfo,
-                plannerContext,
-                new WhereClause(whereClause2),
+                plannerContext.nextExecutionPhaseId(),
+                "collect",
+                tableInfo.getRouting(whereClause1, Preference.PRIMARY.type()),
+                RowGranularity.DOC,
                 ImmutableList.<Symbol>of(uidReference),
                 ImmutableList.<Projection>of(updateProjection),
-                null,
-                Preference.PRIMARY.type()
+                whereClause1
         );
         MergePhase mergeNode2 = MergePhase.localMerge(
                 plannerContext.jobId(),

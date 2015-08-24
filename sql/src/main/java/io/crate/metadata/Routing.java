@@ -26,6 +26,34 @@ public class Routing implements Streamable {
         this.locations = locations;
     }
 
+    public static Routing filter(Routing routing, String includeTableName) {
+        assert routing.hasLocations();
+        assert includeTableName != null;
+        final Map<String, Map<String, List<Integer>>> locations = routing.locations();
+        if (locations == null) {
+            return routing;
+        }
+
+        Map<String, Map<String, List<Integer>>> newLocations = new TreeMap<>();
+        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
+            Map<String, List<Integer>> tableMap = new TreeMap<>();
+            for (Map.Entry<String, List<Integer>> tableEntry : entry.getValue().entrySet()) {
+                if (includeTableName.equals(tableEntry.getKey())) {
+                    tableMap.put(tableEntry.getKey(), tableEntry.getValue());
+                }
+            }
+            if (tableMap.size() > 0) {
+                newLocations.put(entry.getKey(), tableMap);
+            }
+
+        }
+        if (newLocations.size() > 0) {
+            return new Routing(newLocations);
+        } else {
+            return new Routing();
+        }
+    }
+
     /**
      * @return a map with the locations in the following format: <p>
      *  Map&lt;nodeName (string), <br>

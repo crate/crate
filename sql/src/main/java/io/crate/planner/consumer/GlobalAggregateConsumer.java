@@ -25,13 +25,11 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -83,13 +81,13 @@ public class GlobalAggregateConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(functions, table, table.tableRelation(),  table.querySpec().where(), context);
+            return globalAggregates(functions, table, context);
 
         }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            return globalAggregates(functions, table, table.tableRelation(),  table.querySpec().where(), context);
+            return globalAggregates(functions, table, context);
         }
 
         @Override
@@ -100,8 +98,6 @@ public class GlobalAggregateConsumer implements Consumer {
 
     private static PlannedAnalyzedRelation globalAggregates(Functions functions,
                                                             QueriedTableRelation table,
-                                                            AbstractTableRelation tableRelation,
-                                                            WhereClause whereClause,
                                                             ConsumerContext context) {
         if (table.querySpec().groupBy()!=null || !table.querySpec().hasAggregates()) {
             return null;
@@ -112,7 +108,7 @@ public class GlobalAggregateConsumer implements Consumer {
             return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
         }
 
-        validateAggregationOutputs(tableRelation, table.querySpec().outputs());
+        validateAggregationOutputs(table.tableRelation(), table.querySpec().outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
 
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -124,11 +120,10 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.ITER,
                 Aggregation.Step.PARTIAL);
 
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                plannerContext.jobId(),
-                tableRelation.tableInfo(),
+
+        CollectPhase collectPhase = CollectPhase.forQueriedTable(
                 plannerContext,
-                whereClause,
+                table,
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(ap)
         );
@@ -163,8 +158,8 @@ public class GlobalAggregateConsumer implements Consumer {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 projections,
-                collectNode);
-        return new GlobalAggregate(collectNode, localMergeNode, plannerContext.jobId());
+                collectPhase);
+        return new GlobalAggregate(collectPhase, localMergeNode, plannerContext.jobId());
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

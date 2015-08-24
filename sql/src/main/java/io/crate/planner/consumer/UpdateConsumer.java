@@ -33,6 +33,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.*;
@@ -147,23 +148,24 @@ public class UpdateConsumer implements Consumer {
                         version);
 
                 Planner.Context plannerContext = consumerContext.plannerContext();
-                CollectPhase collectNode = PlanNodeBuilder.collect(
+                Routing routing = tableInfo.getRouting(whereClause, Preference.PRIMARY.type());
+                CollectPhase collectPhase = new CollectPhase(
                         plannerContext.jobId(),
-                        tableInfo,
-                        plannerContext,
-                        whereClause,
+                        plannerContext.nextExecutionPhaseId(),
+                        "collect",
+                        routing,
+                        tableInfo.rowGranularity(),
                         ImmutableList.<Symbol>of(uidReference),
                         ImmutableList.<Projection>of(updateProjection),
-                        null,
-                        Preference.PRIMARY.type()
+                        whereClause
                 );
                 MergePhase mergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                        collectNode
+                        collectPhase
                 );
-                return new CollectAndMerge(collectNode, mergeNode, plannerContext.jobId());
+                return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());
             } else {
                 return null;
             }

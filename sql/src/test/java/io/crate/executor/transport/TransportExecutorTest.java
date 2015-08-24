@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -131,38 +132,54 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
         Planner.Context ctx = newPlannerContext();
 
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                ctx.jobId(),
-                characters,
+        CollectPhase collectPhase = newCollectPhase(
                 ctx,
-                WhereClause.MATCH_ALL,
+                characters,
                 collectSymbols,
                 ImmutableList.<Projection>of(),
-                null,
-                Constants.DEFAULT_SELECT_LIMIT
+                WhereClause.MATCH_ALL
         );
-        collectNode.keepContextForFetcher(true);
+        collectPhase.keepContextForFetcher(true);
 
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
+        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectPhase, ctx);
 
         MergePhase localMergeNode = MergePhase.localMerge(
                 ctx.jobId(),
                 ctx.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(fetchProjection),
-                collectNode
+                collectPhase
         );
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+        Plan plan = new QueryThenFetch(collectPhase, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
         assertThat(rows, containsInAnyOrder(
                 isRow(1, "Arthur"),
                 isRow(4, "Arthur"),
                 isRow(2, "Ford"),
                 isRow(3, "Trillian")
         ));
+    }
+
+    private CollectPhase newCollectPhase(Planner.Context ctx,
+                                         DocTableInfo tableInfo,
+                                         List<Symbol> collectSymbols,
+                                         ImmutableList<Projection> projections,
+                                         WhereClause whereClause) {
+        final Routing routing = tableInfo.getRouting(whereClause, null);
+        ctx.allocateJobSearchContextIds(routing);
+        return new CollectPhase(
+                ctx.jobId(),
+                ctx.nextExecutionPhaseId(),
+                "collect",
+                routing,
+                RowGranularity.DOC,
+                collectSymbols,
+                projections,
+                whereClause
+        );
     }
 
     @Test
@@ -174,22 +191,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
-        Function whereClause = new Function(new FunctionInfo(
+        Function query = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
 
         Planner.Context ctx = newPlannerContext();
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                ctx.jobId(),
-                characters,
-                ctx,
-                new WhereClause(whereClause),
-                collectSymbols,
-                ImmutableList.<Projection>of(),
-                null,
-                Constants.DEFAULT_SELECT_LIMIT
-        );
+        WhereClause whereClause = new WhereClause(query);
+        CollectPhase collectNode = newCollectPhase(ctx, characters, collectSymbols, ImmutableList.<Projection>of(), whereClause);
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
@@ -205,7 +214,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, "Ford")));
     }
 
@@ -242,17 +251,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 orderBy.nullsFirst()
         );
         Planner.Context ctx = newPlannerContext();
-
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                ctx.jobId(),
-                characters,
+        CollectPhase collectNode = newCollectPhase(
                 ctx,
-                WhereClause.MATCH_ALL,
+                characters,
                 collectSymbols,
                 ImmutableList.<Projection>of(mergeProjection),
-                orderBy,
-                Constants.DEFAULT_SELECT_LIMIT
+                WhereClause.MATCH_ALL
         );
+        collectNode.orderBy(orderBy);
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, collectNode, ctx);
@@ -271,7 +277,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(
                 isRow(1, "Arthur"),
                 isRow(4, "Arthur"),
@@ -306,7 +312,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
                 DataTypes.TIMESTAMP
         ), Arrays.asList(Literal.newLiteral("month"), date_ref));
-        Function whereClause = new Function(new FunctionInfo(
+        Function query = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                 DataTypes.BOOLEAN),
                 Arrays.asList(id_ref, Literal.newLiteral(2))
@@ -318,15 +324,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Planner.Context ctx = newPlannerContext();
         List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
         UUID jobId = UUID.randomUUID();
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                ctx.jobId(),
-                searchf,
+        WhereClause whereClause = new WhereClause(query);
+        CollectPhase collectNode = newCollectPhase(
                 ctx,
-                new WhereClause(whereClause),
+                searchf,
                 collectSymbols,
                 ImmutableList.<Projection>of(),
-                null,
-                Constants.DEFAULT_SELECT_LIMIT
+                whereClause
         );
         collectNode.keepContextForFetcher(true);
 
@@ -347,7 +351,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         assertThat(job.tasks().size(), is(1));
 
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, 315532800000L)));
     }
 
@@ -361,33 +365,29 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
         List<Symbol> outputSymbols =  Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef);
 
-        UUID jobId = UUID.randomUUID();
-        CollectPhase collectNode = PlanNodeBuilder.collect(
-                ctx.jobId(),
-                parted,
+        CollectPhase collectNode = newCollectPhase(
                 ctx,
-                WhereClause.MATCH_ALL,
+                parted,
                 collectSymbols,
                 ImmutableList.<Projection>of(),
-                null,
-                Constants.DEFAULT_SELECT_LIMIT
+                WhereClause.MATCH_ALL
         );
         collectNode.keepContextForFetcher(true);
 
         FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, collectNode, ctx);
 
         MergePhase localMerge = MergePhase.localMerge(
-                jobId,
+                ctx.jobId(),
                 ctx.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode);
 
-        Plan plan = new QueryThenFetch(collectNode, localMerge, jobId);
+        Plan plan = new QueryThenFetch(collectNode, localMerge, ctx.jobId());
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
         assertThat(rows, containsInAnyOrder(
                 isRow(3, "Ford", 1396388720242L),
                 isRow(1, "Trillian", null),
@@ -413,7 +413,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
 
         task.start();
-        TaskResult taskResult = task.result().get(0).get();
+        TaskResult taskResult = task.result().get(0).get(2, TimeUnit.SECONDS);
         Bucket rows = taskResult.rows();
         assertThat(rows, contains(isRow(-1L)));
 

@@ -33,8 +33,6 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.PlanNodeBuilder;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -121,8 +119,6 @@ public class NonDistributedGroupByConsumer implements Consumer {
          *
          */
         private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, Routing routing, ConsumerContext context) {
-            TableInfo tableInfo = table.tableRelation().tableInfo();
-
             List<Symbol> groupBy = table.querySpec().groupBy();
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -136,16 +132,13 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
 
-            CollectPhase collectNode = PlanNodeBuilder.collect(
-                    context.plannerContext().jobId(),
-                    tableInfo,
+            CollectPhase collectPhase = CollectPhase.forQueriedTable(
                     context.plannerContext(),
-                    table.querySpec().where(),
-                    routing,
+                    table,
                     splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection),
-                    null, null, null
+                    ImmutableList.<Projection>of(groupProjection)
             );
+
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(
                     groupBy.size() +
@@ -203,8 +196,8 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     projections,
-                    collectNode);
-            return new NonDistributedGroupBy(collectNode, localMergeNode, context.plannerContext().jobId());
+                    collectPhase);
+            return new NonDistributedGroupBy(collectPhase, localMergeNode, context.plannerContext().jobId());
         }
     }
 
