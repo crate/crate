@@ -22,13 +22,15 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.core.CachedRef;
+import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.store.StoreStats;
 
 import java.util.concurrent.TimeUnit;
 
-public class ShardSizeExpression extends SysShardExpression<Long> {
+public class ShardSizeExpression extends SimpleObjectExpression<Long> implements ShardReferenceImplementation<Long> {
 
     public static final String NAME = "size";
 

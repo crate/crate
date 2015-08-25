@@ -21,18 +21,15 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
 
-public class BlobShardSchemaNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
+public class BlobShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "schema_name";
     public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef(BlobSchemaInfo.NAME);
-
-    protected BlobShardSchemaNameExpression() {
-    }
 
     @Override
     public BytesRef value() {

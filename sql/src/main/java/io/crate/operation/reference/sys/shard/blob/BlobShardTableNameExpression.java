@@ -22,13 +22,14 @@
 package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobIndices;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardTableNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
+public class BlobShardTableNameExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "table_name";
 
@@ -36,7 +37,7 @@ public class BlobShardTableNameExpression extends SysShardExpression<BytesRef> i
 
     @Inject
     public BlobShardTableNameExpression(ShardId shardId) {
-        this.tableName = new BytesRef(BlobIndices.stripPrefix.apply(shardId.index().name()));
+        this.tableName = BytesRefs.toBytesRef(BlobIndices.STRIP_PREFIX.apply(shardId.index().name()));
     }
 
     @Override

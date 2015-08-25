@@ -78,7 +78,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         }
     };
 
-    public static final Function<String, String> stripPrefix = new Function<String, String>() {
+    public static final Function<String, String> STRIP_PREFIX = new Function<String, String>() {
         @Override
         public String apply(String indexName) {
             return indexName(indexName);

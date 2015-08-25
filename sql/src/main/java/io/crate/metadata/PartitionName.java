@@ -236,10 +236,11 @@ public class PartitionName {
     }
 
     public static boolean isPartition(String index, @Nullable String schemaName, String tableName) {
-        List<String> splitted = Splitter.on(".").splitToList(index);
-        if (!indexNamePartsPredicate.apply(splitted)) {
+        if (!isPartition(index)) {
             return false;
-        } else if (splitted.size() == 4) {
+        }
+        List<String> splitted = Splitter.on(".").splitToList(index);
+        if (splitted.size() == 4) {
             return (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) && splitted.get(2).equals(tableName);
         } else if (splitted.size() == 5) {
             return schemaName != null && schemaName.equals(splitted.get(0)) && splitted.get(3).equals(tableName);
@@ -248,8 +249,7 @@ public class PartitionName {
     }
 
     public static boolean isPartition(String index) {
-        List<String> splitted = Splitter.on(".").splitToList(index);
-        return indexNamePartsPredicate.apply(splitted);
+        return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 && index.contains(PARTITIONED_TABLE_PREFIX + ".");
     }
 
     /**

@@ -138,7 +138,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         return FluentIterable
                 .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
                 .filter(BlobIndices.indicesFilter)
-                .transform(BlobIndices.stripPrefix);
+                .transform(BlobIndices.STRIP_PREFIX);
     }
 
     @Override

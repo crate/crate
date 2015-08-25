@@ -25,9 +25,11 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.metadata.PartitionName;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -38,6 +40,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;
 
@@ -303,6 +306,33 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         String nodeName = response.rows()[0][1].toString();
         assertEquals("shared0", nodeName);
         assertEquals("shared0", fullNode.get("name"));
+    }
+
+    @Test
+    public void testOrphanedPartitionExpression() throws Exception {
+        try {
+            transportExecutor.exec("create table c.orphan_test (id int primary key, p string primary key) " +
+                            "partitioned by (p) " +
+                            "clustered into 1 shards " +
+                            "with (number_of_replicas = 0)"
+            );
+            transportExecutor.exec("insert into c.orphan_test (id, p) values (1, 'foo')");
+            transportExecutor.ensureYellowOrGreen();
+
+            SQLResponse response = transportExecutor.exec(
+                    "select orphan_partition from sys.shards where table_name = 'orphan_test'");
+            assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
+
+            GLOBAL_CLUSTER.client().admin().indices()
+                    .prepareDeleteTemplate(PartitionName.templateName("c", "orphan_test"))
+                    .execute().get(1, TimeUnit.SECONDS);
+
+            response = transportExecutor.exec(
+                    "select orphan_partition from sys.shards where table_name = 'orphan_test'");
+            assertThat(TestingHelpers.printedTable(response.rows()), is("true\n"));
+        } finally {
+            transportExecutor.exec("drop table c.orphan_test");
+        }
     }
 
     @Test

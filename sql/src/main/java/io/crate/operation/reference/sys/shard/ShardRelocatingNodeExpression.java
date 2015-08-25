@@ -21,11 +21,13 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardRelocatingNodeExpression extends SysShardExpression<BytesRef> {
+public class ShardRelocatingNodeExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "relocating_node";
 

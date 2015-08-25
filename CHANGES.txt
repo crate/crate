@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue where the `orphan_partition` column in the `sys.shards` table
+   could return a wrong result if the shard was part of a custom table.
+
  - Fixed an issue that caused stuck jobs to return an empty result instead of
    an error.
 

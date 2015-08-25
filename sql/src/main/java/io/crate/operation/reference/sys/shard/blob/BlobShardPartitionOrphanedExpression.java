@@ -21,21 +21,15 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
-import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boolean> implements BlobShardReferenceImplementation<Boolean> {
+public class BlobShardPartitionOrphanedExpression extends SimpleObjectExpression<Boolean> implements BlobShardReferenceImplementation<Boolean> {
 
     public static final String NAME = "orphan_partition";
-
-    @Inject
-    public BlobShardPartitionOrphanedExpression() {
-    }
 
     @Override
     public Boolean value() {
         return false;
     }
-
 }

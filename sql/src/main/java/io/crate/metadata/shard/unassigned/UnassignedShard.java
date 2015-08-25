@@ -35,7 +35,7 @@ public class UnassignedShard {
         String ident = "";
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
-            tableName = BlobIndices.stripPrefix.apply(index);
+            tableName = BlobIndices.STRIP_PREFIX.apply(index);
         } else if (PartitionName.isPartition(index)) {
             schemaName = PartitionName.schemaName(index);
             tableName = PartitionName.tableName(index);

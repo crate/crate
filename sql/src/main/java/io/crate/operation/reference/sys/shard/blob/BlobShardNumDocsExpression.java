@@ -22,11 +22,12 @@
 package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardNumDocsExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation<Long> {
+public class BlobShardNumDocsExpression extends SimpleObjectExpression<Long> implements BlobShardReferenceImplementation<Long> {
+
     public static final String NAME = "num_docs";
 
     private final BlobShard blobShard;

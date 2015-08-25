@@ -23,11 +23,11 @@ package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
 import io.crate.metadata.shard.MetaDataShardModule;
+import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
-import io.crate.operation.reference.sys.shard.ShardSchemaNameExpression;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
@@ -66,8 +66,7 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
-    private Injector injector;
-    private NestedReferenceResolver resolver;
+    private ShardReferenceResolver resolver;
     private Schemas schemas;
 
     private String indexName = "wikipedia_de";
@@ -75,7 +74,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        injector = new ModulesBuilder().add(
+        Injector injector = new ModulesBuilder().add(
                 new TestModule(),
                 new MetaDataModule(),
                 new MetaDataSysModule(),
@@ -163,21 +162,21 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testClusterExpression() throws Exception {
         // Looking up cluster wide expressions must work too
         ReferenceInfo refInfo = refInfo("sys.cluster.name", DataTypes.STRING, RowGranularity.CLUSTER);
-        SimpleObjectExpression<BytesRef> name = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> name = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("crate"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
-        SimpleObjectExpression<Integer> shardExpression = (SimpleObjectExpression<Integer>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<Integer> shardExpression = (ShardReferenceImplementation<Integer>) resolver.getImplementation(refInfo);
         assertEquals(new Integer(1), shardExpression.value());
     }
 
     @Test
     public void testSize() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
-        SimpleObjectExpression<Long> shardExpression = (SimpleObjectExpression<Long>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(123456), shardExpression.value());
     }
 
@@ -185,7 +184,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testNumDocs() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "num_docs");
         ReferenceInfo refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
-        SimpleObjectExpression<Long> shardExpression = (SimpleObjectExpression<Long>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(654321), shardExpression.value());
 
         // second call should throw Exception
@@ -195,28 +194,28 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testState() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.primary", DataTypes.BOOLEAN, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.relocating_node", DataTypes.STRING, RowGranularity.CLUSTER);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test
     public void testTableName() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
     }
 
@@ -226,7 +225,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName
@@ -238,7 +237,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceInfo refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("_1"), shardExpression.value());
 
         // reset indexName
@@ -249,7 +248,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testPartitionIdentOfNonPartition() throws Exception {
         // expression should return NULL on non partitioned tables
         ReferenceInfo refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef(""), shardExpression.value());
     }
 
@@ -258,7 +257,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         ReferenceInfo refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<Boolean> shardExpression = (SimpleObjectExpression<Boolean>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<Boolean> shardExpression = (ShardReferenceImplementation<Boolean>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
 
         // reset indexName
@@ -268,7 +267,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testSchemaName() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("doc"), shardExpression.value());
     }
 
@@ -276,9 +275,8 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testCustomSchemaName() throws Exception {
         indexName = "my_schema.wikipedia_de";
         prepare();
-        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
         ReferenceInfo refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("my_schema"), shardExpression.value());
         // reset indexName
         indexName = "wikipedia_de";
@@ -290,7 +288,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "my_schema.wikipedia_de";
         prepare();
         ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        SimpleObjectExpression<BytesRef> shardExpression = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName

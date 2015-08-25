@@ -32,29 +32,21 @@ import java.util.Map;
 
 public class SysShardExpressionModule extends AbstractModule {
 
-    static Map<ReferenceIdent, Class> SHARD_COLUMNS = ImmutableMap.<ReferenceIdent, Class>builder()
-            .put(SysShardsTableInfo.ReferenceIdents.ID, ShardIdExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.SIZE, ShardSizeExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, ShardNumDocsExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.PRIMARY, ShardPrimaryExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.STATE, ShardStateExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE, ShardRelocatingNodeExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, ShardTableNameExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME, ShardSchemaNameExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, ShardPartitionIdentExpression.class)
-            .put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION, ShardPartitionOrphanedExpression.class)
-            .build();
-
 
     @Override
     protected void configure() {
         MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
-        for (Map.Entry<ReferenceIdent, Class> entry : SHARD_COLUMNS.entrySet()) {
-            b.addBinding(entry.getKey()).to(entry.getValue()).asEagerSingleton();
-        }
-
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.ID).to(ShardIdExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.SIZE).to(ShardSizeExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.NUM_DOCS).to(ShardNumDocsExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.PRIMARY).to(ShardPrimaryExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.STATE).to(ShardStateExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.TABLE_NAME).to(ShardTableNameExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME).to(ShardSchemaNameExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT).to(ShardPartitionIdentExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION).to(ShardPartitionOrphanedExpression.class).asEagerSingleton();
     }
-
 }

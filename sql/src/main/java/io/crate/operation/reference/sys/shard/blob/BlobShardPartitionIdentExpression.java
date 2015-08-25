@@ -21,23 +21,17 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
+public class BlobShardPartitionIdentExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
     public static final String NAME = "partition_ident";
-    private static final BytesRef value = new BytesRef("");
-
-    @Inject
-    public BlobShardPartitionIdentExpression() {
-    }
+    private static final BytesRef VALUE = new BytesRef("");
 
     @Override
     public BytesRef value() {
-        return value;
+        return VALUE;
     }
-
 }
