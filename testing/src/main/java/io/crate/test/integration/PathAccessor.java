@@ -25,7 +25,11 @@ package io.crate.test.integration;
 import com.google.common.base.Charsets;
 import org.elasticsearch.common.io.Streams;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 public class PathAccessor {
 
@@ -36,12 +40,11 @@ public class PathAccessor {
     }
 
     public static byte[] bytesFromPath(String path, Class<?> aClass) throws IOException {
-        InputStream is = getInputStream(path, aClass);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Streams.copy(is, out);
-        is.close();
-        out.close();
-        return out.toByteArray();
+        try (InputStream is = getInputStream(path, aClass);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Streams.copy(is, out);
+            return out.toByteArray();
+        }
     }
 
     public static InputStream getInputStream(String path, Class<?> aClass) throws FileNotFoundException {

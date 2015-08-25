@@ -36,8 +36,25 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.http.*;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelFutureProgressListener;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.DefaultFileRegion;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.FileRegion;
+import org.jboss.netty.channel.LifeCycleAwareChannelHandler;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
+import org.jboss.netty.handler.codec.http.HttpChunk;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
+import org.jboss.netty.handler.codec.http.HttpMessage;
+import org.jboss.netty.handler.codec.http.HttpMethod;
+import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.util.CharsetUtil;
 
 import java.io.IOException;
@@ -51,9 +68,7 @@ import java.util.regex.Pattern;
 import static org.jboss.netty.channel.Channels.succeededFuture;
 import static org.jboss.netty.channel.Channels.write;
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.PARTIAL_CONTENT;
-import static org.jboss.netty.handler.codec.http.HttpResponseStatus.TOO_MANY_REQUESTS;
+import static org.jboss.netty.handler.codec.http.HttpResponseStatus.*;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
@@ -287,8 +302,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private void partialContentResponse(String range, HttpRequest request, String index, final String digest)
-        throws  IOException
-    {
+        throws  IOException {
         assert(range != null);
         Matcher matcher = contentRangePattern.matcher(range);
         if (!matcher.matches()) {
@@ -298,50 +312,51 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         }
         BlobShard blobShard = localBlobShard(index, digest);
 
-        final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
-        long start;
-        long end;
-        try {
-            start = Long.parseLong(matcher.group(1));
-            if (start > raf.length()) {
-                logger.warn("416 Requested Range not satisfiable");
-                simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, null);
-                raf.close();
-                return;
+        try (final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest)) {
+            long start;
+            long end;
+            try {
+                start = Long.parseLong(matcher.group(1));
+                if (start > raf.length()) {
+                    logger.warn("416 Requested Range not satisfiable");
+                    simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, null);
+                    return;
+                }
+                end = raf.length() - 1;
+                if (!matcher.group(2).equals("")) {
+                    end = Long.parseLong(matcher.group(2));
+                }
+            } catch (NumberFormatException ex) {
+                logger.error("Couldn't parse Range Header", ex);
+                start = 0;
+                end = raf.length();
             }
-            end = raf.length() - 1 ;
-            if (!matcher.group(2).equals("")) {
-                end = Long.parseLong(matcher.group(2));
+
+            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
+            HttpHeaders.setContentLength(response, end - start + 1);
+            response.headers().set(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
+            setDefaultGetHeaders(response);
+
+            ctx.getChannel().write(response);
+            ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
+            if (!HttpHeaders.isKeepAlive(request)) {
+                writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
-        } catch (NumberFormatException ex) {
-            logger.error("Couldn't parse Range Header", ex);
-            start = 0;
-            end = raf.length();
-        }
-
-        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
-        HttpHeaders.setContentLength(response, end - start + 1);
-        response.headers().set(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
-        setDefaultGetHeaders(response);
-
-        ctx.getChannel().write(response);
-        ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
-        if (!HttpHeaders.isKeepAlive(request)) {
-            writeFuture.addListener(ChannelFutureListener.CLOSE);
         }
     }
 
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws  IOException {
         BlobShard blobShard = localBlobShard(index, digest);
-        final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
-        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-        HttpHeaders.setContentLength(response, raf.length());
-        setDefaultGetHeaders(response);
-        logger.trace("HttpResponse: {}", response);
-        ctx.getChannel().write(response);
-        ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
-        if (!HttpHeaders.isKeepAlive(request)) {
-            writeFuture.addListener(ChannelFutureListener.CLOSE);
+        try (final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest)) {
+            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+            HttpHeaders.setContentLength(response, raf.length());
+            setDefaultGetHeaders(response);
+            logger.trace("HttpResponse: {}", response);
+            ctx.getChannel().write(response);
+            ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
+            if (!HttpHeaders.isKeepAlive(request)) {
+                writeFuture.addListener(ChannelFutureListener.CLOSE);
+            }
         }
     }
 
