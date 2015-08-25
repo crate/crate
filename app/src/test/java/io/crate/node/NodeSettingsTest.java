@@ -143,9 +143,9 @@ public class NodeSettingsTest {
         File custom = new File("custom");
         custom.mkdir();
         File file = new File(custom, "custom.yml");
-        FileWriter customWriter = new FileWriter(file, false);
-        customWriter.write("cluster.name: custom");
-        customWriter.close();
+        try (FileWriter customWriter = new FileWriter(file, false)) {
+            customWriter.write("cluster.name: custom");
+        }
 
         System.setProperty("es.config", "custom/custom.yml");
 

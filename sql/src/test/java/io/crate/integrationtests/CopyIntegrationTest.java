@@ -171,13 +171,12 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         File newFile = folder.newFile();
-        BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
-        writer.write("{id:1}\n");
-        writer.write("\n");
-        writer.write("{id:2}\n");
-        writer.flush();
-        writer.close();
 
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(newFile))) {
+            writer.write("{id:1}\n");
+            writer.write("\n");
+            writer.write("{id:2}\n");
+        }
         execute("copy foo from ?", new Object[]{newFile.getPath()});
         assertEquals(2L, response.rowCount());
         refresh();
@@ -192,11 +191,9 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         File newFile = folder.newFile();
-        BufferedWriter writer = new BufferedWriter(new FileWriter(newFile));
-        writer.write("{|}");
-        writer.flush();
-        writer.close();
-
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(newFile))) {
+            writer.write("{|}");
+        }
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Failed to parse content to map");
         execute("copy foo from ?", new Object[]{newFile.getPath()});

@@ -68,7 +68,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -197,12 +202,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 ") partitioned by (month) with (number_of_replicas=0)");
         ensureGreen();
         File copyFromFile = folder.newFile();
-        BufferedWriter writer = new BufferedWriter(new FileWriter(copyFromFile));
-        writer.write(
-                "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
-                        "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
-        writer.flush();
-        writer.close();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(copyFromFile))) {
+            writer.write(
+                    "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
+                            "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
+        }
         String uriPath = Paths.get(copyFromFile.toURI()).toString();
 
         execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
@@ -223,7 +227,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select count(*) from my_schema.parted");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Long) response.rows()[0][0], is(2L));
     }
 
     @Test
