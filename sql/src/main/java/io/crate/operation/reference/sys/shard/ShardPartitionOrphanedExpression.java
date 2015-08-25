@@ -21,27 +21,38 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardPartitionOrphanedExpression extends SysShardExpression<Boolean> {
+public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boolean> implements ShardReferenceImplementation<Boolean> {
 
     public static final String NAME = "orphan_partition";
     private final ClusterService clusterService;
-    private String tableName;
-    private boolean isPartition = false;
-
+    private final String aliasName;
+    private final String templateName;
+    private final boolean isPartition;
 
     @Inject
     public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
         this.clusterService = clusterService;
-        tableName = shardId.getIndex();
-        try {
-            tableName = PartitionName.tableName(tableName);
-            isPartition = true;
-        } catch (IllegalArgumentException e) {
-            // no partition
+        isPartition = PartitionName.isPartition(shardId.getIndex());
+        if (isPartition) {
+            String[] parts = PartitionName.split(shardId.getIndex());
+            String schema = parts[0];
+            String tableName = parts[1];
+            if (schema == null) {
+                aliasName = tableName;
+            } else {
+                aliasName = schema + "." + tableName;
+            }
+            templateName = PartitionName.templateName(schema, tableName);
+        } else {
+            templateName = null;
+            aliasName = null;
         }
     }
 
@@ -50,10 +61,7 @@ public class ShardPartitionOrphanedExpression extends SysShardExpression<Boolean
         if (!isPartition) {
             return false;
         }
-        if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
-            return true;
-        }
-        return false;
+        final MetaData metaData = clusterService.state().metaData();
+        return !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
     }
-
 }
