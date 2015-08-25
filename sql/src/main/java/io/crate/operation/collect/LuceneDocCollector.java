@@ -288,6 +288,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     @Override
     public void resume(boolean async) {
+        pendingPause = false;
         if (paused.compareAndSet(true, false)) {
             if (!async) {
                 innerCollect();
@@ -307,9 +308,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                     innerCollect();
                 }
             }
-        } else {
-            LOGGER.trace("Collector was not paused and so will not resume");
-            pendingPause = false;
         }
     }
 
