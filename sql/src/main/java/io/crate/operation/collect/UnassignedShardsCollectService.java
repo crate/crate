@@ -159,7 +159,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
+    public CrateCollector getCollector(CollectPhase node, RowDownstream downstream, JobCollectContext jobCollectContext) {
         if (node.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }

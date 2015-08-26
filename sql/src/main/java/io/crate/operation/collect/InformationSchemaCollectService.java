@@ -147,7 +147,7 @@ public class InformationSchemaCollectService implements CollectService {
     }
 
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream) {
+    public CrateCollector getCollector(CollectPhase collectNode, RowDownstream downstream, JobCollectContext jobCollectContext) {
         if (collectNode.whereClause().noMatch()) {
             return new NoopCrateCollector(downstream);
         }

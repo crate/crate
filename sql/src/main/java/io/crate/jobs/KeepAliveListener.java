@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -21,19 +21,10 @@
 
 package io.crate.jobs;
 
-import javax.annotation.Nullable;
+public interface KeepAliveListener {
 
-public interface ContextCallback extends KeepAliveListener {
-
-    ContextCallback NO_OP = new ContextCallback() {
-        @Override
-        public void onClose(@Nullable Throwable error, long bytesUsed) {
-        }
-
-        @Override
-        public void keepAlive() {
-        }
-    };
-
-    void onClose(@Nullable Throwable error, long bytesUsed);
+    /**
+     * Called periodically to indicate that the context is still alive
+     */
+    void keepAlive();
 }

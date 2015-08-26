@@ -29,10 +29,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
-import io.crate.jobs.ContextCallback;
-import io.crate.jobs.ExecutionState;
-import io.crate.jobs.ExecutionSubContext;
-import io.crate.jobs.MultiContextCallback;
+import io.crate.jobs.*;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ResultProvider;
@@ -194,5 +191,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
         return queryPhaseRamAccountingContext;
+    }
+
+    public KeepAliveListener keepAliveListener() {
+        return contextCallback;
     }
 }

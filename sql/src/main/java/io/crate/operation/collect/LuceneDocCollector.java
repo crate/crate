@@ -27,6 +27,7 @@ import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.metadata.Functions;
 import io.crate.operation.*;
@@ -41,6 +42,7 @@ import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ import java.util.concurrent.CancellationException;
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
+    private final KeepAliveListener keepAliveListener;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -105,12 +108,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private int pageSize;
 
     public LuceneDocCollector(CrateSearchContext searchContext,
+                              KeepAliveListener keepAliveListener,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               CollectPhase collectNode,
                               Functions functions,
                               RowDownstream downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {
+        this.keepAliveListener = keepAliveListener;
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectNode.limit();
@@ -140,6 +145,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         if (killed) {
             throw new CancellationException();
         }
+
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop collecting because breaker limit was reached
             throw new UnexpectedCollectionTerminatedException(
@@ -165,6 +171,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
         this.currentReader = context.reader();
+        keepAliveListener.keepAlive();;
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }

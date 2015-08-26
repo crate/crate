@@ -249,5 +249,10 @@ public class JobExecutionContext {
                 lastAccessTime = threadPool.estimatedTimeInMillis();
             }
         }
+
+        @Override
+        public void keepAlive() {
+            lastAccessTime = threadPool.estimatedTimeInMillis();
+        }
     }
 }
