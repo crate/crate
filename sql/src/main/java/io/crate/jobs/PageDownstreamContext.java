@@ -53,10 +53,10 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
-    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private volatile boolean isKilled = false;
+    private ContextCallback callback = ContextCallback.NO_OP;
 
     @Nullable
     private final FlatProjectorChain projectorChain;
@@ -184,9 +184,7 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
             if (killed) {
                 cancellationException = new CancellationException();
             }
-            for (ContextCallback contextCallback : callbacks) {
-                contextCallback.onClose(cancellationException, -1L);
-            }
+            callback.onClose(cancellationException, -1L);
             if (killed) {
                 pageDownstream.fail(cancellationException);
             } else {
@@ -206,7 +204,7 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
 
     public void addCallback(ContextCallback contextCallback) {
         assert !closed.get() : "may not add a callback on a closed context";
-        callbacks.add(contextCallback);
+        callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
     @Override

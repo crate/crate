@@ -28,7 +28,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,7 +35,7 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
 
     private final static ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessorContext.class);
 
-    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
+    private ContextCallback callback = ContextCallback.NO_OP;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final SymbolBasedBulkShardProcessor bulkShardProcessor;
@@ -48,7 +47,7 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
 
     @Override
     public void addCallback(ContextCallback contextCallback) {
-        callbacks.add(contextCallback);
+        callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
     public void start() {
@@ -65,9 +64,7 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     
     private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose(t, -1L);
-            }
+            callback.onClose(t, -1L);
             closeFuture.set(null);
         } else {
             try {

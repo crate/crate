@@ -35,7 +35,6 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -46,7 +45,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
     private final SettableFuture<TaskResult> futureResult;
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
 
-    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
+    private ContextCallback callback = ContextCallback.NO_OP;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
@@ -112,7 +111,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     @Override
     public void addCallback(ContextCallback contextCallback) {
-        callbacks.add(contextCallback);
+        callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
     @Override
@@ -122,9 +121,7 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose(t, -1L);
-            }
+            callback.onClose(t, -1L);
             closeFuture.set(null);
         } else {
             try {

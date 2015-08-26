@@ -25,5 +25,11 @@ import javax.annotation.Nullable;
 
 public interface ContextCallback {
 
+    ContextCallback NO_OP = new ContextCallback() {
+        @Override
+        public void onClose(@Nullable Throwable error, long bytesUsed) {
+        }
+    };
+
     void onClose(@Nullable Throwable error, long bytesUsed);
 }
