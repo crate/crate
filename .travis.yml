@@ -26,6 +26,7 @@ script:
 
 after_success:
   - ./gradlew jacocoReport coveralls
+  - bash <(curl -s https://codecov.io/bash)
 
 
 branches:
