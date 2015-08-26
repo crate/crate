@@ -31,15 +31,14 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
-    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
+    private ContextCallback callback = ContextCallback.NO_OP;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final List<? extends ActionListener> listeners;
@@ -82,7 +81,7 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
     @Override
     public void addCallback(ContextCallback contextCallback) {
-        callbacks.add(contextCallback);
+        callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
     @Override
@@ -92,9 +91,7 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
     void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose(t, -1L);
-            }
+            callback.onClose(t, -1L);
             closeFuture.set(null);
         } else {
             try {

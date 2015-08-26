@@ -30,6 +30,7 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.ExecutionSubContext;
+import io.crate.jobs.MultiContextCallback;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
@@ -59,10 +60,10 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final Object subContextLock = new Object();
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final ArrayList<ContextCallback> contextCallbacks = new ArrayList<>(1);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private final Collection<CrateCollector> collectors = new ArrayList<>();
 
+    private ContextCallback contextCallback = ContextCallback.NO_OP;
     private volatile boolean isKilled = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
@@ -116,7 +117,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     @Override
     public void addCallback(ContextCallback contextCallback) {
         assert !closed.get() : "may not add a callback on a closed context";
-        contextCallbacks.add(contextCallback);
+        this.contextCallback = MultiContextCallback.merge(this.contextCallback, contextCallback);
     }
 
     public void addContext(int jobSearchContextId, CrateSearchContext searchContext) {
@@ -163,9 +164,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                 searchContexts.clear();
             }
             long bytesUsed = queryPhaseRamAccountingContext.totalBytes();
-            for (ContextCallback contextCallback : contextCallbacks) {
-                contextCallback.onClose(throwable, bytesUsed);
-            }
+            contextCallback.onClose(throwable, bytesUsed);
             queryPhaseRamAccountingContext.close();
             closeFuture.set(null);
         } else {
