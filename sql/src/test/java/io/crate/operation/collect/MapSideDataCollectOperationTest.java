@@ -23,7 +23,9 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
@@ -57,8 +59,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class MapSideDataCollectOperationTest {
 
@@ -127,7 +128,10 @@ public class MapSideDataCollectOperationTest {
         );
         CollectingProjector cd = new CollectingProjector();
         cd.startProjection(mock(ExecutionState.class));
-        collectOperation.collect(collectNode, cd, mock(JobCollectContext.class));
+        JobCollectContext jobCollectContext = mock(JobCollectContext.class);
+        KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
+        when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
+        collectOperation.collect(collectNode, cd, jobCollectContext);
         assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)

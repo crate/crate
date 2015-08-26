@@ -189,6 +189,7 @@ public class ShardCollectService {
                 return new OrderedLuceneDocCollector(
                         threadPool,
                         searchContext,
+                        jobCollectContext.keepAliveListener(),
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         docInputSymbolVisitor,
@@ -201,6 +202,7 @@ public class ShardCollectService {
                 return new LuceneDocCollector(
                         threadPool,
                         searchContext,
+                        jobCollectContext.keepAliveListener(),
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         collectNode,

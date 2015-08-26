@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
+import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -247,6 +248,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                     }
                 }),
                 false,
+                ContextCallback.NO_OP,
                 1,
                 0
         );

@@ -51,4 +51,11 @@ public class MultiContextCallback implements ContextCallback {
             callback.onClose(error, bytesUsed);
         }
     }
+
+    @Override
+    public void keepAlive() {
+        for (ContextCallback callback : callbacks) {
+            callback.keepAlive();
+        }
+    }
 }

@@ -25,6 +25,8 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ContextCallback;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
@@ -60,6 +62,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
 
     public OrderedLuceneDocCollector(ThreadPool threadPool,
                                      CrateSearchContext searchContext,
+                                     KeepAliveListener keepAliveListener,
                                      List<Input<?>> inputs,
                                      List<LuceneCollectorExpression<?>> collectorExpressions,
                                      CollectInputSymbolVisitor<?> inputSymbolVisitor,
@@ -67,7 +70,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                                      RowDownstream downStreamProjector,
                                      RamAccountingContext ramAccountingContext,
                                      int batchSizeHint) throws Exception {
-        super(threadPool, searchContext, inputs, collectorExpressions, collectNode,
+        super(threadPool, searchContext, keepAliveListener, inputs, collectorExpressions, collectNode,
                 downStreamProjector, ramAccountingContext);
         orderBy = collectNode.orderBy();
         this.batchSizeHint = batchSizeHint;

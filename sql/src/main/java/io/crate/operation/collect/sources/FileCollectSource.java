@@ -71,6 +71,7 @@ public class FileCollectSource implements CollectSource {
                     fileUriCollectPhase.compression(),
                     ImmutableMap.<String, FileInputFactory>of(),
                     fileUriCollectPhase.sharedStorage(),
+                    jobCollectContext.keepAliveListener(),
                     readers.length,
                     Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
         ));

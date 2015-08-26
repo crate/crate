@@ -26,6 +26,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.jobs.ContextCallback;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
@@ -62,6 +64,7 @@ public class FileReadingCollector implements CrateCollector {
     private final int numReaders;
     private final int readerNumber;
     private final InputRow row;
+    private final KeepAliveListener keepAliveListener;
     private URI preGlobUri;
     private RowDownstreamHandle downstream;
     private final boolean compressed;
@@ -98,8 +101,10 @@ public class FileReadingCollector implements CrateCollector {
                                 String compression,
                                 Map<String, FileInputFactory> additionalFileInputFactories,
                                 Boolean shared,
+                                KeepAliveListener keepAliveListener,
                                 int numReaders,
                                 int readerNumber) {
+        this.keepAliveListener = keepAliveListener;
         if (fileUri.startsWith("/")) {
             // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
             this.fileUri = Paths.get(fileUri).toUri();
@@ -213,11 +218,19 @@ public class FileReadingCollector implements CrateCollector {
 
         String line;
         long linesRead = 0L;
+        int keepAliveCount = 0;
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
                 if (killed) {
                     throw new CancellationException();
                 }
+
+                keepAliveCount++;
+                if (keepAliveCount > 100_00) {
+                    keepAliveListener.keepAlive();
+                    keepAliveCount = 0;
+                }
+
                 linesRead++;
                 if (linesRead < startLine) {
                     continue;
