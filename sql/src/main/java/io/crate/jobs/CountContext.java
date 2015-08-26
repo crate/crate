@@ -37,7 +37,6 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -49,11 +48,11 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
     private final RowDownstreamHandle rowDownstreamHandle;
-    private final ArrayList<ContextCallback> callbacks = new ArrayList<>(1);
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
     private ListenableFuture<Long> countFuture;
+    private ContextCallback callback = ContextCallback.NO_OP;
 
     private final static ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
@@ -92,7 +91,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     @Override
     public void addCallback(ContextCallback contextCallback) {
-        callbacks.add(contextCallback);
+        callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
     @Override
@@ -115,9 +114,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     private void doClose(@Nullable Throwable throwable) {
         if (!closed.getAndSet(true)) {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose(throwable, -1L);
-            }
+            callback.onClose(throwable, -1L);
             closeFuture.set(null);
         } else {
             try {
