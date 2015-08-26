@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
@@ -47,15 +48,19 @@ public class FetchContext extends AbstractExecutionSubContext {
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
     private final Iterable<? extends Routing> routingIterable;
+    private final TreeMap<String, Integer> bases;
+
 
     public FetchContext(int id,
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
-                        Iterable<? extends Routing> routingIterable) {
+                        Iterable<? extends Routing> routingIterable,
+                        TreeMap<String, Integer> bases) {
         super(id);
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
         this.routingIterable = routingIterable;
+        this.bases = bases;
     }
 
     @Override
@@ -65,16 +70,17 @@ public class FetchContext extends AbstractExecutionSubContext {
             if (locations == null) {
                 continue;
             }
-            int readerId = routing.jobSearchContextIdBase();
             for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
                 String nodeId = entry.getKey();
                 if (nodeId.equals(localNodeId)) {
                     Map<String, List<Integer>> indexShards = entry.getValue();
-
                     for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                         String index = indexShardsEntry.getKey();
+                        Integer base = bases.get(index);
+                        assert base != null;
                         for (Integer shard : indexShardsEntry.getValue()) {
                             ShardId shardId = new ShardId(index, shard);
+                            int readerId = base + shardId.id();
                             SharedShardContext shardContext = sharedShardContexts.createContext(shardId, readerId);
                             shardContexts.put(readerId, shardContext);
                             try {
@@ -84,12 +90,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                                     throw new TableUnknownException(index, e);
                                 }
                             }
-                            readerId++;
                         }
-                    }
-                } else if (readerId > -1) {
-                    for (List<Integer> shards : entry.getValue().values()) {
-                        readerId += shards.size();
                     }
                 }
             }
@@ -118,7 +119,7 @@ public class FetchContext extends AbstractExecutionSubContext {
     public Engine.Searcher searcher(int readerId) {
         final Engine.Searcher searcher = searchers.get(readerId);
         if (searcher == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "searcher for reader with id %d not found", readerId));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", readerId));
         }
         return searcher;
     }

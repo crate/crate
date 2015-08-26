@@ -27,10 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class FetchPhase implements ExecutionPhase {
 
@@ -40,6 +37,8 @@ public class FetchPhase implements ExecutionPhase {
             return new FetchPhase();
         }
     };
+
+    private TreeMap<String, Integer> bases;
 
     private UUID jobId;
     private int executionPhaseId;
@@ -51,11 +50,14 @@ public class FetchPhase implements ExecutionPhase {
     public FetchPhase(UUID jobId,
                       int executionPhaseId,
                       Collection<Integer> collectPhaseIds,
-                      Set<String> executionNodes) {
+                      Set<String> executionNodes,
+                      TreeMap<String, Integer> bases
+                      ) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.collectPhaseIds = collectPhaseIds;
         this.executionNodes = executionNodes;
+        this.bases = bases;
     }
 
     @Override
@@ -108,6 +110,12 @@ public class FetchPhase implements ExecutionPhase {
         for (int i = 0; i < numCollectPhaseIds; i++) {
             collectPhaseIds.add(in.readVInt());
         }
+        int numBases = in.readVInt();
+        bases = new TreeMap<>();
+        for (int i = 0; i < numBases; i++) {
+            bases.put(in.readString(), in.readVInt());
+        }
+
     }
 
     @Override
@@ -125,5 +133,14 @@ public class FetchPhase implements ExecutionPhase {
         for (Integer collectPhaseId : collectPhaseIds) {
             out.writeVInt(collectPhaseId);
         }
+        out.writeVInt(bases.size());
+        for (Map.Entry<String, Integer> entry : bases.entrySet()) {
+            out.writeString(entry.getKey());
+            out.writeVInt(entry.getValue());
+        }
+    }
+
+    public TreeMap<String, Integer> bases() {
+        return bases;
     }
 }

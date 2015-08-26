@@ -443,7 +443,8 @@ public class ContextPreparer {
                     phase.executionPhaseId(),
                     localNodeId,
                     context.sharedShardContexts,
-                    routings);
+                    routings,
+                    phase.bases());
         }
     }
 }

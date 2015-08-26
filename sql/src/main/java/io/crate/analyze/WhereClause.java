@@ -178,12 +178,12 @@ public class WhereClause extends QueryClause implements Streamable {
         if (!(o instanceof WhereClause)) return false;
 
         WhereClause that = (WhereClause) o;
+        if (query != null ? !query.equals(that.query) : that.query != null) return false;
         if (noMatch != that.noMatch) return false;
         if (!docKeys.equals(that.docKeys)) return false;
         if (!clusteredBy.equals(that.clusteredBy)) return false;
         if (partitions != null ? !partitions.equals(that.partitions) : that.partitions != null)
             return false;
-        if (query != null ? !query.equals(that.query) : that.query != null) return false;
         return true;
     }
 

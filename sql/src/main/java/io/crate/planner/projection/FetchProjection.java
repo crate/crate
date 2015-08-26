@@ -27,13 +27,9 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class FetchProjection extends Projection {
 
@@ -50,8 +46,8 @@ public class FetchProjection extends Projection {
     private List<Symbol> outputSymbols;
     private List<ReferenceInfo> partitionBy;
     private Set<String> executionNodes;
-    private IntObjectOpenHashMap<String> jobSearchContextIdToNode;
-    private IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard;
+    private IntObjectOpenHashMap<String> readerNodes;
+    private TreeMap<Integer, String> readerIndices;
 
     private FetchProjection() {
     }
@@ -62,16 +58,16 @@ public class FetchProjection extends Projection {
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
-                           IntObjectOpenHashMap<String> jobSearchContextIdToNode,
-                           IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard) {
+                           IntObjectOpenHashMap<String> readerNodes,
+                           TreeMap<Integer, String> readerIndices) {
         this.executionPhaseId = executionPhaseId;
         this.docIdSymbol = docIdSymbol;
         this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
         this.partitionBy = partitionBy;
         this.executionNodes = executionNodes;
-        this.jobSearchContextIdToNode = jobSearchContextIdToNode;
-        this.jobSearchContextIdToShard = jobSearchContextIdToShard;
+        this.readerNodes = readerNodes;
+        this.readerIndices = readerIndices;
     }
 
     public int executionPhaseId() {
@@ -98,12 +94,12 @@ public class FetchProjection extends Projection {
         return executionNodes;
     }
 
-    public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
-        return jobSearchContextIdToNode;
+    public IntObjectOpenHashMap<String> readerNodes() {
+        return readerNodes;
     }
 
-    public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
-        return jobSearchContextIdToShard;
+    public TreeMap<Integer, String> readerIndices() {
+        return readerIndices;
     }
 
     @Override
@@ -129,12 +125,14 @@ public class FetchProjection extends Projection {
         FetchProjection that = (FetchProjection) o;
 
         if (executionPhaseId != that.executionPhaseId) return false;
-        if (executionNodes != that.executionNodes) return false;
         if (!docIdSymbol.equals(that.docIdSymbol)) return false;
         if (!inputSymbols.equals(that.inputSymbols)) return false;
         if (!outputSymbols.equals(that.outputSymbols)) return false;
-        if (!outputSymbols.equals(that.outputSymbols)) return false;
-        return partitionBy.equals(that.partitionBy);
+        if (!partitionBy.equals(that.partitionBy)) return false;
+        if (!executionNodes.equals(that.executionNodes)) return false;
+        if (!readerNodes.equals(that.readerNodes)) return false;
+        return readerIndices.equals(that.readerIndices);
+
     }
 
     @Override
@@ -177,14 +175,14 @@ public class FetchProjection extends Projection {
         }
 
         int numJobSearchContextIdToNode = in.readVInt();
-        jobSearchContextIdToNode = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
+        readerNodes = new IntObjectOpenHashMap<>(numJobSearchContextIdToNode);
         for (int i = 0; i < numJobSearchContextIdToNode; i++) {
-            jobSearchContextIdToNode.put(in.readVInt(), in.readString());
+            readerNodes.put(in.readVInt(), in.readString());
         }
-        int numJobSearchContextIdToShard = in.readVInt();
-        jobSearchContextIdToShard = new IntObjectOpenHashMap<>(numJobSearchContextIdToShard);
-        for (int i = 0; i < numJobSearchContextIdToShard; i++) {
-            jobSearchContextIdToShard.put(in.readVInt(), ShardId.readShardId(in));
+        int numIndices = in.readVInt();
+        readerIndices = new TreeMap<>();
+        for (int i = 0; i < numIndices; i++) {
+            readerIndices.put(in.readVInt(), in.readString());
         }
     }
 
@@ -209,15 +207,15 @@ public class FetchProjection extends Projection {
             out.writeString(nodeId);
         }
 
-        out.writeVInt(jobSearchContextIdToNode.size());
-        for (IntObjectCursor<String> entry : jobSearchContextIdToNode) {
+        out.writeVInt(readerNodes.size());
+        for (IntObjectCursor<String> entry : readerNodes) {
             out.writeVInt(entry.key);
             out.writeString(entry.value);
         }
-        out.writeVInt(jobSearchContextIdToShard.size());
-        for (IntObjectCursor<ShardId> entry : jobSearchContextIdToShard) {
-            out.writeVInt(entry.key);
-            entry.value.writeTo(out);
+        out.writeVInt(readerIndices.size());
+        for (Map.Entry<Integer, String> entry : readerIndices.entrySet()) {
+            out.writeVInt(entry.getKey());
+            out.writeString(entry.getValue());
         }
     }
 }

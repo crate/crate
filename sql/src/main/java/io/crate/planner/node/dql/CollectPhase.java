@@ -291,13 +291,11 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                                                List<Projection> projections) {
         TableInfo tableInfo = table.tableRelation().tableInfo();
         WhereClause where = table.querySpec().where();
-        Routing routing = tableInfo.getRouting(where, null);
-        plannerContext.allocateJobSearchContextIds(routing);
         return new CollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
-                routing,
+                plannerContext.allocateRouting(tableInfo, where, null),
                 tableInfo.rowGranularity(),
                 toCollect,
                 projections,

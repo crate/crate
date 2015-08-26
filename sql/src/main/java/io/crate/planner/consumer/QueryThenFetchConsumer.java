@@ -130,11 +130,14 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectPhase.limit(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
             }
 
+            Planner.Context.ReaderAllocations readerAllocations = context.plannerContext().buildReaderAllocations();
+
             FetchPhase fetchPhase = new FetchPhase(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     ImmutableList.of(collectPhase.executionPhaseId()),
-                    collectPhase.executionNodes()
+                    collectPhase.executionNodes(),
+                    readerAllocations.bases()
             );
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
@@ -143,9 +146,8 @@ public class QueryThenFetchConsumer implements Consumer {
                     outputs,
                     table.tableRelation().tableInfo().partitionedByColumns(),
                     collectPhase.executionNodes(),
-                    plannerContext.jobSearchContextIdToNode(),
-                    plannerContext.jobSearchContextIdToShard()
-            );
+                    readerAllocations.nodes(),
+                    readerAllocations.indices());
 
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";

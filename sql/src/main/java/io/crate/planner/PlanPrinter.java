@@ -195,7 +195,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             for (Symbol symbol : node.toCollect()) {
                 symbolPrinter.process(symbol, context);
             }
-            context.print("whereClause %s", node.whereClause().toString());
+            context.print("where %s", node.whereClause().toString());
 
             processProjections(node, context);
             context.dedent();

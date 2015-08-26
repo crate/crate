@@ -152,7 +152,7 @@ public class UpdateConsumer implements Consumer {
                         version);
 
                 Planner.Context plannerContext = consumerContext.plannerContext();
-                Routing routing = tableInfo.getRouting(whereClause, Preference.PRIMARY.type());
+                Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
                 CollectPhase collectPhase = new CollectPhase(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),

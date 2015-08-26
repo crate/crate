@@ -108,8 +108,8 @@ public class DistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
 
-            Routing routing = tableInfo.getRouting(querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
+            Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
             CollectPhase collectNode = new CollectPhase(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),

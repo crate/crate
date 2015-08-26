@@ -33,10 +33,10 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import static org.mockito.Matchers.any;
@@ -68,7 +68,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 Collections.<Symbol>emptyList(),
                 Collections.<ReferenceInfo>emptyList(),
                 IntObjectOpenHashMap.<String>newInstance(),
-                IntObjectOpenHashMap.<ShardId>newInstance(),
+                new TreeMap<Integer, String>(),
                 ImmutableSet.of("missing-node"));
         projector.downstream(rowReceiver);
         projector.fail(new Throwable("Something when wrong"));

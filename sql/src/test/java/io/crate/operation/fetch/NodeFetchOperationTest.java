@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Locale;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -89,14 +90,20 @@ public class NodeFetchOperationTest extends CrateUnitTest {
 
     @Test
     public void testFetchOperationNoCollectContext() throws Exception {
+        int executionPhaseId = 1;
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(new FetchContext(1, "dummyNodeId", mock(SharedShardContexts.class), Collections.<Routing>emptyList()));
+        builder.addSubContext(new FetchContext(
+                executionPhaseId,
+                "dummyNodeId",
+                mock(SharedShardContexts.class),
+                Collections.<Routing>emptyList(),
+                new TreeMap<String, Integer>()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
-                0,
+                executionPhaseId,
                 LongArrayList.from(0L),
                 ImmutableList.<Reference>of(),
                 jobContextService,
@@ -105,7 +112,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
                 mock(RamAccountingContext.class));
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Reader with id %d not found", jobId, 0));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Searcher for reader with id %d not found", 0));
 
         SingleBucketBuilder singleBucketBuilder = new SingleBucketBuilder(new Streamer[0]);
         nodeFetchOperation.fetch(singleBucketBuilder);

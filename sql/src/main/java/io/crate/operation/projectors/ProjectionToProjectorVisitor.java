@@ -340,8 +340,8 @@ public class ProjectionToProjectorVisitor
                 projection.inputSymbols(),
                 projection.outputSymbols(),
                 projection.partitionedBy(),
-                projection.jobSearchContextIdToNode(),
-                projection.jobSearchContextIdToShard(),
+                projection.readerNodes(),
+                projection.readerIndices(),
                 projection.executionNodes());
     }
 

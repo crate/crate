@@ -24,8 +24,10 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -42,6 +44,7 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -66,7 +69,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -82,19 +84,71 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     public static class Context {
 
-        private final IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard = new IntObjectOpenHashMap<>();
-        private final IntObjectOpenHashMap<String> jobSearchContextIdToNode = new IntObjectOpenHashMap<>();
-        private final Map<TableRouting, Routing> allocatedRouting = new HashMap<>();
+        //index, shardId, node
+        private Map<String, Map<Integer, String>> shardNodes;
+
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
-        private int jobSearchContextIdBaseSeq = 0;
         private int executionPhaseId = 0;
+        private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
+        private ReaderAllocations readerAllocations;
 
         public Context(ClusterService clusterService, UUID jobId, ConsumingPlanner consumingPlanner) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
+        }
+
+        public static class ReaderAllocations {
+
+            private final TreeMap<Integer, String> readerIndices;
+            private final IntObjectOpenHashMap<String> readerNodes;
+            private final TreeMap<String, Integer> bases;
+
+            ReaderAllocations(TreeMap<String, Integer> bases, Map<String, Map<Integer, String>> shardNodes) {
+                this.bases = bases;
+                readerIndices = new TreeMap<>();
+                for (Map.Entry<String, Integer> entry : bases.entrySet()) {
+                    readerIndices.put(entry.getValue(), entry.getKey());
+                }
+                readerNodes = new IntObjectOpenHashMap<>(shardNodes.size());
+                for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
+                    Integer base = bases.get(entry.getKey());
+                    assert base != null;
+                    for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
+                        readerNodes.put(base + nodeEntries.getKey(), nodeEntries.getValue());
+                    }
+                }
+            }
+
+            public TreeMap<Integer, String> indices() {
+                return readerIndices;
+            }
+
+            public IntObjectOpenHashMap<String> nodes() {
+                return readerNodes;
+            }
+
+            public TreeMap<String, Integer> bases() {
+                return bases;
+            }
+        }
+
+        public ReaderAllocations buildReaderAllocations() {
+            if (readerAllocations != null){
+                return readerAllocations;
+            }
+            IndexBaseVisitor visitor = new IndexBaseVisitor();
+            for (TableRouting tr : tableRoutings.values()) {
+                if (!tr.nodesAllocated) {
+                    allocateRoutingNodes(tr.routing.locations());
+                    tr.nodesAllocated = true;
+                }
+                tr.routing.walkLocations(visitor);
+            }
+            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes);
+            return readerAllocations;
         }
 
         public ClusterService clusterService() {
@@ -110,82 +164,85 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return jobId;
         }
 
-        /**
-         * Increase current {@link #jobSearchContextIdBaseSeq} by number of shards affected by given
-         * <code>routing</code> parameter and register a {@link org.elasticsearch.index.shard.ShardId}
-         * under each incremented jobSearchContextId.
-         * The current {@link #jobSearchContextIdBaseSeq} is set on the {@link io.crate.metadata.Routing} instance,
-         * in order to be able to re-generate jobSearchContextId's for every shard in a deterministic way.
-         *
-         * Skip generating jobSearchContextId's if {@link io.crate.metadata.Routing#jobSearchContextIdBase} is already
-         * set on the given <code>routing</code>.
-         */
-        public void allocateJobSearchContextIds(Routing routing) {
-            if (routing.jobSearchContextIdBase() > -1 || routing.hasLocations() == false
-                    || routing.numShards() == 0) {
-                return;
-            }
-            int jobSearchContextId = jobSearchContextIdBaseSeq;
-            jobSearchContextIdBaseSeq += routing.numShards();
-            routing.jobSearchContextIdBase(jobSearchContextId);
-            for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
-                String nodeId = nodeEntry.getKey();
-                Map<String, List<Integer>> nodeRouting = nodeEntry.getValue();
-                if (nodeRouting != null) {
-                    for (Map.Entry<String, List<Integer>> entry : nodeRouting.entrySet()) {
-                        for (Integer shardId : entry.getValue()) {
-                            jobSearchContextIdToShard.put(jobSearchContextId, new ShardId(entry.getKey(), shardId));
-                            jobSearchContextIdToNode.put(jobSearchContextId, nodeId);
-                            jobSearchContextId++;
-                        }
-                    }
-                }
-            }
-        }
-
-        @Nullable
-        public ShardId shardId(int jobSearchContextId) {
-            return jobSearchContextIdToShard.get(jobSearchContextId);
-        }
-
-        public IntObjectOpenHashMap<ShardId> jobSearchContextIdToShard() {
-            return jobSearchContextIdToShard;
-        }
-
-        @Nullable
-        public String nodeId(int jobSearchContextId) {
-            return jobSearchContextIdToNode.get(jobSearchContextId);
-        }
-
-        public IntObjectOpenHashMap<String> jobSearchContextIdToNode() {
-            return jobSearchContextIdToNode;
-        }
-
         public int nextExecutionPhaseId() {
             return executionPhaseId++;
         }
 
-        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
-            TableRouting tr = new TableRouting(tableInfo, where, preference);
-
-            Routing routing = allocatedRouting.get(tr);
-            if (routing == null) {
-                routing = tableInfo.getRouting(where, preference);
-                allocatedRouting.put(tr, routing);
+        private boolean allocateRoutingNodes(Map<String, Map<String, List<Integer>>> locations) {
+            boolean success = true;
+            if (shardNodes == null){
+                shardNodes = new HashMap<>();
             }
-            return routing;
+            for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
+                for (Map.Entry<String, List<Integer>> nodeRouting : location.getValue().entrySet()) {
+                    Map<Integer, String> shardsOnIndex = shardNodes.get(nodeRouting.getKey());
+                    if (shardsOnIndex == null) {
+                        shardsOnIndex = new HashMap<>(nodeRouting.getValue().size());
+                        shardNodes.put(nodeRouting.getKey(), shardsOnIndex);
+                        for (Integer id : nodeRouting.getValue()) {
+                            shardsOnIndex.put(id, location.getKey());
+                        }
+                    } else {
+                        for (Integer id : nodeRouting.getValue()) {
+                            String allocatedNodeId = shardsOnIndex.get(id);
+                            if (allocatedNodeId != null) {
+                                if (!allocatedNodeId.equals(location.getKey())) {
+                                    success = false;
+                                }
+                            } else {
+                                shardsOnIndex.put(id, location.getKey());
+                            }
+                        }
+                    }
+                }
+            }
+            return success;
         }
 
-        private static class TableRouting {
-            final TableInfo tableInfo;
-            final WhereClause whereClause;
-            final String preference;
+        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
 
-            public TableRouting(TableInfo tableInfo, WhereClause whereClause, String preference) {
-                this.tableInfo = tableInfo;
-                this.whereClause = whereClause;
-                this.preference = preference;
+            Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
+            // allocate routingnodes only if we have more than one table routings
+            Routing routing;
+            if (existingRoutings.isEmpty()) {
+                routing = tableInfo.getRouting(where, preference);
+            } else {
+                for (TableRouting existing : existingRoutings) {
+                    assert preference == null || preference.equals(existing.preference);
+                    if (Objects.equals(existing.where, where)) {
+                        return existing.routing;
+                    }
+                }
+                // ensure all routings of this table are allocated
+                for (TableRouting existingRouting : existingRoutings) {
+                    if (!existingRouting.nodesAllocated) {
+                        allocateRoutingNodes(existingRouting.routing.locations());
+                        existingRouting.nodesAllocated = true;
+                    }
+                }
+                routing = tableInfo.getRouting(where, preference);
+                if (!allocateRoutingNodes(routing.locations())) {
+                    throw new UnsupportedOperationException(
+                            "Nodes of existing routing are not allocated, routing rebuild needed");
+                }
             }
+            tableRoutings.put(tableInfo.ident(), new TableRouting(tableInfo, where, preference, routing));
+            return routing;
+        }
+    }
+
+    private static class TableRouting {
+        final TableInfo tableInfo;
+        final WhereClause where;
+        final String preference;
+        final Routing routing;
+        boolean nodesAllocated = false;
+
+        public TableRouting(TableInfo tableInfo, WhereClause where, String preference, Routing routing) {
+            this.tableInfo = tableInfo;
+            this.where = where;
+            this.preference = preference;
+            this.routing = routing;
         }
     }
 
@@ -312,11 +369,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }
 
-        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
-        if (partitionIdent != null) {
-            routing = Routing.filter(routing, PartitionName.indexName(
-                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent));
+        WhereClause where;
+        if (partitionIdent == null) {
+            where = WhereClause.MATCH_ALL;
+        } else {
+            String partitionName = PartitionName.indexName(
+                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent);
+            where = new WhereClause(null, null, ImmutableList.of(partitionName));
         }
+        Routing routing = context.allocateRouting(tableInfo, where, null);
         CollectPhase collectPhase = new CollectPhase(
                 context.jobId(),
                 context.nextExecutionPhaseId(),
@@ -387,7 +448,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
                 table.isPartitioned() // autoCreateIndices
         );
-        List<Projection> projections = Arrays.<Projection>asList(sourceIndexWriterProjection);
+        List<Projection> projections = Collections.<Projection>singletonList(sourceIndexWriterProjection);
         partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
         int referencesSize = table.primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
@@ -635,7 +696,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             // all partitions
             indices = new String[tableInfo.partitions().size()];
             int i = 0;
-            for (PartitionName partitionName: tableInfo.partitions()) {
+            for (PartitionName partitionName : tableInfo.partitions()) {
                 indices[i] = partitionName.asIndexName();
                 i++;
             }
@@ -644,5 +705,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         return indices;
     }
+
 }
 

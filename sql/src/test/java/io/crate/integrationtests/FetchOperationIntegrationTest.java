@@ -103,8 +103,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(plan, instanceOf(CollectAndMerge.class));
         CollectAndMerge qtf = (CollectAndMerge) plan;
 
-        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).jobSearchContextIdToNode(), notNullValue());
-        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).jobSearchContextIdToShard(), notNullValue());
+        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerNodes(), notNullValue());
+        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());
 
         Job job = executor.newJob(plan);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));

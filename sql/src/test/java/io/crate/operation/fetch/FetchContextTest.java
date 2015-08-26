@@ -25,14 +25,13 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
+import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
@@ -45,7 +44,8 @@ public class FetchContextTest extends CrateUnitTest {
                 1,
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class)),
-                Collections.<Routing>emptyList());
+                Collections.<Routing>emptyList(),
+                new TreeMap<String, Integer>());
 
         expectedException.expect(IllegalArgumentException.class);
         context.indexService(10);
@@ -57,13 +57,18 @@ public class FetchContextTest extends CrateUnitTest {
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                         "dummy",
                         TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", ImmutableList.of(1, 2)).map()).map());
+
+        IndexBaseVisitor ibv = new IndexBaseVisitor();
+        routing.walkLocations(ibv);
         final FetchContext context = new FetchContext(
                 1,
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
-                ImmutableList.of(routing));
+                ImmutableList.of(routing),
+                ibv.build());
         context.prepare();
 
-        assertThat(context.searcher(0), Matchers.notNullValue());
+        assertThat(context.searcher(1), Matchers.notNullValue());
+        assertThat(context.searcher(2), Matchers.notNullValue());
     }
 }

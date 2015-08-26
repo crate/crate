@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.Constants;
@@ -21,10 +22,10 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -55,7 +56,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -63,6 +63,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1086,12 +1087,6 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(nameRef.info().ident().columnIdent().path().get(0), is("name"));
     }
 
-    @Test
-    public void testCopyToWithNonExistentPartitionClause() throws Exception {
-        CollectAndMerge plan = (CollectAndMerge) plan("copy parted partition (date=0) to '/foo.txt' ");
-        assertFalse(plan.collectPhase().routing().hasLocations());
-    }
-
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
         plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
@@ -1833,46 +1828,50 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testAllocatedJobSearchContextIds() throws Exception {
+    public void testBuildReaderAllocations() throws Exception {
+        TableIdent custom = new TableIdent("custom", "t1");
+        TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
-        CollectPhase collectPhase = new CollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                "collect",
-                shardRouting,
-                RowGranularity.DOC,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL,
-                DistributionType.BROADCAST
-        );
-        int shardNum = collectPhase.routing().numShards();
+        plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
-        plannerContext.allocateJobSearchContextIds(collectPhase.routing());
+        Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
 
-        java.lang.reflect.Field f = plannerContext.getClass().getDeclaredField("jobSearchContextIdBaseSeq");
-        f.setAccessible(true);
-        int jobSearchContextIdBaseSeq = (Integer)f.get(plannerContext);
+        assertThat(readerAllocations.indices().size(), is(1));
+        assertThat(readerAllocations.indices().get(0), is("t1"));
+        assertThat(readerAllocations.nodes().size(), is(4));
+        assertThat(readerAllocations.nodes().get(1), is("nodeOne"));
+        assertThat(readerAllocations.nodes().get(2), is("nodeOne"));
+        assertThat(readerAllocations.nodes().get(3), is("nodeTow"));
+        assertThat(readerAllocations.nodes().get(4), is("nodeTow"));
+        assertThat(readerAllocations.bases().get("t1"), is(0));
 
-        assertThat(jobSearchContextIdBaseSeq, is(shardNum));
-        assertThat(collectPhase.routing().jobSearchContextIdBase(), is(jobSearchContextIdBaseSeq-shardNum));
+        // allocations must stay same on multiple calls
+        Planner.Context.ReaderAllocations readerAllocations2 = plannerContext.buildReaderAllocations();
+        assertThat(readerAllocations, is(readerAllocations2));
+    }
 
-        int idx = 0;
-        for (Map.Entry<String, Map<String, List<Integer>>> locations : collectPhase.routing().locations().entrySet()) {
-            String nodeId = locations.getKey();
-            for (Map.Entry<String, List<Integer>> entry : locations.getValue().entrySet()) {
-                for (Integer shardId : entry.getValue()) {
-                    assertThat(plannerContext.shardId(idx), is(new ShardId(entry.getKey(), shardId)));
-                    assertThat(plannerContext.nodeId(idx), is(nodeId));
-                    idx++;
-                }
-            }
-        }
+    @Test
+    public void testAllocateRouting() throws Exception {
+        TableIdent custom = new TableIdent("custom", "t1");
+        TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build();
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
 
-        // jobSearchContextIdBase must only set once on a Routing instance
-        int jobSearchContextIdBase = collectPhase.routing().jobSearchContextIdBase();
-        plannerContext.allocateJobSearchContextIds(collectPhase.routing());
-        assertThat(collectPhase.routing().jobSearchContextIdBase(), is(jobSearchContextIdBase));
+        WhereClause whereClause = new WhereClause(
+                new Function(new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
+                        DataTypes.BOOLEAN),
+                        Arrays.asList(
+                                new Reference(tableInfo.getReferenceInfo(new ColumnIdent("id"))),
+                                Literal.newLiteral(2))
+                ));
+
+        plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
+        plannerContext.allocateRouting(tableInfo, whereClause, null);
+
+        // 2 routing allocations with different where clause must result in 2 allocated routings
+        Field tableRoutings = Planner.Context.class.getDeclaredField("tableRoutings");
+        tableRoutings.setAccessible(true);
+        assertThat(((HashMultimap)tableRoutings.get(plannerContext)).size(), is(2));
     }
 
     @Test
