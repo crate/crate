@@ -5,5 +5,5 @@ import io.crate.planner.node.dql.CollectPhase;
 
 public interface CollectService {
 
-    public CrateCollector getCollector(CollectPhase node, RowDownstream downstream);
+    CrateCollector getCollector(CollectPhase node, RowDownstream downstream, JobCollectContext jobCollectContext);
 }

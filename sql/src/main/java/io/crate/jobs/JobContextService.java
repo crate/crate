@@ -192,6 +192,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                         System.identityHashCode(activeContexts), jobId, activeContexts.size());
             }
         }
+
+        @Override
+        public void keepAlive() {
+        }
     }
 
     class Reaper implements Runnable {

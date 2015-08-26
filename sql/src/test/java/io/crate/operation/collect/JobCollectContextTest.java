@@ -124,6 +124,11 @@ public class JobCollectContextTest extends CrateUnitTest {
             public void onClose(@Nullable Throwable error, long bytesUsed) {
                 errorFuture.set(error);
             }
+
+            @Override
+            public void keepAlive() {
+
+            }
         });
 
         CrateCollector collectorMock1 = mock(CrateCollector.class);

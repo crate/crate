@@ -180,6 +180,7 @@ public class ShardCollectService {
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             return new LuceneDocCollector(
                     searchContext,
+                    jobCollectContext.keepAliveListener(),
                     docCtx.topLevelInputs(),
                     docCtx.docLevelExpressions(),
                     collectNode,

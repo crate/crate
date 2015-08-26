@@ -52,6 +52,11 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 }
                 closed.incrementAndGet();
             }
+
+            @Override
+            public void keepAlive() {
+
+            }
         };
         subContext.addCallback(callback);
         subContext.start();

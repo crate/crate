@@ -52,5 +52,10 @@ public class MultiContextCallbackTest {
         verify(firstCallback, times(1)).onClose(org.mockito.Matchers.<Throwable>any(), anyLong());
         verify(secondCallback, times(1)).onClose(org.mockito.Matchers.<Throwable>any(), anyLong());
         verify(thirdCallback, times(1)).onClose(org.mockito.Matchers.<Throwable>any(), anyLong());
+
+        callback.keepAlive();
+        verify(firstCallback, times(1)).keepAlive();
+        verify(secondCallback, times(1)).keepAlive();
+        verify(thirdCallback, times(1)).keepAlive();
     }
 }

@@ -158,8 +158,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         ));
         this.nodeCollectService = new CollectService() {
             @Override
-            public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
-                return getNodeLevelCollector(node, downstream);
+            public CrateCollector getCollector(CollectPhase node, RowDownstream downstream, JobCollectContext jobCollectContext) {
+                return getNodeLevelCollector(node, downstream, jobCollectContext);
             }
         };
         this.fileInputSymbolVisitor =
@@ -290,7 +290,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
         final CrateCollector collector;
         try {
-            collector = collectService.getCollector(localCollectNode, localRowDownStream); // calls projector.registerUpstream();
+            collector = collectService.getCollector(localCollectNode, localRowDownStream, jobCollectContext); // calls projector.registerUpstream();
         } catch (Throwable t) {
             rowDownstream.registerUpstream(MapSideDataCollectOperation.this).fail(t);
             return ImmutableList.of();
@@ -316,7 +316,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
     }
 
     private CrateCollector getNodeLevelCollector(CollectPhase collectNode,
-                                                 RowDownstream downstream) {
+                                                 RowDownstream downstream,
+                                                 JobCollectContext jobCollectContext) {
         if (collectNode instanceof FileUriCollectPhase) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectNode);
             FileUriCollectPhase fileUriCollectNode = (FileUriCollectPhase) collectNode;
@@ -333,13 +334,14 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                     fileUriCollectNode.compression(),
                     ImmutableMap.<String, FileInputFactory>of(),
                     fileUriCollectNode.sharedStorage(),
+                    jobCollectContext.keepAliveListener(),
                     readers.length,
                     Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
             );
         } else {
             CollectService service = collectServiceResolver.getService(collectNode.routing());
             if (service != null) {
-                return service.getCollector(collectNode, downstream);
+                return service.getCollector(collectNode, downstream, jobCollectContext);
             }
             ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                     new NodeSysReferenceResolver(nodeSysExpression),
@@ -464,7 +466,8 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
                 RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
                 CrateCollector collector = unassignedShardsCollectService.getCollector(
                         clusterNormalizedCollectNode,
-                        projectorChainDownstream
+                        projectorChainDownstream,
+                        jobCollectContext
                 );
                 shardCollectors.add(collector);
             } else if (jobSearchContextId > -1) {
@@ -559,7 +562,7 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
         }
 
         @Override
-        public CrateCollector getCollector(CollectPhase node, RowDownstream downstream) {
+        public CrateCollector getCollector(CollectPhase node, RowDownstream downstream, JobCollectContext jobCollectContext) {
             // resolve Implementations
             ImplementationSymbolVisitor.Context ctx = clusterImplementationSymbolVisitor.extractImplementations(node);
             List<Input<?>> inputs = ctx.topLevelInputs();
