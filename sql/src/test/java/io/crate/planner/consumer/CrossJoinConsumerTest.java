@@ -244,9 +244,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     @Test
     public void testCrossJoinWithMoreThanTwoTables() throws Exception {
         NestedLoop plan = plan("select * from users u1, users u2, users u3");
-        assertThat(plan.left().plan(), instanceOf(CollectAndMerge.class));
-        assertThat(plan.right().plan(), instanceOf(NestedLoop.class));
-        NestedLoop innerPlan = (NestedLoop) plan.right().plan();
+        assertThat(plan.left().plan(), instanceOf(NestedLoop.class));
+        assertThat(plan.right().plan(), instanceOf(CollectAndMerge.class));
+        NestedLoop innerPlan = (NestedLoop) plan.left().plan();
         assertThat(innerPlan.left().plan(), instanceOf(CollectAndMerge.class));
         assertThat(innerPlan.right().plan(), instanceOf(CollectAndMerge.class));
     }
