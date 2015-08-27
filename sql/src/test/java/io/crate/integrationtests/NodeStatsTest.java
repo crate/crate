@@ -73,6 +73,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testThreadPools() throws Exception {
         SQLResponse response = executor.exec("select thread_pools from sys.nodes limit 1");

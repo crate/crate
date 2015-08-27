@@ -139,6 +139,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testObjectLiteral() throws Exception {
         Symbol s = analyzeExpression("{}");
