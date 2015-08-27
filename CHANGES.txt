@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/08/27 0.50.4
+=================
+
  - Fixed an issue that could cause long running operations to get killed
 
  - Fixed an issue where the `orphan_partition` column in the `sys.shards` table
