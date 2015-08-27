@@ -109,6 +109,7 @@ public abstract class AbstractIndexWriterProjector implements
                                            List<Symbol> primaryKeySymbols,
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
+                                           ColumnIdent clusteredByColumn,
                                            CollectExpression<?>[] collectExpressions,
                                            final TableIdent tableIdent,
                                            UUID jobId) {
@@ -132,7 +133,7 @@ public abstract class AbstractIndexWriterProjector implements
         } else {
             partitionIdentCache = null;
         }
-        shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, routingSymbol);
+        shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
     }
 
     protected void createBulkShardProcessor(ClusterService clusterService,

@@ -51,6 +51,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<Symbol> primaryKeySymbols,
                                          List<Input<?>> partitionedByInputs,
                                          @Nullable Symbol routingSymbol,
+                                         ColumnIdent clusteredByColumn,
                                          List<Reference> columnReferences,
                                          List<Symbol> columnSymbols,
                                          CollectExpression<?>[] collectExpressions,
@@ -66,6 +67,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 primaryKeySymbols,
                 partitionedByInputs,
                 routingSymbol,
+                clusteredByColumn,
                 collectExpressions,
                 tableIdent,
                 jobId

@@ -23,24 +23,23 @@ package io.crate.analyze.where;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import io.crate.analyze.Id;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbolVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Preconditions;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     private final int width;
+    private final Function<List<BytesRef>, String> idFunction;
     private int clusteredByIdx;
     private final boolean withVersions;
     private final List<List<Symbol>> docKeys;
@@ -87,28 +86,13 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public String id() {
             if (id == null) {
-                if (width == 1) {
-                    id = ValueSymbolVisitor.STRING.process(key.get(0));
-                } else {
-                    BytesStreamOutput out = new BytesStreamOutput(width * 16);
-                    try {
-                        out.writeVInt(width);
-                        if (clusteredByIdx >= 0) {
-                            out.writeBytesRef(ValueSymbolVisitor.BYTES_REF.process(key.get(clusteredByIdx)));
-                        }
-                        for (int i = 0; i < width; i++) {
-                            if (i != clusteredByIdx) {
-                                out.writeBytesRef(ValueSymbolVisitor.BYTES_REF.process(key.get(i)));
-                            }
-                        }
-                        out.close();
-                    } catch (IOException e) {
-                        Throwables.propagate(e);
-                    }
-                    id = Base64.encodeBytes(out.bytes().toBytes());
-                }
+                id = idFunction.apply(pkValues(key));
             }
             return id;
+        }
+
+        private List<BytesRef> pkValues(List<Symbol> key) {
+            return Lists.transform(key.subList(0, width), ValueSymbolVisitor.BYTES_REF.function);
         }
 
         public List<Symbol> values() {
@@ -116,7 +100,9 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         }
     }
 
-    public DocKeys(List<List<Symbol>> docKeys, boolean withVersions, int clusteredByIdx,
+    public DocKeys(List<List<Symbol>> docKeys,
+                   boolean withVersions,
+                   int clusteredByIdx,
                    @Nullable List<Integer> partitionIdx) {
         this.partitionIdx = partitionIdx;
         assert ((docKeys != null) && (!docKeys.isEmpty()));
@@ -128,6 +114,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         this.withVersions = withVersions;
         this.docKeys = docKeys;
         this.clusteredByIdx = clusteredByIdx;
+        this.idFunction = Id.compile(width, clusteredByIdx);
     }
 
     public boolean withVersions() {
