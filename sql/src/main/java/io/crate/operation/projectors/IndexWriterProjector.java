@@ -98,6 +98,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 List<Symbol> primaryKeySymbols,
                                 List<Input<?>> partitionedByInputs,
                                 @Nullable Symbol routingSymbol,
+                                ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
                                 InputColumn sourceInputColumn,
                                 CollectExpression<Row, ?>[] collectExpressions,
@@ -108,7 +109,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 boolean overwriteDuplicates,
                                 UUID jobId) {
         super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols,
-                partitionedByInputs, routingSymbol, collectExpressions, tableIdent, jobId);
+                partitionedByInputs, routingSymbol, clusteredByColumn, collectExpressions, tableIdent, jobId);
 
         if (includes == null && excludes == null) {
             //noinspection unchecked

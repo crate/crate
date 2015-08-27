@@ -104,6 +104,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         ShardingProjector shardingProjector = new ShardingProjector(
                 ImmutableList.of(idRef.ident().columnIdent()),
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
+                null,
                 null
         );
         shardingProjector.startProjection(mock(ExecutionState.class));
@@ -181,6 +182,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         ShardingProjector shardingProjector = new ShardingProjector(
                 ImmutableList.of(idRef.ident().columnIdent()),
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
+                null,
                 null
         );
         shardingProjector.startProjection(mock(ExecutionState.class));

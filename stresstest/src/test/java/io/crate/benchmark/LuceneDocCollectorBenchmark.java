@@ -43,7 +43,6 @@ import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;

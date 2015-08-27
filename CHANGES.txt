@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause `COPY FROM` to ignore a primary key
+   constraint leading to duplicate rows.
+   This could happen if a table has multiple primary keys and clustered by is
+   set to one primary key column other than the first primary key column.
+
  - Fixed an issue that could cause long running operations to get killed
 
  - Fixed an issue where the `orphan_partition` column in the `sys.shards` table
