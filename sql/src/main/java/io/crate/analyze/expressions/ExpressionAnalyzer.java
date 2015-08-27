@@ -165,6 +165,7 @@ public class ExpressionAnalyzer {
         Literal literal;
         try {
             valueSymbol = normalizer.normalize(valueSymbol);
+            assert valueSymbol != null : "valueSymbol must not be null";
             if (valueSymbol.symbolType() != SymbolType.LITERAL) {
                 DataType targetType = reference.valueType();
                 if (reference instanceof DynamicReference) {
@@ -396,6 +397,12 @@ public class ExpressionAnalyzer {
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         @Override
+        protected Symbol visitNode(Node node, ExpressionAnalysisContext context) {
+            throw new UnsupportedOperationException(String.format(
+                    "Unsupported expression %s", node));
+        }
+
+        @Override
         protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
             throw new UnsupportedOperationException(String.format(
                     "Unsupported expression %s", ExpressionFormatter.formatExpression(node)));
@@ -544,12 +551,14 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedOperationException("Only references, function calls or array literals " +
                         "are valid subscript symbols");
             }
-            if (subscriptContext.index() != null) {
+            assert subscriptSymbol != null : "subscriptSymbol must not be null";
+            Integer index = subscriptContext.index();
+            if (index != null) {
                 // rewrite array access to subscript scalar
                 FunctionIdent functionIdent = new FunctionIdent(SubscriptFunction.NAME,
                         ImmutableList.of(subscriptSymbol.valueType(), DataTypes.INTEGER));
                 return context.allocateFunction(getFunctionInfo(functionIdent),
-                        Arrays.asList(subscriptSymbol, newLiteral(subscriptContext.index())));
+                        Arrays.asList(subscriptSymbol, newLiteral(index)));
             }
             return subscriptSymbol;
         }
@@ -693,6 +702,7 @@ public class ExpressionAnalyzer {
             }
             expression = castIfNeededOrFail(expression, DataTypes.STRING, context);
             Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING, context));
+            assert pattern != null : "pattern must not be null";
             if (!pattern.symbolType().isValueSymbol()) {
                 throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
             }

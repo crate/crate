@@ -72,6 +72,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("ConstantConditions")
 public class PlannerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
