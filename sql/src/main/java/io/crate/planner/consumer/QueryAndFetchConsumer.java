@@ -34,12 +34,11 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Planner;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryAndFetch;
 import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -239,7 +238,7 @@ public class QueryAndFetchConsumer implements Consumer {
                             collectPhase);
                 }
             }
-            return new QueryAndFetch(collectPhase, mergeNode, plannerContext.jobId());
+            return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());
         }
 
         private static List<Symbol> toInputColumns(List<Symbol> symbols) {

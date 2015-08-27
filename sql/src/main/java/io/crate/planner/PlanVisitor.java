@@ -22,10 +22,10 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dml.InsertFromSubQuery;
-import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.management.GenericShowPlan;
+import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -48,14 +48,6 @@ public class PlanVisitor<C, R> {
 
     public R visitGlobalAggregate(GlobalAggregate plan, C context) {
         return visitPlan(plan, context);
-    }
-
-    public R visitQueryAndFetch(QueryAndFetch node, C context){
-        return visitPlan(node, context);
-    }
-
-    public R visitQueryThenFetch(QueryThenFetch node, C context){
-        return visitPlan(node, context);
     }
 
     public R visitNonDistributedGroupBy(NonDistributedGroupBy node, C context) {

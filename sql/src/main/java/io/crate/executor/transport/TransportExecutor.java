@@ -495,22 +495,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
         @Override
         public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.localMergeNode());
-            context.addCollectExecutionPhase(plan.collectNode());
-            return null;
-        }
-
-        @Override
-        public Void visitQueryAndFetch(QueryAndFetch plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.localMergeNode());
-            context.addCollectExecutionPhase(plan.collectNode());
-            return null;
-        }
-
-        @Override
-        public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            context.addPhase(node.mergeNode());
-            context.addCollectExecutionPhase(node.collectNode());
+            context.addPhase(plan.localMerge());
+            context.addCollectExecutionPhase(plan.collectPhase());
             return null;
         }
 

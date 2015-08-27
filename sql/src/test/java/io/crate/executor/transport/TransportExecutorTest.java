@@ -45,10 +45,10 @@ import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.MergeProjection;
@@ -152,7 +152,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ImmutableList.<Projection>of(fetchProjection),
                 collectPhase
         );
-        Plan plan = new QueryThenFetch(collectPhase, localMergeNode, ctx.jobId());
+        Plan plan = new CollectAndMerge(collectPhase, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -213,7 +213,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode
         );
-        Plan plan = new QueryThenFetch(collectNode, localMergeNode, ctx.jobId());
+        Plan plan = new CollectAndMerge(collectNode, localMergeNode, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -276,7 +276,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode
         );
-        Plan plan = new QueryThenFetch(collectNode, localMerge, ctx.jobId());
+        Plan plan = new CollectAndMerge(collectNode, localMerge, ctx.jobId());
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -349,7 +349,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ImmutableList.of(topN, fetchProjection),
                 collectNode
         );
-        Plan plan = new QueryThenFetch(collectNode, localMerge, jobId);
+        Plan plan = new CollectAndMerge(collectNode, localMerge, jobId);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(1));
@@ -386,7 +386,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 ImmutableList.<Projection>of(fetchProjection),
                 collectNode);
 
-        Plan plan = new QueryThenFetch(collectNode, localMerge, ctx.jobId());
+        Plan plan = new CollectAndMerge(collectNode, localMerge, ctx.jobId());
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));

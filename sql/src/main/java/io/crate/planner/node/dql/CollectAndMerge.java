@@ -21,39 +21,32 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.planner.Plan;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.PlanNode;
+import io.crate.planner.projection.Projection;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class CollectAndMerge implements Iterable<PlanNode>, Plan {
+public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
 
-    private final CollectPhase collectNode;
-    private final MergePhase localMergeNode;
-    private Iterable<PlanNode> nodes;
+    private final CollectPhase collectPhase;
+    private final MergePhase localMerge;
     private final UUID id;
 
-    public CollectAndMerge(CollectPhase collectNode, MergePhase localMergeNode, UUID id) {
-        this.collectNode = collectNode;
-        this.localMergeNode = localMergeNode;
-        nodes = Arrays.<PlanNode>asList(collectNode, localMergeNode);
+    public CollectAndMerge(CollectPhase collectPhase, @Nullable MergePhase localMerge, UUID id) {
+        this.collectPhase = collectPhase;
+        this.localMerge = localMerge;
         this.id = id;
     }
 
-    public CollectPhase collectNode() {
-        return collectNode;
+    public CollectPhase collectPhase() {
+        return collectPhase;
     }
 
-    public MergePhase localMergeNode() {
-        return localMergeNode;
-    }
-
-    @Override
-    public Iterator<PlanNode> iterator() {
-        return nodes.iterator();
+    @Nullable
+    public MergePhase localMerge() {
+        return localMerge;
     }
 
     @Override
@@ -64,5 +57,23 @@ public class CollectAndMerge implements Iterable<PlanNode>, Plan {
     @Override
     public UUID jobId() {
         return id;
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        resultNode().addProjection(projection);
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return localMerge == null || collectPhase.executionNodes().size() > 1;
+    }
+
+    @Override
+    public DQLPlanNode resultNode() {
+        if (localMerge == null) {
+            return collectPhase;
+        }
+        return localMerge;
     }
 }

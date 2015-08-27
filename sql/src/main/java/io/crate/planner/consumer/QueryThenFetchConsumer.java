@@ -35,10 +35,9 @@ import io.crate.operation.Paging;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryAndFetch;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -123,8 +122,8 @@ public class QueryThenFetchConsumer implements Consumer {
             for (Symbol symbol : querySpec.outputs()) {
                 outputs.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
             }
-            QueryAndFetch qaf = (QueryAndFetch) plannedSubQuery;
-            CollectPhase collectPhase = qaf.collectNode();
+            CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
+            CollectPhase collectPhase = qaf.collectPhase();
             if (collectPhase.limit() == null) {
                 collectPhase.limit(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
             }
@@ -143,7 +142,7 @@ public class QueryThenFetchConsumer implements Consumer {
             collectPhase.keepContextForFetcher(true);
 
             MergePhase localMergePhase;
-            assert qaf.localMergeNode() == null : "subRelation shouldn't plan localMerge";
+            assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
 
             TopNProjection topN = projectionBuilder.topNProjection(
                     collectPhase.toCollect(),
@@ -175,7 +174,7 @@ public class QueryThenFetchConsumer implements Consumer {
             if (limit != null && limit + querySpec.offset() > Paging.PAGE_SIZE) {
                 localMergePhase.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
-            return new QueryThenFetch(collectPhase, localMergePhase, plannerContext.jobId());
+            return new CollectAndMerge(collectPhase, localMergePhase, plannerContext.jobId());
         }
 
         @Override

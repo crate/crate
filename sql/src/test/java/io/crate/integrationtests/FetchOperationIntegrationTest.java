@@ -61,8 +61,8 @@ import io.crate.planner.consumer.QueryThenFetchConsumer;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
@@ -213,9 +213,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         QueryThenFetchConsumer queryThenFetchConsumer = internalCluster().getInstance(QueryThenFetchConsumer.class);
         Planner.Context plannerContext = newPlannerContext();
         ConsumerContext consumerContext = new ConsumerContext(analysis.rootRelation(), plannerContext);
-        QueryThenFetch plan = (QueryThenFetch) queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext).plan();
+        CollectAndMerge plan = (CollectAndMerge) queryThenFetchConsumer.consume(analysis.rootRelation(), consumerContext).plan();
 
-        List<Bucket> results = getBuckets(plan.collectNode());
+        List<Bucket> results = getBuckets(plan.collectPhase());
 
 
         TransportFetchNodeAction transportFetchNodeAction = internalCluster().getInstance(TransportFetchNodeAction.class);
@@ -235,7 +235,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             docIdsPerNode.add(docId);
         }
 
-        Iterable<Projection> projections = Iterables.filter(plan.mergeNode().projections(), Predicates.instanceOf(FetchProjection.class));
+        Iterable<Projection> projections = Iterables.filter(plan.localMerge().projections(), Predicates.instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection )Iterables.getOnlyElement(projections);
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(internalCluster().getInstance(Functions.class));
         RowInputSymbolVisitor.Context context = rowInputSymbolVisitor.extractImplementations(fetchProjection.outputSymbols());
@@ -244,8 +244,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         final List<Row> rows = new ArrayList<>();
         for (Map.Entry<String, LongArrayList> nodeEntry : jobSearchContextDocIds.entrySet()) {
             NodeFetchRequest nodeFetchRequest = new NodeFetchRequest();
-            nodeFetchRequest.jobId(plan.collectNode().jobId());
-            nodeFetchRequest.executionPhaseId(plan.collectNode().executionPhaseId());
+            nodeFetchRequest.jobId(plan.collectPhase().jobId());
+            nodeFetchRequest.executionPhaseId(plan.collectPhase().executionPhaseId());
             nodeFetchRequest.toFetchReferences(context.references());
             nodeFetchRequest.jobSearchContextDocIds(nodeEntry.getValue());
 
@@ -280,12 +280,12 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
 
         Plan plan = analyzeAndPlan("select id, name, substr(name, 2) from characters order by id");
-        assertThat(plan, instanceOf(QueryThenFetch.class));
-        QueryThenFetch qtf = (QueryThenFetch) plan;
+        assertThat(plan, instanceOf(CollectAndMerge.class));
+        CollectAndMerge qtf = (CollectAndMerge) plan;
 
-        assertThat(qtf.collectNode().keepContextForFetcher(), is(true));
-        assertThat(((FetchProjection) qtf.mergeNode().projections().get(1)).jobSearchContextIdToNode(), notNullValue());
-        assertThat(((FetchProjection) qtf.mergeNode().projections().get(1)).jobSearchContextIdToShard(), notNullValue());
+        assertThat(qtf.collectPhase().keepContextForFetcher(), is(true));
+        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).jobSearchContextIdToNode(), notNullValue());
+        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).jobSearchContextIdToShard(), notNullValue());
 
         Job job = executor.newJob(plan);
         ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
