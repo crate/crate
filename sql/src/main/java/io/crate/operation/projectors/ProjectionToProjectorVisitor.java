@@ -195,6 +195,7 @@ public class ProjectionToProjectorVisitor
 
         projection = projection.normalize(normalizer);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
+        assert uri != null : "URI must not be null";
         if (projection.isDirectoryUri()) {
             StringBuilder sb = new StringBuilder(uri);
             Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
@@ -353,6 +354,11 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId) {
         return process(projection, new Context(ramAccountingContext, jobId));
+    }
+
+    @Override
+    protected Projector visitProjection(Projection projection, Context context) {
+        throw new UnsupportedOperationException("Unsupported projection");
     }
 
     static class Context {

@@ -258,6 +258,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testFetchProjection() throws Exception {
         setUpCharacters();

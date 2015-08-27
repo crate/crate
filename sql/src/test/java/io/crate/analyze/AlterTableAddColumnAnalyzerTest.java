@@ -117,6 +117,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertNull(primaryKeys); // _id shouldn't be included
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void testAddColumnAsPrimaryKey() throws Exception {
         AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze(
