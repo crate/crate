@@ -62,6 +62,7 @@ import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -107,6 +108,7 @@ public abstract class AbstractIndexWriterProjector implements
                                            List<Symbol> primaryKeySymbols,
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
+                                           ColumnIdent clusteredByColumn,
                                            CollectExpression<?>[] collectExpressions,
                                            final TableIdent tableIdent) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
@@ -128,7 +130,7 @@ public abstract class AbstractIndexWriterProjector implements
         } else {
             partitionIdentCache = null;
         }
-        shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, routingSymbol);
+        shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
     }
 
     protected void createBulkShardProcessor(ClusterService clusterService,

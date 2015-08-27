@@ -38,12 +38,15 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +60,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     private <T> List<T> getCol(Object[][] result, int idx) {
         ArrayList<T> res = new ArrayList<>(result.length);
@@ -408,7 +413,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("id2"));
+        assertThat((String) response.rows()[0][0], is("id2"));
     }
 
 
@@ -428,9 +433,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSqlRequestWithNotEqual() throws Exception {
         execute("create table test (id string primary key) with (number_of_replicas = 0)");
         ensureYellow();
-        execute("insert into test (id) values (?)", new Object[][] {
-                new Object[] { "id1" },
-                new Object[] { "id2" }
+        execute("insert into test (id) values (?)", new Object[][]{
+                new Object[]{"id1"},
+                new Object[]{"id2"}
         });
         refresh();
         execute("select id from test where id != 'id1'");
@@ -1816,7 +1821,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
                 new Object[]{1, "Arthur", "It's terribly small, tiny little country."},
                 new Object[]{2, "Trillian", " No, it's a country. Off the coast of Africa."},
-                new Object[]{3, "Marvin", " It won't work, I have an exceptionally large mind." }
+                new Object[]{3, "Marvin", " It won't work, I have an exceptionally large mind."}
         });
         refresh();
         execute("select characters.name AS characters_name, _score " +
@@ -1966,6 +1971,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         } finally {
             execute("reset global stats.enabled");
         }
+    }
+
+    @Test
+    public void testInsertAndCopyHaveSameIdGeneration() throws Exception {
+        execute("create table t (" +
+                "id1 long primary key," +
+                "id2 long primary key," +
+                "ts timestamp primary key," +
+                "n string) " +
+                "clustered by (id2)");
+        ensureYellow();
+
+        execute("insert into t (id1, id2, ts, n) values (176406344, 1825712027, 1433635200000, 'foo')");
+        try {
+            execute("insert into t (id1, id2, ts, n) values (176406344, 1825712027, 1433635200000, 'bar')");
+            fail("should fail because document exists already");
+        } catch (Exception e) {
+            // good
+        }
+        execute("refresh table t");
+
+        File file = folder.newFolder();
+        execute("copy t to directory ?", new Object[] {file.getAbsolutePath()});
+        execute("copy t from ? with (shared=true)", new Object[] {file.getAbsolutePath() + "/*"});
+        execute("refresh table t");
+
+        execute("select _id, * from t");
+        assertThat(response.rowCount(), is(1L));
     }
 }
 

@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause `COPY FROM` to ignore a primary key
+   constraint leading to duplicate rows.
+   This could happen if a table has multiple primary keys and clustered by is
+   set to one primary key column other than the first primary key column.
+
 2015/08/27 0.50.4
 =================
 

@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
@@ -97,6 +98,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 List<Symbol> primaryKeySymbols,
                                 List<Input<?>> partitionedByInputs,
                                 @Nullable Symbol routingSymbol,
+                                ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
                                 InputColumn sourceInputColumn,
                                 CollectExpression<?>[] collectExpressions,
@@ -105,8 +107,8 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates) {
-        super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols, partitionedByInputs, routingSymbol, collectExpressions, tableIdent
-        );
+        super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols,
+                partitionedByInputs, routingSymbol, clusteredByColumn, collectExpressions, tableIdent);
 
         if (includes == null && excludes == null) {
             //noinspection unchecked

@@ -47,10 +47,14 @@ public class ShardingProjectorTest extends CrateUnitTest {
         return new RowN(cells);
     }
 
+    private ColumnIdent ci(String ident) {
+        return new ColumnIdent(ident);
+    }
+
     @Test
     public void testNoPrimaryKeyNoRouting() {
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null);
+                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row());
 
@@ -62,7 +66,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
     @Test
     public void testNoPrimaryKeyButRouting() {
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), new InputColumn(1));
+                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(1, "hoschi"));
 
@@ -75,7 +79,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
     public void testPrimaryKeyNoRouting() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, null);
+                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(1, "hoschi"));
 
@@ -86,9 +90,9 @@ public class ShardingProjectorTest extends CrateUnitTest {
 
     @Test
     public void testPrimaryKeyAndRouting() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
+        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
+                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(1, "hoschi"));
 
@@ -99,9 +103,9 @@ public class ShardingProjectorTest extends CrateUnitTest {
 
     @Test
     public void testMultipleRows() {
-        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
+        List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
+                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
         shardingProjector.startProjection(mock(ExecutionState.class));
 
         shardingProjector.setNextRow(row(1, "hoschi"));
@@ -117,7 +121,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
     public void testIdPrimaryKeyNull() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(2));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ID_IDENT), primaryKeySymbols, new InputColumn(1));
+                new ShardingProjector(ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(1, "hoschi", null));
 
@@ -133,7 +137,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, null);
+                new ShardingProjector(ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(new Object[] { null }));
     }
@@ -145,7 +149,7 @@ public class ShardingProjectorTest extends CrateUnitTest {
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
         ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), primaryKeySymbols, new InputColumn(1));
+                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
         shardingProjector.startProjection(mock(ExecutionState.class));
         shardingProjector.setNextRow(row(1, null));
     }

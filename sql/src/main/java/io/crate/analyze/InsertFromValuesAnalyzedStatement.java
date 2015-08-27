@@ -99,15 +99,11 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     protected void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         ColumnIdent clusteredBy = tableInfo().clusteredBy();
-        Id id = new Id(tableInfo().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, true);
-        if (id.isValid()) {
-            String idString = id.stringValue();
-            ids.add(idString);
-            if (clusteredByValue == null) {
-                clusteredByValue = idString;
-            }
-        }
-        if (clusteredByValue != null) {
+        String id = Id.generateId(tableInfo().primaryKey(), primaryKeyValues, clusteredBy);
+        ids.add(id);
+        if (clusteredByValue == null) {
+            routingValues.add(id);
+        } else {
             routingValues.add(clusteredByValue);
         }
     }

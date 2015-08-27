@@ -90,8 +90,9 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
             bulkArgs[i]  = object;
 
             String id = (String)object[0];
-            Id esId = new Id(ImmutableList.of(new ColumnIdent("id")), ImmutableList.of(new BytesRef(id)), new ColumnIdent("id"), true);
-            ids.put(id, esId.stringValue());
+            String esId = Id.generateId(
+                    ImmutableList.of(new ColumnIdent("id")), ImmutableList.of(new BytesRef(id)), new ColumnIdent("id"));
+            ids.put(id, esId);
         }
         SQLBulkRequest request = new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
         client().execute(SQLBulkAction.INSTANCE, request).actionGet();

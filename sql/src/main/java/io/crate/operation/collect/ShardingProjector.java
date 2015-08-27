@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.Lists;
+import io.crate.analyze.Id;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
@@ -31,43 +33,51 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolFormatter;
-import org.elasticsearch.common.Base64;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ShardingProjector implements Projector, RowDownstreamHandle {
 
+    private static final com.google.common.base.Function<Input<?>, BytesRef> INPUT_BYTES_REF_FUNCTION =
+            new com.google.common.base.Function<Input<?>, BytesRef>() {
+        @javax.annotation.Nullable
+        @Override
+        public BytesRef apply(@Nullable Input<?> input) {
+            if (input == null) {
+                return null;
+            }
+            return BytesRefs.toBytesRef(input.value());
+        }
+    };
     private final Visitor visitor;
     private final List<Symbol> primaryKeySymbols;
     @Nullable
     private final Symbol routingSymbol;
+    private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
 
     private VisitorContext visitorContext;
     private List<Input<?>> primaryKeyInputs;
     @Nullable
     private Input<?> routingInput;
-    private boolean collectIdOrAutoGenerate;
 
     private String id;
     @Nullable
     private String routing;
 
 
-    public ShardingProjector(List<ColumnIdent> primaryKeyIdents,
+    public ShardingProjector(List<ColumnIdent> pkColumns,
                              List<Symbol> primaryKeySymbols,
+                             @Nullable ColumnIdent clusteredByColumn,
                              @Nullable Symbol routingSymbol) {
+
+        idFunction = Id.compile(pkColumns, clusteredByColumn);
         visitor = new Visitor();
         this.primaryKeySymbols = primaryKeySymbols;
         this.routingSymbol = routingSymbol;
-        if (primaryKeyIdents.size() == 1 && primaryKeyIdents.get(0).fqn().equals("_id")) {
-            collectIdOrAutoGenerate = true;
-        }
     }
 
     @Override
@@ -90,8 +100,17 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
         for (CollectExpression collectExpression : visitorContext.collectExpressions()) {
             collectExpression.setNextRow(row);
         }
-        applyInputs(primaryKeyInputs, routingInput);
+        id = idFunction.apply(pkValues(primaryKeyInputs));
+        if (routingInput == null) {
+            routing = null;
+        } else {
+            routing = BytesRefs.toString(routingInput.value());
+        }
         return true;
+    }
+
+    private List<BytesRef> pkValues(List<Input<?>> primaryKeyInputs) {
+        return Lists.transform(primaryKeyInputs, INPUT_BYTES_REF_FUNCTION);
     }
 
     @Override
@@ -112,41 +131,6 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
         throw new UnsupportedOperationException("ShardingProjector does not support downstreams");
     }
 
-    private void applyInputs(List<Input<?>> primaryKeyInputs, @Nullable Input<?> routingInput) {
-        if (primaryKeyInputs.size() == 0) {
-            id = Strings.base64UUID();
-        } else if (primaryKeyInputs.size() == 1) {
-            Object value = primaryKeyInputs.get(0).value();
-            if (value == null && collectIdOrAutoGenerate) {
-                id = Strings.base64UUID();
-            } else if (value == null) {
-                throw new IllegalArgumentException("A primary key value must not be NULL");
-            } else {
-                id = BytesRefs.toString(primaryKeyInputs.get(0).value());
-            }
-        } else {
-            BytesStreamOutput out = new BytesStreamOutput();
-            try {
-                out.writeVInt(primaryKeyInputs.size());
-                for (Input<?> input : primaryKeyInputs) {
-                    Object value = input.value();
-                    if (value == null) {
-                        throw new IllegalArgumentException("A primary key value must not be NULL");
-                    }
-                    out.writeString(BytesRefs.toString(value));
-                }
-                out.close();
-            } catch (IOException e) {
-                //
-            }
-            id = Base64.encodeBytes(out.bytes().toBytes());
-        }
-        if (routingInput != null) {
-            routing = BytesRefs.toString(routingInput.value());
-        } else {
-            routing = null;
-        }
-    }
 
     /**
      * Returns the through collected inputs generated id
