@@ -21,54 +21,19 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class GlobalAggregate extends PlanAndPlannedAnalyzedRelation {
+public class GlobalAggregate extends CollectAndMerge {
 
-    private final CollectPhase collectNode;
-    private MergePhase mergeNode;
-    private final UUID id;
-
-    public GlobalAggregate(CollectPhase collectNode, MergePhase mergeNode, UUID id) {
-        this.collectNode = collectNode;
-        this.mergeNode = mergeNode;
-        this.id = id;
-    }
-
-    public CollectPhase collectNode() {
-        return collectNode;
-    }
-
-    public MergePhase mergeNode() {
-        return mergeNode;
+    public GlobalAggregate(CollectPhase collectPhase, @Nullable MergePhase localMerge, UUID id) {
+        super(collectPhase, localMerge, id);
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitGlobalAggregate(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        mergeNode.projections().add(projection);
-    }
-
-    @Override
-    public boolean resultIsDistributed() {
-        return mergeNode == null;
-    }
-
-    @Override
-    public DQLPlanNode resultNode() {
-        return mergeNode == null ? collectNode : mergeNode;
     }
 }

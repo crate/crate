@@ -66,7 +66,7 @@ public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public boolean resultIsDistributed() {
-        return localMerge == null || collectPhase.executionNodes().size() > 1;
+        return localMerge == null;
     }
 
     @Override

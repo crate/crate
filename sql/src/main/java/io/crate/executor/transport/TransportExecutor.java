@@ -473,20 +473,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         @Override
-        public Void visitGlobalAggregate(GlobalAggregate plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.mergeNode());
-            context.addCollectExecutionPhase(plan.collectNode());
-            return null;
-        }
-
-        @Override
-        public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, NodeOperationTreeContext context) {
-            context.addPhase(node.localMergeNode());
-            context.addCollectExecutionPhase(node.collectNode());
-            return null;
-        }
-
-        @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
             context.addPhase(plan.mergeNode());
             context.addCollectExecutionPhase(plan.countNode());

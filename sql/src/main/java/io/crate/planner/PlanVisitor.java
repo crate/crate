@@ -47,11 +47,11 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitGlobalAggregate(GlobalAggregate plan, C context) {
-        return visitPlan(plan, context);
+        return visitCollectAndMerge(plan, context);
     }
 
     public R visitNonDistributedGroupBy(NonDistributedGroupBy node, C context) {
-        return visitPlan(node, context);
+        return visitCollectAndMerge(node, context);
     }
 
     public R visitUpsert(Upsert node, C context) {

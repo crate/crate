@@ -300,9 +300,9 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public Void visitNonDistributedGroupBy(NonDistributedGroupBy node, PrintContext context) {
         context.print(node.getClass().getSimpleName() + ": ");
         context.indent();
-        planNodePrinter.process(node.collectNode(), context);
-        if (node.localMergeNode() != null) {
-            planNodePrinter.process(node.localMergeNode(), context);
+        planNodePrinter.process(node.collectPhase(), context);
+        if (node.localMerge() != null) {
+            planNodePrinter.process(node.localMerge(), context);
         }
         context.print("distributed: %s", node.resultIsDistributed());
         context.dedent();
