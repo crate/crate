@@ -397,15 +397,27 @@ public class TransportExecutor implements Executor, TaskExecutor {
      */
     static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
+        private static class Branch {
+            private final Stack<ExecutionPhase> phases = new Stack<>();
+            private final byte inputId;
+
+            public Branch(byte inputId) {
+                this.inputId = inputId;
+            }
+        }
+
         static class NodeOperationTreeContext {
             private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
             private final List<NodeOperation> nodeOperations = new ArrayList<>();
-            private final Stack<ExecutionPhase> root = new Stack<>();
 
-            Stack<ExecutionPhase> currentBranch = root;
-            Stack<ExecutionPhase> prevBranch;
+            private final Stack<Branch> branches = new Stack<>();
+            private final Branch root;
+            private Branch currentBranch;
 
-            byte nextInputId;
+            public NodeOperationTreeContext() {
+                root = new Branch((byte) 0);
+                currentBranch = root;
+            }
 
 
             /**
@@ -432,33 +444,28 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 if (executionPhase == null) {
                     return;
                 }
-                if (prevBranch == null && currentBranch.isEmpty()) {
-                    currentBranch.add(executionPhase);
+                if (branches.size() == 0 && currentBranch.phases.isEmpty()) {
+                    currentBranch.phases.add(executionPhase);
                     return;
                 }
 
-                byte inputId;
                 ExecutionPhase previousPhase;
-                if (currentBranch.isEmpty()) {
-                    inputId = nextInputId;
-                    previousPhase = prevBranch.lastElement();
+                if (currentBranch.phases.isEmpty()) {
+                    previousPhase = branches.peek().phases.lastElement();
                 } else {
-                    inputId = 0;
-                    previousPhase = currentBranch.lastElement();
+                    previousPhase = currentBranch.phases.lastElement();
                 }
-                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId));
-                currentBranch.add(executionPhase);
+                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId));
+                currentBranch.phases.add(executionPhase);
             }
 
             public void branch(byte inputId) {
-                this.nextInputId = inputId;
-                prevBranch = currentBranch;
-                currentBranch = new Stack<>();
+                branches.add(currentBranch);
+                currentBranch = new Branch(inputId);
             }
 
             public void leaveBranch() {
-                nextInputId = 0;
-                currentBranch = prevBranch;
+                currentBranch = branches.pop();
             }
 
             public Collection<NodeOperation> nodeOperations() {
@@ -474,7 +481,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
         public NodeOperationTree fromPlan(Plan plan) {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext();
             process(plan, nodeOperationTreeContext);
-            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(), nodeOperationTreeContext.root.firstElement());
+            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
+                    nodeOperationTreeContext.root.phases.firstElement());
         }
 
         @Override
