@@ -41,6 +41,7 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -50,8 +51,8 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.GenericShowPlan;
+import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
@@ -300,7 +301,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 tableInfo.rowGranularity(),
                 outputs,
                 ImmutableList.<Projection>of(projection),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         MergePhase mergePhase = MergePhase.localMerge(
                 context.jobId(),

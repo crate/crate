@@ -33,6 +33,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
@@ -51,7 +53,7 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectPhase extends AbstractDQLPlanPhase {
+public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<CollectPhase> FACTORY = new ExecutionPhaseFactory<CollectPhase>() {
         @Override
@@ -62,6 +64,7 @@ public class CollectPhase extends AbstractDQLPlanPhase {
 
     private Routing routing;
     private List<Symbol> toCollect;
+    private DistributionType distributionType;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
 
@@ -83,12 +86,14 @@ public class CollectPhase extends AbstractDQLPlanPhase {
                         RowGranularity maxRowGranularity,
                         List<Symbol> toCollect,
                         List<Projection> projections,
-                        WhereClause whereClause) {
+                        WhereClause whereClause,
+                        DistributionType distributionType) {
         super(jobId, executionNodeId, name, projections);
         this.whereClause = whereClause;
         this.routing = routing;
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
+        this.distributionType = distributionType;
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
             outputTypes = Symbols.extractTypes(toCollect);
@@ -117,6 +122,11 @@ public class CollectPhase extends AbstractDQLPlanPhase {
         } else {
             return ImmutableSet.of();
         }
+    }
+
+    @Override
+    public DistributionType distributionType() {
+        return distributionType;
     }
 
     public @Nullable Integer limit() {
@@ -169,6 +179,8 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
+        distributionType = DistributionType.values()[in.readVInt()];
+
         int numCols = in.readVInt();
         if (numCols > 0) {
             toCollect = new ArrayList<>(numCols);
@@ -203,6 +215,8 @@ public class CollectPhase extends AbstractDQLPlanPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+
+        out.writeVInt(distributionType.ordinal());
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -260,7 +274,9 @@ public class CollectPhase extends AbstractDQLPlanPhase {
                     maxRowGranularity,
                     newToCollect,
                     projections,
-                    newWhereClause);
+                    newWhereClause,
+                    distributionType
+            );
             result.keepContextForFetcher = keepContextForFetcher;
             result.handlerSideCollect = handlerSideCollect;
         }
@@ -300,7 +316,8 @@ public class CollectPhase extends AbstractDQLPlanPhase {
                 tableInfo.rowGranularity(),
                 toCollect,
                 projections,
-                where
+                where,
+                DistributionType.BROADCAST
         );
     }
 }

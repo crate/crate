@@ -32,14 +32,15 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.Projection;
-import io.crate.testing.CollectingProjector;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingProjector;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -82,7 +83,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
                 rowGranularity,
                 toCollect,
                 ImmutableList.<Projection>of(),
-                whereClause
+                whereClause,
+                DistributionType.BROADCAST
         );
     }
 

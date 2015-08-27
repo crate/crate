@@ -31,6 +31,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
@@ -85,7 +86,8 @@ public class CountConsumer implements Consumer {
                     "count-merge",
                     countNode.executionNodes().size(),
                     Collections.singletonList(DataTypes.LONG),
-                    Collections.<Projection>singletonList(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION)
+                    Collections.<Projection>singletonList(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                    DistributionType.BROADCAST
             );
             return new CountPlan(countNode, mergeNode, context.plannerContext().jobId());
         }

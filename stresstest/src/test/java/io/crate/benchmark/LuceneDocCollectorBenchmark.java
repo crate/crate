@@ -42,6 +42,8 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Reference;
@@ -188,7 +190,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 null,
                 RowGranularity.DOC,
                 input,
-                ImmutableList.<Projection>of(), WhereClause.MATCH_ALL
+                ImmutableList.<Projection>of(), WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         node.orderBy(orderBy);
         node.limit(limit);

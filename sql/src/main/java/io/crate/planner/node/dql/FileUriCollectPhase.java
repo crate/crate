@@ -27,6 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -62,7 +63,9 @@ public class FileUriCollectPhase extends CollectPhase {
                                List<Projection> projections,
                                String compression,
                                Boolean sharedStorage) {
-        super(jobId, executionNodeId, name, routing, rowGranularity, toCollect, projections, WhereClause.MATCH_ALL);
+        super(jobId, executionNodeId, name, routing, rowGranularity, toCollect, projections,
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;

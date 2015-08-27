@@ -37,6 +37,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -128,7 +129,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
         MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-                Arrays.asList(groupProjection, topNProjection));
+                Arrays.asList(groupProjection, topNProjection), DistributionType.BROADCAST);
 
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
@@ -181,7 +182,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     public void testMergeMultipleResults() throws Exception {
         MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-                Arrays.<Projection>asList(groupProjection));
+                Arrays.<Projection>asList(groupProjection), DistributionType.BROADCAST);
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 threadPool,

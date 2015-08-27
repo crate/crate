@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.WhereClause;
@@ -37,6 +36,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
@@ -187,7 +187,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),
-                whereClause
+                whereClause,
+                DistributionType.BROADCAST
         );
     }
 

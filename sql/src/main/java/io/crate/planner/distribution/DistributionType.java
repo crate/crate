@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,17 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.planner.distribution;
 
-import io.crate.operation.NodeOperation;
-import io.crate.operation.RowDownstream;
-import io.crate.planner.distribution.DistributionType;
-import org.elasticsearch.common.inject.ImplementedBy;
-
-import java.util.UUID;
-
-@ImplementedBy(InternalRowDownstreamFactory.class)
-public interface RowDownstreamFactory {
-
-    RowDownstream createDownstream(NodeOperation nodeOperation, DistributionType distributionType, UUID jobId, int pageSize);
+public enum DistributionType {
+    MODULO,
+    BROADCAST
 }

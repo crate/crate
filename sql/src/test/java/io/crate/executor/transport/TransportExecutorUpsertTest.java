@@ -34,7 +34,11 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.*;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -321,7 +325,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 RowGranularity.DOC,
                 ImmutableList.<Symbol>of(uidReference),
                 ImmutableList.<Projection>of(updateProjection),
-                whereClause
+                whereClause,
+                DistributionType.BROADCAST
         );
         MergePhase mergeNode1 = MergePhase.localMerge(
                 plannerContext.jobId(),
@@ -345,7 +350,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 RowGranularity.DOC,
                 ImmutableList.<Symbol>of(uidReference),
                 ImmutableList.<Projection>of(updateProjection),
-                whereClause1
+                whereClause1,
+                DistributionType.BROADCAST
         );
         MergePhase mergeNode2 = MergePhase.localMerge(
                 plannerContext.jobId(),

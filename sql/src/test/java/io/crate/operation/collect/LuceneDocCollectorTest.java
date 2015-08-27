@@ -41,6 +41,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
@@ -203,7 +204,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),
-                whereClause
+                whereClause,
+                DistributionType.BROADCAST
         );
         node.orderBy(orderBy);
         node.limit(limit);
@@ -490,7 +492,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 RowGranularity.DOC,
                 orderBy.orderBySymbols(),
                 ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         node.orderBy(orderBy);
 

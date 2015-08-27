@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
@@ -54,7 +55,8 @@ public class CollectNodeTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.MODULO
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -70,5 +72,6 @@ public class CollectNodeTest extends CrateUnitTest {
         assertThat(cn.jobId(), is(cn2.jobId()));
         assertThat(cn.executionPhaseId(), is(cn2.executionPhaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
+        assertThat(cn.distributionType(), is(cn2.distributionType()));
     }
 }

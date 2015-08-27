@@ -38,6 +38,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.DistributedGroupBy;
@@ -116,7 +118,8 @@ public class DistributedGroupByConsumer implements Consumer {
                     tableInfo.rowGranularity(),
                     splitPoints.leaves(),
                     ImmutableList.<Projection>of(groupProjection),
-                    querySpec.where()
+                    querySpec.where(),
+                    DistributionType.MODULO
             );
             // end: Map/Collect side
 
@@ -170,7 +173,8 @@ public class DistributedGroupByConsumer implements Consumer {
                     "distributed merge",
                     collectNode.executionNodes().size(),
                     collectNode.outputTypes(),
-                    reducerProjections
+                    reducerProjections,
+                    DistributionType.BROADCAST
             );
             mergePhase.executionNodes(ImmutableSet.copyOf(collectNode.executionNodes()));
             // end: Reducer

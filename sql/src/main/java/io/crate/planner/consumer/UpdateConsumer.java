@@ -36,7 +36,11 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.*;
+import io.crate.planner.IterablePlan;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
@@ -157,7 +161,8 @@ public class UpdateConsumer implements Consumer {
                         tableInfo.rowGranularity(),
                         ImmutableList.<Symbol>of(uidReference),
                         ImmutableList.<Projection>of(updateProjection),
-                        whereClause
+                        whereClause,
+                        DistributionType.BROADCAST
                 );
                 MergePhase mergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),

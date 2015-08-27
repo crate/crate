@@ -24,6 +24,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -1847,7 +1848,8 @@ public class PlannerTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 ImmutableList.<Symbol>of(),
                 ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         int shardNum = collectNode.routing().numShards();
 

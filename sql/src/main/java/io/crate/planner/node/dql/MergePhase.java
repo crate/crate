@@ -27,6 +27,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
@@ -44,7 +46,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergePhase extends AbstractDQLPlanPhase {
+public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<MergePhase> FACTORY = new ExecutionPhaseFactory<MergePhase>() {
         @Override
@@ -55,6 +57,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
 
     private Collection<? extends DataType> inputTypes;
     private int numUpstreams;
+    private DistributionType distributionType;
     private Set<String> executionNodes;
 
     /**
@@ -73,10 +76,13 @@ public class MergePhase extends AbstractDQLPlanPhase {
                       String name,
                       int numUpstreams,
                       Collection<? extends DataType> inputTypes,
-                      List<Projection> projections) {
+                      List<Projection> projections,
+                      DistributionType distributionType
+                      ) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
+        this.distributionType = distributionType;
         if (projections.isEmpty()) {
             outputTypes = Lists.newArrayList(inputTypes);
         } else {
@@ -94,7 +100,8 @@ public class MergePhase extends AbstractDQLPlanPhase {
                 "localMerge",
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
-                projections
+                projections,
+                DistributionType.BROADCAST
         );
     }
 
@@ -119,7 +126,8 @@ public class MergePhase extends AbstractDQLPlanPhase {
                 "sortedLocalMerge",
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
-                projections
+                projections,
+                DistributionType.BROADCAST
         );
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
@@ -140,6 +148,11 @@ public class MergePhase extends AbstractDQLPlanPhase {
         } else {
             return executionNodes;
         }
+    }
+
+    @Override
+    public DistributionType distributionType() {
+        return distributionType;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -186,6 +199,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        distributionType = DistributionType.values()[in.readVInt()];
         numUpstreams = in.readVInt();
 
         int numCols = in.readVInt();
@@ -222,6 +236,7 @@ public class MergePhase extends AbstractDQLPlanPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVInt(distributionType.ordinal());
         out.writeVInt(numUpstreams);
 
         int numCols = inputTypes.size();

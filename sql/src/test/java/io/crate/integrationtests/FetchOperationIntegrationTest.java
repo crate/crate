@@ -58,6 +58,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
@@ -146,7 +147,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                DistributionType.BROADCAST
         );
         collectNode.keepContextForFetcher(keepContextForFetcher);
         plannerContext.allocateJobSearchContextIds(collectNode.routing());
