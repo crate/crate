@@ -26,7 +26,6 @@ import io.crate.core.collections.RowN;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -107,7 +106,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 null,
                 null
         );
-        shardingProjector.startProjection(mock(ExecutionState.class));
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
                 ImmutableSettings.EMPTY
@@ -185,7 +183,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 null,
                 null
         );
-        shardingProjector.startProjection(mock(ExecutionState.class));
 
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);

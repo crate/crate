@@ -21,18 +21,14 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.operation.*;
-import io.crate.operation.projectors.Projector;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.Input;
+import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -40,7 +36,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardingProjector implements Projector, RowDownstreamHandle {
+public class ShardingProjector {
 
     private static final com.google.common.base.Function<Input<?>, BytesRef> INPUT_BYTES_REF_FUNCTION =
             new com.google.common.base.Function<Input<?>, BytesRef>() {
@@ -53,19 +49,15 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
             return BytesRefs.toBytesRef(input.value());
         }
     };
-    private final Visitor visitor;
-    private final List<Symbol> primaryKeySymbols;
-    @Nullable
-    private final Symbol routingSymbol;
-    private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
 
-    private VisitorContext visitorContext;
-    private List<Input<?>> primaryKeyInputs;
-    @Nullable
-    private Input<?> routingInput;
+    private static final Visitor VISITOR = new Visitor();
+
+    private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
+    private final ImplementationSymbolVisitor.Context visitorContext;
+    private final List<Input<?>> primaryKeyInputs;
+    private final Input<?> routingInput;
 
     private String id;
-    @Nullable
     private String routing;
 
 
@@ -75,30 +67,18 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
                              @Nullable Symbol routingSymbol) {
 
         idFunction = Id.compile(pkColumns, clusteredByColumn);
-        visitor = new Visitor();
-        this.primaryKeySymbols = primaryKeySymbols;
-        this.routingSymbol = routingSymbol;
-    }
-
-    @Override
-    public void startProjection(ExecutionState executionState) {
-        visitorContext = new VisitorContext();
-        if (routingSymbol != null ) {
-            routingInput = visitor.process(routingSymbol, visitorContext);
-        } else {
-            routingInput = null;
-        }
+        visitorContext = new ImplementationSymbolVisitor.Context();
+        routingInput = routingSymbol == null ? null : VISITOR.process(routingSymbol, visitorContext);
         primaryKeyInputs = new ArrayList<>(primaryKeySymbols.size());
         for (Symbol primaryKeySymbol : primaryKeySymbols) {
-            primaryKeyInputs.add(visitor.process(primaryKeySymbol, visitorContext));
+            primaryKeyInputs.add(VISITOR.process(primaryKeySymbol, visitorContext));
         }
     }
 
-    @Override
+
     public synchronized boolean setNextRow(Row row) {
-        assert visitorContext != null : "startProjection() must be called first";
-        for (CollectExpression collectExpression : visitorContext.collectExpressions()) {
-            collectExpression.setNextRow(row);
+        for (CollectExpression<Row, ?> expression : visitorContext.collectExpressions()) {
+            expression.setNextRow(row);
         }
         id = idFunction.apply(pkValues(primaryKeyInputs));
         if (routingInput == null) {
@@ -110,27 +90,11 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
     }
 
     private List<BytesRef> pkValues(List<Input<?>> primaryKeyInputs) {
+        if (primaryKeyInputs.isEmpty()) {
+            return ImmutableList.of(); // avoid object creation in Lists.transform if the list is empty
+        }
         return Lists.transform(primaryKeyInputs, INPUT_BYTES_REF_FUNCTION);
     }
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        throw new UnsupportedOperationException("ShardingProjector does not support upstreams");
-    }
-
-    @Override
-    public void finish() {
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        throw new UnsupportedOperationException("ShardingProjector does not support downstreams");
-    }
-
 
     /**
      * Returns the through collected inputs generated id
@@ -147,37 +111,21 @@ public class ShardingProjector implements Projector, RowDownstreamHandle {
         return routing;
     }
 
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
+    static class Visitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Input<?>> {
 
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    static class VisitorContext extends ImplementationSymbolVisitor.Context {}
-
-    static class Visitor extends ImplementationSymbolVisitor {
-
-        public Visitor() {
-            super(null, null, null);
+        @Override
+        protected Input<?> visitSymbol(Symbol symbol, ImplementationSymbolVisitor.Context context) {
+            throw new AssertionError("Symbol " + SymbolFormatter.format(symbol) + " not supported");
         }
 
         @Override
-        public Input<?> visitReference(Reference symbol, Context context) {
-            throw new UnsupportedOperationException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+        public Input<?> visitInputColumn(InputColumn inputColumn, ImplementationSymbolVisitor.Context context) {
+            return context.collectExpressionFor(inputColumn);
         }
 
         @Override
-        public Input<?> visitFunction(Function function, Context context) {
-            throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", function));
-        }
-
-        @Override
-        public Functions functions() {
-            throw new AssertionError("Functions not supported here");
+        public Input<?> visitLiteral(Literal symbol, ImplementationSymbolVisitor.Context context) {
+            return symbol;
         }
     }
 }

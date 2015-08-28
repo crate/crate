@@ -174,7 +174,6 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
     @Override
     public void startProjection(ExecutionState executionState) {
         assert bulkShardProcessor != null : "must create a BulkShardProcessor first";
-        shardingProjector.startProjection(executionState);
     }
 
     protected abstract Row updateRow(Row row);
