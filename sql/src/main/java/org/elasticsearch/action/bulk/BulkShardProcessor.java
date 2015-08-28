@@ -35,7 +35,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.collect.ShardingProjector;
+import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
@@ -100,7 +100,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
     private final Set<String> indicesCreated = new HashSet<>();
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private final ShardingProjector shardingProjector;
+    private final RowShardResolver rowShardResolver;
 
 
     private final BulkRequestBuilder<Request> bulkRequestBuilder;
@@ -109,7 +109,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                              ShardingProjector shardingProjector,
+                              RowShardResolver rowShardResolver,
                               final boolean autoCreateIndices,
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -138,7 +138,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
             shouldAutocreateIndexPredicate = Predicates.alwaysFalse();
         }
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
-        this.shardingProjector = shardingProjector;
+        this.rowShardResolver = rowShardResolver;
 
         responses = new BitSet();
         result = SettableFuture.create();
@@ -154,10 +154,10 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
             return false;
         }
 
-        shardingProjector.setNextRow(row);
-        ShardId shardId = shardId(indexName, shardingProjector.id(), shardingProjector.routing());
+        rowShardResolver.setNextRow(row);
+        ShardId shardId = shardId(indexName, rowShardResolver.id(), rowShardResolver.routing());
         if (shardId == null) {
-            addRequestForNewIndex(indexName, shardingProjector.id(), row, shardingProjector.routing(), version);
+            addRequestForNewIndex(indexName, rowShardResolver.id(), row, rowShardResolver.routing(), version);
         } else {
             try {
                 bulkRetryCoordinatorPool.coordinator(shardId).retryLock().acquireReadLock();
@@ -167,7 +167,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 setFailure(e);
                 return false;
             }
-            partitionRequestByShard(shardId, shardingProjector.id(), row, shardingProjector.routing(), version);
+            partitionRequestByShard(shardId, rowShardResolver.id(), row, rowShardResolver.routing(), version);
         }
         executeIfNeeded();
         return true;

@@ -34,7 +34,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class ShardingProjectorTest extends CrateUnitTest {
+public class RowShardResolverTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
 
@@ -51,75 +51,75 @@ public class ShardingProjectorTest extends CrateUnitTest {
 
     @Test
     public void testNoPrimaryKeyNoRouting() {
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
-        shardingProjector.setNextRow(row());
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
+        rowShardResolver.setNextRow(row());
 
         // auto-generated id, no special routing
-        assertNotNull(shardingProjector.id());
-        assertNull(shardingProjector.routing());
+        assertNotNull(rowShardResolver.id());
+        assertNull(rowShardResolver.routing());
     }
 
     @Test
     public void testNoPrimaryKeyButRouting() {
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
-        shardingProjector.setNextRow(row(1, "hoschi"));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
+        rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
-        assertNotNull(shardingProjector.id());
-        assertThat(shardingProjector.routing(), is("hoschi"));
+        assertNotNull(rowShardResolver.id());
+        assertThat(rowShardResolver.routing(), is("hoschi"));
     }
 
     @Test
     public void testPrimaryKeyNoRouting() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
-        shardingProjector.setNextRow(row(1, "hoschi"));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
+        rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
-        assertThat(shardingProjector.id(), is("AgExBmhvc2NoaQ=="));
-        assertNull(shardingProjector.routing());
+        assertThat(rowShardResolver.id(), is("AgExBmhvc2NoaQ=="));
+        assertNull(rowShardResolver.routing());
     }
 
     @Test
     public void testPrimaryKeyAndRouting() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
-        shardingProjector.setNextRow(row(1, "hoschi"));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+        rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
-        assertThat(shardingProjector.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(shardingProjector.routing(), is("hoschi"));
+        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
+        assertThat(rowShardResolver.routing(), is("hoschi"));
     }
 
     @Test
     public void testMultipleRows() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
 
-        shardingProjector.setNextRow(row(1, "hoschi"));
-        assertThat(shardingProjector.id(), is("AgZob3NjaGkBMQ=="));
-        assertThat(shardingProjector.routing(), is("hoschi"));
+        rowShardResolver.setNextRow(row(1, "hoschi"));
+        assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
+        assertThat(rowShardResolver.routing(), is("hoschi"));
 
-        shardingProjector.setNextRow(row(2, "galoschi"));
-        assertThat(shardingProjector.id(), is("AghnYWxvc2NoaQEy"));
-        assertThat(shardingProjector.routing(), is("galoschi"));
+        rowShardResolver.setNextRow(row(2, "galoschi"));
+        assertThat(rowShardResolver.id(), is("AghnYWxvc2NoaQEy"));
+        assertThat(rowShardResolver.routing(), is("galoschi"));
     }
 
     @Test
     public void testIdPrimaryKeyNull() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(2));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
-        shardingProjector.setNextRow(row(1, "hoschi", null));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
+        rowShardResolver.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
-        assertNotNull(shardingProjector.id());
-        assertThat(shardingProjector.routing(), is("hoschi"));
+        assertNotNull(rowShardResolver.id());
+        assertThat(rowShardResolver.routing(), is("hoschi"));
     }
 
     @Test
@@ -128,9 +128,9 @@ public class ShardingProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("A primary key value must not be NULL");
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
-        shardingProjector.setNextRow(row(new Object[] { null }));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
+        rowShardResolver.setNextRow(row(new Object[] { null }));
     }
 
     @Test
@@ -139,8 +139,8 @@ public class ShardingProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("A primary key value must not be NULL");
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
-        ShardingProjector shardingProjector =
-                new ShardingProjector(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
-        shardingProjector.setNextRow(row(1, null));
+        RowShardResolver rowShardResolver =
+                new RowShardResolver(ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
+        rowShardResolver.setNextRow(row(1, null));
     }
 }

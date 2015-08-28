@@ -36,7 +36,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardingProjector {
+public class RowShardResolver {
 
     private static final com.google.common.base.Function<Input<?>, BytesRef> INPUT_BYTES_REF_FUNCTION =
             new com.google.common.base.Function<Input<?>, BytesRef>() {
@@ -61,10 +61,10 @@ public class ShardingProjector {
     private String routing;
 
 
-    public ShardingProjector(List<ColumnIdent> pkColumns,
-                             List<Symbol> primaryKeySymbols,
-                             @Nullable ColumnIdent clusteredByColumn,
-                             @Nullable Symbol routingSymbol) {
+    public RowShardResolver(List<ColumnIdent> pkColumns,
+                            List<Symbol> primaryKeySymbols,
+                            @Nullable ColumnIdent clusteredByColumn,
+                            @Nullable Symbol routingSymbol) {
 
         idFunction = Id.compile(pkColumns, clusteredByColumn);
         visitorContext = new ImplementationSymbolVisitor.Context();

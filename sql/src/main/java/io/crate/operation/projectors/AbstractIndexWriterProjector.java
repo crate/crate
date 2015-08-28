@@ -44,7 +44,7 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.ShardingProjector;
+import io.crate.operation.collect.RowShardResolver;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
@@ -83,7 +83,7 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
             return BytesRefs.toBytesRef(input.value());
         }
     };
-    private final ShardingProjector shardingProjector;
+    private final RowShardResolver rowShardResolver;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
     private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
@@ -130,7 +130,7 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
         } else {
             partitionIdentCache = null;
         }
-        shardingProjector = new ShardingProjector(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
     }
 
     protected void createBulkShardProcessor(ClusterService clusterService,
@@ -162,7 +162,7 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
                 clusterService,
                 settings,
                 transportBulkCreateIndicesAction,
-                shardingProjector,
+                rowShardResolver,
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 bulkRetryCoordinatorPool,

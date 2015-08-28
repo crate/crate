@@ -29,7 +29,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.ShardingProjector;
+import io.crate.operation.collect.RowShardResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
@@ -100,7 +100,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             put(fooRef, new InputColumn(1, StringType.INSTANCE));
         }};
 
-        ShardingProjector shardingProjector = new ShardingProjector(
+        RowShardResolver rowShardResolver = new RowShardResolver(
                 ImmutableList.of(idRef.ident().columnIdent()),
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
                 null,
@@ -129,7 +129,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
-                shardingProjector,
+                rowShardResolver,
                 false,
                 1,
                 coordinatorPool,
@@ -177,7 +177,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             put(fooRef, new InputColumn(1, StringType.INSTANCE));
         }};
 
-        ShardingProjector shardingProjector = new ShardingProjector(
+        RowShardResolver rowShardResolver = new RowShardResolver(
                 ImmutableList.of(idRef.ident().columnIdent()),
                 ImmutableList.<Symbol>of(new InputColumn(0, IntegerType.INSTANCE)),
                 null,
@@ -208,7 +208,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
-                shardingProjector,
+                rowShardResolver,
                 false,
                 1,
                 coordinatorPool,
