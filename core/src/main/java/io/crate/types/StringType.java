@@ -35,6 +35,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
 
     public static final int ID = 4;
     public static final StringType INSTANCE = new StringType();
+
     protected StringType() {}
 
     @Override
@@ -64,11 +65,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
             return new BytesRef((String)value);
         }
         if (value instanceof Boolean) {
-            if ((boolean)value) {
-                return new BytesRef("t");
-            } else {
-                return new BytesRef("f");
-            }
+            return (Boolean) value ? BytesRefs2.LOWER_SHORT_TRUE : BytesRefs2.LOWER_SHORT_FALSE;
         }
         if (value instanceof Map || value.getClass().isArray()) {
             throw new IllegalArgumentException(

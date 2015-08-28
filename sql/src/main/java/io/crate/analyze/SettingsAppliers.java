@@ -60,7 +60,7 @@ public class SettingsAppliers {
                 settingsBuilder.put(name, validate(value));
             } catch (InvalidSettingValueContentException e) {
                 throw new IllegalArgumentException(e.getMessage());
-            } catch (IllegalArgumentException e) {
+            } catch (ClassCastException | IllegalArgumentException e) {
                 throw invalidException(e);
             }
         }

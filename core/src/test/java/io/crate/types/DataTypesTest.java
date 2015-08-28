@@ -39,7 +39,7 @@ public class DataTypesTest extends CrateUnitTest {
     @Test
     public void testConvertBooleanToString() {
         BytesRef value = DataTypes.STRING.value(true);
-        assertEquals(new BytesRef("t"), value);
+        assertEquals(BytesRefs2.LOWER_SHORT_TRUE, value);
     }
 
     @Test
@@ -189,11 +189,15 @@ public class DataTypesTest extends CrateUnitTest {
         DataTypes.LONG.value("hello");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ClassCastException.class)
     public void testConvertToUnsupportedBooleanConversion() {
         DataTypes.BOOLEAN.value("hello");
     }
 
+    @Test(expected = ClassCastException.class)
+    public void testConvertUnsupportedBytesRefToBoolean() throws Exception {
+        DataTypes.BOOLEAN.value(new BytesRef("foo"));
+    }
 
     @Test(expected = ClassCastException.class)
     public void testConvertBooleanToLong() {

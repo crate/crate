@@ -73,7 +73,7 @@ public class
      *
      * mostly copied from {@link Long#parseLong(String s, int radix)}
      */
-    private long parseLong(BytesRef value) {
+    private static long parseLong(BytesRef value) {
         assert value != null : "value must not be null";
         boolean negative = false;
         long result = 0;
