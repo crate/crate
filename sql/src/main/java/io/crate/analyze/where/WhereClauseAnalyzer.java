@@ -22,6 +22,7 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ReferenceToTrueVisitor;
@@ -38,7 +39,12 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class WhereClauseAnalyzer {
 
@@ -183,7 +189,7 @@ public class WhereClauseAnalyzer {
         }
 
         if (queryPartitionMap.size() == 1) {
-            Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
+            Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             whereClause = new WhereClause(
                     entry.getKey(),
                     whereClause.docKeys().orNull(),

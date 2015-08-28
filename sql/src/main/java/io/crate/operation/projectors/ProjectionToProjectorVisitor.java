@@ -225,9 +225,11 @@ public class ProjectionToProjectorVisitor
                                                          ImplementationSymbolVisitor.Context symbolContext) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
+            Symbol symbol = entry.getValue();
+            assert symbol != null;
             objectMap.put(
                     entry.getKey(),
-                    symbolVisitor.process(normalizer.normalize(entry.getValue()), symbolContext).value()
+                    symbolVisitor.process(normalizer.normalize(symbol), symbolContext).value()
             );
         }
         return objectMap;
