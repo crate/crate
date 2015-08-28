@@ -36,10 +36,6 @@ public class ClusterId implements Streamable {
         this.uuid = UUID.randomUUID();
     }
 
-    public ClusterId(UUID uuid) {
-        this.uuid = uuid;
-    }
-
     public ClusterId(String uuid) {
         this.uuid = UUID.fromString(uuid);
     }

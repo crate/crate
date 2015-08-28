@@ -21,12 +21,12 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.core.CachedRef;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.store.StoreStats;
 
 import java.util.concurrent.TimeUnit;
 
@@ -34,22 +34,20 @@ public class ShardSizeExpression extends SimpleObjectExpression<Long> implements
 
     public static final String NAME = "size";
 
-    private final IndexShard indexShard;
-    private final CachedRef<StoreStats> storeStatsCache = new CachedRef<StoreStats>(10, TimeUnit.SECONDS) {
-        @Override
-        protected StoreStats refresh() {
-            return indexShard.storeStats();
-        }
-    };
+    private final Supplier<Long> sizeSupplier;
 
     @Inject
-    public ShardSizeExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
+    public ShardSizeExpression(final IndexShard indexShard) {
+        sizeSupplier = Suppliers.memoizeWithExpiration(new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return indexShard.storeStats().getSizeInBytes();
+            }
+        }, 10, TimeUnit.SECONDS);
     }
 
     @Override
     public Long value() {
-        return storeStatsCache.get().getSizeInBytes();
+        return sizeSupplier.get();
     }
-
 }

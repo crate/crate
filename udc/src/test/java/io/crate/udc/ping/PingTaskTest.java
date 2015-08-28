@@ -31,10 +31,6 @@ import org.codehaus.jackson.type.TypeReference;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.network.NetworkInfo;
 import org.elasticsearch.node.service.NodeService;
 import org.junit.After;
@@ -45,7 +41,6 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.notNullValue;
@@ -96,7 +91,7 @@ public class PingTaskTest extends CrateUnitTest {
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
         SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
-        clusterIdFuture.set(new ClusterId(UUID.randomUUID()));
+        clusterIdFuture.set(new ClusterId());
         when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
         when(clusterService.localNode()).thenReturn(discoveryNode);
         when(discoveryNode.isMasterNode()).thenReturn(true);

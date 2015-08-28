@@ -46,8 +46,4 @@ public class TimestampFormat {
         }
         return false;
     }
-
-    public static String printTimeStamp(long value) {
-        return DATE_TIME_FORMATTER.printer().print(value);
-    }
 }

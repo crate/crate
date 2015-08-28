@@ -21,9 +21,9 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
-import io.crate.blob.stats.BlobStats;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import io.crate.blob.v2.BlobShard;
-import io.crate.core.CachedRef;
 import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
@@ -33,22 +33,20 @@ import java.util.concurrent.TimeUnit;
 public class BlobShardSizeExpression extends SimpleObjectExpression<Long> implements BlobShardReferenceImplementation<Long> {
 
     public static final String NAME = "size";
-
-    private final BlobShard blobShard;
-    private final CachedRef<BlobStats> blobStatsCache = new CachedRef<BlobStats>(10, TimeUnit.SECONDS) {
-        @Override
-        protected BlobStats refresh() {
-            return blobShard.blobStats();
-        }
-    };
+    private final Supplier<Long> totalUsageSupplier;
 
     @Inject
-    public BlobShardSizeExpression(BlobShard blobShard) {
-        this.blobShard = blobShard;
+    public BlobShardSizeExpression(final BlobShard blobShard) {
+        totalUsageSupplier = Suppliers.memoizeWithExpiration(new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return blobShard.blobStats().totalUsage();
+            }
+        }, 10, TimeUnit.SECONDS);
     }
 
     @Override
     public Long value() {
-        return blobStatsCache.get().totalUsage();
+        return totalUsageSupplier.get();
     }
 }

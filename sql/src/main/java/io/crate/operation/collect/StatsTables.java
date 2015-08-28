@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.NonBlockingArrayQueue;
+import com.google.common.collect.EvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
@@ -30,14 +30,15 @@ import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import jsr166e.LongAdder;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,14 +50,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
 @ThreadSafe
+@Singleton
 public class StatsTables {
+
+    private final static Queue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
+    private final static Queue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
     protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     protected final Map<Integer, OperationContext> operationsTable = new ConcurrentHashMap<>();
-    protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
-    protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
-    private final static NoopQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
-    private final static NoopQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
+    protected final AtomicReference<Queue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
+    protected final AtomicReference<Queue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
     private final JobsLogIterableGetter jobsLogIterableGetter;
     private final JobsIterableGetter jobsIterableGetter;
@@ -141,7 +144,7 @@ public class StatsTables {
         if (jobContext == null) {
             return;
         }
-        BlockingQueue<JobContextLog> jobContextLogs = jobsLog.get();
+        Queue<JobContextLog> jobContextLogs = jobsLog.get();
         jobContextLogs.offer(new JobContextLog(jobContext, errorMessage));
     }
 
@@ -164,7 +167,7 @@ public class StatsTables {
             return;
         }
         operationContext.usedBytes = usedBytes;
-        BlockingQueue<OperationContextLog> operationContextLogs = operationsLog.get();
+        Queue<OperationContextLog> operationContextLogs = operationsLog.get();
         operationContextLogs.offer(new OperationContextLog(operationContext, errorMessage));
     }
 
@@ -221,11 +224,9 @@ public class StatsTables {
         if (size == 0) {
             operationsLog.set(NOOP_OPERATIONS_LOG);
         } else {
-            BlockingQueue<OperationContextLog> oldQ = operationsLog.get();
-            NonBlockingArrayQueue<OperationContextLog> newQ = new NonBlockingArrayQueue<>(size);
-            if (oldQ != null && oldQ.size() > 0) {
-                oldQ.drainTo(newQ, size);
-            }
+            Queue<OperationContextLog> oldQ = operationsLog.get();
+            EvictingQueue<OperationContextLog> newQ = EvictingQueue.create(size);
+            newQ.addAll(oldQ);
             operationsLog.set(newQ);
         }
     }
@@ -234,11 +235,9 @@ public class StatsTables {
         if (size == 0) {
             jobsLog.set(NOOP_JOBS_LOG);
         } else {
-            BlockingQueue<JobContextLog> oldQ = jobsLog.get();
-            NonBlockingArrayQueue<JobContextLog> newQ = new NonBlockingArrayQueue<>(size);
-            if (oldQ != null && oldQ.size() > 0) {
-                oldQ.drainTo(newQ, size);
-            }
+            Queue<JobContextLog> oldQ = jobsLog.get();
+            EvictingQueue<JobContextLog> newQ = EvictingQueue.create(size);
+            newQ.addAll(oldQ);
             jobsLog.set(newQ);
         }
     }
