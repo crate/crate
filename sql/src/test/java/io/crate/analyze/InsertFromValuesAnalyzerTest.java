@@ -380,8 +380,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(arrayValue.length, is(2));
         assertThat(arrayValue[0], instanceOf(Map.class));
         assertThat((String)((Map)arrayValue[0]).get("name"), is("cool"));
-        assertThat((String)((Map)arrayValue[1]).get("name"), is("fancy"));
-        assertThat(Arrays.toString(((Object[])((Map)arrayValue[0]).get("metadata"))), is("[{id=0}, {id=1}]"));
+        assertThat((String) ((Map) arrayValue[1]).get("name"), is("fancy"));
+        assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[0]).get("metadata"))), is("[{id=0}, {id=1}]"));
         assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[1]).get("metadata"))), is("[{id=2}, {id=3}]"));
     }
 
@@ -406,7 +406,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(Id.generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+                is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
     }
 
     @Test
@@ -415,7 +415,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(Id.generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+                is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
     }
 
     @Test( expected = IllegalArgumentException.class)
@@ -433,8 +433,12 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into nested_pk (o, id) values (?, ?)",
                 new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
-                is(Id.generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+                is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
 
+    }
+
+    private String generateId(List<ColumnIdent> pkColumns, List<BytesRef> pkValues, ColumnIdent clusteredBy) {
+        return Id.compile(pkColumns, clusteredBy).apply(pkValues);
     }
 
     @Test

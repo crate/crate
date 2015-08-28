@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -138,7 +139,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     statement.columns().size(), node.values().size()));
         }
         try {
-            int numPks = statement.tableInfo().primaryKey().size();
+            DocTableInfo tableInfo = statement.tableInfo();
+            int numPks = tableInfo.primaryKey().size();
+            Function<List<BytesRef>, String> idFunction = Id.compile(tableInfo.primaryKey(), tableInfo.clusteredBy());
             if (parameterContext.bulkParameters.length > 0) {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);
@@ -151,7 +154,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                             node,
                             assignments,
                             statement,
-                            numPks
+                            numPks,
+                            idFunction
                     );
                 }
             } else {
@@ -164,7 +168,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         node,
                         assignments,
                         statement,
-                        numPks
+                        numPks,
+                        idFunction
                 );
             }
         } catch (IOException e) {
@@ -180,7 +185,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ValuesList node,
                            List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,
-                           int numPrimaryKeys) throws IOException {
+                           int numPrimaryKeys, Function<List<BytesRef>, String> idFunction) throws IOException {
         if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
         }
@@ -270,7 +275,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     valuesResolver.assignmentColumns.toArray(new String[valuesResolver.assignmentColumns.size()]));
         }
         context.sourceMaps().add(insertValues);
-        context.addIdAndRouting(primaryKeyValues, routingValue);
+        context.addIdAndRouting(idFunction.apply(primaryKeyValues), routingValue);
     }
 
     private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {

@@ -82,19 +82,15 @@ public class Id {
         }
     }
 
+    /**
+     * returns a function which can be used to generate an id
+     */
     public static Function<List<BytesRef>, String> compile(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();
         if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
             return RANDOM_ID;
         }
         return compile(numPks, pkColumns.indexOf(clusteredBy));
-    }
-
-    /**
-     * generates a unique identifier
-     */
-    public static String generateId(List<ColumnIdent> pkColumns, List<BytesRef> pkValues, ColumnIdent clusteredBy) {
-        return compile(pkColumns, clusteredBy).apply(pkValues);
     }
 
     @Nonnull

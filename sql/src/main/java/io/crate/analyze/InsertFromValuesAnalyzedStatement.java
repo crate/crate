@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -97,9 +96,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return sourceMaps;
     }
 
-    protected void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
-        ColumnIdent clusteredBy = tableInfo().clusteredBy();
-        String id = Id.generateId(tableInfo().primaryKey(), primaryKeyValues, clusteredBy);
+    protected void addIdAndRouting(String id, @Nullable String clusteredByValue) {
         ids.add(id);
         if (clusteredByValue == null) {
             routingValues.add(id);

@@ -28,6 +28,7 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
@@ -48,6 +49,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.util.HashMap;
+import java.util.List;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-bulk-delete-history", labelWith = LabelType.CUSTOM_KEY)
@@ -95,13 +97,15 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     private HashMap<String, String> createSampleData() {
         Object[][] bulkArgs = new Object[ROWS][];
         HashMap<String, String> ids = new HashMap<>();
+
+        ColumnIdent idColumn = new ColumnIdent("id");
+        Function<List<BytesRef>, String> idFunction = Id.compile(ImmutableList.of(idColumn), new ColumnIdent("id"));
         for (int i = 0; i < ROWS; i++) {
             Object[] object = getRandomObject();
             bulkArgs[i]  = object;
 
             String id = (String)object[0];
-            String esId = Id.generateId(
-                    ImmutableList.of(new ColumnIdent("id")), ImmutableList.of(new BytesRef(id)), new ColumnIdent("id"));
+            String esId = idFunction.apply(ImmutableList.of(new BytesRef(id)));
             ids.put(id, esId);
         }
         SQLBulkRequest request = new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
