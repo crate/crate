@@ -28,7 +28,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Map;
 
 public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean>, FixedWidthType {
@@ -38,11 +37,15 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
 
     private BooleanType() {}
 
-    private static final Map<String, Boolean> booleanMap = ImmutableMap.<String, Boolean>builder()
-            .put("f", false)
-            .put("false", false)
-            .put("t", true)
-            .put("true", true)
+    private static final Map<BytesRef, Boolean> BOOLEAN_MAP = ImmutableMap.<BytesRef, Boolean>builder()
+            .put(BytesRefs2.LOWER_SHORT_FALSE, Boolean.FALSE)
+            .put(BytesRefs2.UPPER_SHORT_FALSE, Boolean.FALSE)
+            .put(BytesRefs2.LOWER_SHORT_TRUE, Boolean.TRUE)
+            .put(BytesRefs2.UPPER_SHORT_TRUE, Boolean.TRUE)
+            .put(BytesRefs2.LOWER_FALSE, Boolean.FALSE)
+            .put(BytesRefs2.UPPER_FALSE, Boolean.FALSE)
+            .put(BytesRefs2.LOWER_TRUE, Boolean.TRUE)
+            .put(BytesRefs2.UPPER_TRUE, Boolean.TRUE)
             .build();
 
 
@@ -66,26 +69,54 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
         if (value == null) {
             return null;
         }
-        if (value instanceof String) {
-            return booleanFromString((String) value);
+        if (value instanceof Boolean) {
+            return (Boolean) value;
         }
         if (value instanceof BytesRef) {
-            return booleanFromString(((BytesRef) value).utf8ToString());
+            return booleanFromBytesRef(((BytesRef) value));
         }
         if (value instanceof Number) {
             return booleanFromNumber((Number)value);
         }
-        return (Boolean)value;
+        if (value instanceof String) {
+            return booleanFromString((String) value);
+        }
+        throw illegalConversion(value);
+    }
+
+    private Boolean booleanFromBytesRef(BytesRef value) {
+        Boolean bool = BOOLEAN_MAP.get(value);
+        if (bool == null) {
+            throw illegalConversion(value);
+        }
+        return bool;
+    }
+
+    private ClassCastException illegalConversion(Object value) {
+        return new ClassCastException("Can't cast '" + value + "' to boolean");
     }
 
     private Boolean booleanFromString(String value) {
-        String lowerValue = value.toLowerCase(Locale.ENGLISH);
-        Boolean boolValue = booleanMap.get(lowerValue);
-        if (boolValue == null) {
-            throw new IllegalArgumentException("Can't convert \"" + value + "\" to boolean");
-        } else {
-            return boolValue;
+        switch (value.length()) {
+            case 1:
+                if ("t".equalsIgnoreCase(value)) {
+                    return Boolean.TRUE;
+                } else if ("f".equalsIgnoreCase(value)) {
+                    return Boolean.FALSE;
+                }
+                break;
+            case 4:
+                if ("true".equalsIgnoreCase(value)) {
+                    return Boolean.TRUE;
+                }
+                break;
+            case 5:
+                if ("false".equalsIgnoreCase(value)) {
+                    return Boolean.FALSE;
+                }
+                break;
         }
+        throw illegalConversion(value);
     }
 
     private Boolean booleanFromNumber(Number value) {

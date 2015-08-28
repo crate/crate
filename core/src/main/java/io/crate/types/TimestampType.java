@@ -48,7 +48,7 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
             return null;
         }
         if (value instanceof BytesRef) {
-            return valueFromString(((BytesRef)value).utf8ToString());
+            return valueFromString(((BytesRef) value).utf8ToString());
         }
         if (value instanceof String) {
             return valueFromString((String) value);
@@ -69,7 +69,7 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
 
     private Long valueFromString(String s) {
         try {
-            return new Long(s);
+            return Long.valueOf(s);
         } catch (NumberFormatException e) {
             return TimestampFormat.parseTimestampString(s);
         }

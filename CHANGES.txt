@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Breaking Change:
+   Made string to boolean casts more strict. Mixed case strings like 'tRuE'
+   won't convert anymore.
+   Also improved the performance of those type casts.
+
  - Fixed an issue that could cause `COPY FROM` to ignore a primary key
    constraint leading to duplicate rows.
    This could happen if a table has multiple primary keys and clustered by is

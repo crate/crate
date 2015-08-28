@@ -84,8 +84,8 @@ public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast 'hello' to boolean");
+        expectedException.expect(ClassCastException.class);
+        expectedException.expectMessage("Can't cast 'hello' to boolean");
         TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
     }
 }
