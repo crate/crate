@@ -29,7 +29,7 @@ import io.crate.analyze.ReferenceToTrueVisitor;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
