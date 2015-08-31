@@ -38,8 +38,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -58,6 +56,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -179,6 +178,19 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return response;
     }
 
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
+     * @param args the arguments to replace placeholders ("?") in the statement
+     * @param timeout the timeout for this request
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
+        response = sqlExecutor.exec(stmt, timeout, args);
+        return response;
+    }
+
     public Plan plan(String stmt) {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
         Planner planner = internalCluster().getInstance(Planner.class);
@@ -240,7 +252,18 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        return execute(stmt, new Object[0]);
+        return execute(stmt, SQLRequest.EMPTY_ARGS);
+    }
+
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
+     * @param timeout the timeout for this query
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, TimeValue timeout) {
+        return execute(stmt, SQLRequest.EMPTY_ARGS, timeout);
     }
 
     /**

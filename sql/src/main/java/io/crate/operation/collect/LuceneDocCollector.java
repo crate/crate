@@ -38,11 +38,12 @@ import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +56,8 @@ import java.util.concurrent.CancellationException;
  * collect documents from ES shard, a lucene index
  */
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
+
+    private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
 
     private final KeepAliveListener keepAliveListener;
 
@@ -154,6 +157,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
 
         rowCount++;
+        if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
+            keepAliveListener.keepAlive();
+        }
         if (visitorEnabled) {
             fieldsVisitor.reset();
             currentReader.document(doc, fieldsVisitor);
@@ -171,7 +177,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
         this.currentReader = context.reader();
-        keepAliveListener.keepAlive();;
+        keepAliveListener.keepAlive();
+
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }
