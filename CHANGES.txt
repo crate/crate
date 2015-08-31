@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could kill long running queries on shards with few
+   segments containing huge amounts of documents
+
  - Fixed an issue that could cause `COPY FROM` to ignore a primary key
    constraint leading to duplicate rows.
    This could happen if a table has multiple primary keys and clustered by is

@@ -74,6 +74,8 @@ import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -98,6 +100,7 @@ import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 @Singleton
 public class LuceneQueryBuilder {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private final static Visitor VISITOR = new Visitor();
     private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
 
@@ -114,6 +117,11 @@ public class LuceneQueryBuilder {
             ctx.query = Queries.newMatchAllQuery();
         } else {
             ctx.query = VISITOR.process(whereClause.query(), ctx);
+        }
+        if (LOGGER.isTraceEnabled()) {
+            if (whereClause.hasQuery()) {
+                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolFormatter.format(whereClause.query()), ctx.query);
+            }
         }
         return ctx;
     }

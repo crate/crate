@@ -73,13 +73,21 @@ public class SQLTransportExecutor {
         return exec(new SQLRequest(statement, params));
     }
 
+    public SQLResponse exec(String statement, TimeValue timeout, Object... params) {
+        return exec(new SQLRequest(statement, params), timeout);
+    }
+
     public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
         return exec(new SQLBulkRequest(statement, bulkArgs));
     }
 
     public SQLResponse exec(SQLRequest request) {
+        return exec(request, REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse exec(SQLRequest request, TimeValue timeout) {
         try {
-            return execute(request).actionGet(REQUEST_TIMEOUT);
+            return execute(request).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
             throw e;
