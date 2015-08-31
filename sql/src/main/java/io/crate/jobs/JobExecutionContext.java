@@ -275,6 +275,7 @@ public class JobExecutionContext {
 
         @Override
         public void keepAlive() {
+            LOGGER.trace("trigger keepAlive on context for execution phase {}", executionPhaseId);
             lastAccessTime = threadPool.estimatedTimeInMillis();
         }
     }

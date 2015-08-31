@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
@@ -32,9 +33,8 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.TransportExecutor;
-import com.google.common.collect.Multimap;
 import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
+import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
@@ -60,6 +60,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -229,6 +230,19 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return response;
     }
 
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
+     * @param args the arguments to replace placeholders ("?") in the statement
+     * @param timeout the timeout for this request
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
+        response = sqlExecutor.exec(stmt, timeout, args);
+        return response;
+    }
+
     public Plan plan(String stmt) {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
         Planner planner = internalCluster().getInstance(Planner.class);
@@ -262,7 +276,18 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        return execute(stmt, new Object[0]);
+        return execute(stmt, SQLRequest.EMPTY_ARGS);
+    }
+
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
+     * @param timeout the timeout for this query
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, TimeValue timeout) {
+        return execute(stmt, SQLRequest.EMPTY_ARGS, timeout);
     }
 
     /**

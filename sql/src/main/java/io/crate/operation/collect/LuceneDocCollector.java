@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LuceneDocCollector extends Collector implements CrateCollector, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneDocCollector.class);
+    private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
 
      // cache exception to avoid expensive stacktrace generation
     @SuppressWarnings("ThrowableInstanceNeverThrown")
@@ -189,6 +190,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         internalCollectContext.lastCollected.doc = doc;
         internalCollectContext.lastDocBase = currentDocBase;
+
+        if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
+            // trigger keep-alive only every KEEP_ALIVE_AFTER_ROWS
+            // as it uses too much volatile stuff to do it more often
+            keepAliveListener.keepAlive();
+        }
     }
 
 
@@ -197,7 +204,11 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         currentReader = context.reader();
         currentDocBase = context.docBase;
         skipSegmentReader();
-        keepAliveListener.keepAlive();;
+
+        // trigger keep-alive here as well
+        // in case we have a long running query without actual matches
+        keepAliveListener.keepAlive();
+
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }

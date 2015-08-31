@@ -54,9 +54,9 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from t order by substr(name, 1, 1) = 'M', b");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "1| Trillian\n" +
-                "2| Arthur\n" +
-                "0| Marvin\n" +
-                "3| Max\n"));
+                        "2| Arthur\n" +
+                        "0| Marvin\n" +
+                        "3| Max\n"));
     }
 
     @Test
@@ -114,7 +114,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (x) values (?)", bulkArgs);
         execute("refresh table t");
 
-        Long limit = new Long(docCount-1);
+        Long limit = new Long(docCount - 1);
         execute("select * from t limit ?", new Object[]{limit});
         assertThat(response.rowCount(), is(limit));
 
