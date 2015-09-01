@@ -27,6 +27,7 @@ import io.crate.operation.*;
 import io.crate.operation.projectors.RowFilter;
 import io.crate.planner.symbol.Literal;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -92,7 +93,7 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         killed = true;
     }
 

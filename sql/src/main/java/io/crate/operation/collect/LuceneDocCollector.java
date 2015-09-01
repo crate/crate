@@ -278,10 +278,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         killed = true;
         if (paused.get()) {
-            downstream.fail(new CancellationException());
+            if (throwable == null) {
+                throwable = new CancellationException();
+            }
+            downstream.fail(throwable);
             finishCollect();
         }
     }

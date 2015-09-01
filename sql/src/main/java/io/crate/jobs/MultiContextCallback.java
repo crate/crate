@@ -53,6 +53,13 @@ public class MultiContextCallback implements ContextCallback {
     }
 
     @Override
+    public void onKill() {
+        for (ContextCallback callback : callbacks) {
+            callback.onKill();
+        }
+    }
+
+    @Override
     public void keepAlive() {
         for (ContextCallback callback : callbacks) {
             callback.keepAlive();

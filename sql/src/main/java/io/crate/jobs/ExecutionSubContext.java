@@ -21,12 +21,14 @@
 
 package io.crate.jobs;
 
+import javax.annotation.Nullable;
+
 public interface ExecutionSubContext {
 
     void addCallback(ContextCallback contextCallback);
     void start();
     void close();
-    void kill();
+    void kill(@Nullable Throwable throwable);
 
     String name();
 }

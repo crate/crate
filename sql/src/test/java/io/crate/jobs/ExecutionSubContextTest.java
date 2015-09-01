@@ -41,7 +41,9 @@ public class ExecutionSubContextTest extends CrateUnitTest {
     private void verifyParallel(final ExecutionSubContext subContext, final boolean kill) throws Throwable {
         final AtomicReference<Throwable> throwable = new AtomicReference();
         final AtomicInteger closed = new AtomicInteger(0);
+        final AtomicInteger killed = new AtomicInteger(0);
         final ContextCallback callback = new ContextCallback() {
+
 
             @Override
             public void onClose(@Nullable Throwable error, long bytesUsed) {
@@ -51,6 +53,16 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                     e.printStackTrace();
                 }
                 closed.incrementAndGet();
+            }
+
+            @Override
+            public void onKill() {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                killed.incrementAndGet();
             }
 
             @Override
@@ -64,12 +76,15 @@ public class ExecutionSubContextTest extends CrateUnitTest {
             @Override
             public void run() {
                 if (kill) {
-                    subContext.kill();
+                    subContext.kill(null);
+                    if (killed.get() != 1) {
+                        throwable.set(new AssertionError("Callback.onKill() should be called 1 time. Actual: " + killed.get()));
+                    }
                 } else {
                     subContext.close();
-                }
-                if (closed.get() != 1) {
-                    throwable.set(new AssertionError("Callback.onClose() should be called 1 time. Actual: " + closed.get()));
+                    if (closed.get() != 1) {
+                        throwable.set(new AssertionError("Callback.onClose() should be called 1 time. Actual: " + closed.get()));
+                    }
                 }
             }
         };
@@ -86,11 +101,11 @@ public class ExecutionSubContextTest extends CrateUnitTest {
         }
     }
 
-    private void verifyParallelClose(ExecutionSubContext subContext) throws Throwable{
+    private void verifyParallelClose(ExecutionSubContext subContext) throws Throwable {
         verifyParallel(subContext, false);
     }
 
-    private void verifyParallelKill(ExecutionSubContext subContext) throws Throwable{
+    private void verifyParallelKill(ExecutionSubContext subContext) throws Throwable {
         verifyParallel(subContext, true);
     }
 

@@ -144,7 +144,7 @@ public class UpdateProjector extends RowDownstreamAndHandle implements Projector
             return;
         }
         if (throwable instanceof CancellationException) {
-            bulkShardProcessor.kill();
+            bulkShardProcessor.kill(throwable);
         } else {
             bulkShardProcessor.close();
         }

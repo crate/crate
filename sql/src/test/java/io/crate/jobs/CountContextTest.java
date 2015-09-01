@@ -79,10 +79,10 @@ public class CountContextTest extends CrateUnitTest {
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
         countContext.start();
-        countContext.kill();
+        countContext.kill(null);
 
         verify(future, times(1)).cancel(true);
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
+        verify(callback, times(1)).onKill();
     }
 
     private static class FakeCountOperation implements CountOperation {

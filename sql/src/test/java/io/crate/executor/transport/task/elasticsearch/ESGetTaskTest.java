@@ -106,7 +106,7 @@ public class ESGetTaskTest extends CrateUnitTest {
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionPhaseId());
-        subContext.kill();
+        subContext.kill(null);
 
         assertThat(task.result().size(), is(1));
         assertThat(task.result().get(0).isCancelled(), is(true));

@@ -91,7 +91,11 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
 
     void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            callback.onClose(t, -1L);
+            if (iskilled) {
+                callback.onKill();
+            } else {
+                callback.onClose(t, -1L);
+            }
             closeFuture.set(null);
         } else {
             try {
@@ -103,12 +107,15 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         iskilled = true;
         for (Future<?> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
-        doClose(new CancellationException());
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
+        doClose(throwable);
     }
 
     public String name() {

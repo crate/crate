@@ -174,21 +174,18 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
 
     public void finish() {
         LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
-        doFinish(false);
+        doFinish(null);
     }
 
 
-    private void doFinish(boolean killed) {
+    private void doFinish(@Nullable Throwable throwable) {
         if (!closed.getAndSet(true)) {
-            CancellationException cancellationException = null;
-            if (killed) {
-                cancellationException = new CancellationException();
-            }
-            callback.onClose(cancellationException, -1L);
-            if (killed) {
-                pageDownstream.fail(cancellationException);
+            if (isKilled) {
+                pageDownstream.fail(throwable);
+                callback.onKill();
             } else {
                 pageDownstream.finish();
+                callback.onClose(throwable, -1L);
             }
             ramAccountingContext.close();
             closeFuture.set(null);
@@ -220,9 +217,12 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         isKilled = true;
-        doFinish(true);
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
+        doFinish(throwable);
     }
 
     @Override

@@ -328,7 +328,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         LuceneDocCollector docCollector = createDocCollector(orderBy, 15, orderBy.orderBySymbols(), WhereClause.MATCH_ALL, PAGE_SIZE, projector);
         docCollector.doCollect();
         assertThat(projector.rows.size(), is(5));
-        docCollector.kill();
+        docCollector.kill(null);
         assertThat(projector.failure, is(instanceOf(CancellationException.class)));
         assertThat(projector.finished, is(false));
     }

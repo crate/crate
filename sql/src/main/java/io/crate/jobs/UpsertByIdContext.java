@@ -40,16 +40,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpsertByIdContext implements ExecutionSubContext {
 
+    private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
+
     private final SymbolBasedShardUpsertRequest request;
     private final SymbolBasedUpsertByIdNode.Item item;
     private final SettableFuture<TaskResult> futureResult;
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
-
-    private ContextCallback callback = ContextCallback.NO_OP;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
-    private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
+    private volatile boolean killed = false;
+    private ContextCallback callback = ContextCallback.NO_OP;
 
     public UpsertByIdContext(SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
@@ -121,7 +122,11 @@ public class UpsertByIdContext implements ExecutionSubContext {
 
     private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            callback.onClose(t, -1L);
+            if (killed) {
+                callback.onKill();
+            } else {
+                callback.onClose(t, -1L);
+            }
             closeFuture.set(null);
         } else {
             try {
@@ -133,9 +138,13 @@ public class UpsertByIdContext implements ExecutionSubContext {
     }
 
     @Override
-    public void kill() {
-        doClose(new CancellationException());
+    public void kill(@Nullable Throwable throwable) {
+        killed = true;
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
         futureResult.cancel(true);
+        doClose(throwable);
     }
 
     @Override

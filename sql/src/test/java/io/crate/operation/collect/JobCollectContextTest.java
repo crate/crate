@@ -125,6 +125,11 @@ public class JobCollectContextTest extends CrateUnitTest {
             }
 
             @Override
+            public void onKill() {
+                errorFuture.set(new CancellationException());
+            }
+
+            @Override
             public void keepAlive() {
 
             }
@@ -137,10 +142,10 @@ public class JobCollectContextTest extends CrateUnitTest {
                 .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
 
         jobCtx.start();
-        jobCtx.kill();
+        jobCtx.kill(null);
 
-        verify(collectorMock1, times(1)).kill();
-        verify(collectorMock2, times(1)).kill();
+        verify(collectorMock1, times(1)).kill(any(CancellationException.class));
+        verify(collectorMock2, times(1)).kill(any(CancellationException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
 

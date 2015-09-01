@@ -165,7 +165,7 @@ public class JobExecutionContext {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
-                    executionSubContext.kill();
+                    executionSubContext.kill(null);
                     numKilled++;
                 }
             }
@@ -221,14 +221,7 @@ public class JobExecutionContext {
             this.executionPhaseId = executionPhaseId;
         }
 
-        @Override
-        public void onClose(@Nullable Throwable error, long bytesUsed) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}] Closing subContext {}",
-                        System.identityHashCode(subContexts), executionPhaseId);
-            }
-
-
+        private void close(@Nullable Throwable error, long bytesUsed) {
             Object remove;
             synchronized (subContexts) {
                 remove = subContexts.remove(executionPhaseId);
@@ -241,11 +234,43 @@ public class JobExecutionContext {
                 statsTables.operationFinished(executionPhaseId, Exceptions.messageOf(error), bytesUsed);
                 remaining = activeSubContexts.decrementAndGet();
             }
+
             if (remaining == 0) {
                 callContextCallback();
             } else {
                 lastAccessTime = threadPool.estimatedTimeInMillis();
             }
+
+
+        }
+
+        @Override
+        public void onClose(@Nullable Throwable error, long bytesUsed) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[{}] subContext called onClose(...) {}",
+                        System.identityHashCode(subContexts), executionPhaseId);
+            }
+
+            close(error, bytesUsed);
+
+            // close due to failure, close all other sub contexts
+            if (error != null) {
+                LOGGER.trace("killing all other subContexts..");
+                synchronized (subContexts) {
+                    for (ExecutionSubContext subContext : subContexts.values()) {
+                        subContext.kill(error);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onKill() {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[{}] subContext called onKill() {}",
+                        System.identityHashCode(subContexts), executionPhaseId);
+            }
+            close(null, -1);
         }
 
         @Override

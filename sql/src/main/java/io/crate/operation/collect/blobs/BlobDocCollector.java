@@ -30,6 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowFilter;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -68,7 +69,7 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         killed = true;
     }
 

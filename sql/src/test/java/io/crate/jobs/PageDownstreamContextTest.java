@@ -80,9 +80,9 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
         ctx.addCallback(callback);
-        ctx.kill();
+        ctx.kill(null);
 
-        verify(callback, times(1)).onClose(any(CancellationException.class), anyLong());
+        verify(callback, times(1)).onKill();
         ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
         verify(downstream, times(1)).fail(e.capture());
         assertThat(e.getValue(), instanceOf(CancellationException.class));

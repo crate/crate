@@ -26,7 +26,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.jobs.ContextCallback;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -202,7 +201,7 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
         killed = true;
     }
 

@@ -41,6 +41,8 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     private final SymbolBasedBulkShardProcessor bulkShardProcessor;
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
+    private volatile boolean killed = false;
+
     public SymbolBasedBulkShardProcessorContext(SymbolBasedBulkShardProcessor bulkShardProcessor) {
         this.bulkShardProcessor = bulkShardProcessor;
     }
@@ -64,7 +66,11 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     
     private void doClose(@Nullable Throwable t) {
         if (!closed.getAndSet(true)) {
-            callback.onClose(t, -1L);
+            if (killed) {
+                callback.onKill();
+            } else {
+                callback.onClose(t, -1L);
+            }
             closeFuture.set(null);
         } else {
             try {
@@ -85,9 +91,13 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     }
 
     @Override
-    public void kill() {
-        bulkShardProcessor.kill();
-        doClose(new CancellationException());
+    public void kill(@Nullable Throwable throwable) {
+        killed = true;
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
+        bulkShardProcessor.kill(throwable);
+        doClose(throwable);
     }
 
     @Override

@@ -36,7 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
-import java.lang.reflect.Constructor;
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,12 +44,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
@@ -122,8 +119,8 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void kill() {
-                super.kill();
+            public void kill(@Nullable Throwable throwable) {
+                super.kill(throwable);
                 killCalled.set(true);
             }
         };
@@ -150,8 +147,8 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void kill() {
-                super.kill();
+            public void kill(@Nullable Throwable throwable) {
+                super.kill(throwable);
                 killCalled.set(true);
             }
         };
@@ -164,8 +161,8 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder = jobContextService.newBuilder(UUID.randomUUID());
         builder.addSubContext(1, new DummySubContext() {
             @Override
-            public void kill() {
-                super.kill();
+            public void kill(@Nullable Throwable throwable) {
+                super.kill(throwable);
                 kill2Called.set(true);
             }
         });
@@ -272,7 +269,7 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         Thread.sleep(300);
 
-        verify(executionSubContext, times(1)).kill();
+        verify(executionSubContext, times(1)).kill(null);
 
         // close service, stop reaper thread
         jobContextService1.close();
@@ -304,8 +301,10 @@ public class JobContextServiceTest extends CrateUnitTest {
         }
 
         @Override
-        public void kill() {
-            close();
+        public void kill(@Nullable Throwable throwable) {
+            for (ContextCallback callback : callbacks) {
+                callback.onKill();
+            }
         }
 
         @Override

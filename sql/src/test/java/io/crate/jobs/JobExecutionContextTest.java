@@ -22,8 +22,16 @@
 package io.crate.jobs;
 
 import com.google.common.base.Throwables;
+import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.PageDownstream;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.CollectOperation;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.IntegerType;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -86,7 +95,43 @@ public class JobExecutionContextTest extends CrateUnitTest {
         assertThat(jobExecutionContext.kill(), is(2L));
         assertThat(jobExecutionContext.kill(), is(0L)); // second call is ignored, only killed once
 
-        verify(pageDownstreamContext, times(1)).kill();
+        verify(pageDownstreamContext, times(1)).kill(null);
+    }
+
+    @Test
+    public void testFailureClosesAllSubContexts() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
+
+        JobCollectContext jobCollectContext = new JobCollectContext(
+                jobId,
+                mock(CollectPhase.class),
+                mock(CollectOperation.class),
+                mock(RamAccountingContext.class),
+                mock(RowDownstream.class));
+        PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
+                "dummy",
+                mock(PageDownstream.class),
+                new Streamer[]{IntegerType.INSTANCE.streamer()},
+                mock(RamAccountingContext.class),
+                1,
+                null));
+
+        builder.addSubContext(1, jobCollectContext);
+        builder.addSubContext(2, pageDownstreamContext);
+        JobExecutionContext jobExecutionContext = builder.build();
+
+        Exception failure = new Exception("failure!");
+        jobCollectContext.closeDueToFailure(failure);
+        // other contexts must be killed with same failure
+        verify(pageDownstreamContext, times(1)).kill(failure);
+
+        final Field subContexts = JobExecutionContext.class.getDeclaredField("subContexts");
+        subContexts.setAccessible(true);
+        int size = ((ConcurrentMap<Integer, ExecutionSubContext>) subContexts.get(jobExecutionContext)).size();
+
+        assertThat(size, is(0));
     }
 
     @Test
@@ -148,10 +193,13 @@ public class JobExecutionContextTest extends CrateUnitTest {
         public void close() {}
 
         @Override
-        public void kill() {
+        public void kill(@Nullable Throwable throwable) {
             try {
                 Thread.sleep(200);
-                contextCallback.onClose(new CancellationException(), -1L);
+                if (throwable == null) {
+                    throwable = new CancellationException();
+                }
+                contextCallback.onClose(throwable, -1L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

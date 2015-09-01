@@ -56,11 +56,12 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final Object subContextLock = new Object();
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean killed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
+    private final SettableFuture<Void> killFuture = SettableFuture.create();
     private final Collection<CrateCollector> collectors = new ArrayList<>();
 
     private ContextCallback contextCallback = ContextCallback.NO_OP;
-    private volatile boolean isKilled = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
@@ -149,14 +150,9 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     }
 
     private void close(@Nullable Throwable throwable) {
-        if (closed.compareAndSet(false, true)) { // prevent double release
+        if (closed.compareAndSet(false, true)) { // prevent double close
             LOGGER.trace("closing JobCollectContext: {}", id);
-            synchronized (subContextLock) {
-                for (ObjectCursor<CrateSearchContext> cursor : searchContexts.values()) {
-                    cursor.value.close();
-                }
-                searchContexts.clear();
-            }
+            closeSearchContexts();
             long bytesUsed = queryPhaseRamAccountingContext.totalBytes();
             contextCallback.onClose(throwable, bytesUsed);
             queryPhaseRamAccountingContext.close();
@@ -171,12 +167,37 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         }
     }
 
+    private void closeSearchContexts() {
+        synchronized (subContextLock) {
+            for (ObjectCursor<CrateSearchContext> cursor : searchContexts.values()) {
+                cursor.value.close();
+            }
+            searchContexts.clear();
+        }
+    }
+
     @Override
-    public void kill() {
-        isKilled = true;
-        close(new CancellationException());
-        for (CrateCollector collector : collectors) {
-            collector.kill();
+    public void kill(@Nullable Throwable throwable) {
+        if (killed.compareAndSet(false, true)) { // prevent double kill
+            LOGGER.trace("killing JobCollectContext: {}", id);
+            if (throwable == null) {
+                throwable = new CancellationException();
+            }
+            for (CrateCollector collector : collectors) {
+                collector.kill(throwable);
+            }
+            closeSearchContexts();
+            contextCallback.onKill();
+            queryPhaseRamAccountingContext.close();
+            killFuture.set(null);
+        } else {
+            LOGGER.trace("kill called on an already killed JobCollectContext: {}", id);
+            try {
+                killFuture.get();
+            } catch (Throwable e) {
+                LOGGER.warn("Error while waiting for already running kill {}", e);
+            }
+
         }
     }
 
@@ -202,12 +223,13 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
         } catch (Throwable t) {
             RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
             rowDownstreamHandle.fail(t);
+            contextCallback.onClose(t, -1);
         }
     }
 
     @Override
     public boolean isKilled() {
-        return isKilled;
+        return killed.get();
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {

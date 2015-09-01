@@ -193,6 +193,16 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
 
         @Override
+        public void onKill() {
+            activeContexts.remove(jobId);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("[{}]: JobExecutionContext called onKill for job {} removing it -" +
+                                " {} executionContexts remaining",
+                        System.identityHashCode(activeContexts), jobId, activeContexts.size());
+            }
+        }
+
+        @Override
         public void keepAlive() {
         }
     }

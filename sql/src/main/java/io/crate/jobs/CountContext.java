@@ -53,6 +53,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     private ListenableFuture<Long> countFuture;
     private ContextCallback callback = ContextCallback.NO_OP;
+    private volatile boolean killed = false;
 
     private final static ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
@@ -100,11 +101,15 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     }
 
     @Override
-    public void kill() {
+    public void kill(@Nullable Throwable throwable) {
+        killed = true;
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        doClose(new CancellationException());;
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
+        doClose(throwable);
     }
 
     @Override
@@ -114,7 +119,11 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     private void doClose(@Nullable Throwable throwable) {
         if (!closed.getAndSet(true)) {
-            callback.onClose(throwable, -1L);
+            if (killed) {
+                callback.onKill();
+            } else {
+                callback.onClose(throwable, -1L);
+            }
             closeFuture.set(null);
         } else {
             try {

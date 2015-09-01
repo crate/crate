@@ -254,7 +254,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
         assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
-        bulkShardProcessor.kill();
+        bulkShardProcessor.kill(new CancellationException());
         // A CancellationException is thrown
         expectedException.expect(CancellationException.class);
         bulkShardProcessor.result().get();

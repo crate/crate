@@ -31,9 +31,15 @@ public interface ContextCallback extends KeepAliveListener {
         }
 
         @Override
+        public void onKill() {
+        }
+
+        @Override
         public void keepAlive() {
         }
     };
 
     void onClose(@Nullable Throwable error, long bytesUsed);
+
+    void onKill();
 }

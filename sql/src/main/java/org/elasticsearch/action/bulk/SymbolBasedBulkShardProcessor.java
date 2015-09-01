@@ -49,7 +49,6 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -391,8 +390,8 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         }
     }
 
-    public void kill() {
-        failure.compareAndSet(null, new CancellationException());
+    public void kill(@Nullable Throwable throwable) {
+        failure.compareAndSet(null, throwable);
         result.cancel(true);
     }
 
