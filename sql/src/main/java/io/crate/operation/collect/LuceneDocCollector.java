@@ -154,6 +154,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                             ramAccountingContext.limit()));
         }
 
+        if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
+            // trigger keep-alive only every KEEP_ALIVE_AFTER_ROWS
+            // as it uses too much volatile stuff to do it more often
+            keepAliveListener.keepAlive();
+        }
+
         if (skipDoc(doc)) {
             return;
         }
@@ -190,12 +196,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         internalCollectContext.lastCollected.doc = doc;
         internalCollectContext.lastDocBase = currentDocBase;
-
-        if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
-            // trigger keep-alive only every KEEP_ALIVE_AFTER_ROWS
-            // as it uses too much volatile stuff to do it more often
-            keepAliveListener.keepAlive();
-        }
     }
 
 
