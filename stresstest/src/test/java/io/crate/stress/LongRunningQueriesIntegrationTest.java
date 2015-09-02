@@ -19,10 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.integrationtests;
+package io.crate.stress;
 
+import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
+import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.junit.annotations.TestLogging;
@@ -32,6 +36,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@TimeoutSuite(millis = 30 * 20 * TimeUnits.MINUTE)
 @TestLogging("io.crate.jobs.JobExecutionContext:TRACE")
 @ElasticsearchIntegrationTest.ClusterScope (numDataNodes = 2)
 public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTest {
@@ -40,10 +45,9 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
     public ExpectedException expectedException = ExpectedException.none();
 
     private static final long ORIGINAL_KEEP_ALIVE = JobContextService.KEEP_ALIVE;
-    private static final long TEST_KEEP_ALIVE = TimeValue.timeValueSeconds(2).millis();
-    private static final int ROWS = 4;
-    private static final TimeValue TIMEOUT = TimeValue.timeValueSeconds(20);
-
+    private static final long TEST_KEEP_ALIVE = 1_500_000L; // millis
+    private static final int ROWS = 1_500_000;
+    private static final TimeValue TIMEOUT = TimeValue.timeValueMillis(2_500_000);
 
     @Override
     public SQLResponse execute(String stmt) {
@@ -55,9 +59,23 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
         return super.execute(stmt, args, TIMEOUT);
     }
 
+    @Override
+    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
+        return super.execute(stmt, bulkArgs, TIMEOUT);
+    }
+
     @Before
     public void prepare() {
         JobContextService.KEEP_ALIVE = TEST_KEEP_ALIVE;
+
+        execute("create table longt (id int, duration long) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        Object[][] args = new Object[ROWS][];
+        for (int i = 0; i < ROWS; i++) {
+            args[i] = new Object[]{i, 1};
+        }
+        execute("insert into longt (id, duration) values (?, ?)", args);
+        execute("refresh table longt");
     }
 
     @After
@@ -67,51 +85,20 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
 
     @Test
     public void testLongQueryThenFetchContextIsNotReapedWhileInCollector() throws Exception {
-        execute("create table longt (id int, duration long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        Object[][] args = new Object[ROWS][];
-        for (int i = 0; i < ROWS; i++) {
-            args[i] = new Object[]{i, 1000};
-        }
-        execute("insert into longt (id, duration) values (?, ?)", args);
-        execute("refresh table longt");
-
-        // sleep for 4 seconds, 2 seconds more than KEEP_ALIVE
         // where clause is evaluated in LuceneDocCollector
-        execute("select duration from longt where sleep(duration) = true");
+        execute("select duration from longt where sleep(duration) = true limit " + ROWS);
     }
 
     @Test
     public void testLongQueryThenFetchContextIsNotReapedWhileInCollectorWithoutMatches() throws Exception {
-        execute("create table longt (id int, duration long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        Object[][] args = new Object[ROWS][];
-        for (int i = 0; i < ROWS; i++) {
-            args[i] = new Object[]{i, 1000};
-        }
-        execute("insert into longt (id, duration) values (?, ?)", args);
-        execute("refresh table longt");
-
-        // sleep for 4 seconds, 3 seconds more than KEEP_ALIVE
         // where clause is evaluated in LuceneDocCollector
-        execute("select duration from longt where sleep(duration) = false");
+        execute("select duration from longt where sleep(duration) = false limit " + ROWS);
     }
-
-    @TestLogging("io.crate.jobs.JobExecutionContext:TRACE")
+    
     @Test
     public void testLongQueryThenFetchContextIsNotReapedWhileInFetchProjector() throws Exception {
-        execute("create table longt (id int, duration long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        Object[][] args = new Object[ROWS][];
-        for (int i = 0; i < ROWS; i++) {
-            args[i] = new Object[]{i, 1000};
-        }
-        execute("insert into longt (id, duration) values (?, ?)", args);
-        execute("refresh table longt");
-
-        // sleep for 4 seconds, 3 seconds more than KEEP_ALIVE
         // duration will be fetched in FetchProjector and sleep will be executed
         // there (localMerge)
-        execute("select sleep(duration) from longt");
+        execute("select sleep(duration) from longt limit " + ROWS);
     }
 }

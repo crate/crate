@@ -216,7 +216,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
-        response = sqlExecutor.exec(stmt, timeout, args);
+        response = sqlExecutor.exec(stmt, args, timeout);
         return response;
     }
 
@@ -243,8 +243,20 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      * @return the SQLResponse
      */
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
-        return sqlExecutor.exec(stmt, bulkArgs);
+        return sqlExecutor.execBulk(stmt, bulkArgs);
     }
+
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
+     * @param bulkArgs the bulk arguments of the statement
+     * @return the SQLResponse
+     */
+    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+        return sqlExecutor.execBulk(stmt, bulkArgs, timeout);
+    }
+
 
     /**
      * Execute an SQL Statement on a random node of the cluster
