@@ -130,7 +130,7 @@ public class Setup {
                         "13",  "End of the Galaxy", "2013-07-16",  "Galaxy",  6,  "The end of the Galaxy.%", null
                 }
         };
-        transportExecutor.exec(insertStmt, rows);
+        transportExecutor.execBulk(insertStmt, rows);
     }
 
     public void groupBySetup() throws Exception {
@@ -303,12 +303,12 @@ public class Setup {
     public void setUpCharacters() {
         transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
         transportExecutor.ensureGreen();
-        transportExecutor.exec("insert into characters (id, name, female) values (?, ?, ?)",
+        transportExecutor.execBulk("insert into characters (id, name, female) values (?, ?, ?)",
                 new Object[][]{
-                        new Object[] { 1, "Arthur", false},
-                        new Object[] { 2, "Ford", false},
-                        new Object[] { 3, "Trillian", true},
-                        new Object[] { 4, "Arthur", true}
+                        new Object[]{1, "Arthur", false},
+                        new Object[]{2, "Ford", false},
+                        new Object[]{3, "Trillian", true},
+                        new Object[]{4, "Arthur", true}
                 }
         );
         transportExecutor.refresh("characters");
@@ -317,11 +317,11 @@ public class Setup {
     public void setUpPartitionedTableWithName() {
         transportExecutor.exec("create table parted (id int, name string, date timestamp) partitioned by (date)");
         transportExecutor.ensureGreen();
-        transportExecutor.exec("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
-                new Object[]{
-                        1, "Trillian", null,
-                        2, null, 0L,
-                        3, "Ford", 1396388720242L
+        transportExecutor.execBulk("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[][]{
+                        {1, "Trillian", null},
+                        {2, null, 0L},
+                        {3, "Ford", 1396388720242L}
                 });
         transportExecutor.ensureGreen();
         transportExecutor.refresh("parted");
