@@ -731,6 +731,8 @@ There are currently four checks:
 +------------------+------------------------------------+
 | 4                | Recovery after time.               |
 +------------------+------------------------------------+
+| 5                | Number of partitions.              |
++------------------+------------------------------------+
 
 Settings checks:
 ----------------
@@ -775,6 +777,12 @@ Recovery after time
 The check for the :ref:`gateway.recover_after_time
 <gateway.recover_after_time>` settings verifies that the time before recovery
 starts must not be less than default value of ``5m``.
+
+Number of partitons
+...................
+The check verifies that the one or more :ref:`partitioned tables
+<partitioned_tables>` have the number of partitions which is greater than
+``1000``.
 
 For instance, if the :ref:`gateway.expected_nodes <gateway.expected_nodes>` and
 :ref:`discovery.zen.minimum_master_nodes <discovery.zen.minimum_master_nodes>`
