@@ -80,7 +80,8 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
 
         // left context
         if (nestedLoopPhase.leftMergePhase() != null) {
-            leftDownstreamContext = createPageDownstreamContext(nestedLoopPhase.leftMergePhase());
+            leftDownstreamContext = createPageDownstreamContext(nestedLoopPhase.leftMergePhase(),
+                    nestedLoopOperation.leftDownStream());
             leftDownstreamContext.addCallback(new RemoveContextCallback(0));
             activeSubContexts.incrementAndGet();
         } else {
@@ -88,7 +89,8 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
         }
         // right context
         if (nestedLoopPhase.rightMergePhase() != null) {
-            rightDownstreamContext = createPageDownstreamContext(nestedLoopPhase.rightMergePhase());
+            rightDownstreamContext = createPageDownstreamContext(nestedLoopPhase.rightMergePhase(),
+                    nestedLoopOperation.rightDownStream());
             rightDownstreamContext.addCallback(new RemoveContextCallback(1));
             activeSubContexts.incrementAndGet();
         } else {
@@ -96,7 +98,6 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
         }
 
     }
-
 
     @Override
     public void addCallback(ContextCallback contextCallback) {
@@ -192,11 +193,12 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
         return false;
     }
 
-    private PageDownstreamContext createPageDownstreamContext(MergePhase phase) {
+    private PageDownstreamContext createPageDownstreamContext(MergePhase phase,
+                                                              RowDownstream rowDownstream) {
         Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                 pageDownstreamFactory.createMergeNodePageDownstream(
                         phase,
-                        nestedLoopOperation,
+                        rowDownstream,
                         true,
                         ramAccountingContext,
                         Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)));
