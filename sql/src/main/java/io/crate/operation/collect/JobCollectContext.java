@@ -162,7 +162,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
             try {
                 closeFuture.get();
             } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
+                LOGGER.warn("Error while waiting for already running close {}", e, id);
             }
         }
     }
