@@ -50,8 +50,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        PageDownstream leftPageDownstream = pageDownstream(nestedLoopOperation);
-        PageDownstream rightPageDownstream = pageDownstream(nestedLoopOperation);
+        PageDownstream leftPageDownstream = pageDownstream(nestedLoopOperation.leftDownStream());
+        PageDownstream rightPageDownstream = pageDownstream(nestedLoopOperation.rightDownStream());
 
         Thread t1 = sendRowsThreaded("left", leftPageDownstream, leftRows);
         Thread t2 = sendRowsThreaded("right", rightPageDownstream, rightRows);
@@ -60,9 +60,9 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         return collectingProjector.result().get(2, TimeUnit.SECONDS);
     }
 
-    private PageDownstream pageDownstream(NestedLoopOperation nestedLoopOperation) {
+    private PageDownstream pageDownstream(RowDownstream rowDownstream) {
         return new IteratorPageDownstream(
-                    new NestedLoopRowDownstream(nestedLoopOperation),
+                    rowDownstream,
                     new PassThroughPagingIterator<Row>(),
                     Optional.<Executor>absent(),
                     true
@@ -83,8 +83,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingProjector collectingProjector = new CollectingProjector();
         nestedLoopOperation.downstream(collectingProjector);
 
-        final PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation);
-        final PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation);
+        final PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftDownStream());
+        final PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightDownStream());
 
         setLastPage(leftBucketMerger, Buckets.of(new Row1(1)));
 
@@ -141,8 +141,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     public void testNestedLoopWithTopNDownstream() throws Exception {
         NestedLoopOperation nestedLoopOperation = new NestedLoopOperation();
 
-        PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation);
-        PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation);
+        PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftDownStream());
+        PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightDownStream());
 
         InputCollectExpression firstCol = new InputCollectExpression(0);
         InputCollectExpression secondCol = new InputCollectExpression(1);
@@ -203,18 +203,5 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         t.setDaemon(true);
         t.start();
         return t;
-    }
-
-    private static class NestedLoopRowDownstream implements RowDownstream {
-        private final NestedLoopOperation nestedLoopOperation;
-
-        public NestedLoopRowDownstream(NestedLoopOperation nestedLoopOperation) {
-            this.nestedLoopOperation = nestedLoopOperation;
-        }
-
-        @Override
-        public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-            return nestedLoopOperation.registerUpstream(upstream);
-        }
     }
 }

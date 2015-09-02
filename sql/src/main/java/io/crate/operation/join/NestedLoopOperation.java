@@ -25,12 +25,11 @@ import io.crate.core.collections.Row;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.SingleUpstreamRowDownstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class NestedLoopOperation implements RowUpstream, RowDownstream {
+public class NestedLoopOperation implements RowUpstream {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
 
@@ -38,10 +37,9 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     private final LeftDownstreamHandle leftDownstreamHandle;
     private final RightDownstreamHandle rightDownstreamHandle;
     private final Object mutex = new Object();
-    private final AtomicInteger numUpstreams = new AtomicInteger(0);
 
-    private RowUpstream leftUpstream;
-    private RowUpstream rightUpstream;
+    private SingleUpstreamRowDownstream leftDownstream;
+    private SingleUpstreamRowDownstream rightDownstream;
 
     private RowDownstreamHandle downstream;
     private volatile boolean leftFinished = false;
@@ -52,19 +50,16 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
     public NestedLoopOperation() {
         leftDownstreamHandle = new LeftDownstreamHandle();
         rightDownstreamHandle = new RightDownstreamHandle();
+        leftDownstream = new SingleUpstreamRowDownstream(leftDownstreamHandle);
+        rightDownstream = new SingleUpstreamRowDownstream(rightDownstreamHandle);
     }
 
+    public RowDownstream leftDownStream() {
+        return leftDownstream;
+    }
 
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        if (numUpstreams.incrementAndGet() == 1) {
-            leftUpstream = upstream;
-            return leftDownstreamHandle;
-        } else {
-            assert numUpstreams.get() <= 2: "Only 2 upstreams supported";
-            rightUpstream = upstream;
-            return rightDownstreamHandle;
-        }
+    public RowDownstream rightDownStream() {
+        return rightDownstream;
     }
 
     public void downstream(RowDownstream downstream) {
@@ -137,7 +132,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                     return false;
                 }
                 lastRow = row;
-                leftUpstream.pause();
+                leftDownstream.upstream().pause();
                 rightDownstreamHandle.leftIsPaused = true;
             }
             return rightDownstreamHandle.resume();
@@ -150,7 +145,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (rightFinished) {
                     downstream.finish();
                 } else {
-                    rightUpstream.resume(false);
+                    rightDownstream.upstream().resume(false);
                 }
             }
             LOGGER.debug("left downstream finished");
@@ -189,7 +184,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                         return false;
                     }
                     lastRow = rightRow;
-                    rightUpstream.pause();
+                    rightDownstream.upstream().pause();
                     return true;
                 }
             }
@@ -211,7 +206,7 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
                 if (leftFinished) {
                     downstream.finish();
                 } else {
-                    leftUpstream.resume(false);
+                    leftDownstream.upstream().resume(false);
                 }
             }
         }
@@ -232,12 +227,12 @@ public class NestedLoopOperation implements RowUpstream, RowDownstream {
 
             if (rightFinished) {
                 if (receivedRows) {
-                    rightUpstream.repeat();
+                    rightDownstream.upstream().repeat();
                 } else {
                     return false;
                 }
             } else {
-                rightUpstream.resume(false);
+                rightDownstream.upstream().resume(false);
             }
             return true;
         }
