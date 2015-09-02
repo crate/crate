@@ -5,6 +5,18 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to version 0.14.0 which contains the following changes:
+
+    - Fixed output tabular format bug which results in wrong representation
+      of a string containing a floating point value.
+
+    - Updated wording of the cluster check command output.
+
+    - Added the check command which queries the ``sys.checks`` table for
+      cluster checks
+
+    - updated crate-python to 0.13.4
+
  - Fixed an issue that could kill long running queries on shards with few
    segments containing huge amounts of documents
 
