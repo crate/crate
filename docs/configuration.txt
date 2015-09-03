@@ -347,6 +347,57 @@ Collecting Stats
   expressive results but also in more occupied RAM. Setting it to
   ``0`` disables collecting operation information.
 
+.. _conf_usage_data_collector:
+
+Usage Data Collector
+--------------------
+
+The settings of the Usage Data Collector are read-only and cannot be set
+during runtime. Please refer to :ref:`usage_data_collector` to get further
+information about its usage.
+
+.. _udc_enabled:
+
+**udc.enabled**
+  | *Default:*  ``true``
+  | *Runtime:*  ``no``
+
+  ``true``: Enables the Usage Data Collector.
+
+  ``false``: Disables the Usage Data Collector.
+
+.. _cluster.udc.initial_delay:
+
+**udc.initial_delay**
+  | *Default:*  ``10m``
+  | *Runtime:*  ``no``
+
+  The delay for first ping after start-up.
+
+  This field expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix.
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.udc.interval:
+
+**udc.interval**
+  | *Default:*  ``24h``
+  | *Runtime:*  ``no``
+
+  The interval a UDC ping is sent.
+
+  This field expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix.
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.udc.url:
+
+**udc.url**
+  | *Default:*  ``https://udc.crate.io``
+  | *Runtime:*  ``no``
+
+  The URL the ping is sent to.
+
 .. _conf_graceful_stop:
 
 Graceful Stop

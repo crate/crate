@@ -150,4 +150,27 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
     }
+
+    @Test
+    public void testStaticGatewayDefaultSettings() {
+        execute("select settings from sys.cluster");
+        assertEquals(1L, response.rowCount());
+        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+        Map gateway = settings.get(CrateSettings.GATEWAY.name());
+        assertEquals("5m", gateway.get(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()));
+        assertEquals(-1, gateway.get(CrateSettings.GATEWAY_EXPECTED_NODES.name()));
+        assertEquals(-1, gateway.get(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()));
+    }
+
+    @Test
+    public void testStaticUDCDefaultSettings() {
+        execute("select settings['udc'] from sys.cluster");
+        assertEquals(1L, response.rowCount());
+        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+        assertEquals(4, settings.size());
+        assertEquals(true, settings.get(CrateSettings.UDC_ENABLED.name()));
+        assertEquals("10m", settings.get(CrateSettings.UDC_INITIAL_DELAY.name()));
+        assertEquals("1d", settings.get(CrateSettings.UDC_INTERVAL.name()));
+        assertEquals("https://udc.crate.io", settings.get(CrateSettings.UDC_URL.name()));
+    }
 }

@@ -163,5 +163,11 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         childImplementations.put(
                 CrateSettings.BULK.name(),
                 new NestedSettingExpression(CrateSettings.BULK, values));
+        childImplementations.put(
+                CrateSettings.GATEWAY.name(),
+                new NestedSettingExpression(CrateSettings.GATEWAY, values));
+        childImplementations.put(
+                CrateSettings.UDC.name(),
+                new NestedSettingExpression(CrateSettings.UDC, values));
     }
 }
