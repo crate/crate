@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``ifnull`` scalar function
+
  - Updated crash to version 0.14.0 which contains the following changes:
 
     - Fixed output tabular format bug which results in wrong representation
