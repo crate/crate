@@ -94,7 +94,13 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
         // where clause is evaluated in LuceneDocCollector
         execute("select duration from longt where sleep(duration) = false limit " + ROWS);
     }
-    
+
+    @Test
+    public void testLongQTFContextIsNotReapedWhileSortingInCollector() throws Exception {
+        // order by is evaluated in OrderedLuceneDocCollector
+        execute("select duration from longt order by sleep(duration) limit " + ROWS);
+    }
+
     @Test
     public void testLongQueryThenFetchContextIsNotReapedWhileInFetchProjector() throws Exception {
         // duration will be fetched in FetchProjector and sleep will be executed

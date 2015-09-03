@@ -5,7 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to 
+ - Fixed handling of non-deterministic functions
+
+ - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to
    indicate its configured settings.
 
  - Updated crash to version 0.14.0 which contains the following changes:

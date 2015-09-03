@@ -28,6 +28,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
@@ -51,6 +52,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.symbol.*;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.SleepScalarFunction;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -113,6 +115,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         protected void bindFunctions() {
             super.bindFunctions();
             functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
+            functionBinder.addBinding(new FunctionIdent(SleepScalarFunction.NAME, ImmutableList.<DataType>of(DataTypes.LONG)))
+                    .toInstance(new SleepScalarFunction());
         }
     }
 
@@ -1568,5 +1572,42 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         WhereClause whereClause = stmt.relation().querySpec().where();
         assertThat(whereClause.hasQuery(), is(true));
         assertThat(whereClause.query(), isFunction("any_=", ImmutableList.<DataType>of(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))));
+    }
+
+    @Test
+    public void testNonDeterministicFunctionsAreNotAllocated() throws Exception {
+        SelectAnalyzedStatement stmt = analyze(
+                "select sleep(1), sleep(id), sleep(1) " +
+                "from transactions " +
+                "where sleep(1) = true " +
+                "order by 1, sleep(1), sleep(id)");
+        List<Symbol> outputs = stmt.relation().querySpec().outputs();
+        List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().orderBySymbols();
+
+        // non deterministic, all equal
+        assertThat(outputs.get(0),
+                allOf(
+                        equalTo(outputs.get(2)),
+                        equalTo(orderBySymbols.get(1))
+                )
+        );
+        // different instances
+        assertThat(outputs.get(0), allOf(
+                not(sameInstance(outputs.get(2))),
+                not(sameInstance(orderBySymbols.get(1))
+        )));
+        assertThat(outputs.get(1),
+                equalTo(orderBySymbols.get(2)));
+
+        // "order by 1" references output 1, its the same
+        assertThat(outputs.get(0), is(equalTo(orderBySymbols.get(0))));
+        assertThat(outputs.get(0), is(sameInstance(orderBySymbols.get(0))));
+        assertThat(orderBySymbols.get(0), is(equalTo(orderBySymbols.get(1))));
+
+        // check where clause
+        WhereClause whereClause = stmt.relation().querySpec().where();
+        Function eqFunction = (Function)whereClause.query();
+        Symbol whereClauseSleepFn = eqFunction.arguments().get(0);
+        assertThat(outputs.get(0), is(equalTo(whereClauseSleepFn)));
     }
 }

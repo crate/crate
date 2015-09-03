@@ -29,8 +29,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
@@ -384,13 +383,13 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectOrderByScalarOnNullValue() throws Exception {
         execute("create table t (d long) clustered into 1 shards with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into t (d) values (?)", new Object[][] {
-                new Object[] { -7L },
-                new Object[] { null },
-                new Object[] { 5L },
-                new Object[] { null }
+        execute("insert into t (d) values (?)", new Object[][]{
+                new Object[]{-7L},
+                new Object[]{null},
+                new Object[]{5L},
+                new Object[]{null}
 
-        } );
+        });
         execute("refresh table t");
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
         assertThat(response.rows()[0][0], is(nullValue()));

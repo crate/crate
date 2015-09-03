@@ -132,7 +132,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpEmployees();
         assertGotCancelled("SELECT sleep(500), sum(income) as summed_income, count(distinct name), department " +
                 "from employees " +
-                "group by sleep(500), department " +
+                "group by 1, department " +
                 "having avg(income) > 100 " +
                 "order by department desc nulls first " +
                 "limit 10", null, true);
