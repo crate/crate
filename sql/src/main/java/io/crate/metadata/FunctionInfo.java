@@ -40,6 +40,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     private Type type;
     private boolean deterministic;
 
+
     public enum Type {
         SCALAR,
         AGGREGATE,
@@ -73,30 +74,28 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return type;
     }
 
+    public boolean isDeterministic() {
+        return deterministic;
+    }
 
     public DataType returnType() {
         return returnType;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-
-        FunctionInfo o = (FunctionInfo) obj;
-        return deterministic &&
-                Objects.equal(type, o.type) &&
-                Objects.equal(ident, o.ident) &&
-                Objects.equal(returnType, o.returnType);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FunctionInfo that = (FunctionInfo) o;
+        return Objects.equal(deterministic, that.deterministic) &&
+                Objects.equal(ident, that.ident) &&
+                Objects.equal(returnType, that.returnType) &&
+                Objects.equal(type, that.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(type, ident, returnType, (deterministic ? true : Math.random()));
+        return Objects.hashCode(ident, returnType, type, deterministic);
     }
 
     @Override
@@ -105,6 +104,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
                 .add("type", type)
                 .add("ident", ident)
                 .add("returnType", returnType)
+                .add("deterministic", deterministic)
                 .toString();
     }
 
@@ -114,6 +114,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
                 .compare(type, o.type)
                 .compare(ident, o.ident)
                 .compare(returnType, o.returnType)
+                .compare(deterministic, o.deterministic)
                 .result();
     }
 

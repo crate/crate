@@ -98,11 +98,10 @@ public class Function extends Symbol implements Cloneable {
 
         Function function = (Function) o;
 
-        if (arguments != null ? !arguments.equals(function.arguments) : function.arguments != null)
+        if (info != null ? !info.equals(function.info) : function.info != null)
             return false;
-        if (info != null ? !info.equals(function.info) : function.info != null) return false;
+        return !(arguments != null ? !arguments.equals(function.arguments) : function.arguments != null);
 
-        return true;
     }
 
     @Override
@@ -114,7 +113,6 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public Function clone() {
-        List<Symbol> args = new ArrayList<>(this.arguments);
-        return new Function(this.info, args);
+        return new Function(this.info, new ArrayList<>(this.arguments));
     }
 }

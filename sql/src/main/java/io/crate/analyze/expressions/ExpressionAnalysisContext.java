@@ -41,7 +41,7 @@ public class ExpressionAnalysisContext {
      */
     private final Map<CurrentTime, Literal> allocatedCurrentTimestamps = new HashMap<>();
 
-    private final Map<Function, Function> functionSymbols = new HashMap<>();
+    private final Map<Function, Function> deterministicFunctionSymbols = new HashMap<>();
     public boolean hasAggregates = false;
 
     public ExpressionAnalysisContext() {
@@ -49,16 +49,18 @@ public class ExpressionAnalysisContext {
 
     public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
         Function newFunction = new Function(functionInfo, arguments);
-        Function existingFunction = functionSymbols.get(newFunction);
-
-        if (existingFunction == null) {
-            functionSymbols.put(newFunction, newFunction);
-            hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
-
-            return newFunction;
+        if (functionInfo.isDeterministic()) {
+            Function existingFunction = deterministicFunctionSymbols.get(newFunction);
+            if (existingFunction == null) {
+                deterministicFunctionSymbols.put(newFunction, newFunction);
+                hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
+            } else {
+                return existingFunction;
+            }
         } else {
-            return existingFunction;
+            hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
         }
+        return newFunction;
     }
 
     /**

@@ -22,17 +22,11 @@
 package io.crate.planner.projection.builder;
 
 import com.google.common.base.MoreObjects;
-import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVisitor.Context, Symbol> {
@@ -42,12 +36,16 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVi
     static class Context {
 
         final HashMap<Symbol, InputColumn> inputs;
+        final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
 
-        /**
-         *
-          */
-        Context(Collection<? extends Symbol> inputs, @Nullable Aggregation.Step fromStep) {
+        Context(Collection<? extends Symbol> inputs) {
             this.inputs = new HashMap<>(inputs.size());
+
+            // non deterministic functions would override each other in a normal hashmap
+            // as they compare equal but shouldn't be treated that way here.
+            // we want them to have their own Input each
+            this.nonDeterministicFunctions = new IdentityHashMap<>(inputs.size());
+
             int i = 0;
             for (Symbol input : inputs) {
                 // only non-literals should be replaced with input columns.
@@ -55,21 +53,15 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVi
                 // results in poor performance of some scalar implementations
                 if (!input.symbolType().isValueSymbol()) {
                     DataType valueType = input.valueType();
-                    if (fromStep != null && fromStep == Aggregation.Step.PARTIAL) {
-                        // TODO: once we have the datatype of partial aggs, we need to add it here
-                        Function function = (Function) input;
-                        if (function.info().type() == FunctionInfo.Type.AGGREGATE) {
-                            valueType = DataTypes.UNDEFINED;
-                        }
+                    if (input.symbolType() == SymbolType.FUNCTION && !((Function)input).info().isDeterministic()) {
+                        nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
+                    } else {
+                        this.inputs.put(input, new InputColumn(i, valueType));
                     }
-                    this.inputs.put(input, new InputColumn(i, valueType));
                 }
                 i++;
             }
-        }
 
-        public Context(Collection<? extends Symbol> inputs) {
-            this(inputs, null);
         }
     }
 
@@ -84,7 +76,13 @@ class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVi
 
     @Override
     public Symbol visitFunction(Function symbol, final Context context) {
-        Symbol replacement = context.inputs.get(symbol);
+        Symbol replacement;
+        if (symbol.info().isDeterministic()) {
+            replacement = context.inputs.get(symbol);
+        } else {
+            replacement = context.nonDeterministicFunctions.get(symbol);
+        }
+
         if (replacement != null) {
             return replacement;
         }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed handling of non-deterministic functions
+
 2015/09/15 0.50.6
 =================
 

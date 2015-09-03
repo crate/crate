@@ -33,6 +33,7 @@ import io.crate.core.collections.*;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -56,6 +57,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -152,13 +154,19 @@ public class TestingHelpers {
     }
 
     public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
-        return createFunction(functionName, returnType, Arrays.asList(arguments));
+        return createFunction(functionName, returnType, Arrays.asList(arguments), true);
     }
 
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
+        return createFunction(functionName, returnType, arguments, true);
+    }
+
+    public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments, boolean deterministic) {
         List<DataType> dataTypes = Symbols.extractTypes(arguments);
         return new Function(
-                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType), arguments);
+                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType, FunctionInfo.Type.SCALAR, deterministic),
+                arguments
+        );
     }
 
     public static Reference createReference(String columnName, DataType dataType) {
@@ -653,6 +661,32 @@ public class TestingHelpers {
                 description.appendText("nulls ").appendText(nullsFirst != null && nullsFirst ? "first" : "last");
             }
         };
+    }
+
+    public static DataType randomPrimitiveType() {
+        return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
+    }
+
+    public static DataType randomType() {
+        DataType result;
+        if (ThreadLocalRandom.current().nextBoolean()) {
+
+            switch (ThreadLocalRandom.current().nextInt(3)) {
+                case 0:
+                    result = DataTypes.OBJECT;
+                    break;
+                case 1:
+                    result = new ArrayType(randomPrimitiveType());
+                    break;
+                case 2:
+                default:
+                    result = DataTypes.GEO_POINT;
+                    break;
+            }
+        } else {
+            result = randomPrimitiveType();
+        }
+        return result;
     }
 
 
