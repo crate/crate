@@ -146,7 +146,8 @@ public class ProjectionToProjectorVisitor
     public Projector visitMergeProjection(MergeProjection projection, Context context) {
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
                 (List<Symbol>)projection.outputs());
-        return new MergeProjector(
+        return new BlockingSortingQueuedRowDownstream(
+                projection.outputs().size(),
                 orderByIndices,
                 projection.reverseFlags(),
                 projection.nullsFirst());
