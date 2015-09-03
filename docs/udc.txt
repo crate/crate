@@ -1,21 +1,24 @@
+.. _usage_data_collector:
+
 ====================
 Usage Data Collector
 ====================
 
 The Crate Usage Data Collector (UDC) is a sub-system that gathers
 usage data, reporting it to the UDC server at https://udc.crate.io.
-It is easy to disable, and does not collect any data that is confidential. 
+It is easy to disable, and does not collect any data that is confidential.
 For more information about what is being sent, see below.
 
-Crate uses this information as a form of automatic, effortless feedback from the community. We want
-to verify that we are doing the right thing by matching download statistics with usage statistics.
-After each release, we can see if there is a larger retention span of the server software.
+Crate uses this information as a form of automatic, effortless feedback from the
+community. We want to verify that we are doing the right thing by matching
+download statistics with usage statistics. After each release, we can see if
+there is a larger retention span of the server software.
 
-The data collected is clearly stated here. If any future versions of this system collect additional
-data, we will clearly announce those changes.
+The data collected is clearly stated here. If any future versions of this system
+collect additional data, we will clearly announce those changes.
 
-Crate is very concerned about your privacy. We do not disclose any personally identifiable
-information.
+Crate is very concerned about your privacy. We do not disclose any personally
+identifiable information.
 
 Technical Information
 =====================
@@ -35,28 +38,24 @@ To gather good statistics about Crate usage, UDC collects this information:
     Hardware Address  MAC address to uniquely identify instances behind firewalls.
     ================  =============================================================================
 
-After startup, UDC waits for 10 minutes before sending the first ping. It does this for two reasons;
-first, we don't want the startup to be slower because of UDC, and secondly, we want to keep pings
-from automatic tests to a minimum. By default, UDC is sending pings every 24 hours. The ping to the
-UDC servers is done with a HTTP GET.
+After startup, UDC waits for 10 minutes before sending the first ping. It does
+this for two reasons; first, we don't want the startup to be slower because of
+UDC, and secondly, we want to keep pings from automatic tests to a minimum. By
+default, UDC is sending pings every 24 hours. The ping to the UDC servers is
+done with a HTTP GET.
 
 Configuration
 =============
-The Usage Data Collector can be configured by following parameters:
-
-    =================    ====================    ========================================
-    Name                 Default Value           Description
-    =================    ====================    ========================================
-    udc.enabled          true                    Disable/Enable UDC.
-    udc.initial_delay    10 Minutes              The delay for first ping after start-up.
-    udc.interval         24 Hours                The interval a ping is sent.
-    udc.url              https://udc.crate.io    The url the ping is sent to.
-    =================    ====================    ========================================
-
+The Usage Data Collector can be configured by adapting the ``crate.yml``
+configuration file or adding a system property setting. Refer to
+:ref:`conf_usage_data_collector` to see how these settings can be accessed and
+how they are configured.
 
 How to disable UDC
 ==================
-Below are two ways you can disable UDC. However we hope you support us offering the open source edition, and leave UDC on, so we learn how many people use Crate.
+Below are two ways you can disable UDC. However we hope you support us offering
+the open source edition, and leave UDC on, so we learn how many people use
+Crate.
 
 .. highlight:: yaml
 
@@ -69,6 +68,7 @@ Just add following to your ``crate.yml`` configuration file::
 By system property
 -------------------------
 If you do not want to make any change to the jars or to the configuration,
-a system property setting like this will also make sure that UDC is never activated::
+a system property setting like this will also make sure that UDC is never
+activated::
 
     -Des.udc.enabled=false

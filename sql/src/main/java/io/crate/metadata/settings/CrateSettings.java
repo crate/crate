@@ -1295,8 +1295,87 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting UDC = new NestedSetting() {
+        @Override
+        public String name() {
+            return "udc";
+        }
 
-    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY);
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(UDC_ENABLED, UDC_INITIAL_DELAY, UDC_INTERVAL, UDC_URL);
+        }
+    };
+
+    public static final BoolSetting UDC_ENABLED = new BoolSetting() {
+        @Override
+        public String name() {
+            return "enabled";
+        }
+
+        @Override
+        public Boolean defaultValue() {
+            return true;
+        }
+
+        @Override
+        public Setting parent() {
+            return UDC;
+        }
+    };
+
+    public static final TimeSetting UDC_INITIAL_DELAY = new TimeSetting() {
+        @Override
+        public String name() {
+            return "initial_delay";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueMinutes(10);
+        }
+
+        @Override
+        public Setting parent() {
+            return UDC;
+        }
+    };
+
+    public static final TimeSetting UDC_INTERVAL = new TimeSetting() {
+        @Override
+        public String name() {
+            return "interval";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueHours(24);
+        }
+
+        @Override
+        public Setting parent() {
+            return UDC;
+        }
+    };
+
+    public static final StringSetting UDC_URL = new StringSetting() {
+        @Override
+        public String name() {
+            return "url";
+        }
+
+        @Override
+        public String defaultValue() {
+            return "https://udc.crate.io";
+        }
+
+        @Override
+        public Setting parent() {
+            return UDC;
+        }
+    };
+
+    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(CrateSettings.STATS.settingName(),

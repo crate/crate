@@ -357,6 +357,16 @@ public class SysClusterTableInfo extends SysTableInfo {
                 CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()));
         register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.GATEWAY.name(),
                 CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()));
+
+        register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.UDC.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.UDC.name(),
+                CrateSettings.UDC_ENABLED.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.UDC.name(),
+                CrateSettings.UDC_INITIAL_DELAY.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.UDC.name(),
+                CrateSettings.UDC_INTERVAL.name()));
+        register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.UDC.name(),
+                CrateSettings.UDC_URL.name()));
     }
 
     @Inject

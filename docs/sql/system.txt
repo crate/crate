@@ -156,8 +156,13 @@ currently applied cluster settings.
     | settings['gateway']['expected_nodes']                                             | integer   |
     | settings['gateway']['recover_after_nodes']                                        | integer   |
     | settings['gateway']['recover_after_time']                                         | string    |
+    | settings['udc']                                                                   | object    |
+    | settings['udc']['enabled']                                                        | boolean   |
+    | settings['udc']['initial_delay']                                                  | string    |
+    | settings['udc']['interval']                                                       | string    |
+    | settings['udc']['url']                                                            | string    |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 86 rows in set (... sec)
+    SELECT 91 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
