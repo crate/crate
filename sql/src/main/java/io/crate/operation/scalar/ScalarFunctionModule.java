@@ -106,6 +106,7 @@ public class ScalarFunctionModule extends AbstractModule {
         DateFormatFunction.register(this);
 
         ConcatFunction.register(this);
+        IfnullFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

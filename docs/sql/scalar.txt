@@ -54,6 +54,63 @@ There is also a special concat operator ``||`` which can also be used::
     +----------------------+
     SELECT 1 row in set (... sec)
 
+ifnull(expr1, expr2) returns string
+-----------------------------------
+
+The ``ifnull`` function takes exactly two arguments, expr1 and expr2.
+By default, expr1 is returned if it is not null.
+If expr1 is null, expr2 is returned.
+In case that both expr1 and expr2 are null, the string '(null)' is returned
+
+::
+
+   cr> select ifnull('foo', 'bar') from sys.cluster;
+   +----------------------+
+   | ifnull('foo', 'bar') |
+   +----------------------+
+   | foo                  |
+   +----------------------+
+   SELECT 1 row in set (... sec)
+
+   cr> select ifnull('foo', null) from sys.cluster;
+   +---------------------+
+   | ifnull('foo', null) |
+   +---------------------+
+   | foo                 |
+   +---------------------+
+   SELECT 1 row in set (... sec)
+
+   cr> select ifnull(null, 'bar') from sys.cluster;
+   +---------------------+
+   | ifnull(null, 'bar') |
+   +---------------------+
+   | bar                 |
+   +---------------------+
+   SELECT 1 row in set (... sec)
+
+   cr> select ifnull(null, null) from sys.cluster;
+   +--------------------+
+   | ifnull(null, null) |
+   +--------------------+
+   | (null)             |
+   +--------------------+
+   SELECT 1 row in set (... sec)
+
+   cr> select ifnull(1/1, 'foo') from sys.cluster;
+   +------------------------+
+   | ifnull((1 / 1), 'foo') |
+   +------------------------+
+   |                      1 |
+   +------------------------+
+   SELECT 1 row in set (... sec)
+
+   cr> select ifnull(99+1, 'bar') from sys.cluster;
+   +-------------------------+
+   | ifnull((99 + 1), 'bar') |
+   +-------------------------+
+   |                     100 |
+   +-------------------------+
+   SELECT 1 row in set (... sec)
 
 format('format_string', parameter, [ parameter , ... ]) returns string
 ----------------------------------------------------------------------
