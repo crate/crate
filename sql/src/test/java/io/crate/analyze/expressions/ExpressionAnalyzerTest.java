@@ -34,17 +34,22 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -122,5 +127,29 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         Field t1Id = ((Field) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
         Field t2Id = ((Field) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
         assertTrue(t1Id.relation() != t2Id.relation());
+    }
+
+    @Test
+    public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
+        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext();
+        FunctionInfo info1 = new FunctionInfo(
+                new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
+                DataTypes.INTEGER,
+                FunctionInfo.Type.SCALAR,
+                false
+        );
+        Function fn1 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
+        Function fn2 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
+        Function fn3 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_TRUE));
+
+        // different instances
+        assertThat(fn1, allOf(
+                not(sameInstance(fn2)),
+                not(sameInstance(fn3))
+
+        ));
+        // but equal
+        assertThat(fn1, is(equalTo(fn2)));
+        assertThat(fn1, is(not(equalTo(fn3))));
     }
 }

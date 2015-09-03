@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed handling of non-deterministic functions
+
  - Fixed an issue that could kill long running queries on shards with few
    segments containing huge amounts of documents
 
