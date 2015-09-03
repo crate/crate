@@ -22,6 +22,10 @@
 package io.crate.operation.reference.sys.check.checks;
 
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
@@ -31,6 +35,9 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
+
+import java.util.Iterator;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -42,6 +49,9 @@ public class SysChecksTest extends CrateUnitTest {
     private static ClusterState clusterState = mock(ClusterState.class);
     private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
     private static NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
+    private static Iterator docSchemaInfoItr = mock(Iterator.class);
+    private static DocSchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
+    private static DocTableInfo docTableInfo = mock(DocTableInfo.class);
 
     @Test
     public void testMaxMasterNodesCheckWithEmptySetting() {
@@ -197,6 +207,47 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(recoveryAfterNodesCheck.id(), is(4));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testNumberOfPartitionCorrectPartitioning() {
+        NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
+                mock(ReferenceInfos.class));
+
+        when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);
+        when(docSchemaInfoItr.hasNext()).thenReturn(true, true, false);
+        when(docSchemaInfoItr.next()).thenReturn(docTableInfo);
+        when(docTableInfo.isPartitioned()).thenReturn(true, true);
+
+        List<PartitionName> partitionsFirst = mock(List.class);
+        List<PartitionName> partitionsSecond = mock(List.class);
+        when(docTableInfo.partitions()).thenReturn(partitionsFirst, partitionsSecond);
+        when(partitionsFirst.size()).thenReturn(500);
+        when(partitionsSecond.size()).thenReturn(100);
+
+        assertThat(numberOfPartitionsSysCheck.id(), is(5));
+        assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
+        assertThat(numberOfPartitionsSysCheck.validateDocTablesPartitioning(docSchemaInfo), is(true));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testNumberOfPartitionsWrongPartitioning() {
+        NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
+                mock(ReferenceInfos.class));
+        List<PartitionName> partitions = mock(List.class);
+
+        when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);
+        when(docSchemaInfoItr.hasNext()).thenReturn(true, false);
+        when(docSchemaInfoItr.next()).thenReturn(docTableInfo);
+        when(docTableInfo.isPartitioned()).thenReturn(true);
+        when(docTableInfo.partitions()).thenReturn(partitions);
+        when(partitions.size()).thenReturn(1001);
+
+        assertThat(numberOfPartitionsSysCheck.id(), is(5));
+        assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
+        assertThat(numberOfPartitionsSysCheck.validateDocTablesPartitioning(docSchemaInfo), is(false));
     }
 
 }

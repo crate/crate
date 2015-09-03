@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.check;
 
+import io.crate.operation.reference.sys.check.checks.NumberOfPartitionsSysCheck;
 import io.crate.operation.reference.sys.check.checks.SysCheck;
 import io.crate.operation.reference.sys.check.checks.MinMasterNodesSysCheck;
 import io.crate.operation.reference.sys.check.checks.RecoveryAfterNodesSysCheck;
@@ -38,5 +39,6 @@ public class SysChecksModule extends AbstractModule {
         checksBinder.addBinding().to(RecoveryExpectedNodesSysCheck.class);
         checksBinder.addBinding().to(RecoveryAfterTimeSysCheck.class);
         checksBinder.addBinding().to(RecoveryAfterNodesSysCheck.class);
+        checksBinder.addBinding().to(NumberOfPartitionsSysCheck.class);
     }
 }

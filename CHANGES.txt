@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``number of partitions`` system check.
+
  - Fixed handling of non-deterministic functions
 
  - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to

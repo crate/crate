@@ -63,6 +63,8 @@ import java.util.regex.Matcher;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
+    public static final String NAME = "doc";
+
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 

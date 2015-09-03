@@ -111,13 +111,16 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         return info;
     }
 
-    private SchemaInfo getSchemaInfo(TableIdent ident) {
-        String schemaName = firstNonNull(ident.schema(), DEFAULT_SCHEMA_NAME);
-        SchemaInfo schemaInfo = schemas.get(schemaName);
+    public SchemaInfo getSchemaInfo(@Nullable String schemaName) {
+        SchemaInfo schemaInfo = schemas.get(firstNonNull(schemaName, DEFAULT_SCHEMA_NAME));
         if (schemaInfo == null) {
             throw new SchemaUnknownException(schemaName);
         }
         return schemaInfo;
+    }
+
+    private SchemaInfo getSchemaInfo(TableIdent ident) {
+        return getSchemaInfo(ident.schema());
     }
 
     @Override

@@ -34,11 +34,12 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(4L));
-        assertThat((Integer) response.rows()[0][0], is(new Integer(Severity.HIGH.value())));
-        assertThat((Integer) response.rows()[1][0], is(new Integer(Severity.HIGH.value())));
-        assertThat((Integer) response.rows()[2][0], is(new Integer(Severity.HIGH.value())));
-        assertThat((Integer) response.rows()[3][0], is(new Integer(Severity.MEDIUM.value())));
+        assertThat(response.rowCount(), equalTo(5L));
+        assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
+        assertThat((Integer) response.rows()[1][0], is(Severity.HIGH.value()));
+        assertThat((Integer) response.rows()[2][0], is(Severity.HIGH.value()));
+        assertThat((Integer) response.rows()[3][0], is(Severity.MEDIUM.value()));
+        assertThat((Integer) response.rows()[4][0], is(Severity.MEDIUM.value()));
     }
 
     @Test
@@ -46,8 +47,8 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = internalCluster().size() / 2;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat((Integer) response.rows()[0][0], is(new Integer(Severity.HIGH.value())));
-        assertThat((Boolean) response.rows()[0][1], is(new Boolean(false)));
+        assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
+        assertThat((Boolean) response.rows()[0][1], is(false));
     }
 
     @Test
@@ -55,8 +56,15 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = internalCluster().size() / 2 + 1;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat((Integer) response.rows()[0][0], is(new Integer(Severity.HIGH.value())));
-        assertThat((Boolean) response.rows()[0][1], is(new Boolean(true)));
+        assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
+        assertThat((Boolean) response.rows()[0][1], is(true));
+    }
+
+    @Test
+    public void testNumberOfPartitionDocTablesNotPresent() {
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
+        assertThat((Integer) response.rows()[0][0], is(Severity.MEDIUM.value()));
+        assertThat((Boolean) response.rows()[0][1], is(true));
     }
 
     @After

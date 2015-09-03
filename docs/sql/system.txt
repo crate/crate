@@ -736,6 +736,8 @@ There are currently four checks:
 +------------------+------------------------------------+
 | 4                | Recovery after time.               |
 +------------------+------------------------------------+
+| 5                | Number of partitions.              |
++------------------+------------------------------------+
 
 Settings checks:
 ----------------
@@ -781,6 +783,12 @@ The check for the :ref:`gateway.recover_after_time
 <gateway.recover_after_time>` settings verifies that the time before recovery
 starts must not be less than default value of ``5m``.
 
+Number of partitions
+....................
+This check produces a warning if any :ref:`partitioned table
+<partitioned_tables>` has more than 1000 partitions in order to detect the
+usage of a high cardinality field for paritioning.
+
 For instance, if the :ref:`gateway.expected_nodes <gateway.expected_nodes>` and
 :ref:`discovery.zen.minimum_master_nodes <discovery.zen.minimum_master_nodes>`
 settings were misconfigured then the SQL query bellow would have the following
@@ -797,8 +805,9 @@ results
     |  2 |        3 | The value of the cluster setting 'gateway.expected_nodes' must be equal to the maximum/expected number of nodes in the cluster.                                                                                         | TRUE   |
     |  3 |        3 | The value of the cluster setting 'gateway.recover_after_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less than the maximum/expected number of nodes in the cluster.        | TRUE   |
     |  4 |        2 | The value of the cluster setting 'gateway.recover_after_time' must not be less than its default value (5m).                                                                                                             | TRUE   |
+    |  5 |        2 | The number of partitions of one or more partitioned tables is greater than 1000                                                                                                                                         | TRUE   |
     +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
-    SELECT 4 rows in set (... sec)
+    SELECT 5 rows in set (... sec)
 
 
 Graceful Stop
