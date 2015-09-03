@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,6 +35,7 @@ import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.hamcrest.Matchers;
@@ -1001,7 +1003,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
-                "and \"_score\" >= 0.98 order by quote ");
+                "and \"_score\" >= 0.98 order by quote");
         assertEquals(1L, response.rowCount());
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
     }
@@ -1119,7 +1121,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((long)response.rows()[0][0], lessThanOrEqualTo(3L));
+        assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
@@ -1996,6 +1998,49 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select _id, * from t");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    @Repeat(iterations=10)
+    @TestLogging("io.crate.operation.projectors.BlockingSortingQueuedRowDownstream:TRACE," +
+                 "io.crate.operation.collect.LuceneDocCollector:TRACE")
+    public void testHangOnSortedOffset() throws Exception {
+        execute("CREATE TABLE IF NOT EXISTS \"rankings_cj\" (\n" +
+                "   \"avgDuration\" INTEGER,\n" +
+                "   \"pageRank\" INTEGER,\n" +
+                "   \"pageURL\" STRING\n" +
+                ")\n" +
+                "CLUSTERED INTO 16 SHARDS\n" +
+                "WITH (\n" +
+                "   \"blocks.metadata\" = false,\n" +
+                "   \"blocks.read\" = false,\n" +
+                "   \"blocks.read_only\" = false,\n" +
+                "   \"blocks.write\" = false,\n" +
+                "   column_policy = 'dynamic',\n" +
+                "   \"gateway.local.sync\" = 5000,\n" +
+                "   number_of_replicas = '0',\n" +
+                "   \"recovery.initial_shards\" = 'quorum',\n" +
+                "   refresh_interval = 0,\n" +
+                "   \"routing.allocation.enable\" = 'all',\n" +
+                "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                "   \"translog.disable_flush\" = false,\n" +
+                "   \"translog.flush_threshold_ops\" = 2147483647,\n" +
+                "   \"translog.flush_threshold_period\" = 1800000,\n" +
+                "   \"translog.flush_threshold_size\" = 209715200,\n" +
+                "   \"translog.interval\" = 5000,\n" +
+                "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
+                "   \"warmer.enabled\" = true\n" +
+                ")");
+        ensureYellow();
+        for (int i = 0; i < 1000; i++) {
+            Object[][] args = new Object[1000][];
+            for (int j = 0; j < 1000; j++) {
+                args[j] = new Object[]{randomInt(1000), randomInt(10), randomUnicodeOfLength(10)};
+            }
+            execute("insert into rankings_cj (\"avgDuration\", \"pageRank\", \"pageURL\") values (?,?,?)", args);
+        }
+        execute("refresh table rankings_cj", TimeValue.timeValueSeconds(20));
+        execute("SELECT * FROM rankings_cj ORDER BY \"pageURL\" LIMIT 1 OFFSET 50000", TimeValue.timeValueSeconds(60));
     }
 }
 

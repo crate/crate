@@ -170,7 +170,16 @@ public class ShardProjectorChain {
         } else {
             assert outputs != null : "must have outputs if orderBy is present";
             int[] orderByPositions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), outputs);
-            rowDownstream = new SortingRowMerger(firstNodeProjector, orderByPositions, orderBy.reverseFlags(), orderBy.nullsFirst());
+            int maxOrderByIndex = 0;
+            for (int i = 0; i < orderByPositions.length; i++) {
+                int pos = orderByPositions[i];
+                if (pos > maxOrderByIndex) {
+                    maxOrderByIndex = pos;
+                }
+            }
+            int rowSize = Math.max(outputs.size(), maxOrderByIndex+1);
+            rowDownstream = new BlockingSortingQueuedRowDownstream(firstNodeProjector, rowSize, orderByPositions, orderBy.reverseFlags(), orderBy.nullsFirst());
+            //rowDownstream = new SortingRowMerger(firstNodeProjector, orderByPositions, orderBy.reverseFlags(), orderBy.nullsFirst());
         }
 
         if (shardProjectionsIndex >= 0) {

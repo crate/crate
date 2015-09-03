@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
@@ -48,6 +49,7 @@ import java.util.TreeMap;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@Repeat(iterations=20)
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
     @Rule

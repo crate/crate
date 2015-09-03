@@ -267,4 +267,5 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(1));
     }
+
 }

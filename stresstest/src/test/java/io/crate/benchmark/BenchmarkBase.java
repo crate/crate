@@ -22,6 +22,7 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.action.sql.*;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -54,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 @Ignore
 @ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
+@Listeners({LoggingListener.class})
 public abstract class BenchmarkBase extends RandomizedTest {
 
     private static final long SEED = System.nanoTime();
