@@ -24,7 +24,6 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
@@ -35,7 +34,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
-public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
+public class ReferenceInfo implements Streamable {
 
     public static class Builder {
         private ReferenceIdent ident;
@@ -175,17 +174,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         }
         helper.add("index type", indexType.toString());
         return helper.toString();
-    }
-
-    @Override
-    public int compareTo(ReferenceInfo o) {
-        return ComparisonChain.start()
-                .compare(granularity, o.granularity)
-                .compare(ident, o.ident)
-                .compare(type, o.type)
-                .compare(columnPolicy.ordinal(), o.columnPolicy.ordinal())
-                .compare(indexType.ordinal(), o.indexType.ordinal())
-                .result();
     }
 
     @Override

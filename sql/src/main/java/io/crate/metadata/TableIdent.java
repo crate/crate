@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
@@ -37,7 +36,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class TableIdent implements Comparable<TableIdent>, Streamable {
+public class TableIdent implements Streamable {
 
     private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
@@ -137,14 +136,6 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
             return name;
         }
         return String.format("%s.%s", schema, name);
-    }
-
-    @Override
-    public int compareTo(TableIdent o) {
-        return ComparisonChain.start()
-                .compare(schema, o.schema)
-                .compare(name, o.name)
-                .result();
     }
 
     @Override

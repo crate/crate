@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ComparisonChain;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -31,7 +30,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
+public class ReferenceIdent implements Streamable {
 
     private TableIdent tableIdent;
     private ColumnIdent columnIdent;
@@ -96,15 +95,6 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
     public String toString() {
         return String.format("<RefIdent: %s->%s>", tableIdent, columnIdent);
     }
-
-    @Override
-    public int compareTo(ReferenceIdent o) {
-        return ComparisonChain.start()
-                .compare(tableIdent, o.tableIdent)
-                .compare(columnIdent, o.columnIdent)
-                .result();
-    }
-
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
