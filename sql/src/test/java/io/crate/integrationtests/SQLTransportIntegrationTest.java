@@ -84,14 +84,7 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
 
-    protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
-        new SQLTransportExecutor.ClientProvider() {
-            @Override
-            public Client client() {
-                return ElasticsearchIntegrationTest.client();
-            }
-        }
-    );
+    protected final SQLTransportExecutor sqlExecutor;
 
     private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
 
@@ -105,6 +98,21 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
 
     protected long responseDuration;
     protected SQLResponse response;
+
+    public SQLTransportIntegrationTest() {
+        this(new SQLTransportExecutor(
+                new SQLTransportExecutor.ClientProvider() {
+                    @Override
+                    public Client client() {
+                        return ElasticsearchIntegrationTest.client();
+                    }
+                }
+        ));
+    }
+
+    public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
+        this.sqlExecutor = sqlExecutor;
+    }
 
     @Override
     public Settings indexSettings() {
