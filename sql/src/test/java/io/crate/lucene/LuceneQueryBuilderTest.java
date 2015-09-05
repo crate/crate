@@ -40,19 +40,24 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
+import org.elasticsearch.common.lucene.search.RegexpFilter;
 import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.Matchers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
@@ -67,6 +72,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         builder = new LuceneQueryBuilder(functions);
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
+        FilterCache filterCache = mock(FilterCache.class);
+        when(indexCache.filter()).thenReturn(filterCache);
+        when(filterCache.cache(Matchers.any(Filter.class))).thenAnswer(new Answer<Filter>() {
+            @Override
+            public Filter answer(InvocationOnMock invocation) throws Throwable {
+                return (Filter) invocation.getArguments()[0];
+            }
+        });
     }
 
     @Test
@@ -192,7 +205,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Reference value = createReference("foo", DataTypes.STRING);
         Literal pattern = Literal.newLiteral(new BytesRef("[a-z]"));
         Query query = convert(whereClause(RegexpMatchOperator.NAME, value, pattern));
-        assertThat(query, instanceOf(RegexpQuery.class));
+        assertThat(query, instanceOf(XConstantScoreQuery.class));
+        assertThat(((XConstantScoreQuery)query).getFilter(), instanceOf(RegexpFilter.class));
     }
 
     /**
@@ -292,14 +306,25 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         BooleanQuery likeBQuery = (BooleanQuery)likeQuery;
         assertThat(likeBQuery.clauses().size(), is(3));
         for (int i = 0; i < 2; i++) {
-            assertThat(likeBQuery.clauses().get(i).getQuery(), instanceOf(WildcardQuery.class));
+            // like --> XConstantScoreQuery with regexp-filter
+            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
+            assertThat(filteredQuery, instanceOf(XConstantScoreQuery.class));
+            assertThat(((XConstantScoreQuery)filteredQuery).getFilter(), instanceOf(RegexpFilter.class));
         }
 
         // col not like any (1,2,3)
         Query notLikeQuery = convert(whereClause(AnyNotLikeOperator.NAME, ref, stringArrayLiteral));
         assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
         BooleanQuery notLikeBQuery = (BooleanQuery)notLikeQuery;
-        assertThat(notLikeBQuery.toString(), is("-(+d:a +d:b +d:c)"));
+        assertThat(notLikeBQuery.clauses(), hasSize(1));
+        BooleanClause clause = notLikeBQuery.clauses().get(0);
+        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
+        assertThat(((BooleanQuery)clause.getQuery()).clauses(), hasSize(3));
+        for (BooleanClause innerClause : ((BooleanQuery)clause.getQuery()).clauses()) {
+            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
+            assertThat(innerClause.getQuery(), instanceOf(XConstantScoreQuery.class));
+            assertThat(((XConstantScoreQuery)innerClause.getQuery()).getFilter(), instanceOf(RegexpFilter.class));
+        }
 
 
         // col < any (1,2,3)
