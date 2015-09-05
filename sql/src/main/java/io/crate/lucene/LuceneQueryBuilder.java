@@ -79,6 +79,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.lucene.search.RegexpFilter;
+import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -688,6 +690,14 @@ public class LuceneQueryBuilder {
 
         static class RegexpMatchQuery extends CmpQuery {
 
+            private Query toLuceneRegexpQuery(String fieldName, BytesRef value, Context context) {
+                return new XConstantScoreQuery(
+                        context.indexCache.filter().cache(
+                                new RegexpFilter(new Term(fieldName, value), RegExp.ALL)
+                        )
+                );
+            }
+
             @Override
             public Query apply(Function input, Context context) throws IOException {
                 Tuple<Reference, Literal> prepare = prepare(input);
@@ -700,7 +710,7 @@ public class LuceneQueryBuilder {
                     if (isPcrePattern(value)) {
                         return new RegexQuery(new Term(fieldName, (String) value));
                     } else {
-                        return new RegexpQuery(new Term(fieldName, (String) value), RegExp.ALL);
+                        return toLuceneRegexpQuery(fieldName, BytesRefs.toBytesRef(value), context);
                     }
                 }
 
@@ -708,7 +718,7 @@ public class LuceneQueryBuilder {
                     if (isPcrePattern(value)) {
                         return new RegexQuery(new Term(fieldName, (BytesRef) value));
                     } else {
-                        return new RegexpQuery(new Term(fieldName, (BytesRef) value), RegExp.ALL);
+                        return toLuceneRegexpQuery(fieldName, (BytesRef) value, context);
                     }
                 }
 
@@ -726,22 +736,13 @@ public class LuceneQueryBuilder {
                 Object value = prepare.v2().value();
 
                 // FIXME: nobody knows how Strings can arrive here
-                if (value instanceof String) {
-                    RegexQuery query = new RegexQuery(new Term(fieldName, (String) value));
+                if (value instanceof String || value instanceof BytesRef) {
+                    RegexQuery query = new RegexQuery(new Term(fieldName, BytesRefs.toBytesRef(value)));
                     query.setRegexImplementation(new JavaUtilRegexCapabilities(
                             JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |
                             JavaUtilRegexCapabilities.FLAG_UNICODE_CASE));
                     return query;
                 }
-
-                if (value instanceof BytesRef) {
-                    RegexQuery query = new RegexQuery(new Term(fieldName, (BytesRef) value));
-                    query.setRegexImplementation(new JavaUtilRegexCapabilities(
-                            JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |
-                            JavaUtilRegexCapabilities.FLAG_UNICODE_CASE));
-                    return query;
-                }
-
                 throw new IllegalArgumentException("Can only use ~* with patterns of type string");
             }
         }
