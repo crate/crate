@@ -27,8 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import com.google.common.base.Joiner;
-import io.crate.action.sql.SQLResponse;
+import io.crate.Constants;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,20 +35,20 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.IOException;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-in-string-history", labelWith = LabelType.CUSTOM_KEY)
-@BenchmarkMethodChart(filePrefix = "benchmark-in-string")
-public class InStringBenchmark extends BenchmarkBase {
+@BenchmarkHistoryChart(filePrefix="benchmark-like-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkMethodChart(filePrefix = "benchmark-like")
+public class LikeBenchmark extends BenchmarkBase {
 
     static final int BENCHMARK_ROUNDS = 200;
+    static final int QUERIES = 100;
     static final int NUMBER_OF_DOCUMENTS = 100_000;
-    static AtomicInteger VALUE = new AtomicInteger(0);
-    static Vector<String> VALUES = new Vector<>();
+
+    static AtomicInteger ID_VALUE = new AtomicInteger(0);
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
@@ -71,13 +70,19 @@ public class InStringBenchmark extends BenchmarkBase {
                 "  value string" +
                 ") with (number_of_replicas=0)");
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
+
     }
 
     @Override
     protected byte[] generateRowSource() throws IOException {
-        int value = VALUE.getAndIncrement();
-        String strValue = String.valueOf(value);
-        VALUES.add(strValue);
+        int value = ID_VALUE.getAndIncrement();
+        String strValue;
+
+        if (value % 1000 == 0) {
+            strValue = String.format("%d XXX %d", value, value);
+        } else {
+            strValue = String.format("%d", value);
+        }
 
         return XContentFactory.jsonBuilder()
                 .startObject()
@@ -93,51 +98,57 @@ public class InStringBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectWhereInWith5Items() throws Exception {
-        // uses lucene query builder
-        String statement = "select * from " + INDEX_NAME + " where value in ('" +
-                Joiner.on("','").join(VALUES.subList(0, 5)) + "')";
-        SQLResponse response = execute(statement);
-        assertThat(response.rowCount(), is(5L));
+    public void testLikePrefix() throws Exception {
+        for (int i = 0; i < QUERIES; i++) {
+            assertThat(
+                    execute("select value from " + INDEX_NAME + " where value like '%XXX%' limit 10").rowCount(),
+                    is(10L)
+            );
+        }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testSelectWhereInWith500Items() throws Exception {
-        // uses lucene query builder
-        String statement = "select * from " + INDEX_NAME + " where value in ('" +
-                Joiner.on("','").join(VALUES.subList(0, 500)) + "')";
-        SQLResponse response = execute(statement);
-        assertThat(response.rowCount(), is(500L));
+    public void testEsRegexpQuery() throws Exception {
+        for (int i = 0; i < QUERIES; i++) {
+            assertThat(
+                client().prepareSearch(INDEX_NAME)
+                        .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery("{\"regexp\":{\"value\":\".*XXX.*\"}}")
+                        .addField("value")
+                        .setSize(10)
+                        .execute().actionGet().getHits().getHits().length,
+                is(10)
+            );
+        }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testCountWhereInWith5Items() throws Exception {
-        // uses ES query builder
-        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
-                Joiner.on("','").join(VALUES.subList(0, 5)) + "')";
-        SQLResponse response = execute(statement);
-        assertThat((Long)response.rows()[0][0], is(5L));
+    public void testEsRegexpFilter() throws Exception {
+        for (int i = 0; i < QUERIES; i++) {
+            assertThat(
+                    client().prepareSearch(INDEX_NAME)
+                            .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                            .setQuery("{\"filtered\":{\"query\":{\"match_all\":{}}, \"filter\":{\"regexp\":{\"value\":\".*XXX.*\"}}}}")
+                            .addField("value")
+                            .setSize(10)
+                            .execute().actionGet().getHits().getHits().length,
+                    is(10)
+            );
+        }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testCountWhereInWith500Items() throws Exception {
-        // uses ES query builder
-        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
-                Joiner.on("','").join(VALUES.subList(0, 500)) + "')";
-        SQLResponse response = execute(statement);
-        assertThat((Long)response.rows()[0][0], is(500L));
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testCountWhereInWith2000Items() throws Exception {
-        // uses ES query builder
-        String statement = "select count(*) from " + INDEX_NAME + " where value in ('" +
-                Joiner.on("','").join(VALUES.subList(0, 2000)) + "')";
-        SQLResponse response = execute(statement);
-        assertThat((Long)response.rows()[0][0], is(2000L));
+    public void testEsWildcard() throws Exception {
+        for (int i = 0; i < QUERIES; i++) {
+            assertThat(client().prepareSearch(INDEX_NAME)
+                    .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setQuery("{\"wildcard\":{\"value\":\"*XXX*\"}}")
+                    .addField("value")
+                    .setSize(10)
+                    .execute().actionGet().getHits().getHits().length, is(10));
+        }
     }
 }
