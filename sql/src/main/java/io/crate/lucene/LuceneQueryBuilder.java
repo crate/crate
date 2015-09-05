@@ -80,6 +80,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -376,7 +377,7 @@ public class LuceneQueryBuilder {
                 String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notQuery.add(builder.like(columnName, value), BooleanClause.Occur.MUST);
+                    notQuery.add(builder.like(columnName, value, context.indexCache.filter()), BooleanClause.Occur.MUST);
                 }
                 query.add(notQuery, BooleanClause.Occur.MUST_NOT);
                 return query;
@@ -389,7 +390,7 @@ public class LuceneQueryBuilder {
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                return likeQuery.toQuery(arrayReference, literal.value());
+                return likeQuery.toQuery(arrayReference, literal.value(), context);
             }
 
             @Override
@@ -398,7 +399,7 @@ public class LuceneQueryBuilder {
                 BooleanQuery booleanQuery = new BooleanQuery();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    booleanQuery.add(likeQuery.toQuery(reference, value), BooleanClause.Occur.SHOULD);
+                    booleanQuery.add(likeQuery.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery;
             }
@@ -412,13 +413,13 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                return toQuery(tuple.v1(), tuple.v2().value());
+                return toQuery(tuple.v1(), tuple.v2().value(), context);
             }
 
-            public Query toQuery(Reference reference, Object value) {
+            public Query toQuery(Reference reference, Object value, Context context) {
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                return builder.like(columnName, value);
+                return builder.like(columnName, value, context.indexCache.filter());
             }
         }
 

@@ -53,7 +53,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
 
     private final ThreadPool threadPool;
-    private StatsTables statsTables;
+    private final StatsTables statsTables;
     private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
