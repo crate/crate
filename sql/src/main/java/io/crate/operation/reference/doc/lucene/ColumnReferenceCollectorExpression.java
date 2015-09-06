@@ -22,7 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 
-import io.crate.core.StringUtils;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
 
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
@@ -40,7 +39,7 @@ public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
 
     @Override
     public String toString() {
-        return columnName().contains(".") ? StringUtils.dottedToSqlPath(columnName()) : columnName();
+        return columnName;
     }
 
     @Override

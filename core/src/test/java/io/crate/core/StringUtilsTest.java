@@ -30,14 +30,6 @@ import java.util.Arrays;
 public class StringUtilsTest extends CrateUnitTest {
 
     @Test
-    public void testDottedToSQLPath() {
-        assertEquals("a['b']", StringUtils.dottedToSqlPath("a.b"));
-        assertEquals("a", StringUtils.dottedToSqlPath("a"));
-        assertEquals("a['']", StringUtils.dottedToSqlPath("a."));
-        assertEquals("a['b']['c']", StringUtils.dottedToSqlPath("a.b.c"));
-    }
-
-    @Test
     public void testCommonAncestors() throws Exception {
         assertEquals(ImmutableSet.of("a"), StringUtils.commonAncestors(Arrays.asList("a", "a.b")));
 
