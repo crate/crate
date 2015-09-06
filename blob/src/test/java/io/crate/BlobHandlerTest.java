@@ -49,10 +49,10 @@ public class BlobHandlerTest extends CrateUnitTest {
     @Test
     public void testBlobHandlerRegex() throws Exception {
         for (String validUrl : validUrls) {
-            assertThat(validUrl, HttpBlobHandler.pattern.matcher(validUrl).matches(), is(true));
+            assertThat(validUrl, HttpBlobHandler.BLOBS_PATTERN.matcher(validUrl).matches(), is(true));
         }
         for (String invalidUrl : invalidUrls) {
-            assertThat(invalidUrl, HttpBlobHandler.pattern.matcher(invalidUrl).matches(), is(false));
+            assertThat(invalidUrl, HttpBlobHandler.BLOBS_PATTERN.matcher(invalidUrl).matches(), is(false));
         }
     }
 }

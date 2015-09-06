@@ -36,31 +36,12 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelFutureProgressListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.DefaultFileRegion;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.FileRegion;
-import org.jboss.netty.channel.LifeCycleAwareChannelHandler;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
-import org.jboss.netty.handler.codec.http.HttpChunk;
-import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.jboss.netty.handler.codec.http.HttpMessage;
-import org.jboss.netty.handler.codec.http.HttpMethod;
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.jboss.netty.channel.*;
+import org.jboss.netty.handler.codec.http.*;
 import org.jboss.netty.util.CharsetUtil;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.channels.ClosedChannelException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,20 +55,22 @@ import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         LifeCycleAwareChannelHandler {
 
-    public static final String CACHE_CONTROL_VALUE = "max-age=315360000";
-    public static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
-    public static final String BLOBS_ENDPOINT = "/_blobs";
-    public static final Pattern pattern = Pattern.compile(String.format("^%s/([^_/][^/]*)/([0-9a-f]{40})$", BLOBS_ENDPOINT));
-    private static final ESLogger logger = Loggers.getLogger(HttpBlobHandler.class);
+    private static final String CACHE_CONTROL_VALUE = "max-age=315360000";
+    private static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
+    private static final String BLOBS_ENDPOINT = "/_blobs";
+    public static final Pattern BLOBS_PATTERN = Pattern.compile(String.format("^%s/([^_/][^/]*)/([0-9a-f]{40})$", BLOBS_ENDPOINT));
+    private static final ESLogger LOGGER = Loggers.getLogger(HttpBlobHandler.class);
 
     private static final ChannelBuffer CONTINUE = ChannelBuffers.copiedBuffer(
             "HTTP/1.1 100 Continue\r\n\r\n", CharsetUtil.US_ASCII);
 
+    private static final Pattern CONTENT_RANGE_PATTERN = Pattern.compile("^bytes=(\\d+)-(\\d*)$");
+
+    private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
     private final BlobIndices blobIndices;
     private HttpMessage currentMessage;
     private ChannelHandlerContext ctx;
-    private static final Pattern contentRangePattern = Pattern.compile("^bytes=(\\d+)-(\\d*)$");
 
     private RemoteDigestBlob digestBlob;
 
@@ -111,7 +94,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 return true;
             }
             if (redirectAddress != null) {
-                logger.trace("redirectAddress: {}", redirectAddress);
+                LOGGER.trace("redirectAddress: {}", redirectAddress);
                 sendRedirect(request, redirectAddress);
                 return true;
             }
@@ -120,83 +103,73 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
-            throws Exception {
-
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         Object msg = e.getMessage();
-        HttpMessage currentMessage = this.currentMessage;
 
         if (msg instanceof HttpRequest) {
-
-            digestBlob = null;
             HttpRequest request = (HttpRequest) msg;
-            URI uri;
-            try {
-                uri = new URI(request.getUri());
-            } catch (URISyntaxException ex) {
-                // e.g. url like "localhost:4200//" throws exception
-                // sendUpstream so that regular ES status is returned
+            String uri = request.getUri();
+
+            if (!uri.startsWith(BLOBS_ENDPOINT)) {
+                reset();
                 ctx.sendUpstream(e);
                 return;
             }
 
-            Matcher matcher = pattern.matcher(uri.getPath());
-            if (uri.getPath().startsWith(BLOBS_ENDPOINT)) {
-                if (!matcher.matches()) {
-                    simpleResponse(HttpResponseStatus.NOT_FOUND, null);
-                    return;
-                }
-            } else {
-                this.currentMessage = null;
-                ctx.sendUpstream(e);
+            Matcher matcher = blobsMatcher.reset(uri);
+            if (!matcher.matches()) {
+                reset();
+                simpleResponse(HttpResponseStatus.NOT_FOUND, null);
                 return;
             }
 
-            String index = matcher.group(1);
-            String digest = matcher.group(2);
-
-            logger.trace("matches index:{} digest:{}", index, digest);
-            logger.trace("HTTPMessage:\n{}", msg);
-
-            index = BlobIndices.fullIndexName(index);
-
-            if (possibleRedirect(request, index, digest)) {
-                reset();
-                return;
-            }
-
-            if (request.getMethod().equals(HttpMethod.GET)) {
-                get(request, index, digest);
-                reset();
-            } else if (request.getMethod().equals(HttpMethod.HEAD)) {
-                head(request, index, digest);
-                reset();
-            } else if (request.getMethod().equals(HttpMethod.PUT)) {
-                put(request, index, digest);
-            } else if (request.getMethod().equals(HttpMethod.DELETE)) {
-                delete(index, digest);
-                reset();
-            } else {
-                simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED, null);
-                reset();
-            }
+            handleBlobRequest(request, matcher);
         } else if (msg instanceof HttpChunk) {
-            HttpChunk chunk = (HttpChunk) msg;
             if (currentMessage == null) {
                 // the chunk is probably from a regular non-blob request.
                 ctx.sendUpstream(e);
                 return;
             }
-
-            // write chunk to file
+            HttpChunk chunk = (HttpChunk) msg;
             writeToFile(chunk.getContent(), chunk.isLast(), false);
-
             if (chunk.isLast()) {
                 reset();
             }
         } else {
             // Neither HttpMessage or HttpChunk
             ctx.sendUpstream(e);
+        }
+    }
+
+    private void handleBlobRequest(HttpRequest request, Matcher matcher) throws IOException {
+        digestBlob = null;
+        String index = matcher.group(1);
+        String digest = matcher.group(2);
+
+        LOGGER.trace("matches index:{} digest:{}", index, digest);
+        LOGGER.trace("HTTPMessage:%n{}", request);
+
+        index = BlobIndices.fullIndexName(index);
+
+        if (possibleRedirect(request, index, digest)) {
+            reset();
+            return;
+        }
+
+        if (request.getMethod().equals(HttpMethod.GET)) {
+            get(request, index, digest);
+            reset();
+        } else if (request.getMethod().equals(HttpMethod.HEAD)) {
+            head(request, index, digest);
+            reset();
+        } else if (request.getMethod().equals(HttpMethod.PUT)) {
+            put(request, index, digest);
+        } else if (request.getMethod().equals(HttpMethod.DELETE)) {
+            delete(index, digest);
+            reset();
+        } else {
+            simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED, null);
+            reset();
         }
     }
 
@@ -236,14 +209,14 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             throws Exception {
         Throwable ex = e.getCause();
         if (ex instanceof ClosedChannelException) {
-            logger.trace("channel closed: {}", ex.toString());
+            LOGGER.trace("channel closed: {}", ex.toString());
             return;
         } else if (ex instanceof IOException) {
             String message = ex.getMessage();
             if (message != null && message.contains("Connection reset by peer")) {
-                logger.debug(message);
+                LOGGER.debug(message);
             } else {
-                logger.warn(message, e);
+                LOGGER.warn(message, e);
             }
             return;
         }
@@ -263,7 +236,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             body = ex.getMessage();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            logger.error("unhandled exception:", ex);
+            LOGGER.error("unhandled exception:", ex);
         }
         simpleResponse(status, body);
     }
@@ -304,9 +277,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private void partialContentResponse(String range, HttpRequest request, String index, final String digest)
         throws  IOException {
         assert(range != null);
-        Matcher matcher = contentRangePattern.matcher(range);
+        Matcher matcher = CONTENT_RANGE_PATTERN.matcher(range);
         if (!matcher.matches()) {
-            logger.warn("Invalid byte-range: {}; returning full content", range);
+            LOGGER.warn("Invalid byte-range: {}; returning full content", range);
             fullContentResponse(request, index, digest);
             return;
         }
@@ -318,7 +291,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             try {
                 start = Long.parseLong(matcher.group(1));
                 if (start > raf.length()) {
-                    logger.warn("416 Requested Range not satisfiable");
+                    LOGGER.warn("416 Requested Range not satisfiable");
                     simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, null);
                     return;
                 }
@@ -327,7 +300,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                     end = Long.parseLong(matcher.group(2));
                 }
             } catch (NumberFormatException ex) {
-                logger.error("Couldn't parse Range Header", ex);
+                LOGGER.error("Couldn't parse Range Header", ex);
                 start = 0;
                 end = raf.length();
             }
@@ -351,7 +324,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
             HttpHeaders.setContentLength(response, raf.length());
             setDefaultGetHeaders(response);
-            logger.trace("HttpResponse: {}", response);
+            LOGGER.trace("HttpResponse: {}", response);
             ctx.getChannel().write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
             if (!HttpHeaders.isKeepAlive(request)) {
@@ -368,13 +341,13 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         writeFuture.addListener(new ChannelFutureProgressListener() {
             @Override
             public void operationProgressed(ChannelFuture future, long amount, long current, long total) throws Exception {
-                logger.debug("{}: {} / {} (+{})", digest, current, total, amount);
+                LOGGER.debug("{}: {} / {} (+{})", digest, current, total, amount);
             }
 
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 region.releaseExternalResources();
-                logger.trace("file transfer completed");
+                LOGGER.trace("file transfer completed");
             }
         });
         return writeFuture;
@@ -452,7 +425,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         }
 
         assert exitStatus != null;
-        logger.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
+        LOGGER.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, exitStatus);
         HttpHeaders.setContentLength(response, 0);
         ChannelFuture cf = ctx.getChannel().write(response);
