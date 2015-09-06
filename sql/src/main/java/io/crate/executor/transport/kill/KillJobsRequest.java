@@ -67,12 +67,4 @@ public class KillJobsRequest extends TransportRequest {
             out.writeLong(job.getLeastSignificantBits());
         }
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        KillJobsRequest that = (KillJobsRequest)o;
-        return that.toKill().equals(this.toKill());
-    }
 }

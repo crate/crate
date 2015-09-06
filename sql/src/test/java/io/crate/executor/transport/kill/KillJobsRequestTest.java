@@ -46,7 +46,6 @@ public class KillJobsRequestTest extends CrateUnitTest {
         KillJobsRequest r2 = new KillJobsRequest();
         r2.readFrom(in);
 
-        assertThat(r, equalTo(r2));
         assertThat(r.toKill(), equalTo(r2.toKill()));
     }
 }
