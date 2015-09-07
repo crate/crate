@@ -27,6 +27,7 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
@@ -50,7 +51,7 @@ public class SysChecksTest extends CrateUnitTest {
     private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
     private static NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
     private static Iterator docSchemaInfoItr = mock(Iterator.class);
-    private static DocSchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
+    private static SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private static DocTableInfo docTableInfo = mock(DocTableInfo.class);
 
     @Test

@@ -25,6 +25,7 @@ package io.crate.operation.reference.sys.check.checks;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
@@ -48,12 +49,16 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        return validateDocTablesPartitioning(
-                (DocSchemaInfo) referenceInfos.getSchemaInfo(DocSchemaInfo.NAME));
+        for (SchemaInfo schemaInfo : referenceInfos) {
+            if (schemaInfo instanceof DocSchemaInfo && !validateDocTablesPartitioning(schemaInfo)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    boolean validateDocTablesPartitioning(DocSchemaInfo docSchemaInfo) {
-        for (TableInfo tableInfo : docSchemaInfo) {
+    boolean validateDocTablesPartitioning(SchemaInfo schemaInfo) {
+        for (TableInfo tableInfo : schemaInfo) {
             DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
             if (docTableInfo.isPartitioned() && docTableInfo.partitions().size() > PARTITIONS_THRESHOLD) {
                 return false;

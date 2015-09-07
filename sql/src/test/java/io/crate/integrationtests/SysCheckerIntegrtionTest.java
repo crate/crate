@@ -61,7 +61,11 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testNumberOfPartitionDocTablesNotPresent() {
+    public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
+        execute("create table foo.bar (id int) partitioned by (id)");
+        execute("create table bar (id int) partitioned by (id)");
+        execute("insert into foo.bar (id) values (?)", new Object[] {1});
+        execute("insert into bar (id) values (?)", new Object[] {1});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
         assertThat((Integer) response.rows()[0][0], is(Severity.MEDIUM.value()));
         assertThat((Boolean) response.rows()[0][1], is(true));
