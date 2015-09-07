@@ -48,6 +48,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.operation.scalar.cast.TryCastFunction;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -433,12 +434,30 @@ public class ExpressionAnalyzer {
         }
 
         @Override
+        protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
+            DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
+            if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
+                FunctionInfo tryCastFunctionInfo = getFunctionInfo(new FunctionIdent(TryCastFunction.NAME,
+                        ImmutableList.of(returnType)));
+                try {
+                    return context.allocateFunction(tryCastFunctionInfo,
+                            Arrays.asList(cast(process(node.getExpression(), context), returnType, context)));
+                } catch (ConversionException e) {
+                    return Literal.NULL;
+                }
+            } else {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "No cast function found for return type %s", returnType.getName()));
+            }
+
+        }
+
+        @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
             Symbol expression = process(node.getExpression(), context);
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP, context);
             return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
         }
-
 
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {

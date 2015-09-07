@@ -346,6 +346,11 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testTryCast() throws Exception {
+        printStatement("select try_cast(y as integer) from foo");
+    }
+
+    @Test
     public void testSubscript() throws Exception {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression, instanceOf(SubscriptExpression.class));

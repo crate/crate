@@ -492,11 +492,11 @@ Example usages:
 ::
 
     cr> select try_cast('true' as boolean) from sys.nodes limit 1;
-    +-----------------------------------+
-    | TRY_CAST('true' AS boolean)         |
-    +-----------------------------------+
-    | TRUE                              |
-    +-----------------------------------+
+    +-----------------------------+
+    | TRY_CAST('true' AS boolean) |
+    +-----------------------------+
+    | TRUE                        |
+    +-----------------------------+
     SELECT 1 row in set (... sec)
 
 Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if

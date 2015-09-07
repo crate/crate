@@ -99,6 +99,7 @@ public class ScalarFunctionModule extends AbstractModule {
         ToFloatArrayFunction.register(this);
         ToShortArrayFunction.register(this);
         ToNullFunction.register(this);
+        TryCastFunction.register(this);
 
         DateTruncFunction.register(this);
         ExtractFunctions.register(this);
