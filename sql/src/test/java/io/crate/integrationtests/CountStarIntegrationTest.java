@@ -83,7 +83,7 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from test where non_existant = 'Some Value'");
     }
 
-        @Test
+    @Test
     public void testCountRoutingClusteredById() throws Exception {
         execute("create table auto_id (" +
                 "  name string," +

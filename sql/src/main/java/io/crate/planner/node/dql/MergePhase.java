@@ -101,7 +101,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
                 projections,
-                DistributionType.BROADCAST
+                DistributionType.SAME_NODE
         );
     }
 
@@ -127,7 +127,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
                 projections,
-                DistributionType.BROADCAST
+                DistributionType.SAME_NODE
         );
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
@@ -153,6 +153,11 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     @Override
     public DistributionType distributionType() {
         return distributionType;
+    }
+
+    @Override
+    public void distributionType(DistributionType distributionType) {
+        this.distributionType = distributionType;
     }
 
     public void executionNodes(Set<String> executionNodes) {

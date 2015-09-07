@@ -187,7 +187,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job) {
-            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(plan);
+            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
+                    plan, clusterService.localNode().id());
             return new ExecutionPhasesTask(
                     job.id(),
                     clusterService,
@@ -321,28 +322,37 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
     }
 
-    static class BulkNodeOperationTreeGenerator extends PlanVisitor<List<NodeOperationTree>, Void> {
+    static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
 
         NodeOperationTreeGenerator nodeOperationTreeGenerator = new NodeOperationTreeGenerator();
 
-        public List<NodeOperationTree> createNodeOperationTrees(Plan plan) {
-            ArrayList<NodeOperationTree> nodeOperationTrees = new ArrayList<>();
-            process(plan, nodeOperationTrees);
-            return nodeOperationTrees;
+        public List<NodeOperationTree> createNodeOperationTrees(Plan plan, String localNodeId) {
+            Context context = new Context(localNodeId);
+            process(plan, context);
+            return context.nodeOperationTrees;
         }
 
         @Override
-        public Void visitUpsert(Upsert node, List<NodeOperationTree> context) {
+        public Void visitUpsert(Upsert node, Context context) {
             for (Plan plan : node.nodes()) {
-                context.add(nodeOperationTreeGenerator.fromPlan(plan));
+                context.nodeOperationTrees.add(nodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
             }
             return null;
         }
 
         @Override
-        protected Void visitPlan(Plan plan, List<NodeOperationTree> context) {
-            context.add(nodeOperationTreeGenerator.fromPlan(plan));
+        protected Void visitPlan(Plan plan, Context context) {
+            context.nodeOperationTrees.add(nodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
             return null;
+        }
+
+        static class Context {
+            private final List<NodeOperationTree> nodeOperationTrees = new ArrayList<>();
+            private final String localNodeId;
+
+            public Context(String localNodeId) {
+                this.localNodeId = localNodeId;
+            }
         }
     }
 
@@ -395,6 +405,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
         }
 
         static class NodeOperationTreeContext {
+            private final String localNodeId;
             private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
             private final List<NodeOperation> nodeOperations = new ArrayList<>();
 
@@ -402,11 +413,11 @@ public class TransportExecutor implements Executor, TaskExecutor {
             private final Branch root;
             private Branch currentBranch;
 
-            public NodeOperationTreeContext() {
+            public NodeOperationTreeContext(String localNodeId) {
+                this.localNodeId = localNodeId;
                 root = new Branch((byte) 0);
                 currentBranch = root;
             }
-
 
             /**
              * adds a Phase to the "NodeOperation execution tree"
@@ -443,7 +454,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 } else {
                     previousPhase = currentBranch.phases.lastElement();
                 }
-                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId));
+                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
                 currentBranch.phases.add(executionPhase);
             }
 
@@ -457,8 +468,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
             }
         }
 
-        public NodeOperationTree fromPlan(Plan plan) {
-            NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext();
+        public NodeOperationTree fromPlan(Plan plan, String localNodeId) {
+            NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
             process(plan, nodeOperationTreeContext);
             return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
                     nodeOperationTreeContext.root.phases.firstElement());

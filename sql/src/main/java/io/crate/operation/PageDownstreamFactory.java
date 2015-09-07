@@ -33,6 +33,7 @@ import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
@@ -73,6 +74,10 @@ public class PageDownstreamFactory {
                 bulkRetryCoordinatorPool,
                 implementationSymbolVisitor
         );
+    }
+
+    public ProjectorFactory projectorFactory() {
+        return projectionToProjectorVisitor;
     }
 
     public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,

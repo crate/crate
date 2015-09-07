@@ -21,9 +21,11 @@
 
 package io.crate.planner.distribution;
 
-import org.elasticsearch.common.io.stream.Streamable;
+import io.crate.planner.node.ExecutionPhase;
 
-public interface UpstreamPhase extends Streamable {
+public interface UpstreamPhase extends ExecutionPhase {
 
     DistributionType distributionType();
+
+    void distributionType(DistributionType distributionType);
 }

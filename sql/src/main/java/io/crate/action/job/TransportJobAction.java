@@ -24,18 +24,13 @@ package io.crate.action.job;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.NodeOperation;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -43,7 +38,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -87,18 +81,8 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     public void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
 
-        List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
-        for (NodeOperation nodeOperation : request.nodeOperations()) {
-
-            SingleBucketBuilder bucketBuilder = null;
-            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-                bucketBuilder = new SingleBucketBuilder(streamers);
-                directResponseFutures.add(bucketBuilder.result());
-            }
-
-            contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder, bucketBuilder);
-        }
+        List<ListenableFuture<Bucket>> directResponseFutures =
+                contextPreparer.prepareOnRemote(request.jobId(), request.nodeOperations(), contextBuilder);
 
         try {
             JobExecutionContext context = jobContextService.createContext(contextBuilder);

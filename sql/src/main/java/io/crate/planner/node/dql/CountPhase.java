@@ -25,7 +25,8 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,7 +35,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
-public class CountPhase implements ExecutionPhase {
+public class CountPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<CountPhase> FACTORY = new ExecutionPhaseFactory<CountPhase>() {
         @Override
@@ -46,14 +47,20 @@ public class CountPhase implements ExecutionPhase {
     private int executionPhaseId;
     private Routing routing;
     private WhereClause whereClause;
+    private DistributionType distributionType;
 
     CountPhase() {}
 
-    public CountPhase(UUID jobId, int executionPhaseId, Routing routing, WhereClause whereClause) {
+    public CountPhase(UUID jobId,
+                      int executionPhaseId,
+                      Routing routing,
+                      WhereClause whereClause,
+                      DistributionType distributionType) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.whereClause = whereClause;
+        this.distributionType = distributionType;
     }
 
     @Override
@@ -94,6 +101,16 @@ public class CountPhase implements ExecutionPhase {
     }
 
     @Override
+    public DistributionType distributionType() {
+        return distributionType;
+    }
+
+    @Override
+    public void distributionType(DistributionType distributionType) {
+        this.distributionType = distributionType;
+    }
+
+    @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitCountPhase(this, context);
     }
@@ -105,6 +122,7 @@ public class CountPhase implements ExecutionPhase {
         routing = new Routing();
         routing.readFrom(in);
         whereClause = new WhereClause(in);
+        distributionType = DistributionType.values()[in.readVInt()];
     }
 
     @Override
@@ -115,5 +133,6 @@ public class CountPhase implements ExecutionPhase {
         out.writeVInt(executionPhaseId);
         routing.writeTo(out);
         whereClause.writeTo(out);
+        out.writeVInt(distributionType.ordinal());
     }
 }

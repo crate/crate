@@ -22,12 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Streamer;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -38,7 +37,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
@@ -227,12 +225,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
-        NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0);
-        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-        SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
-        contextPreparer.prepare(collectNode.jobId(), nodeOperation, builder, bucketBuilder);
+        NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0,
+                "remoteNode");
+
+        List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(collectNode.jobId(), ImmutableList.of(nodeOperation), builder);
         JobExecutionContext context = contextService.createContext(builder);
         context.start();
-        return bucketBuilder.result().get(2, TimeUnit.SECONDS);
+        return results.get(0).get(2, TimeUnit.SECONDS);
     }
 }

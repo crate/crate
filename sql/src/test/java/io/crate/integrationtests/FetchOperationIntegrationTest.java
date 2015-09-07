@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Streamer;
 import io.crate.action.job.ContextPreparer;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -42,7 +41,6 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportFetchNodeAction;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
@@ -60,7 +58,6 @@ import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.QueryThenFetchConsumer;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.FetchProjection;
@@ -70,6 +67,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -161,16 +159,17 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         for (String nodeName : internalCluster().getNodeNames()) {
             ContextPreparer contextPreparer = internalCluster().getInstance(ContextPreparer.class, nodeName);
             JobContextService contextService = internalCluster().getInstance(JobContextService.class, nodeName);
+            ClusterService clusterService = internalCluster().getInstance(ClusterService.class, nodeName);
 
-            NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0);
-            Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-            SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
+            NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0,
+                    clusterService.localNode().id());
+
             JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
-            contextPreparer.prepare(collectNode.jobId(), nodeOperation, builder, bucketBuilder);
+            List<ListenableFuture<Bucket>> bucketResults = contextPreparer.prepareOnRemote(collectNode.jobId(), ImmutableList.of(nodeOperation), builder);
 
             JobExecutionContext context = contextService.createContext(builder);
             context.start();
-            results.add(bucketBuilder.result().get(2, TimeUnit.SECONDS));
+            results.add(bucketResults.get(0).get(2, TimeUnit.SECONDS));
         }
         return results;
     }

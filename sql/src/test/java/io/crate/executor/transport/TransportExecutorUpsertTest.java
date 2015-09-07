@@ -333,7 +333,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 plannerContext.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
                 collectNode1);
-        childNodes.add(new CollectAndMerge(collectNode1, mergeNode1, UUID.randomUUID()));
+        childNodes.add(new CollectAndMerge(collectNode1, mergeNode1, plannerContext.jobId()));
 
         // 2nd collect and merge nodes
         Function query2 = new Function(new FunctionInfo(
@@ -358,9 +358,9 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 plannerContext.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
                 collectNode2);
-        childNodes.add(new CollectAndMerge(collectNode2, mergeNode2, UUID.randomUUID()));
+        childNodes.add(new CollectAndMerge(collectNode2, mergeNode2, plannerContext.jobId()));
 
-        Upsert plan = new Upsert(childNodes, UUID.randomUUID());
+        Upsert plan = new Upsert(childNodes, plannerContext.jobId());
         Job job = executor.newJob(plan);
 
         assertThat(job.tasks().size(), is(1));

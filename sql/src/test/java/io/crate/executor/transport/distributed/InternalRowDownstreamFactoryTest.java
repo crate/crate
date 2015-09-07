@@ -81,7 +81,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 ImmutableList.<Projection>of(),
                 DistributionType.BROADCAST);
         mergePhase.executionNodes(downstreamExecutionNodes);
-        NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
+        NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
         return rowDownstreamFactory.createDownstream(nodeOperation, collectPhase.distributionType(), jobId, Paging.PAGE_SIZE);
     }
 

@@ -79,7 +79,12 @@ public class CountConsumer implements Consumer {
             TableInfo tableInfo = table.tableRelation().tableInfo();
             Routing routing = tableInfo.getRouting(querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
-            CountPhase countNode = new CountPhase(plannerContext.jobId(), plannerContext.nextExecutionPhaseId(), routing, querySpec.where());
+            CountPhase countNode = new CountPhase(
+                    plannerContext.jobId(),
+                    plannerContext.nextExecutionPhaseId(),
+                    routing,
+                    querySpec.where(),
+                    DistributionType.BROADCAST);
             MergePhase mergeNode = new MergePhase(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
@@ -87,7 +92,7 @@ public class CountConsumer implements Consumer {
                     countNode.executionNodes().size(),
                     Collections.singletonList(DataTypes.LONG),
                     Collections.<Projection>singletonList(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                    DistributionType.BROADCAST
+                    DistributionType.SAME_NODE
             );
             return new CountPlan(countNode, mergeNode, context.plannerContext().jobId());
         }

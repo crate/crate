@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobCollectContext implements ExecutionSubContext, ExecutionState {
 
     private final UUID id;
-    private final CollectPhase collectNode;
+    private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final RowReceiver rowReceiver;
@@ -67,7 +67,7 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver) {
         id = jobId;
-        this.collectNode = collectPhase;
+        this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.rowReceiver = new ForwardingRowReceiver(rowReceiver) {
@@ -182,7 +182,7 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
 
     @Override
     public String name() {
-        return collectNode.name();
+        return collectPhase.name();
     }
 
 
@@ -206,7 +206,7 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     @Override
     public void prepare() {
         try {
-            collectors = collectOperation.createCollectors(collectNode, rowReceiver, this);
+            collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
         } catch (Throwable t) {
             propagateFailure(t);
         }
@@ -215,7 +215,7 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     @Override
     public void start() {
         try {
-            collectOperation.launchCollectors(collectNode, collectors);
+            collectOperation.launchCollectors(collectPhase, collectors);
         } catch (Throwable t) {
             propagateFailure(t);
         }

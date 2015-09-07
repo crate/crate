@@ -22,11 +22,15 @@
 package io.crate.operation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,6 +38,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class NodeOperation implements Streamable {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(NodeOperation.class);
 
     private ExecutionPhase executionPhase;
     private Collection<String> downstreamNodes;
@@ -54,14 +60,35 @@ public class NodeOperation implements Streamable {
         readFrom(in);
     }
 
-    public static NodeOperation withDownstream(ExecutionPhase executionPhase, ExecutionPhase downstreamExecutionPhase, byte inputId) {
+    public static NodeOperation withDownstream(ExecutionPhase executionPhase,
+                                               ExecutionPhase downstreamExecutionPhase,
+                                               byte inputId,
+                                               String localNodeId) {
         if (downstreamExecutionPhase.executionNodes().isEmpty()) {
+            if (executionPhase instanceof UpstreamPhase && executionPhase.executionNodes().size() == 1
+                    && executionPhase.executionNodes().contains(localNodeId)) {
+                ((UpstreamPhase) executionPhase).distributionType(DistributionType.SAME_NODE);
+                LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
+                return new NodeOperation(
+                        executionPhase,
+                        ImmutableList.<String>of(),
+                        downstreamExecutionPhase.executionPhaseId(),
+                        inputId);
+            }
             return new NodeOperation(
                     executionPhase,
-                    ImmutableList.of("_response"),
+                    ImmutableList.of(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE),
                     downstreamExecutionPhase.executionPhaseId(),
                     inputId);
         } else {
+            if (executionPhase instanceof UpstreamPhase) {
+                if (executionPhase.executionNodes().size() == 1
+                        && executionPhase.executionNodes().equals(downstreamExecutionPhase.executionNodes())) {
+                    ((UpstreamPhase) executionPhase).distributionType(DistributionType.SAME_NODE);
+                    LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON DOWNSTRREAM NODE, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
+                }
+            }
+
             return new NodeOperation(executionPhase,
                     downstreamExecutionPhase.executionNodes(),
                     downstreamExecutionPhase.executionPhaseId(),

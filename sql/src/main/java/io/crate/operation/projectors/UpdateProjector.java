@@ -134,7 +134,7 @@ public class UpdateProjector extends AbstractProjector {
                 assert result != null : "BulkShardProcessor result is null";
                 Throwable throwable = upstreamFailure.get();
                 if (throwable == null) {
-                    downstream.setNextRow(new Row1(result.cardinality()));
+                    downstream.setNextRow(new Row1(Long.valueOf(result.cardinality())));
                     downstream.finish();
                 } else {
                     downstream.fail(throwable);

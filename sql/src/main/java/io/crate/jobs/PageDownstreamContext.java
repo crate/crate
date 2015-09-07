@@ -185,7 +185,7 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
                 callback.onKill();
             } else {
                 pageDownstream.finish();
-                callback.onClose(throwable, -1L);
+                callback.onClose(throwable, ramAccountingContext.totalBytes());
             }
             ramAccountingContext.close();
             closeFuture.set(null);

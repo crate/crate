@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.ContextPreparer;
@@ -37,6 +38,7 @@ import io.crate.jobs.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
 import org.elasticsearch.action.ActionListener;
@@ -119,23 +121,28 @@ public class ExecutionPhasesTask extends JobTask {
         sendJobRequests(pageDownstreamContexts, operationByServer);
     }
 
-    private void setupContext(Map<String, Collection<NodeOperation>> operationByServer, List<PageDownstreamContext> pageDownstreamContexts, RowReceiver rowDownstream, NodeOperationTree nodeOperationTree) {
-        DownstreamExecutionSubContext executionSubContext =
-                contextPreparer.prepare(jobId(), nodeOperationTree.leaf(), rowDownstream);
+    private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
+                              List<PageDownstreamContext> pageDownstreamContexts,
+                              RowReceiver rowReceiver,
+                              NodeOperationTree nodeOperationTree) {
+        boolean noNodeOperations = false;
         if (operationByServer.isEmpty()) {
+            // this should never happen, instead we should use a NOOP plan instead
+            // which immediately results in an empty result
+            noNodeOperations = true;
+        }
+        ExecutionSubContext executionSubContext = createLocalContextAndStartOperation(
+                operationByServer,
+                nodeOperationTree.leaf(),
+                rowReceiver);
+        if (noNodeOperations && executionSubContext != null) {
             executionSubContext.close();
             return;
         }
         if (hasDirectResponse) {
-            // TODO: create a JobExecutionContext for this case too, once we have the local downstream changes merged
-            executionSubContext.prepare();
-            executionSubContext.start();
-            pageDownstreamContexts.add(executionSubContext.pageDownstreamContext((byte) 0));
-        } else {
-            createLocalContextAndStartOperation(
-                    executionSubContext,
-                    operationByServer,
-                    nodeOperationTree.leaf().executionPhaseId());
+            assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
+                    : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs";
+            pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
         }
     }
 
@@ -165,20 +172,35 @@ public class ExecutionPhasesTask extends JobTask {
      *
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
-    private void createLocalContextAndStartOperation(ExecutionSubContext finalLocalMerge,
-                                                     Map<String, Collection<NodeOperation>> operationsByServer,
-                                                     int localMergeExecutionNodeId) {
+    @Nullable
+    private ExecutionSubContext createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
+                                                                    ExecutionPhase handlerFinalMergePhase,
+                                                                    RowReceiver handlerPhaseRowReceiver) {
         String localNodeId = clusterService.localNode().id();
-        Collection<NodeOperation> localNodeOperations = operationsByServer.remove(localNodeId);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        if (localNodeOperations != null) {
-            for (NodeOperation nodeOperation : localNodeOperations) {
-                contextPreparer.prepare(jobId(), nodeOperation, builder, null);
-            }
+        Collection<NodeOperation> localNodeOperations = null;
+        if (!hasDirectResponse) {
+            localNodeOperations = operationsByServer.remove(localNodeId);
         }
-        builder.addSubContext(localMergeExecutionNodeId, finalLocalMerge);
-        JobExecutionContext context = jobContextService.createContext(builder);
-        context.start();
+        if (localNodeOperations == null) {
+            localNodeOperations = ImmutableList.of();
+        }
+
+        ExecutionSubContext finalLocalMergeContext = contextPreparer.prepareOnHandler(
+                jobId(),
+                localNodeOperations,
+                builder,
+                handlerFinalMergePhase,
+                handlerPhaseRowReceiver);
+
+        if (!hasDirectResponse) {
+            JobExecutionContext context = jobContextService.createContext(builder);
+            context.start();
+        } else if (finalLocalMergeContext != null) {
+            finalLocalMergeContext.prepare();
+            finalLocalMergeContext.start();
+        }
+        return finalLocalMergeContext;
     }
 
     @Override

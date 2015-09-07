@@ -44,7 +44,7 @@ public class JobExecutionContext {
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
-    private final List<Integer> reverseContextIds;
+    private final List<Integer> orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ThreadPool threadPool;
     private StatsTables statsTables;
@@ -95,7 +95,7 @@ public class JobExecutionContext {
                                 ThreadPool threadPool,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
-        reverseContextIds = Lists.reverse(Lists.newArrayList(subContexts.keySet()));
+        orderedContextIds = Lists.newArrayList(subContexts.keySet());
         this.jobId = jobId;
         this.threadPool = threadPool;
         this.statsTables = statsTables;
@@ -129,7 +129,7 @@ public class JobExecutionContext {
     }
 
     private void prepare(){
-        for (Integer id : reverseContextIds) {
+        for (Integer id : orderedContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
                 break; // got killed before prepare was called
@@ -141,7 +141,7 @@ public class JobExecutionContext {
 
     public void start() {
         prepare();
-        for (Integer id : reverseContextIds) {
+        for (Integer id : orderedContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called

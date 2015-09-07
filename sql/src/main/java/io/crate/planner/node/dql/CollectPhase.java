@@ -129,6 +129,11 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         return distributionType;
     }
 
+    @Override
+    public void distributionType(DistributionType distributionType) {
+        this.distributionType = distributionType;
+    }
+
     public @Nullable Integer limit() {
         return limit;
     }
@@ -220,8 +225,8 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
-        for (int i = 0; i < numCols; i++) {
-            Symbol.toStream(toCollect.get(i), out);
+        for (Symbol aToCollect : toCollect) {
+            Symbol.toStream(aToCollect, out);
         }
 
         RowGranularity.toStream(maxRowGranularity, out);
