@@ -57,6 +57,11 @@ Below are two ways you can disable UDC. However we hope you support us offering
 the open source edition, and leave UDC on, so we learn how many people use
 Crate.
 
+.. note::
+
+    If UDC is disabled on the Crate server the Intercom service is deactivated.
+
+
 .. highlight:: yaml
 
 By configuration
