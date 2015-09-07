@@ -10,8 +10,8 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
@@ -115,7 +115,7 @@ public class ExecutionSubContextTest extends CrateUnitTest {
         verifyParallelClose(new JobCollectContext(
                 UUID.randomUUID(),
                 mock(CollectPhase.class),
-                mock(CollectOperation.class),
+                mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
                 new CollectingProjector()
         ));
@@ -126,7 +126,7 @@ public class ExecutionSubContextTest extends CrateUnitTest {
         verifyParallelKill(new JobCollectContext(
                 UUID.randomUUID(),
                 mock(CollectPhase.class),
-                mock(CollectOperation.class),
+                mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
                 new CollectingProjector()
         ));

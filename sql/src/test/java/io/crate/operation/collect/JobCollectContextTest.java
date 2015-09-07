@@ -67,7 +67,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         jobCollectContext = new JobCollectContext(
                 UUID.randomUUID(),
                 mock(CollectPhase.class),
-                mock(CollectOperation.class), ramAccountingContext, new CollectingProjector());
+                mock(MapSideDataCollectOperation.class), ramAccountingContext, new CollectingProjector());
     }
 
     @Test
@@ -105,7 +105,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         final SettableFuture<Throwable> errorFuture = SettableFuture.create();
 
         CrateSearchContext mock1 = mock(CrateSearchContext.class);
-        CollectOperation collectOperationMock = mock(CollectOperation.class);
+        MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
         CollectPhase collectPhaseMock = mock(CollectPhase.class);
         UUID jobId = UUID.randomUUID();
         CollectingProjector projector = new CollectingProjector();

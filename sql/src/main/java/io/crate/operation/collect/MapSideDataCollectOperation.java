@@ -58,7 +58,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
  */
 @Singleton
-public class MapSideDataCollectOperation implements CollectOperation, RowUpstream {
+public class MapSideDataCollectOperation implements RowUpstream {
 
     private final EvaluatingNormalizer clusterNormalizer;
     private final ClusterService clusterService;
@@ -122,7 +122,6 @@ public class MapSideDataCollectOperation implements CollectOperation, RowUpstrea
      * &nbsp; -&gt; run node level collect (cluster level)<br>
      * </p>
      */
-    @Override
     public Collection<CrateCollector> collect(CollectPhase collectPhase,
                                               RowDownstream downstream,
                                               final JobCollectContext jobCollectContext) {

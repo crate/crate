@@ -30,8 +30,8 @@ import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
@@ -98,7 +98,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(1, new JobCollectContext(jobId,
-                mock(CollectPhase.class), mock(CollectOperation.class),
+                mock(CollectPhase.class), mock(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
         jobContextService.createContext(builder);
 

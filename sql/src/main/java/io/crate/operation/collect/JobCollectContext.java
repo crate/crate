@@ -48,7 +48,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     private final UUID id;
     private final CollectPhase collectNode;
-    private final CollectOperation collectOperation;
+    private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final RowDownstream downstream;
 
@@ -67,7 +67,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
 
     public JobCollectContext(UUID jobId,
                              final CollectPhase collectPhase,
-                             CollectOperation collectOperation,
+                             MapSideDataCollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowDownstream rowDownstream) {
         id = jobId;

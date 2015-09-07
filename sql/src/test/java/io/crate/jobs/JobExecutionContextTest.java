@@ -26,8 +26,8 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.collect.CollectOperation;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
@@ -107,7 +107,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         JobCollectContext jobCollectContext = new JobCollectContext(
                 jobId,
                 mock(CollectPhase.class),
-                mock(CollectOperation.class),
+                mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
                 mock(RowDownstream.class));
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
