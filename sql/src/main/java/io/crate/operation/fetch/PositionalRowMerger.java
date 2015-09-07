@@ -22,11 +22,9 @@
 package io.crate.operation.fetch;
 
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.Projector;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -41,9 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * not operating thread-safe, but the merger itself is thread-safe. The main purpose of this
  * implementation is merging ordered shard rows on a node.
  */
-public class PositionalRowMerger implements Projector, RowDownstreamHandle {
+public class PositionalRowMerger implements RowDownstream, RowUpstream {
 
-    private RowDownstreamHandle downstream;
+    private final RowDownstreamHandle downstream;
     private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final List<UpstreamBuffer> upstreamBuffers = new ArrayList<>();
     private final int orderingColumnIndex;
@@ -53,13 +51,8 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
     private final AtomicBoolean consumeRows = new AtomicBoolean(true);
 
     public PositionalRowMerger(RowDownstream downstream, int orderingColumnIndex) {
-        downstream(downstream);
+        this.downstream = downstream.registerUpstream(this);
         this.orderingColumnIndex = orderingColumnIndex;
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
-        throw new UnsupportedOperationException("PositionalRowMerger does not support setNextRow");
     }
 
     private synchronized boolean emitRows() {
@@ -107,14 +100,6 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
         return downstream.setNextRow(row);
     }
 
-    @Override
-    public void startProjection(ExecutionState executionState) {
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
 
     @Override
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
@@ -124,15 +109,13 @@ public class PositionalRowMerger implements Projector, RowDownstreamHandle {
         return upstreamBuffer;
     }
 
-    @Override
-    public void finish() {
+    private void finish() {
         if (upstreamsRemaining.decrementAndGet() <= 0) {
             downstream.finish();
         }
     }
 
-    @Override
-    public void fail(Throwable throwable) {
+    private void fail(Throwable throwable) {
         consumeRows.set(false);
         downstream.fail(throwable);
     }
