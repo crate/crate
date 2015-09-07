@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.14.4 which includes the following changes:
+  
+   - updated Intercom to support new messaging features. The Intercom service is 
+     disabled if UDC is disabled on the Crate server.
+
  - Added the ``number of partitions`` system check.
 
  - Fixed handling of non-deterministic functions
