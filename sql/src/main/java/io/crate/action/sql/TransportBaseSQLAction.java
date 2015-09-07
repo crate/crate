@@ -52,7 +52,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexShardMissingException;
@@ -324,8 +323,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             }
             return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
-            Tuple<String, String> schemaAndTable = PartitionName.schemaAndTableName(((InvalidIndexTemplateException) e).name());
-            return new InvalidTableNameException(new TableIdent(schemaAndTable.v1(), schemaAndTable.v2()).fqn(), e);
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
+            return new InvalidTableNameException(new TableIdent(partitionName.schema(), partitionName.tableName()).fqn(), e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException) e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {

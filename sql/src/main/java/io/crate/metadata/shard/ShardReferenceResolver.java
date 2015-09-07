@@ -51,7 +51,14 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 .putAll(shardImplementations);
 
         if (PartitionName.isPartition(index.name())) {
-            TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
+            PartitionName partitionName;
+            try {
+                partitionName = PartitionName.fromIndexOrTemplate(index.name());
+            } catch (IllegalArgumentException e) {
+                throw new UnhandledServerException(String.format(Locale.ENGLISH,
+                        "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
+            }
+            TableIdent tableIdent = new TableIdent(partitionName.schemaOrNull(), partitionName.tableName());
             // check if alias exists
             if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
                 DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
@@ -59,17 +66,6 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();
 
-                PartitionName partitionName;
-                try {
-                    partitionName = PartitionName.fromString(index.name(), tableIdent.schema(), tableIdent.name());
-                } catch (IllegalArgumentException e) {
-                    throw new UnhandledServerException(
-                            String.format(Locale.ENGLISH,
-                                    "Unable to load PARTITIONED BY columns from partition %s",
-                                    index.name()),
-                            e
-                    );
-                }
                 assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
                 for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
                     builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(

@@ -189,7 +189,7 @@ public class UpdateConsumer implements Consumer {
             for (DocKeys.DocKey key : whereClause.docKeys().get()) {
                 String index;
                 if (key.partitionValues().isPresent()) {
-                    index = new PartitionName(tableInfo.ident(), key.partitionValues().get()).stringValue();
+                    index = new PartitionName(tableInfo.ident(), key.partitionValues().get()).asIndexName();
                 } else {
                     index = indices[0];
                 }

@@ -36,7 +36,7 @@ public class ShardPartitionIdentExpression extends SimpleObjectExpression<BytesR
     @Inject
     public ShardPartitionIdentExpression(ShardId shardId) {
         if (PartitionName.isPartition(shardId.getIndex())) {
-            value = new BytesRef(PartitionName.ident(shardId.getIndex()));
+            value = new BytesRef(PartitionName.fromIndexOrTemplate(shardId.getIndex()).ident());
         } else {
             value = EMPTY;
         }

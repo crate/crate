@@ -290,8 +290,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         if (partitionIdent != null) {
-            routing = Routing.filter(routing, PartitionName.fromPartitionIdent(
-                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent).stringValue());
+            routing = Routing.filter(routing, PartitionName.indexName(
+                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent));
         }
         CollectPhase collectPhase = new CollectPhase(
                 context.jobId(),
@@ -343,10 +343,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
             // partitionIdent is present -> possible to index raw source into concrete es index
-            PartitionName partitionName = PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), analysis.partitionIdent());
-            partitionValues = partitionName.values();
 
-            partitionIdent = partitionName.ident();
+            partitionValues = PartitionName.decodeIdent(analysis.partitionIdent());
+            partitionIdent = analysis.partitionIdent();
             partitionedByNames = Collections.emptyList();
         }
 
@@ -613,7 +612,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = new String[tableInfo.partitions().size()];
             int i = 0;
             for (PartitionName partitionName: tableInfo.partitions()) {
-                indices[i] = partitionName.stringValue();
+                indices[i] = partitionName.asIndexName();
                 i++;
             }
         } else {

@@ -62,7 +62,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         @Override
         public PartitionInfo apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
             assert input != null;
-            PartitionName partitionName = PartitionName.fromStringSafe(input.key);
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
             try {
                 Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));
                 BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.settings());

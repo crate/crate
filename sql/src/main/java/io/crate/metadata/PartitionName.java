@@ -23,18 +23,19 @@ package io.crate.metadata;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,35 +43,19 @@ public class PartitionName {
 
     private static final Base32 BASE32 = new Base32(true);
     private static final Joiner DOT_JOINER = Joiner.on(".");
+    private static final Splitter SPLITTER = Splitter.on(".").limit(5);
 
-    private final List<BytesRef> values;
     @Nullable
-    private String schemaName;
-    private String tableName;
+    private final String schemaName;
+    private final String tableName;
 
-    private String partitionName;
+    private List<BytesRef> values;
+    private String indexName;
     private String ident;
 
     public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
-    private static final Predicate<List<String>> indexNamePartsPredicate = new Predicate<List<String>>() {
-        @Override
-        public boolean apply(List<String> input) {
-            boolean result = false;
-            switch(input.size()) {
-                case 4:
-                    // ""."partitioned"."table_name". ["ident"]
-                    result = input.get(1).equals(PARTITIONED_TABLE_PREFIX.substring(1));
-                    break;
-                case 5:
-                    // "schema".""."partitioned"."table_name". ["ident"]
-                    result = input.get(2).equals(PARTITIONED_TABLE_PREFIX.substring(1));
-                    break;
-            }
-            return result;
-        }
-    };
 
-    public PartitionName (TableIdent tableIdent, List<BytesRef> values){
+    public PartitionName(TableIdent tableIdent, List<BytesRef> values) {
         this(tableIdent.schema(), tableIdent.name(), values);
     }
 
@@ -84,34 +69,42 @@ public class PartitionName {
         this.values = values;
     }
 
-    private PartitionName(@Nullable String schemaName, String tableName) {
-        this(schemaName, tableName, new ArrayList<BytesRef>());
+    public static String indexName(@Nullable String schema, String table, String ident) {
+        if (schema == null || schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
+            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, table, ident);
+        }
+        return DOT_JOINER.join(schema, PARTITIONED_TABLE_PREFIX, table, ident);
     }
 
-    public boolean isValid() {
-        return values.size() > 0;
-    }
-
+    /**
+     * decodes an encoded ident into it's values
+     */
     @Nullable
-    public void decodeIdent(@Nullable String ident) throws IOException {
+    public static List<BytesRef> decodeIdent(@Nullable String ident) {
         if (ident == null) {
-            return;
+            return ImmutableList.of();
         }
         byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
-        BytesStreamInput in = new BytesStreamInput(inputBytes);
-        int size = in.readVInt();
-        for (int i=0; i < size; i++) {
-            BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);
-            if (value == null) {
-                values.add(null);
-            } else {
-                values.add(value);
+        try (BytesStreamInput in = new BytesStreamInput(inputBytes)) {
+            int size = in.readVInt();
+            List<BytesRef> values = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);
+                if (value == null) {
+                    values.add(null);
+                } else {
+                    values.add(value);
+                }
             }
+            return values;
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid partition ident: %s", ident), e);
         }
     }
 
     @Nullable
-    public String encodeIdent() {
+    private static String encodeIdent(Collection<? extends BytesRef> values) {
         if (values.size() == 0) {
             return null;
         }
@@ -123,7 +116,7 @@ public class PartitionName {
                 StringType.INSTANCE.streamer().writeValueTo(streamOutput, value);
             }
         } catch (IOException e) {
-            //
+            throw Throwables.propagate(e);
         }
         String identBase32 = BASE32.encodeAsString(streamOutput.bytes().toBytes()).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
@@ -137,7 +130,7 @@ public class PartitionName {
     /**
      * estimates the size the bytesRef values will take if written onto a StreamOutput using the String streamer
      */
-    private int estimateSize(List<BytesRef> values) {
+    private static int estimateSize(Iterable<? extends BytesRef> values) {
         int expectedEncodedSize = 0;
         for (BytesRef value : values) {
             // 5 bytes for the value of the length itself using vInt
@@ -146,40 +139,56 @@ public class PartitionName {
         return expectedEncodedSize;
     }
 
-    public String stringValue() {
-        if (partitionName == null) {
-            if (schemaName == null) {
-                partitionName = DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, ident());
-            } else {
-                partitionName = DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, ident());
-            }
+    public String asIndexName() {
+        if (indexName == null) {
+            indexName = indexName(schemaName, tableName, ident());
         }
-        return partitionName;
+        return indexName;
     }
 
+    /**
+     * @return the encoded values of a partition
+     */
     @Nullable
     public String ident() {
         if (ident == null) {
-            ident = encodeIdent();
+            ident = encodeIdent(values);
         }
         return ident;
+    }
+
+    public List<BytesRef> values() {
+        if (values == null) {
+            if (ident == null) {
+                return ImmutableList.of();
+            } else {
+                values = decodeIdent(ident);
+            }
+        }
+        return values;
     }
 
     public String tableName() {
         return tableName;
     }
 
-    public @Nullable String schemaName() {
+    /**
+     * @return the schema name, in case of "doc" the schemaName is returned as null
+     */
+    public @Nullable String schemaOrNull() {
         return schemaName;
+    }
+
+    /**
+     * same as {@link #schemaOrNull()} but returns "doc" instead of null
+     */
+    public String schema() {
+        return MoreObjects.firstNonNull(schemaName, Schemas.DEFAULT_SCHEMA_NAME);
     }
 
     @Nullable
     public String toString() {
-        return stringValue();
-    }
-
-    public List<BytesRef> values() {
-        return values;
+        return asIndexName();
     }
 
     @Override
@@ -189,96 +198,61 @@ public class PartitionName {
 
         PartitionName that = (PartitionName) o;
 
-        if (!stringValue().equals(that.stringValue())) return false;
+        if (!asIndexName().equals(that.asIndexName())) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return stringValue().hashCode();
-    }
-
-    public static PartitionName fromString(String partitionTableName, @Nullable String schemaName, String tableName) {
-        assert partitionTableName != null;
-        assert tableName != null;
-
-        String[] splitted = split(partitionTableName);
-        assert (splitted[0] == null && (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)))
-                || (splitted[0] != null && splitted[0].equals(schemaName))
-                || splitted[1].equals(tableName) : String.format(
-                Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
-
-        return fromPartitionIdent(splitted[0], splitted[1], splitted[2]);
-    }
-
-    public static PartitionName fromStringSafe(String partitionTableName) {
-        assert partitionTableName != null;
-        String[] splitted = split(partitionTableName);
-        return fromPartitionIdent(splitted[0], splitted[1], splitted[2]);
+        return asIndexName().hashCode();
     }
 
     /**
-     * decode a partitionTableName with all of its pre-splitted parts into
-     * and instance of <code>PartitionName</code>
+     * creates a PartitionName from an index or template Name
+     *
+     * an partition index has the format [&lt;schema&gt;.].partitioned.&lt;table&gt;.[&lt;ident&gt;]
+     * a templateName has the same format but without the ident.
      */
-    public static PartitionName fromPartitionIdent(@Nullable String schemaName, String tableName,
-                                                   String partitionIdent) {
-        PartitionName partitionName = new PartitionName(schemaName, tableName);
-        partitionName.ident = partitionIdent;
-        try {
-            partitionName.decodeIdent(partitionIdent);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid partition ident: %s", partitionIdent), e);
+    public static PartitionName fromIndexOrTemplate(String indexOrTemplate) {
+        assert indexOrTemplate != null;
+
+        List<String> parts = SPLITTER.splitToList(indexOrTemplate);
+
+        String schema;
+        String partitioned;
+        String table;
+        String ident;
+        switch(parts.size()) {
+            case 4:
+                // ""."partitioned"."table_name". ["ident"]
+                schema = null;
+                partitioned = parts.get(1);
+                table = parts.get(2);
+                ident = parts.get(3);
+                break;
+            case 5:
+                // "schema".""."partitioned"."table_name". ["ident"]
+                schema = parts.get(0);
+                partitioned = parts.get(2);
+                table = parts.get(3);
+                ident = parts.get(4);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
         }
+        if (!partitioned.equals("partitioned")) {
+            throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
+        }
+
+        PartitionName partitionName = new PartitionName(schema, table, null);
+        partitionName.ident = ident;
         return partitionName;
     }
 
-    public static boolean isPartition(String index, @Nullable String schemaName, String tableName) {
-        if (!isPartition(index)) {
-            return false;
-        }
-        List<String> splitted = Splitter.on(".").splitToList(index);
-        if (splitted.size() == 4) {
-            return (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) && splitted.get(2).equals(tableName);
-        } else if (splitted.size() == 5) {
-            return schemaName != null && schemaName.equals(splitted.get(0)) && splitted.get(3).equals(tableName);
-        }
-        return false;
-    }
-
     public static boolean isPartition(String index) {
-        return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 && index.contains(PARTITIONED_TABLE_PREFIX + ".");
-    }
-
-    /**
-     * split a given partition name or template name into its parts
-     * <code>schemaName</code>, <code>tableName</code> and <code>valuesString</code>.
-     *
-     * @param partitionOrTemplateName name of a partition or template
-     * @return a String array with the following elements:
-     *
-     *         <ul>
-     *             <li><code>schemaName</code> (possibly null) </li>
-     *             <li><code>tableName</code></li>
-     *             <li><code>valuesString</code></li>
-     *         </ul>
-     * @throws java.lang.IllegalArgumentException if <code>partitionName</code> is invalid
-     */
-    public static String[] split(String partitionOrTemplateName) {
-        List<String> splitted = Splitter.on(".").splitToList(partitionOrTemplateName);
-        if (!indexNamePartsPredicate.apply(splitted)) {
-            throw new IllegalArgumentException("Invalid partition name");
-        }
-        switch(splitted.size()) {
-            case 4:
-                return new String[]{ null, splitted.get(2), DOT_JOINER.join(splitted.subList(3, splitted.size()))};
-            case 5:
-                return new String[]{ splitted.get(0), splitted.get(3), DOT_JOINER.join(splitted.subList(4, splitted.size())) };
-            default:
-                throw new IllegalArgumentException("Invalid partition name");
-        }
+        return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 &&
+                (index.startsWith(PARTITIONED_TABLE_PREFIX + ".") || index.contains("." + PARTITIONED_TABLE_PREFIX + "."));
     }
 
     /**
@@ -290,38 +264,5 @@ public class PartitionName {
         } else {
             return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
         }
-    }
-
-    /**
-     * extract the tableName from the name of a partition or template
-     * @return the tableName as string
-     */
-    public static String tableName(String partitionOrTemplateName) {
-        return PartitionName.split(partitionOrTemplateName)[1];
-    }
-
-    /**
-     * extract the schemaName from the name of a partition or template
-     * @return the schemaName as string
-     */
-    public static String schemaName(String partitionOrTemplateName) {
-        String schema = PartitionName.split(partitionOrTemplateName)[0];
-        return schema == null ? Schemas.DEFAULT_SCHEMA_NAME : schema;
-    }
-
-    public static Tuple<String, String> schemaAndTableName(String partitionOrTemplateName) {
-        String[] splitted = PartitionName.split(partitionOrTemplateName);
-        return new Tuple<>(
-                MoreObjects.firstNonNull(splitted[0], Schemas.DEFAULT_SCHEMA_NAME),
-                splitted[1]
-        );
-    }
-
-    /**
-     * extract the ident from the name of a partition or template
-     * @return the ident as string
-     */
-    public static String ident(String partitionOrTemplateName) {
-        return PartitionName.split(partitionOrTemplateName)[2];
     }
 }

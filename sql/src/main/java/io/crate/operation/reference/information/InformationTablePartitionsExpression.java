@@ -43,7 +43,7 @@ public abstract class InformationTablePartitionsExpression<T>
 
         @Override
         public BytesRef value() {
-            String schemaName = row.name().schemaName();
+            String schemaName = row.name().schemaOrNull();
             if (schemaName == null) {
                 return DOC_SCHEMA_INFO;
             }

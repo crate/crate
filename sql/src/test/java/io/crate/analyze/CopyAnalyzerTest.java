@@ -59,6 +59,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
@@ -100,7 +101,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze(
                 "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
-        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).ident();
         assertThat(analysis.partitionIdent(), equalTo(parted));
     }
 
@@ -177,7 +178,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze("copy parted partition (date=1395874800000) to '/blah.txt'");
-        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).ident();
         assertThat(analysis.partitionIdent(), is(parted));
     }
 
@@ -185,7 +186,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyToDirectoryithPartitionClause() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
         assertThat(analysis.directoryUri(), is(true));
-        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).ident();
         assertThat(analysis.partitionIdent(), is(parted));
     }
 

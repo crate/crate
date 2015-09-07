@@ -226,7 +226,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
 
             boolean isPartitionAlias = true;
             for (String index : table.concreteIndices()) {
-                if (!PartitionName.isPartition(index, table.ident().schema(), table.ident().name())) {
+                if (!PartitionName.isPartition(index)) {
                     isPartitionAlias = false;
                     break;
                 }

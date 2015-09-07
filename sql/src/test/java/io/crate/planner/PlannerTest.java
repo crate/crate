@@ -178,9 +178,9 @@ public class PlannerTest extends CrateUnitTest {
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPartitions(
-                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(), // TODO: invalid partition: null not valid as part of primary key
-                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
-                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()
+                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).asIndexName(), // TODO: invalid partition: null not valid as part of primary key
+                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
+                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()
                     )
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
@@ -206,9 +206,9 @@ public class PlannerTest extends CrateUnitTest {
                     .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
                             // add 3 partitions/simulate already done inserts
                     .addPartitions(
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).stringValue(),
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
-                            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
+                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
+                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
+                            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
                     .build();
             TableIdent clusteredByParitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
             TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
@@ -218,8 +218,8 @@ public class PlannerTest extends CrateUnitTest {
                     .add("city", DataTypes.STRING, null)
                     .clusteredBy("city")
                     .addPartitions(
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue())
+                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
                     .build();
             when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
@@ -375,7 +375,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(getNode.tableInfo().ident().name(), is("parted"));
         assertThat(getNode.docKeys().getOnlyKey(), isDocKey("one", 0L));
 
-        //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
+        //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName()));
         assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
         assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
     }
@@ -648,7 +648,7 @@ public class PlannerTest extends CrateUnitTest {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
-                new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
+                new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()));
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
@@ -1827,8 +1827,8 @@ public class PlannerTest extends CrateUnitTest {
         indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting)
                 .add("id", DataTypes.INTEGER, null)
                 .add("date", DataTypes.TIMESTAMP, null, true)
-                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).stringValue())
-                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("12345"))).stringValue())
+                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).asIndexName())
+                .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("12345"))).asIndexName())
                 .build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
     }

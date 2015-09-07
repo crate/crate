@@ -144,9 +144,10 @@ public class DocTableInfoBuilder {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
             for(String index : concreteIndices) {
-                if (PartitionName.isPartition(index, ident.schema(), ident.name())) {
+                if (PartitionName.isPartition(index)) {
                     try {
-                        PartitionName partitionName = PartitionName.fromString(index, ident.schema(), ident.name());
+                        PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
+                        assert partitionName.schema().equals(ident.schema()) && ident.name().equals(partitionName.tableName());
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore

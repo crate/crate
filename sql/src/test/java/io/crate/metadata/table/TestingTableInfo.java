@@ -209,7 +209,7 @@ public class TestingTableInfo extends DocTableInfo {
 
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
-                PartitionName partition = PartitionName.fromString(partitionName, ident.schema(), ident.name());
+                PartitionName partition = PartitionName.fromIndexOrTemplate(partitionName);
                 partitions.add(partition);
             }
             return this;

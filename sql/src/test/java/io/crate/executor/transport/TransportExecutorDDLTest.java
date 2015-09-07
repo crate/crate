@@ -149,7 +149,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
-        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).stringValue();
+        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).asIndexName();
         client().admin().indices().prepareCreate(partitionName)
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
                 .setSettings(TEST_SETTINGS)
@@ -181,7 +181,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedAlias() throws Exception {
-        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).stringValue();
+        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).asIndexName();
         client().admin().indices().prepareCreate(partitionName)
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
                 .setSettings(TEST_SETTINGS)
@@ -227,7 +227,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(1L));
 
-        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).stringValue();
+        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
         Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
 
@@ -256,7 +256,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).stringValue();
+        String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);

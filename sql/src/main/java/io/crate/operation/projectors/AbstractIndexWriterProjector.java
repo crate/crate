@@ -124,7 +124,7 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
                     .build(new CacheLoader<List<BytesRef>, String>() {
                         @Override
                         public String load(@Nonnull List<BytesRef> key) throws Exception {
-                            return new PartitionName(tableIdent, key).stringValue();
+                            return new PartitionName(tableIdent, key).asIndexName();
                         }
                     });
         } else {
@@ -247,7 +247,7 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
                 throw ExceptionsHelper.convertToRuntime(e);
             }
         } else if (partitionIdent != null) {
-            return PartitionName.fromPartitionIdent(tableIdent.schema(), tableIdent.name(), partitionIdent).stringValue();
+            return PartitionName.indexName(tableIdent.schema(), tableIdent.name(), partitionIdent);
         } else {
             return tableIdent.esName();
         }

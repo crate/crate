@@ -75,7 +75,7 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
                 if (!docTableInfo.partitions().contains(partitionName)) {
                     throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
                 }
-                indexNames.add(partitionName.stringValue());
+                indexNames.add(partitionName.asIndexName());
             }
         }
         return new RefreshTableAnalyzedStatement(indexNames);

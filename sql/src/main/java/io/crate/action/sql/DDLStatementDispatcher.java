@@ -307,7 +307,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
                 indexNames = tableInfo.concreteIndices();
             } else {
                 // single partition
-                indexNames = new String[] { partitionName.stringValue() };
+                indexNames = new String[] { partitionName.asIndexName() };
             }
         } else {
             indexNames = new String[] { tableInfo.ident().esName() };
@@ -372,7 +372,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
                     tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
 
             if (analysis.partitionName().isPresent()) {
-                String index = analysis.partitionName().get().stringValue();
+                String index = analysis.partitionName().get().asIndexName();
                 results.add(updateMapping(analysis.tableParameter().mappings(), index));
                 results.add(updateSettings(parameterWithFilteredSettings, index));
             } else {

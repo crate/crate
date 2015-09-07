@@ -127,9 +127,9 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             // add 3 partitions/simulate already done inserts
             .addPartitions(
-                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
-                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),
-                    new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue())
+                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
+                    new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).asIndexName())
             .build();
     static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
     static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
@@ -141,9 +141,9 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
             // add 3 partitions/simulate already done inserts
             .addPartitions(
-                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).stringValue(),
-                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
-                    new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
+                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
+                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
+                    new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
             .build();
     static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_parted");
     static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
@@ -154,9 +154,9 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
                     // add 3 partitions/simulate already done inserts
             .addPartitions(
-                    new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("Trillian"))).stringValue(),
-                    new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).stringValue(),
-                    new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).stringValue())
+                    new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("Trillian"))).asIndexName(),
+                    new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
+                    new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
             .build();
     static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "transactions");
     static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(

@@ -145,10 +145,7 @@ public class CreateTableTask extends AbstractChainedTask {
     private void deleteOrphans(final CreateTableResponseListener listener) {
         if (clusterService.state().metaData().aliases().containsKey(planNode.tableIdent().fqn())
                 && PartitionName.isPartition(
-                clusterService.state().metaData().aliases().get(planNode.tableIdent().fqn()).keysIt().next(),
-                planNode.tableIdent().schema(),
-                planNode.tableIdent().name())
-                ) {
+                clusterService.state().metaData().aliases().get(planNode.tableIdent().fqn()).keysIt().next())) {
             logger.debug("Deleting orphaned partitions with alias: {}", planNode.tableIdent().fqn());
             deleteIndexAction.execute(new DeleteIndexRequest(planNode.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override

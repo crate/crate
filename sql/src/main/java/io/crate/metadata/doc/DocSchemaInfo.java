@@ -26,12 +26,14 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
@@ -71,10 +73,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
         @Override
         public boolean apply(String input) {
-            //noinspection SimplifiableIfStatement
-            if (BlobIndices.isBlobIndex(input)) {
-                return false;
-            }
             return !Schemas.SCHEMA_PATTERN.matcher(input).matches();
         }
     };
@@ -95,7 +93,14 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final Function<String, TableInfo> tableInfoFunction;
     private final String schemaName;
     private final ExecutorService executorService;
-
+    private final Function<String, String> indexToTableName;
+    private final static Function<String, String> AS_IS_FUNCTION = new Function<String, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable String input) {
+            return input;
+        }
+    };
 
     /**
      * DocSchemaInfo constructor for the default (doc) schema.
@@ -104,20 +109,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public DocSchemaInfo(ClusterService clusterService,
                          ThreadPool threadPool,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
-        schemaName = Schemas.DEFAULT_SCHEMA_NAME;
-        this.clusterService = clusterService;
-        clusterService.add(this);
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-
-        this.tablesFilter = DOC_SCHEMA_TABLES_FILTER;
-        this.tableInfoFunction = new Function<String, TableInfo>() {
-            @Nullable
-            @Override
-            public TableInfo apply(String input) {
-                return getTableInfo(input);
-            }
-        };
+        this(Schemas.DEFAULT_SCHEMA_NAME,
+                clusterService,
+                (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
+                transportPutIndexTemplateAction,
+                Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
+                AS_IS_FUNCTION);
     }
 
     /**
@@ -127,35 +124,71 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                          ExecutorService executorService,
                          ClusterService clusterService,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        this.schemaName = schemaName;
-        this.executorService = executorService;
-        this.clusterService = clusterService;
-        clusterService.add(this);
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-
-
-        this.tableInfoFunction = new Function<String, TableInfo>() {
+        this(schemaName, clusterService, executorService, transportPutIndexTemplateAction,
+                createSchemaNamePredicate(schemaName), new Function<String, String>() {
             @Nullable
             @Override
-            public TableInfo apply(String input) {
+            public String apply(String input) {
                 Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
                 if (matcher.matches()) {
                     input = matcher.group(2);
                 }
-                return getTableInfo(input);
+                return input;
+            }
+        });
+    }
+
+    private DocSchemaInfo(final String schemaName,
+                          ClusterService clusterService,
+                          ExecutorService executorService,
+                          TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Predicate<String> tableFilter,
+                          final Function<String, String> fqTableNameToTableName) {
+        this.schemaName = schemaName;
+        this.clusterService = clusterService;
+        this.clusterService.add(this);
+        this.executorService = executorService;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.tablesFilter = tableFilter;
+        this.tableInfoFunction = new Function<String, TableInfo>() {
+            @Nullable
+            @Override
+            public TableInfo apply(@Nullable String input) {
+                assert input != null : "input must not be null";
+                return getTableInfo(fqTableNameToTableName.apply(input));
             }
         };
-        tablesFilter = new Predicate<String>() {
+        this.indexToTableName = new Function<String, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable String input) {
+                if (input == null) {
+                    return null;
+                }
+                if (BlobIndices.isBlobIndex(input)) {
+                    return null;
+                }
+                if (PartitionName.isPartition(input)) {
+                    PartitionName partitionName = PartitionName.fromIndexOrTemplate(input);
+                    if (partitionName.schema().equals(schemaName)) {
+                        return partitionName.tableName();
+                    } else {
+                        return null;
+                    }
+                }
+                return input;
+            }
+        };
+    }
+
+    private static Predicate<String> createSchemaNamePredicate(final String schemaName) {
+        return Predicates.and(Predicates.notNull(), new Predicate<String>() {
             @Override
             public boolean apply(String input) {
-                //noinspection SimplifiableIfStatement
-                if (BlobIndices.isBlobIndex(input)) {
-                    return false;
-                }
                 Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                return (matcher.matches() && matcher.group(1).equals(schemaName)) ;
+                return (matcher.matches() && matcher.group(1).equals(schemaName));
             }
-        };
+        });
     }
 
     private DocTableInfo innerGetTableInfo(String name) {
@@ -192,17 +225,22 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
-        List<String> tables = new ArrayList<>();
-        tables.addAll(Collections2.filter(
-                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), tablesFilter));
+
+        Set<String> tables = new HashSet<>();
+        tables.addAll(Collections2.filter(Collections2.transform(
+                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), indexToTableName), tablesFilter));
 
         // Search for partitioned table templates
         UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
+            if (!PartitionName.isPartition(templateName)) {
+                continue;
+            }
             try {
-                String tableName = PartitionName.tableName(templateName);
-                String schemaName = PartitionName.schemaName(templateName);
+                PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
+                String tableName = partitionName.tableName();
+                String schemaName = partitionName.schema();
                 if (schemaName.equalsIgnoreCase(name())) {
                     tables.add(tableName);
                 }

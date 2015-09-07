@@ -119,7 +119,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 new Reference[]{idRef, nameRef});
 
         PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
-        updateNode.add(partitionName.stringValue(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
+        updateNode.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
@@ -133,14 +133,14 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         refresh();
 
         assertTrue(
-                client().admin().indices().prepareExists(partitionName.stringValue())
+                client().admin().indices().prepareExists(partitionName.asIndexName())
                         .execute().actionGet().isExists()
         );
         assertTrue(
                 client().admin().indices().prepareAliasesExist("parted")
                         .execute().actionGet().exists()
         );
-        SearchHits hits = client().prepareSearch(partitionName.stringValue())
+        SearchHits hits = client().prepareSearch(partitionName.asIndexName())
                 .setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .addFields("id", "name")
                 .setQuery(new MapBuilder<String, Object>()

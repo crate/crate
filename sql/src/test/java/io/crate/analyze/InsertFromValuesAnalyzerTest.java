@@ -503,11 +503,11 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     private void validateBulkIndexPartitionedTableAnalysis(InsertFromValuesAnalyzedStatement analysis) {
         assertThat(analysis.generatePartitions(), contains(
-                new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).stringValue(),
-                new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
+                new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).asIndexName(),
+                new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
                 new PartitionName("parted", new ArrayList<BytesRef>() {{
                     add(null);
-                }}).stringValue()
+                }}).asIndexName()
         ));
         assertThat(analysis.sourceMaps().size(), is(3));
 
@@ -546,8 +546,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
                 });
         assertThat(analysis.generatePartitions(), contains(
-                new PartitionName("nested_parted", Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).stringValue(),
-                new PartitionName("nested_parted", Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).stringValue()
+                new PartitionName("nested_parted", Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).asIndexName(),
+                new PartitionName("nested_parted", Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).asIndexName()
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));

@@ -156,7 +156,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
 
     public static String indexName(DocTableInfo tableInfo, Optional<List<BytesRef>> values) {
         if (tableInfo.isPartitioned()) {
-            return new PartitionName(tableInfo.ident(), values.get()).stringValue();
+            return new PartitionName(tableInfo.ident(), values.get()).asIndexName();
         } else {
             return tableInfo.ident().esName();
         }

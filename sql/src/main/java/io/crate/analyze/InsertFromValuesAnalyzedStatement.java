@@ -87,7 +87,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
                 values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
             PartitionName partitionName = new PartitionName(tableInfo().ident().schema(), tableInfo().ident().name(), values);
-            partitionValues.add(partitionName.stringValue());
+            partitionValues.add(partitionName.asIndexName());
         }
         return partitionValues;
     }

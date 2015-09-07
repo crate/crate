@@ -541,7 +541,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
                 new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
-        String partition = new PartitionName("quotes", Arrays.asList(new BytesRef("1495961200000"))).stringValue();
+        String partition = new PartitionName("quotes", Arrays.asList(new BytesRef("1495961200000"))).asIndexName();
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(partition).execute().get();
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }

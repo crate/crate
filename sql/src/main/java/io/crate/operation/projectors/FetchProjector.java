@@ -251,7 +251,7 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
         Row partitionValuesRow = null;
         if (!partitionedBy.isEmpty() && PartitionName.isPartition(index)) {
             Object[] partitionValues;
-            List<BytesRef> partitionRowValues = PartitionName.fromStringSafe(index).values();
+            List<BytesRef> partitionRowValues = PartitionName.fromIndexOrTemplate(index).values();
             partitionValues = new Object[partitionRowValues.size()];
             for (int i = 0; i < partitionRowValues.size(); i++) {
                 partitionValues[i] = partitionedBy.get(i).type().value(partitionRowValues.get(i));

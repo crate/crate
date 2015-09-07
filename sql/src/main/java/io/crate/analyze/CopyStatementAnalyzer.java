@@ -152,7 +152,13 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
 
     private boolean partitionExists(DocTableInfo table, @Nullable String partitionIdent) {
         if (table.isPartitioned() && partitionIdent != null) {
-            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), partitionIdent));
+            for (PartitionName partitionName : table.partitions()) {
+                if (partitionName.schema().equals(table.ident().schema())
+                        && partitionName.tableName().equals(table.ident().name())
+                        && partitionName.ident().equals(partitionIdent)) {
+                    return true;
+                }
+            }
         }
         return false;
     }

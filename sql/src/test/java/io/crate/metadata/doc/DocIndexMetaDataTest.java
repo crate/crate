@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -1160,13 +1159,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .build();
         AliasMetaData aliasMetaData = AliasMetaData.newAliasMetaDataBuilder("test1")
                 .build();
-        IndexMetaData partitionMetaData = getIndexMetaData(partitionName.stringValue(), builder,
+        IndexMetaData partitionMetaData = getIndexMetaData(partitionName.asIndexName(), builder,
                partitionSettings, aliasMetaData);
-        DocIndexMetaData partitionMD = newMeta(partitionMetaData, partitionName.stringValue());
+        DocIndexMetaData partitionMD = newMeta(partitionMetaData, partitionName.asIndexName());
         assertThat(partitionMD.aliases().size(), is(1));
         assertThat(partitionMD.aliases(), hasItems("test1"));
         assertThat(partitionMD.isAlias(), is(false));
-        assertThat(partitionMD.concreteIndexName(), is(partitionName.stringValue()));
+        assertThat(partitionMD.concreteIndexName(), is(partitionName.asIndexName()));
         DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
 
         assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(2)));

@@ -122,11 +122,11 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                             .add("date", DataTypes.TIMESTAMP, null, true)
                             .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                             .addPartitions(
-                                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
-                                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),
+                                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
                                     new PartitionName("parted", new ArrayList<BytesRef>() {{
                                         add(null);
-                                    }}).stringValue())
+                                    }}).asIndexName())
                             .build());
             when(schemaInfo.getTableInfo("parted_pk")).thenReturn(
                     TestingTableInfo.builder(new TableIdent("doc", "parted"), twoNodeRouting)
@@ -136,11 +136,11 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                             .add("date", DataTypes.TIMESTAMP, null, true)
                             .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                             .addPartitions(
-                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
-                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395961200000"))).stringValue(),
+                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
                                     new PartitionName("parted_pk", new ArrayList<BytesRef>() {{
                                         add(null);
-                                    }}).stringValue())
+                                    }}).asIndexName())
                             .build());
             when(schemaInfo.getTableInfo("bystring")).thenReturn(
                     TestingTableInfo.builder(new TableIdent("doc", "bystring"), twoNodeRouting)
@@ -240,7 +240,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.hasQuery(), is(false));
         assertThat(whereClause.noMatch(), is(false));
         assertThat(whereClause.partitions(),
-                Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()));
+                Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()));
     }
 
     @Test
@@ -260,7 +260,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.hasQuery(), is(false));
         assertThat(whereClause.noMatch(), is(false));
         assertThat(whereClause.partitions(),
-                Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()));
+                Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()));
     }
 
     @Test
@@ -272,7 +272,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(nestedAnalyzedStatement.whereClause().noMatch(), is(false));
 
         assertEquals(ImmutableList.of(
-                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
+                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()),
                 nestedAnalyzedStatement.whereClause().partitions()
         );
     }
@@ -491,11 +491,11 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
-        String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue();
-        String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
+        String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
+        String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName();
         String partition3 = new PartitionName("parted", new ArrayList<BytesRef>() {{
             add(null);
-        }}).stringValue();
+        }}).asIndexName();
 
         WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
         assertEquals(ImmutableList.of(partition1), whereClause.partitions());
