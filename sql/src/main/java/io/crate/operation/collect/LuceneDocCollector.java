@@ -25,7 +25,10 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.KeepAliveListener;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.planner.node.dql.CollectPhase;
@@ -95,7 +98,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     protected final ThreadPoolExecutor executor;
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final CollectorFieldsVisitor fieldsVisitor;
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
@@ -118,14 +121,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               CollectPhase collectPhase,
-                              RowDownstream downStreamProjector,
+                              RowReceiver downStreamProjector,
                               RamAccountingContext ramAccountingContext) throws Exception {
         this.keepAliveListener = keepAliveListener;
         this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
         this.searchContext = searchContext;
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectPhase.limit();
-        this.downstream = downStreamProjector.registerUpstream(this);
+        this.downstream = downStreamProjector;
+        downStreamProjector.setUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());

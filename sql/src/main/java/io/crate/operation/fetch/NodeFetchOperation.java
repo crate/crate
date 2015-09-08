@@ -40,7 +40,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.JobCollectContext;
@@ -59,7 +58,7 @@ import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class NodeFetchOperation implements RowUpstream {
+public class NodeFetchOperation {
 
     private final UUID jobId;
     private final int executionPhaseId;
@@ -158,7 +157,7 @@ public class NodeFetchOperation implements RowUpstream {
         try {
             runFetchThreaded(shardFetchers, ramAccountingContext);
         } catch (RejectedExecutionException e) {
-            bucketBuilder.registerUpstream(this).fail(e);
+            bucketBuilder.fail(e);
         }
 
         if (LOGGER.isTraceEnabled()) {
@@ -186,17 +185,6 @@ public class NodeFetchOperation implements RowUpstream {
                 })
         );
     }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
 
     static class ShardDocIdsBucket {
 

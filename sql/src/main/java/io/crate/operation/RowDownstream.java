@@ -21,6 +21,8 @@
 
 package io.crate.operation;
 
+import io.crate.operation.projectors.RowReceiver;
+
 /**
  * Objects implementing this interface are receivers of rows from an upstream.
  */
@@ -30,9 +32,7 @@ public interface RowDownstream {
      * Register an upstream at this downstream.
      * The upstream is required to call the hooks on the returned handle.
      *
-     * @param upstream the upstream to be registered
      * @return A downstream handle to push rows to.
      */
-    RowDownstreamHandle registerUpstream(RowUpstream upstream);
-
+    RowReceiver newRowReceiver();
 }

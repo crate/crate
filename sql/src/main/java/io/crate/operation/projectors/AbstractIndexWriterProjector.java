@@ -40,9 +40,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.planner.symbol.Reference;
@@ -65,16 +62,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandle implements Projector {
+public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<Row, ?>[] collectExpressions;
     private final TableIdent tableIdent;
+
     @Nullable
     private final String partitionIdent;
-    private final Object lock = new Object();
     private final List<Input<?>> partitionedByInputs;
     private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
         @Nullable
@@ -87,7 +82,6 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
     private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
-    private RowDownstreamHandle downstream;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
@@ -172,7 +166,8 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
+    public void prepare(ExecutionState executionState) {
+        super.prepare(executionState);
         assert bulkShardProcessor != null : "must create a BulkShardProcessor first";
     }
 
@@ -180,40 +175,20 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
 
     @Override
     public boolean setNextRow(Row row) {
-        String indexName;
-        boolean result;
-
-        synchronized (lock) {
-            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-                collectExpression.setNextRow(row);
-            }
-
-            indexName = getIndexName();
-            row = updateRow(row);
-            result = bulkShardProcessor.add(indexName, row, null);
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
         }
-
-        return result;
-    }
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return this;
+        return bulkShardProcessor.add(getIndexName(), updateRow(row), null);
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            bulkShardProcessor.close();
-        }
+        bulkShardProcessor.close();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        if (downstream != null) {
-            downstream.fail(throwable);
-        }
+        downstream.fail(throwable);
         if (throwable instanceof CancellationException) {
             bulkShardProcessor.kill();
         } else {
@@ -222,7 +197,6 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
     }
 
     private void setResultCallback() {
-        assert downstream != null;
         Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
             @Override
             public void onSuccess(@Nullable BitSet result) {
@@ -254,8 +228,8 @@ public abstract class AbstractIndexWriterProjector extends RowDownstreamAndHandl
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+    public void downstream(RowReceiver rowDownstreamHandle) {
+        super.downstream(rowDownstreamHandle);
         setResultCallback();
     }
 }

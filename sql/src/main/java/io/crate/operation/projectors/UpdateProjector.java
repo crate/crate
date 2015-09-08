@@ -28,11 +28,7 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
@@ -43,19 +39,17 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector extends RowDownstreamAndHandle implements Projector {
+public class UpdateProjector extends AbstractProjector {
 
     public static final int DEFAULT_BULK_SIZE = 1024;
 
-    private RowDownstreamHandle downstream;
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     private final ShardId shardId;
@@ -103,10 +97,6 @@ public class UpdateProjector extends RowDownstreamAndHandle implements Projector
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
-    }
-
-    @Override
     public boolean setNextRow(Row row) {
         final Uid uid;
         synchronized (lock) {
@@ -120,43 +110,21 @@ public class UpdateProjector extends RowDownstreamAndHandle implements Projector
     }
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return super.registerUpstream(upstream);
-    }
-
-    @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-
         bulkShardProcessor.close();
-        if (downstream != null) {
-            collectUpdateResultsAndPassOverRowCount();
-        }
+        collectUpdateResultsAndPassOverRowCount();
     }
 
     @Override
     public void fail(Throwable throwable) {
         upstreamFailure.set(throwable);
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
+
         if (throwable instanceof CancellationException) {
             bulkShardProcessor.kill(throwable);
         } else {
             bulkShardProcessor.close();
         }
-
-        if (downstream != null) {
-            collectUpdateResultsAndPassOverRowCount();
-        }
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        collectUpdateResultsAndPassOverRowCount();
     }
 
     private void collectUpdateResultsAndPassOverRowCount() {
@@ -164,9 +132,9 @@ public class UpdateProjector extends RowDownstreamAndHandle implements Projector
             @Override
             public void onSuccess(@Nullable BitSet result) {
                 assert result != null : "BulkShardProcessor result is null";
-                downstream.setNextRow(new Row1(result.cardinality()));
                 Throwable throwable = upstreamFailure.get();
                 if (throwable == null) {
+                    downstream.setNextRow(new Row1(result.cardinality()));
                     downstream.finish();
                 } else {
                     downstream.fail(throwable);
@@ -174,7 +142,7 @@ public class UpdateProjector extends RowDownstreamAndHandle implements Projector
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 downstream.setNextRow(new Row1(0L));
                 downstream.fail(t);
             }

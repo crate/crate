@@ -7,9 +7,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.operation.PageDownstream;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
@@ -17,7 +14,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -118,7 +115,7 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 mock(CollectPhase.class),
                 mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
-                new CollectingProjector()
+                new CollectingRowReceiver()
         ));
     }
 
@@ -129,16 +126,14 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 mock(CollectPhase.class),
                 mock(MapSideDataCollectOperation.class),
                 mock(RamAccountingContext.class),
-                new CollectingProjector()
+                new CollectingRowReceiver()
         ));
     }
 
     private CountContext createCountContext() throws Throwable {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(SettableFuture.<Long>create());
-        RowDownstream rowDownstream = mock(RowDownstream.class);
-        when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
-        return new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        return new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
     }
 
     @Test

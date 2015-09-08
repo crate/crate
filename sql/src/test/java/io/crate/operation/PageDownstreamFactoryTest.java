@@ -46,7 +46,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -146,8 +146,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 referenceResolver,
                 functions
         );
-        CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, collectingProjector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -162,7 +162,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             }
         });
         future.get();
-        Bucket mergeResult = collectingProjector.result().get();
+        Bucket mergeResult = rowReceiver.result();
         assertThat(mergeResult, IsIterableContainingInOrder.contains(
                 isRow(0, 0.5d),
                 isRow(1, 1.5d),
@@ -170,10 +170,10 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
-    private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingProjector collectingProjector) {
+    private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingRowReceiver rowReceiver) {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
                 pageDownstreamFactory.createMergeNodePageDownstream(
-                        mergeNode, collectingProjector, ramAccountingContext, Optional.<Executor>absent());
+                        mergeNode, rowReceiver, ramAccountingContext, Optional.<Executor>absent());
         downstreamFlatProjectorChainTuple.v2().startProjections(mock(ExecutionState.class));
         return downstreamFlatProjectorChainTuple.v1();
     }
@@ -192,8 +192,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 referenceResolver,
                 functions
         );
-        CollectingProjector collectingProjector = new CollectingProjector();
-        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, collectingProjector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));
@@ -219,8 +219,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             }
         });
         future.get();
-        Bucket mergeResult = collectingProjector.result().get();
+        Bucket mergeResult = rowReceiver.result();
         assertThat(mergeResult, contains(isRow(0, 2.5)));
     }
-
 }

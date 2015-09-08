@@ -23,8 +23,11 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.RowFilter;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.symbol.Literal;
 
 import javax.annotation.Nullable;
@@ -35,12 +38,12 @@ import java.util.concurrent.CancellationException;
 public class RowsCollector<R> implements CrateCollector, RowUpstream {
 
     private final Iterable<R> rows;
-    private final RowDownstreamHandle rowDownstream;
+    private final RowReceiver rowDownstream;
     private final InputRow row;
     private final RowFilter<R> rowFilter;
     private volatile boolean killed;
 
-    public static <T> RowsCollector<T> empty(RowDownstream rowDownstream) {
+    public static <T> RowsCollector<T> empty(RowReceiver rowDownstream) {
         return new RowsCollector<>(
                 ImmutableList.<Input<?>>of(),
                 ImmutableList.<CollectExpression<T, ?>>of(),
@@ -50,7 +53,7 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
         );
     }
 
-    public static RowsCollector<Row> single(List<Input<?>> inputs, RowDownstream rowDownstream) {
+    public static RowsCollector<Row> single(List<Input<?>> inputs, RowReceiver rowDownstream) {
         return new RowsCollector<>(
                 inputs,
                 ImmutableList.<CollectExpression<Row, ?>>of(),
@@ -62,13 +65,14 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
 
     public RowsCollector(List<Input<?>> inputs,
                          Collection<CollectExpression<R, ?>> collectExpressions,
-                         RowDownstream rowDownstream,
+                         RowReceiver rowDownstream,
                          Iterable<R> rows,
                          Input<Boolean> condition) {
         this.row = new InputRow(inputs);
         this.rows = rows;
         this.rowFilter = new RowFilter<>(collectExpressions, condition);
-        this.rowDownstream = rowDownstream.registerUpstream(this);
+        this.rowDownstream = rowDownstream;
+        rowDownstream.setUpstream(this);
     }
 
     @Override

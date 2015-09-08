@@ -21,11 +21,9 @@
 
 package io.crate.testing;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import java.util.Iterator;
@@ -35,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RowSender implements Runnable, RowUpstream {
 
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final AtomicBoolean paused = new AtomicBoolean(false);
     private final Executor executor;
     private volatile boolean pendingPause = false;
@@ -44,9 +42,10 @@ public class RowSender implements Runnable, RowUpstream {
     private volatile int numResumes = 0;
     private Iterator<Row> iterator;
 
-    public RowSender(Iterable<Row> rows, RowDownstream rowDownstream, Executor executor) {
+    public RowSender(Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
         this.executor = executor;
-        downstream = rowDownstream.registerUpstream(this);
+        downstream = rowReceiver;
+        rowReceiver.setUpstream(this);
         iterator = rows.iterator();
     }
 

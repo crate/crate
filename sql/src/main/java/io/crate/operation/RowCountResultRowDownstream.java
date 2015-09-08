@@ -21,51 +21,51 @@
 
 package io.crate.operation;
 
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.jobs.ExecutionState;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class RowCountResultRowDownstream implements RowDownstream {
+public class RowCountResultRowDownstream implements RowReceiver {
 
-    private final List<SettableFuture<TaskResult>> results;
-    private final AtomicInteger registeredUpstreams = new AtomicInteger(0);
+    private final SettableFuture<TaskResult> result;
+    private final List<Object[]> rows = new ArrayList<>();
 
-    public RowCountResultRowDownstream(List<SettableFuture<TaskResult>> results) {
-        this.results = results;
+    public RowCountResultRowDownstream(SettableFuture<TaskResult> result) {
+        this.result = result;
     }
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        int upstreamId = registeredUpstreams.getAndIncrement();
-        final SettableFuture<TaskResult> result = results.get(upstreamId);
-        return new RowDownstreamHandle() {
+    public boolean setNextRow(Row row) {
+        rows.add(row.materialize());
+        return true;
+    }
 
-            List<Object[]> rows = new ArrayList<>();
+    @Override
+    public void finish() {
+        result.set(new RowCountResult(((Number) Iterables.getOnlyElement(rows)[0]).longValue()));
+    }
 
-            @Override
-            public boolean setNextRow(Row row) {
-                rows.add(row.materialize());
-                return true;
-            }
+    @Override
+    public void fail(Throwable throwable) {
+        result.setException(throwable);
+    }
 
-            @Override
-            public void finish() {
-                result.set(new RowCountResult(((Number) rows.iterator().next()[0]).longValue()));
-            }
+    @Override
+    public void prepare(ExecutionState executionState) {
+    }
 
-            @Override
-            public void fail(Throwable throwable) {
-                result.setException(throwable);
-            }
-        };
+    @Override
+    public void setUpstream(RowUpstream rowUpstream) {
     }
 }

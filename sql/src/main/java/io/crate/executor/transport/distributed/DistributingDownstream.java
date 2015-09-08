@@ -25,22 +25,20 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class DistributingDownstream implements RowDownstream, RowDownstreamHandle {
+public class DistributingDownstream implements RowReceiver {
 
     private final static ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
@@ -65,8 +63,7 @@ public class DistributingDownstream implements RowDownstream, RowDownstreamHandl
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final Streamer<?>[] streamers;
     private final int pageSize;
-    private final List<RowUpstream> upstreams = new ArrayList<>(1);
-    private final AtomicInteger numActiveUpstreams = new AtomicInteger();
+    private RowUpstream upstream;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final AtomicInteger requestsPending = new AtomicInteger(0);
     private final Downstream[] downstreams;
@@ -75,6 +72,7 @@ public class DistributingDownstream implements RowDownstream, RowDownstreamHandl
     private final Bucket[] buckets;
 
     private volatile boolean gatherMoreRows = true;
+    private boolean hasUpstreamFinished = false;
 
     public DistributingDownstream(UUID jobId,
                                   MultiBucketBuilder multiBucketBuilder,
@@ -129,15 +127,11 @@ public class DistributingDownstream implements RowDownstream, RowDownstreamHandl
     }
 
     private void pause() {
-        for (RowUpstream upstream : upstreams) {
-            upstream.pause();
-        }
+        upstream.pause();
     }
 
     private void resume() {
-        for (RowUpstream upstream : upstreams) {
-            upstream.resume(true);
-        }
+        upstream.resume(true);
     }
 
     @Override
@@ -156,34 +150,33 @@ public class DistributingDownstream implements RowDownstream, RowDownstreamHandl
         upstreamFinished();
     }
 
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        upstreams.add(upstream);
-        numActiveUpstreams.incrementAndGet();
-        return this;
+    private void upstreamFinished() {
+        hasUpstreamFinished = true;
+        final Throwable throwable = failure.get();
+        if (throwable == null) {
+            if (requestsPending.get() == 0) {
+                LOGGER.trace("all upstreams finished. Sending last requests");
+                multiBucketBuilder.build(buckets);
+                sendRequests(true);
+            } else if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("all upstreams finished. Doing nothing since there are pending requests");
+            }
+        } else if (!(throwable instanceof CancellationException)) { // no need to forward kill - downstream will receive it too
+            LOGGER.trace("all upstreams finished; forwarding failure");
+            for (Downstream downstream : downstreams) {
+                downstream.forwardFailure(throwable);
+            }
+        }
     }
 
-    private void upstreamFinished() {
-        final int numUpstreams = numActiveUpstreams.decrementAndGet();
-        if (numUpstreams == 0) {
-            final Throwable throwable = failure.get();
-            if (throwable == null) {
-                if (requestsPending.get() == 0) {
-                    LOGGER.trace("all upstreams finished. Sending last requests");
-                    multiBucketBuilder.build(buckets);
-                    sendRequests(true);
-                } else if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("all upstreams finished. Doing nothing since there are pending requests");
-                }
-            } else if (!(throwable instanceof CancellationException)) { // no need to forward kill - downstream will receive it too
-                LOGGER.trace("all upstreams finished; forwarding failure");
-                for (Downstream downstream : downstreams) {
-                    downstream.forwardFailure(throwable);
-                }
-            }
-        } else {
-            LOGGER.trace("Upstream finished, {} remaining", numUpstreams);
-        }
+    @Override
+    public void prepare(ExecutionState executionState) {
+
+    }
+
+    @Override
+    public void setUpstream(RowUpstream rowUpstream) {
+        upstream = rowUpstream;
     }
 
     private class Downstream implements ActionListener<DistributedResultResponse> {
@@ -230,14 +223,13 @@ public class DistributingDownstream implements RowDownstream, RowDownstreamHandl
         private void onResponse(boolean needMore) {
             finished = !needMore;
             final int numPending = requestsPending.decrementAndGet();
-            final int activeUpstreams = numActiveUpstreams.get();
 
-            LOGGER.trace("Received response from downstream: {}; requires more: {}, other pending requests: {}, activeUpstreams: {}",
-                    node, needMore, numPending, activeUpstreams);
+            LOGGER.trace("Received response from downstream: {}; requires more: {}, other pending requests: {}, finished: {}",
+                    node, needMore, numPending, hasUpstreamFinished);
             if (numPending > 0) {
                 return;
             }
-            if (activeUpstreams == 0) {
+            if (hasUpstreamFinished) {
                 // upstreams (e.g. collector(s)) finished (after the requests have been sent)
                 // send request with isLast=true with remaining buckets to downstream nodes
                 multiBucketBuilder.build(buckets);

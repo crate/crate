@@ -37,6 +37,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -151,7 +152,7 @@ public class CollectSourceResolver {
     static class VoidCollectSource implements CollectSource {
 
         @Override
-        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
             return ImmutableList.of();
         }
     }

@@ -42,11 +42,10 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -133,13 +132,12 @@ public class ESGetTask extends JobTask implements RowUpstream {
             transportAction = multiGetAction;
 
             SettableFuture<TaskResult> result = SettableFuture.create();
-            List<SettableFuture<TaskResult>> settableFutures = Collections.singletonList(result);
-            results = settableFutures;
-            QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(settableFutures);
+            results = Collections.singletonList(result);
+            QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(result);
 
             projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
-            RowDownstreamHandle rowDownstreamHandle = projectorChain.firstProjector().registerUpstream(this);
-            listener = new MultiGetResponseListener(extractors, rowDownstreamHandle);
+            RowReceiver rowReceiver = projectorChain.firstProjector();
+            listener = new MultiGetResponseListener(extractors, rowReceiver);
         } else {
             request = prepareGetRequest(node, fsc);
             transportAction = getAction;
@@ -214,9 +212,7 @@ public class ESGetTask extends JobTask implements RowUpstream {
                     jobId()
             );
         } else {
-            return FlatProjectorChain.withProjectors(
-                    ImmutableList.<Projector>of(queryResultRowDownstream)
-            );
+            return FlatProjectorChain.withReceivers(ImmutableList.of(queryResultRowDownstream));
         }
     }
 
@@ -241,11 +237,11 @@ public class ESGetTask extends JobTask implements RowUpstream {
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<FieldExtractor<GetResponse>> fieldExtractors;
-        private final RowDownstreamHandle downstream;
+        private final RowReceiver downstream;
 
 
         public MultiGetResponseListener(List<FieldExtractor<GetResponse>> extractors,
-                                        RowDownstreamHandle rowDownstreamHandle) {
+                                        RowReceiver rowDownstreamHandle) {
             downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
         }

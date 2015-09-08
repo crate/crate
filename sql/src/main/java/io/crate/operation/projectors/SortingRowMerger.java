@@ -25,8 +25,6 @@ import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.common.Nullable;
@@ -35,21 +33,21 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MergeProjector implements Projector  {
+public class SortingRowMerger implements RowMerger {
 
     private final Ordering<Row> ordering;
     private final List<MergeProjectorDownstreamHandle> downstreamHandles = new ArrayList<>();
     private final List<RowUpstream> upstreams = new ArrayList<>();
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
-    private RowDownstreamHandle downstreamContext;
+    private final RowReceiver rowReceiver;
     private Row lowestToEmit = null;
     private final Object lowestToEmitLock = new Object();
 
 
-    public MergeProjector(int[] orderBy,
-                          boolean[] reverseFlags,
-                          Boolean[] nullsFirst) {
+    public SortingRowMerger(RowReceiver rowReceiver, int[] orderBy, boolean[] reverseFlags, Boolean[] nullsFirst) {
+        this.rowReceiver = rowReceiver;
+        rowReceiver.setUpstream(this);
         List<Comparator<Row>> comparators = new ArrayList<>(orderBy.length);
         for (int i = 0; i < orderBy.length; i++) {
             comparators.add(OrderingByPosition.rowOrdering(orderBy[i], reverseFlags[i], nullsFirst[i]));
@@ -58,41 +56,24 @@ public class MergeProjector implements Projector  {
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
-        if (remainingUpstreams.get() == 0) {
-            upstreamFinished();
-        }
-    }
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        upstreams.add(upstream);
+    public RowReceiver newRowReceiver() {
         remainingUpstreams.incrementAndGet();
         MergeProjectorDownstreamHandle handle = new MergeProjectorDownstreamHandle(this);
         downstreamHandles.add(handle);
         return handle;
     }
 
-    @Override
-    public void downstream(RowDownstream downstream) {
-        downstreamContext = downstream.registerUpstream(this);
-    }
-
     public void upstreamFinished() {
         emit();
         if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstreamContext != null) {
-                downstreamContext.finish();
-            }
+            rowReceiver.finish();
         }
     }
 
     public void upstreamFailed(Throwable throwable) {
         downstreamAborted.compareAndSet(false, true);
         if (remainingUpstreams.decrementAndGet() == 0) {
-            if (downstreamContext != null) {
-                downstreamContext.fail(throwable);
-            }
+            rowReceiver.fail(throwable);
         }
     }
 
@@ -173,16 +154,16 @@ public class MergeProjector implements Projector  {
         }
     }
 
-    public class MergeProjectorDownstreamHandle implements RowDownstreamHandle {
+    public class MergeProjectorDownstreamHandle implements RowReceiver {
 
-        private final MergeProjector projector;
+        private final SortingRowMerger projector;
         private final Object lock = new Object();
         private AtomicBoolean finished = new AtomicBoolean(false);
         private Row firstRow = null;
 
         private ArrayDeque<Row> rows = new ArrayDeque<>();
 
-        public MergeProjectorDownstreamHandle(MergeProjector projector) {
+        public MergeProjectorDownstreamHandle(SortingRowMerger projector) {
             this.projector = projector;
         }
 
@@ -207,7 +188,7 @@ public class MergeProjector implements Projector  {
         public boolean emitUntil(Row until) {
             synchronized (lock) {
                 while (firstRow != null && ordering.compare(firstRow, until) >= 0) {
-                    if (!downstreamContext.setNextRow(poll())) {
+                    if (!rowReceiver.setNextRow(poll())) {
                         return false;
                     }
                 }
@@ -248,6 +229,16 @@ public class MergeProjector implements Projector  {
         @Override
         public void fail(Throwable throwable) {
             projector.upstreamFailed(throwable);
+        }
+
+        @Override
+        public void prepare(ExecutionState executionState) {
+
+        }
+
+        @Override
+        public void setUpstream(RowUpstream rowUpstream) {
+            upstreams.add(rowUpstream);
         }
     }
 }

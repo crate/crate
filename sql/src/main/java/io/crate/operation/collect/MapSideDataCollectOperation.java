@@ -29,11 +29,10 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
@@ -53,7 +52,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
  */
 @Singleton
-public class MapSideDataCollectOperation implements RowUpstream {
+public class MapSideDataCollectOperation {
 
     private final EvaluatingNormalizer clusterNormalizer;
     private final ClusterService clusterService;
@@ -63,16 +62,6 @@ public class MapSideDataCollectOperation implements RowUpstream {
     private final int poolSize;
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
 
     private static class VoidFunction<Arg> implements Function<Arg, Void> {
         @Nullable
@@ -118,7 +107,7 @@ public class MapSideDataCollectOperation implements RowUpstream {
      * </p>
      */
     public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
-                                                       RowDownstream downstream,
+                                                       RowReceiver downstream,
                                                        final JobCollectContext jobCollectContext) {
         assert collectPhase.isRouted(); // not routed collect is not handled here
         assert collectPhase.jobId() != null : "no jobId present for collect operation";

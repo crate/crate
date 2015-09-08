@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.consumer.OrderByPositionVisitor;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
@@ -124,32 +124,21 @@ public class ProjectionToProjectorVisitor
             }
 
             projector = new SortingTopNProjector(
-                    inputs.toArray(new Input<?>[inputs.size()]),
-                    collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
-                    numOutputs,
-                    orderByIndices,
-                    projection.reverseFlags(),
-                    projection.nullsFirst(),
-                    projection.limit(),
-                    projection.offset());
+                            inputs,
+                            collectExpressions,
+                            numOutputs,
+                            OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+                            projection.limit(),
+                            projection.offset()
+            );
         } else {
             projector = new SimpleTopNProjector(
                     inputs,
-                    collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
+                    collectExpressions,
                     projection.limit(),
                     projection.offset());
         }
         return projector;
-    }
-
-    @Override
-    public Projector visitMergeProjection(MergeProjection projection, Context context) {
-        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
-                (List<Symbol>)projection.outputs());
-        return new MergeProjector(
-                orderByIndices,
-                projection.reverseFlags(),
-                projection.nullsFirst());
     }
 
     @Override
@@ -175,7 +164,7 @@ public class ProjectionToProjectorVisitor
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        return new AggregationProjector(
+        return new AggregationPipe(
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations(),
                 context.ramAccountingContext);

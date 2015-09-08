@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.ContextPreparer;
@@ -35,6 +36,7 @@ import io.crate.executor.TaskResult;
 import io.crate.jobs.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
 import org.elasticsearch.action.ActionListener;
@@ -97,38 +99,44 @@ public class ExecutionPhasesTask extends JobTask {
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(
                 clusterService.state().nodes().localNodeId(), nodeOperations);
 
-        RowDownstream rowDownstream;
-        if (nodeOperationTrees.size() > 1) {
-            // bulk Operation with rowCountResult
-            rowDownstream = new RowCountResultRowDownstream(results);
-        } else {
-            rowDownstream = new QueryResultRowDownstream(results);
-        }
 
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
-        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            DownstreamExecutionSubContext executionSubContext =
-                    contextPreparer.prepare(jobId(), nodeOperationTree.leaf(), rowDownstream);
-            if (operationByServer.isEmpty()) {
-                executionSubContext.close();
-                continue;
+
+        if (nodeOperationTrees.size() > 1) {
+            // bulk Operation with rowCountResult
+            for (int i = 0; i < nodeOperationTrees.size(); i++) {
+                RowCountResultRowDownstream rowDownstream = new RowCountResultRowDownstream(results.get(i));
+                setupContext(operationByServer, pageDownstreamContexts, rowDownstream, nodeOperationTrees.get(i));
             }
-            if (hasDirectResponse) {
-                // TODO: create a JobExecutionContext for this case too, once we have the local downstream changes merged
-                executionSubContext.prepare();
-                executionSubContext.start();
-                pageDownstreamContexts.add(executionSubContext.pageDownstreamContext((byte) 0));
-            } else {
-                createLocalContextAndStartOperation(
-                        executionSubContext,
-                        operationByServer,
-                        nodeOperationTree.leaf().executionPhaseId());
-            }
+        } else {
+            QueryResultRowDownstream downstream = new QueryResultRowDownstream(Iterables.getOnlyElement(results));
+            setupContext(operationByServer, pageDownstreamContexts, downstream, Iterables.getOnlyElement(nodeOperationTrees));
         }
+
         if (operationByServer.isEmpty()) {
             return;
         }
         sendJobRequests(pageDownstreamContexts, operationByServer);
+    }
+
+    private void setupContext(Map<String, Collection<NodeOperation>> operationByServer, List<PageDownstreamContext> pageDownstreamContexts, RowReceiver rowDownstream, NodeOperationTree nodeOperationTree) {
+        DownstreamExecutionSubContext executionSubContext =
+                contextPreparer.prepare(jobId(), nodeOperationTree.leaf(), rowDownstream);
+        if (operationByServer.isEmpty()) {
+            executionSubContext.close();
+            return;
+        }
+        if (hasDirectResponse) {
+            // TODO: create a JobExecutionContext for this case too, once we have the local downstream changes merged
+            executionSubContext.prepare();
+            executionSubContext.start();
+            pageDownstreamContexts.add(executionSubContext.pageDownstreamContext((byte) 0));
+        } else {
+            createLocalContextAndStartOperation(
+                    executionSubContext,
+                    operationByServer,
+                    nodeOperationTree.leaf().executionPhaseId());
+        }
     }
 
     private void sendJobRequests(List<PageDownstreamContext> pageDownstreamContexts,

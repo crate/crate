@@ -24,33 +24,28 @@ package io.crate.operation.projectors;
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class SimpleTopNProjector extends RowDownstreamAndHandle implements Projector {
+public class SimpleTopNProjector extends AbstractProjector {
 
-    private final CollectExpression<Row, ?>[] collectExpressions;
     private final InputRow inputRow;
-    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private RowDownstreamHandle downstream;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
 
     private int remainingOffset;
     private int toCollect;
-    private AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public SimpleTopNProjector(List<Input<?>> inputs,
-                               CollectExpression<Row, ?>[] collectExpressions,
+                               Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                int limit,
                                int offset) {
+        this.collectExpressions = collectExpressions;
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset>=0, "invalid offset");
         this.inputRow = new InputRow(inputs);
-        this.collectExpressions = collectExpressions;
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
         }
@@ -60,63 +55,33 @@ public class SimpleTopNProjector extends RowDownstreamAndHandle implements Proje
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public void startProjection(ExecutionState executionState) {
-    }
-
-    @Override
-    public synchronized boolean setNextRow(Row row) {
-        if (toCollect<1){
+    public boolean setNextRow(Row row) {
+        if (toCollect < 1){
             return false;
         }
         if (remainingOffset > 0) {
             remainingOffset--;
             return true;
         }
-        assert downstream != null;
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
         if (!downstream.setNextRow(this.inputRow)) {
             toCollect = -1;
+            return false;
+        } else {
+            toCollect--;
+            return toCollect > 0;
         }
-        toCollect--;
-        return toCollect > 0 && failure.get() == null;
-    }
-
-    @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return super.registerUpstream(upstream);
     }
 
     @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() > 0) {
-            return;
-        }
-        if (downstream != null) {
-            Throwable throwable = failure.get();
-            if (throwable == null) {
-                downstream.finish();
-            } else {
-                downstream.fail(throwable);
-            }
-        }
+        downstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstream != null) {
-                downstream.fail(throwable);
-            }
-            return;
-        }
-        failure.set(throwable);
+        downstream.fail(throwable);
     }
 }

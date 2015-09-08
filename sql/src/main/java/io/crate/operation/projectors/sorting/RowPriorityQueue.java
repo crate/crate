@@ -21,29 +21,20 @@
 
 package io.crate.operation.projectors.sorting;
 
+import com.google.common.collect.Ordering;
 import org.apache.lucene.util.PriorityQueue;
-
-import java.util.Comparator;
 
 public class RowPriorityQueue<T> extends PriorityQueue<T> {
 
-    private final Comparator[] comparators;
+    private final Ordering<T> ordering;
 
-    public RowPriorityQueue(int maxSize, Comparator[] comparators) {
+    public RowPriorityQueue(int maxSize, Ordering<T> ordering) {
         super(maxSize);
-        this.comparators = comparators;
+        this.ordering = ordering;
     }
 
     @Override
     public boolean lessThan(T a, T b) {
-        for (Comparator c : comparators) {
-            //noinspection unchecked
-            int compared = c.compare(a, b);
-
-            if (compared < 0) return true;
-            if (compared == 0) continue;
-            if (compared > 0) return false;
-        }
-        return false;
+        return ordering.compare(a, b) < 0;
     }
 }

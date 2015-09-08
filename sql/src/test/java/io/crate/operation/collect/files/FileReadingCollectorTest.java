@@ -38,13 +38,15 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.JobCollectContext;
-import io.crate.testing.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -124,8 +126,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void testCollectFromS3Uri() throws Throwable {
         // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
         // real s3 interaction is mocked completely.
-        CollectingProjector projector = getObjects("s3://fakebucket/foo");
-        projector.result().get();
+        CollectingRowReceiver projector = getObjects("s3://fakebucket/foo");
+        projector.result();
     }
 
     @Test
@@ -137,38 +139,38 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testRelativeImport() throws Throwable {
-        CollectingProjector projector = getObjects("xy");
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects("xy");
+        assertCorrectResult(projector.result());
     }
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        CollectingProjector projector = getObjects(resolveURI(tmpFile.getParentFile(), "file*.json"));
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects(resolveURI(tmpFile.getParentFile(), "file*.json"));
+        assertCorrectResult(projector.result());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingProjector projector = getObjects(resolveURI(tmpFile.getParentFile(), "*"));
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects(resolveURI(tmpFile.getParentFile(), "*"));
+        assertCorrectResult(projector.result());
     }
 
     @Test
     public void testDoCollectRaw() throws Throwable {
-        CollectingProjector projector = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
+        assertCorrectResult(projector.result());
     }
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        CollectingProjector projector = getObjects(Paths.get(tmpFileGz.toURI()).toUri().toString(), "gzip");
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects(Paths.get(tmpFileGz.toURI()).toUri().toString(), "gzip");
+        assertCorrectResult(projector.result());
     }
 
     @Test
     public void testCollectWithEmptyLine() throws Throwable {
-        CollectingProjector projector = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
-        assertCorrectResult(projector.result().get());
+        CollectingRowReceiver projector = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
+        assertCorrectResult(projector.result());
     }
 
     @Test
@@ -183,8 +185,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 .thenReturn(-1);
 
 
-        CollectingProjector projector = getObjects("s3://fakebucket/foo", null, inputStream);
-        Bucket rows = projector.result().get();
+        CollectingRowReceiver projector = getObjects("s3://fakebucket/foo", null, inputStream);
+        Bucket rows = projector.result();
         assertThat(rows.size(), is(2));
         assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
     }
@@ -202,25 +204,25 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
     }
 
-    private CollectingProjector getObjects(String fileUri) throws Throwable {
+    private CollectingRowReceiver getObjects(String fileUri) throws Throwable {
         return getObjects(fileUri, null);
     }
 
-    private CollectingProjector getObjects(String fileUri, String compression) throws Throwable {
+    private CollectingRowReceiver getObjects(String fileUri, String compression) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
         when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
         return getObjects(fileUri, compression, inputStream);
     }
 
-    private CollectingProjector getObjects(String fileUri, String compression, final S3ObjectInputStream s3InputStream) throws Throwable {
-        CollectingProjector projector = new CollectingProjector();
+    private CollectingRowReceiver getObjects(String fileUri, String compression, final S3ObjectInputStream s3InputStream) throws Throwable {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
                 fileUri,
                 context.topLevelInputs(),
                 context.expressions(),
-                projector,
+                rowReceiver,
                 FileReadingCollector.FileFormat.JSON,
                 compression,
                 ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
@@ -252,9 +254,9 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 1,
                 0
         );
-        projector.startProjection(mock(ExecutionState.class));
+        rowReceiver.prepare(mock(ExecutionState.class));
         collector.doCollect();
-        return projector;
+        return rowReceiver;
     }
 
     /**

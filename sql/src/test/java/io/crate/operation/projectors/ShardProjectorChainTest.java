@@ -19,24 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.testing.CollectingProjector;
-import io.crate.operation.projectors.GroupingProjector;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.GroupProjection;
@@ -47,6 +41,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -88,10 +83,8 @@ public class ShardProjectorChainTest extends CrateUnitTest {
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private ThreadPool threadPool;
 
-    private RowDownstream finalDownstream() {
-        CollectingProjector projector = new CollectingProjector();
-        projector.startProjection(mock(ExecutionState.class));
-        return projector;
+    private CollectingRowReceiver finalDownstream() {
+        return new CollectingRowReceiver();
     }
 
     @Before
@@ -139,6 +132,13 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         }
     }
 
+    private static void assertRowReceiver(RowReceiver rowReceiver, Class<?> expectedClass) {
+        if (rowReceiver instanceof ForwardingRowDownstream.MultiUpstreamRowReceiver) {
+            assertThat(((ForwardingRowDownstream.MultiUpstreamRowReceiver) rowReceiver).rowReceiver, instanceOf(expectedClass));
+        } else {
+            assertThat(rowReceiver, instanceOf(expectedClass));
+        }
+    }
 
     @After
     public void after() throws Exception {
@@ -160,7 +160,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        ShardProjectorChain chain = new ShardProjectorChain(
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
                 UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection, topN),
@@ -169,13 +169,13 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RAM_ACCOUNTING_CONTEXT);
 
         assertThat(chain.nodeProjectors.size(), is(1));
-        assertThat(chain.nodeProjectors.get(0), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(0), instanceOf(SimpleTopNProjector.class));
         assertThat(chain.shardProjectors.size(), is(0));
 
-        RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        RowDownstream shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        assertThat(shardDownstream1, is(instanceOf(GroupingProjector.class)));
-        assertThat(shardDownstream2, is(instanceOf(GroupingProjector.class)));
+        RowReceiver shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        RowReceiver shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        assertThat(shardDownstream1, instanceOf(GroupingProjector.class));
+        assertThat(shardDownstream2, instanceOf(GroupingProjector.class));
 
         assertThat(chain.shardProjectors.size(), is(2));
     }
@@ -191,7 +191,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection2.setRequiredGranularity(RowGranularity.SHARD);
-        ShardProjectorChain chain = new ShardProjectorChain(
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
                 UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection1, groupProjection2, topN),
@@ -200,14 +200,14 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RAM_ACCOUNTING_CONTEXT);
 
         assertThat(chain.nodeProjectors.size(), is(2));
-        assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(0), instanceOf(GroupingProjector.class));
+        assertThat(chain.nodeProjectors.get(1), instanceOf(SimpleTopNProjector.class));
         assertThat(chain.shardProjectors.size(), is(0));
 
-        RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        RowDownstream shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        assertThat(shardDownstream1, is(instanceOf(GroupingProjector.class)));
-        assertThat(shardDownstream2, is(instanceOf(GroupingProjector.class)));
+        RowReceiver shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        RowReceiver shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        assertThat(shardDownstream1, instanceOf(GroupingProjector.class));
+        assertThat(shardDownstream2, instanceOf(GroupingProjector.class));
 
         assertThat(chain.shardProjectors.size(), is(2));
     }
@@ -218,7 +218,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
-        ShardProjectorChain chain = new ShardProjectorChain(
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
                 UUID.randomUUID(),
                 2,
                 ImmutableList.of(groupProjection, topN),
@@ -227,14 +227,14 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RAM_ACCOUNTING_CONTEXT);
 
         assertThat(chain.nodeProjectors.size(), is(2));
-        assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(0), instanceOf(GroupingProjector.class));
+        assertThat(chain.nodeProjectors.get(1), instanceOf(SimpleTopNProjector.class));
         assertThat(chain.shardProjectors.size(), is(0));
 
-        RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        RowDownstream shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        assertThat(shardDownstream1, is(instanceOf(GroupingProjector.class)));
-        assertThat(shardDownstream2, is(instanceOf(GroupingProjector.class)));
+        RowReceiver shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        RowReceiver shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        assertRowReceiver(shardDownstream1, GroupingProjector.class);
+        assertRowReceiver(shardDownstream2, GroupingProjector.class);
 
         assertThat(chain.shardProjectors.size(), is(0));
     }
@@ -245,7 +245,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
-        ShardProjectorChain chain = new ShardProjectorChain(
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
                 UUID.randomUUID(),
                 0,
                 ImmutableList.of(groupProjection, topN),
@@ -254,14 +254,14 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RAM_ACCOUNTING_CONTEXT);
 
         assertThat(chain.nodeProjectors.size(), is(2));
-        assertThat(chain.nodeProjectors.get(0), is(instanceOf(GroupingProjector.class)));
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertThat(chain.nodeProjectors.get(0), instanceOf(GroupingProjector.class));
+        assertThat(chain.nodeProjectors.get(1), instanceOf(SimpleTopNProjector.class));
         assertThat(chain.shardProjectors.size(), is(0));
 
-        RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        RowDownstream shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        assertThat(shardDownstream1, is(instanceOf(GroupingProjector.class)));
-        assertThat(shardDownstream2, is(instanceOf(GroupingProjector.class)));
+        RowReceiver shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        RowReceiver shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        assertRowReceiver(shardDownstream1, GroupingProjector.class);
+        assertRowReceiver(shardDownstream2, GroupingProjector.class);
 
         assertThat(chain.shardProjectors.size(), is(0));
     }
@@ -272,7 +272,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        ShardProjectorChain chain = new ShardProjectorChain(
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
                 UUID.randomUUID(),
                 0,
                 ImmutableList.<Projection>of(groupProjection),
@@ -282,10 +282,10 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         assertThat(chain.nodeProjectors.size(), is(0));
         assertThat(chain.shardProjectors.size(), is(0));
 
-        RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        RowDownstream shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
-        assertThat(shardDownstream1, is(instanceOf(GroupingProjector.class)));
-        assertThat(shardDownstream2, is(instanceOf(GroupingProjector.class)));
+        RowReceiver shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        RowReceiver shardDownstream2 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
+        assertRowReceiver(shardDownstream1, GroupingProjector.class);
+        assertRowReceiver(shardDownstream2, GroupingProjector.class);
         assertThat(chain.shardProjectors.size(), is(2));
     }
 }

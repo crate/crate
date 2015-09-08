@@ -27,10 +27,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -45,12 +44,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CountContext implements RowUpstream, ExecutionSubContext {
 
     private final CountOperation countOperation;
+    private final RowReceiver rowReceiver;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
-    private RowDownstreamHandle rowDownstreamHandle;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
-    private final RowDownstream downstream;
 
     private ListenableFuture<Long> countFuture;
     private ContextCallback callback = ContextCallback.NO_OP;
@@ -59,11 +57,12 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final static ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
     public CountContext(CountOperation countOperation,
-                        RowDownstream rowDownstream,
+                        RowReceiver rowReceiver,
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
         this.countOperation = countOperation;
-        this.downstream = rowDownstream;
+        this.rowReceiver = rowReceiver;
+        rowReceiver.setUpstream(this);
         this.indexShardMap = indexShardMap;
         this.whereClause = whereClause;
     }
@@ -74,19 +73,19 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
             Futures.addCallback(countFuture, new FutureCallback<Long>() {
                 @Override
                 public void onSuccess(@Nullable Long result) {
-                    rowDownstreamHandle.setNextRow(new Row1(result));
-                    rowDownstreamHandle.finish();
+                    rowReceiver.setNextRow(new Row1(result));
+                    rowReceiver.finish();
                     close();
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
-                    rowDownstreamHandle.fail(t);
+                    rowReceiver.fail(t);
                     close();
                 }
             });
         } catch (InterruptedException | IOException e) {
-            rowDownstreamHandle.fail(e);
+            rowReceiver.fail(e);
             close();
         }
     }
@@ -98,7 +97,6 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
 
     @Override
     public void prepare() {
-        rowDownstreamHandle = downstream.registerUpstream(this);
     }
 
     public void close() {

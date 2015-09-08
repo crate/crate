@@ -106,8 +106,7 @@ public class GroupingProjectorBenchmark {
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
-        groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection(mock(ExecutionState.class));
+        groupingProjector.prepare(mock(ExecutionState.class));
 
         List<BytesRef> keys = new ArrayList<>(Locale.getISOCountries().length);
         for (String s : Locale.getISOCountries()) {
@@ -144,8 +143,7 @@ public class GroupingProjectorBenchmark {
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
-        groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection(mock(ExecutionState.class));
+        groupingProjector.prepare(mock(ExecutionState.class));
 
         SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {

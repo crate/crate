@@ -30,17 +30,19 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -63,7 +65,6 @@ import org.mockito.MockitoAnnotations;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -131,68 +132,66 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testSimpleTopNProjection() throws ExecutionException, InterruptedException {
+    public void testSimpleTopNProjection() throws Exception {
         TopNProjection projection = new TopNProjection(10, 2);
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0)));
 
-        CollectingProjector collectingProjector = new CollectingProjector();
+        CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        projector.startProjection(mock(ExecutionState.class));
+        projector.prepare(mock(ExecutionState.class));
         int i;
         for (i = 0; i < 20; i++) {
-            if (!handle.setNextRow(spare(42))) {
+            if (!projector.setNextRow(spare(42))) {
                 break;
             }
         }
         assertThat(i, is(11));
-        handle.finish();
-        Bucket rows = collectingProjector.result().get();
+        projector.finish();
+        Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(10));
         assertThat(rows.iterator().next(), isRow("foo", 42));
     }
 
     @Test
-    public void testSortingTopNProjection() throws ExecutionException, InterruptedException {
+    public void testSortingTopNProjection() throws Exception {
         TopNProjection projection = new TopNProjection(10, 0,
                 Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
                 new boolean[]{false, false},
                 new Boolean[]{null, null}
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        SortingTopNProjector projector = (SortingTopNProjector) visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
     }
 
     @Test
-    public void testAggregationProjector() throws ExecutionException, InterruptedException {
+    public void testAggregationProjector() throws Exception {
         AggregationProjection projection = new AggregationProjection();
         projection.aggregations(Arrays.asList(
                 Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER),
                 Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
         ));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
-        CollectingProjector collectingProjector = new CollectingProjector();
+
+        CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         projector.downstream(collectingProjector);
-        assertThat(projector, instanceOf(AggregationProjector.class));
+        assertThat(projector, instanceOf(AggregationPipe.class));
 
 
-        projector.startProjection(mock(ExecutionState.class));
-        handle.setNextRow(spare("foo", 10));
-        handle.setNextRow(spare("bar", 20));
-        handle.finish();
-        Bucket rows = collectingProjector.result().get();
+        projector.prepare(mock(ExecutionState.class));
+        projector.setNextRow(spare("foo", 10));
+        projector.setNextRow(spare("bar", 20));
+        projector.finish();
+        Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(1));
         assertThat(rows, contains(isRow(15.0, 2L)));
     }
 
     @Test
-    public void testGroupProjector() throws ExecutionException, InterruptedException {
+    public void testGroupProjector() throws Exception {
         //         in(0)  in(1)      in(0),      in(2)
         // select  race, avg(age), count(race), gender  ... group by race, gender
         GroupProjection projection = new GroupProjection();
@@ -203,7 +202,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         ));
 
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
 
         // use a topN projection in order to get sorted outputs
         TopNProjection topNProjection = new TopNProjection(10, 0,
@@ -213,17 +211,17 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         topNProjection.outputs(Arrays.<Symbol>asList(
                 new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
-        SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector topNProjector = visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
 
-        CollectingProjector collector = new CollectingProjector();
+        CollectingRowReceiver collector = new CollectingRowReceiver();
         topNProjector.downstream(collector);
 
         ExecutionState state = mock(ExecutionState.class);
 
-        collector.startProjection(state);
-        topNProjector.startProjection(state);
-        projector.startProjection(state);
+        collector.prepare(state);
+        topNProjector.prepare(state);
+        projector.prepare(state);
 
         assertThat(projector, instanceOf(GroupingProjector.class));
 
@@ -231,14 +229,14 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         BytesRef vogon = new BytesRef("vogon");
         BytesRef male = new BytesRef("male");
         BytesRef female = new BytesRef("female");
-        handle.setNextRow(spare(human, 34, male));
-        handle.setNextRow(spare(human, 22, female));
-        handle.setNextRow(spare(vogon, 40, male));
-        handle.setNextRow(spare(vogon, 48, male));
-        handle.setNextRow(spare(human, 34, male));
-        handle.finish();
+        projector.setNextRow(spare(human, 34, male));
+        projector.setNextRow(spare(human, 22, female));
+        projector.setNextRow(spare(vogon, 40, male));
+        projector.setNextRow(spare(vogon, 48, male));
+        projector.setNextRow(spare(human, 34, male));
+        projector.finish();
 
-        Bucket rows = collector.result().get();
+        Bucket rows = collector.result();
         assertThat(rows, contains(
                 isRow(human, female, 22.0, 1L),
                 isRow(human, male, 34.0, 2L),
@@ -255,62 +253,18 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         FilterProjection projection = new FilterProjection(function);
         projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
-        CollectingProjector collectingProjector = new CollectingProjector();
+        CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
-        projector.startProjection(mock(ExecutionState.class));
-        handle.setNextRow(spare("human", 2));
-        handle.setNextRow(spare("vogon", 1));
+        projector.prepare(mock(ExecutionState.class));
+        projector.setNextRow(spare("human", 2));
+        projector.setNextRow(spare("vogon", 1));
 
-        handle.finish();
+        projector.finish();
 
-        Bucket rows = collectingProjector.result().get();
+        Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(1));
     }
-
-    @Test
-    public void testMergeProjection() throws Exception {
-        // select a,b from t order by b,c
-        Symbol a = new InputColumn(0, DataTypes.INTEGER);
-        Symbol b = new InputColumn(1, DataTypes.INTEGER);
-        Symbol c = new InputColumn(2, DataTypes.INTEGER);
-
-        MergeProjection projection = new MergeProjection(
-                Arrays.<Symbol>asList(a,b),
-                Arrays.<Symbol>asList(b,c),
-                new boolean[]{false, false},
-                new Boolean[]{false, false}
-        );
-        MergeProjector projector = (MergeProjector)visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-
-        CollectingProjector collectingProjector = new CollectingProjector();
-        projector.downstream(collectingProjector);
-
-        RowDownstreamHandle handle1 = projector.registerUpstream(null);
-        RowDownstreamHandle handle2 = projector.registerUpstream(null);
-        RowDownstreamHandle handle3 = projector.registerUpstream(null);
-
-        projector.startProjection(mock(ExecutionState.class));
-
-        handle1.setNextRow(row(5, 1, 1));
-        handle2.setNextRow(row(0, 1, 2));
-        handle3.setNextRow(row(7, 0, 2));
-
-        // 7, 0, 2 is the lowest row and is emitted
-        assertThat(collectingProjector.rows.size(), is(1));
-        assertThat((int)collectingProjector.rows.get(0)[0], is(7));
-        handle3.finish();
-
-        // 5, 1, 1 is emitted
-        assertThat(collectingProjector.rows.size(), is(2));
-        assertThat((int)collectingProjector.rows.get(1)[0], is(5));
-        handle1.finish();
-
-        assertThat(collectingProjector.rows.size(), is(3));
-        assertThat((int)collectingProjector.rows.get(2)[0], is(0));
-    }
-
 }

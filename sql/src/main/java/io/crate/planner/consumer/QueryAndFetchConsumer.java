@@ -39,7 +39,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
@@ -295,19 +294,13 @@ public class QueryAndFetchConsumer implements Consumer {
 
         @Override
         public List<Projection> visitQueriedDocTable(QueriedDocTable table,
-                                               CollectPhaseOrderedProjectionBuilderContext context) {
+                                                     CollectPhaseOrderedProjectionBuilderContext context) {
             if (context.orderBy == null) {
                 return ImmutableList.of();
             } else {
-                MergeProjection mergeProjection = new MergeProjection(
-                        context.allOutputs,
-                        context.orderByInputColumns,
-                        context.orderBy.reverseFlags(),
-                        context.orderBy.nullsFirst()
-                );
                 TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
                 topNProjection.outputs(context.allOutputs);
-                return ImmutableList.of(mergeProjection, topNProjection);
+                return ImmutableList.<Projection>of(topNProjection);
             }
         }
 

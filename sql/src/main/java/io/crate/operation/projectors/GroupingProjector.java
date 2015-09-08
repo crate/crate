@@ -29,7 +29,8 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.*;
+import io.crate.operation.AggregationContext;
+import io.crate.operation.Input;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
@@ -45,19 +46,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class GroupingProjector extends RowDownstreamAndHandle implements Projector {
+public class GroupingProjector extends AbstractProjector {
 
 
     private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
 
-    private Grouper grouper;
-    private RowDownstreamHandle downstream;
-    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
-    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
+    private final Grouper grouper;
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
@@ -97,42 +93,24 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public void startProjection(ExecutionState executionState) {
+    public void prepare(ExecutionState executionState) {
+        super.prepare(executionState);
         grouper.prepare(executionState);
     }
 
     @Override
-    public synchronized boolean setNextRow(Row row) {
+    public boolean setNextRow(Row row) {
         try {
             return grouper.setNextRow(row);
         } catch (CircuitBreakingException e) {
-            if (downstream != null) {
-                downstream.fail(e);
-                downstream = null;
-            }
+            downstream.fail(e);
             throw e;
         }
     }
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return super.registerUpstream(upstream);
-    }
-
-    @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (grouper != null) {
-                grouper.finish();
-                cleanUp();
-            }
-        }
+        grouper.finish();
         if (logger.isDebugEnabled()) {
             logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
         }
@@ -140,14 +118,7 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
 
     @Override
     public void fail(Throwable throwable) {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            if (downstream != null) {
-                downstream.fail(throwable);
-            }
-            cleanUp();
-            return;
-        }
-        failure.set(throwable);
+        downstream.fail(throwable);
     }
 
     /**
@@ -183,11 +154,7 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
         }
     }
 
-    private void cleanUp() {
-        grouper = null;
-    }
-
-    private interface Grouper {
+    private interface Grouper extends AutoCloseable {
         boolean setNextRow(final Row row);
 
         void finish();
@@ -246,8 +213,6 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
 
         @Override
         public void finish() {
-            if (hasNoDownstreamOrHasFailure()) return;
-
             try {
                 // TODO: check ram accounting
                 // account the multi-dimension `rows` array
@@ -280,6 +245,11 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
         @Override
         public void prepare(ExecutionState executionState) {
             this.executionState = executionState;
+        }
+
+        @Override
+        public void close() throws Exception {
+            result.clear();
         }
     }
 
@@ -350,7 +320,6 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
 
         @Override
         public void finish() {
-            if (hasNoDownstreamOrHasFailure()) return;
             try {
                 // account the multi-dimension `rows` array
                 // 1st level
@@ -383,17 +352,10 @@ public class GroupingProjector extends RowDownstreamAndHandle implements Project
         public void prepare(ExecutionState executionState) {
             this.executionState = executionState;
         }
-    }
 
-    private boolean hasNoDownstreamOrHasFailure() {
-        if (downstream == null){
-            return true;
+        @Override
+        public void close() throws Exception {
+            result.clear();
         }
-        Throwable throwable = failure.get();
-        if (throwable != null) {
-            downstream.fail(throwable);
-            return true;
-        }
-        return false;
     }
 }

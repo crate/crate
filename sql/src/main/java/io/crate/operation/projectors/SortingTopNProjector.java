@@ -22,53 +22,42 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Ordering;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
-import java.util.Comparator;
+import java.util.Collection;
 
-public class SortingTopNProjector extends RowDownstreamAndHandle implements Projector {
+public class SortingTopNProjector extends AbstractProjector {
 
     private final int offset;
-    private final int maxSize;
     private final int numOutputs;
 
-    private RowDownstreamHandle downstream;
-
-    private RowPriorityQueue<Object[]> pq;
-    private final Comparator[] comparators;
-    private final Input<?>[] inputs;
-    private final CollectExpression<Row, ?>[] collectExpressions;
+    private final RowPriorityQueue<Object[]> pq;
+    private final Collection<? extends Input<?>> inputs;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private Object[] spare;
 
     /**
      * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
      * @param collectExpressions gathered from outputs and orderBy inputs
      * @param numOutputs         <code>inputs</code> contains this much output {@link io.crate.operation.Input}s starting form index 0
-     * @param orderBy            indices of {@link io.crate.operation.Input}s in parameter <code>inputs</code> we sort by
-     * @param reverseFlags       for every index orderBy a boolean indicates ascending (<code>false</code>) or descending (<code>true</code>) order
+     * @param ordering           ordering that is used to compare the rows
      * @param limit              the number of rows to gather, pass to upStream
      * @param offset             the initial offset, this number of rows are skipped
      */
-    public SortingTopNProjector(Input<?>[] inputs,
-                                CollectExpression<Row, ?>[] collectExpressions,
+    public SortingTopNProjector(Collection<? extends Input<?>> inputs,
+                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int numOutputs,
-                                int[] orderBy,
-                                boolean[] reverseFlags,
-                                Boolean[] nullsFirst,
+                                Ordering<Object[]> ordering,
                                 int limit,
                                 int offset) {
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset >= 0, "invalid offset");
-        assert nullsFirst.length == reverseFlags.length;
 
         this.inputs = inputs;
         this.numOutputs = numOutputs;
@@ -78,73 +67,49 @@ public class SortingTopNProjector extends RowDownstreamAndHandle implements Proj
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
         }
-        this.maxSize = this.offset + limit;
-        comparators = new Comparator[orderBy.length];
-        for (int i = 0; i < orderBy.length; i++) {
-            int col = orderBy[i];
-            boolean reverse = reverseFlags[i];
-            comparators[i] = OrderingByPosition.arrayOrdering(col, reverse, nullsFirst[i]);
-        }
+        int maxSize = this.offset + limit;
+        pq = new RowPriorityQueue<>(maxSize, ordering);
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
-        synchronized (this) {
-            if (pq == null) {
-                pq = new RowPriorityQueue<>(maxSize, comparators);
-            }
-        }
-    }
-
-    @Override
-    public synchronized boolean setNextRow(Row row) {
-        if (spare == null) {
-            spare = new Object[inputs.length];
-        }
-        evaluateRow(row);
-        spare = pq.insertWithOverflow(spare);
-        return true;
-    }
-
-    private synchronized void evaluateRow(Row row) {
+    public boolean setNextRow(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
+        }
+        if (spare == null) {
+            spare = new Object[inputs.size()];
         }
         int i = 0;
         for (Input<?> input : inputs) {
             spare[i++] = input.value();
         }
+        spare = pq.insertWithOverflow(spare);
+        return true;
     }
 
     @Override
-    public void onAllUpstreamsFinished() {
-        assert downstream != null;
-        if (pq != null) {
-            RowN row = new RowN(numOutputs);
-            final int resultSize = Math.max(pq.size() - offset, 0);
-            Object[][] rows = new Object[resultSize][];
-            for (int i = resultSize - 1; i >= 0; i--) {
-                rows[i] = pq.pop();
-            }
-            pq.clear();
-            for (Object[] cells : rows) {
-                row.cells(cells);
-                downstream.setNextRow(row);
-            }
+    public void finish() {
+        final int resultSize = Math.max(pq.size() - offset, 0);
+        if (resultSize == 0) {
+            downstream.finish();
+            return;
+        }
+        Object[][] rows = new Object[resultSize][];
+        for (int i = resultSize - 1; i >= 0; i--) {
+            rows[i] = pq.pop();
+        }
+        pq.clear();
+
+        RowN row = new RowN(numOutputs);
+        for (Object[] cells : rows) {
+            row.cells(cells);
+            downstream.setNextRow(row);
         }
         downstream.finish();
     }
 
     @Override
     public void fail(Throwable t) {
-        super.fail(t);
-        if (downstream != null) {
-            downstream.fail(t);
-        }
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        this.downstream = downstream.registerUpstream(this);
+        downstream.fail(t);
     }
 }

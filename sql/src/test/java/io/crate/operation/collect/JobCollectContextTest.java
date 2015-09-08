@@ -26,10 +26,10 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ContextCallback;
-import io.crate.operation.RowDownstream;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,9 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -67,7 +69,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         jobCollectContext = new JobCollectContext(
                 UUID.randomUUID(),
                 mock(CollectPhase.class),
-                mock(MapSideDataCollectOperation.class), ramAccountingContext, new CollectingProjector());
+                mock(MapSideDataCollectOperation.class), ramAccountingContext, new CollectingRowReceiver());
     }
 
     @Test
@@ -108,14 +110,14 @@ public class JobCollectContextTest extends CrateUnitTest {
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
         CollectPhase collectPhaseMock = mock(CollectPhase.class);
         UUID jobId = UUID.randomUUID();
-        CollectingProjector projector = new CollectingProjector();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
         JobCollectContext jobCtx = new JobCollectContext(
                 jobId,
                 collectPhaseMock,
                 collectOperationMock,
                 ramAccountingContext,
-                projector);
+                rowReceiver);
 
         jobCtx.addContext(1, mock1);
         jobCtx.addCallback(new ContextCallback() {
@@ -138,7 +140,7 @@ public class JobCollectContextTest extends CrateUnitTest {
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
-        when(collectOperationMock.createCollectors(eq(collectPhaseMock), any(RowDownstream.class), eq(jobCtx)))
+        when(collectOperationMock.createCollectors(eq(collectPhaseMock), any(RowReceiver.class), eq(jobCtx)))
                 .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
         jobCtx.prepare();
         jobCtx.start();

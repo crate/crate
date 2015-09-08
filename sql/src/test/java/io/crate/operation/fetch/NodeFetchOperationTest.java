@@ -36,7 +36,7 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -99,7 +99,7 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(1, new JobCollectContext(jobId,
                 mock(CollectPhase.class), mock(MapSideDataCollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, new CollectingProjector()));
+                RAM_ACCOUNTING_CONTEXT, new CollectingRowReceiver()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(

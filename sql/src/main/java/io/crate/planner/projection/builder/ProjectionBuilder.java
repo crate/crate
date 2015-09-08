@@ -29,10 +29,12 @@ import io.crate.analyze.QuerySpec;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -153,16 +155,4 @@ public class ProjectionBuilder {
         result.outputs(outputsProcessed);
         return result;
     }
-
-    public MergeProjection mergeProjection(
-            List<Symbol> inputs,
-            OrderBy orderBy
-    ) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        return new MergeProjection(inputs,
-                inputVisitor.process(orderBy.orderBySymbols(), context),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst());
-    }
-
 }

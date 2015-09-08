@@ -30,7 +30,7 @@ import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -44,7 +44,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -74,18 +73,16 @@ public class WriterProjectorTest extends CrateUnitTest {
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
-        CollectingProjector downstream = new CollectingProjector();
-        projector.downstream(downstream);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        projector.downstream(rowReceiver);
 
-        projector.startProjection(mock(ExecutionState.class));
-
-        projector.registerUpstream(null);
+        projector.prepare(mock(ExecutionState.class));
         for (int i = 0; i < 5; i++) {
             projector.setNextRow(new Row1(new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i))));
         }
         projector.finish();
 
-        Bucket rows = downstream.result().get();
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isRow(5L)));
 
         assertEquals("input line 00\n" +
@@ -109,8 +106,8 @@ public class WriterProjectorTest extends CrateUnitTest {
 
     @Test
     public void testDirectoryAsFile() throws Exception {
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class, "Failed to open output: 'Output path is a directory: "));
+        expectedException.expect(UnhandledServerException.class);
+        expectedException.expectMessage("Failed to open output: 'Output path is a directory: ");
 
         String uri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
@@ -122,18 +119,17 @@ public class WriterProjectorTest extends CrateUnitTest {
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
-        CollectingProjector downstream = new CollectingProjector();
-        projector.downstream(downstream);
-        projector.startProjection(mock(ExecutionState.class));
-        projector.registerUpstream(null);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        projector.downstream(rowReceiver);
+        projector.prepare(mock(ExecutionState.class));
         projector.finish();
-        downstream.result().get();
+        rowReceiver.result();
     }
 
     @Test
     public void testFileAsDirectory() throws Exception {
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class));
+        expectedException.expect(UnhandledServerException.class);
+        expectedException.expectMessage("Failed to open output");
 
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
         Settings settings = ImmutableSettings.EMPTY;
@@ -145,11 +141,10 @@ public class WriterProjectorTest extends CrateUnitTest {
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>()
         );
-        CollectingProjector downstream = new CollectingProjector();
-        projector.downstream(downstream);
-        projector.startProjection(mock(ExecutionState.class));
-        projector.registerUpstream(null);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        projector.downstream(rowReceiver);
+        projector.prepare(mock(ExecutionState.class));
         projector.finish();
-        downstream.result().get();
+        rowReceiver.result();
     }
 }

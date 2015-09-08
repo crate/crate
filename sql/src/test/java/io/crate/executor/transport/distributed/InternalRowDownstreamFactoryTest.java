@@ -28,8 +28,8 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.InternalRowDownstreamFactory;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
@@ -59,7 +59,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 mock(TransportDistributedResultAction.class));
     }
 
-    private RowDownstream createDownstream(Set<String> downstreamExecutionNodes) {
+    private RowReceiver createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
@@ -87,14 +87,14 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        RowDownstream downstream = createDownstream(ImmutableSet.of("downstream_node"));
+        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node"));
         assertThat(downstream, instanceOf(DistributingDownstream.class));
         assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        RowDownstream downstream = createDownstream(ImmutableSet.of("downstream_node1","downstream_node2"));
+        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node1","downstream_node2"));
         assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }
