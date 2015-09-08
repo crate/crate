@@ -19,40 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation;
+package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
+import io.crate.operation.Input;
+import io.crate.operation.collect.CollectExpression;
 
-/**
- * A downstream handling rows
- */
-public interface RowDownstreamHandle {
+import java.util.Collection;
 
+public class FilterPipe extends AbstractRowPipe {
 
-    /**
-     * Feed the downstream with the next input row.
-     * If the downstream does not need any more rows, it returns <code>false</code>,
-     * <code>true</code> otherwise.
-     *
-     * This method must be thread safe.
-     *
-     * @param row the next row - must be materialized if you want to keep its contents
-     * @return false if the downstream does not need any more rows, true otherwise.
-     */
-    boolean setNextRow(Row row);
+    private final RowFilter<Row> rowFilter;
 
-    /**
-     * Called from the upstream to indicate that all rows are sent.
-     *
-     * NOTE: This method must not throw any exceptions!
-     */
-    void finish();
+    public FilterPipe(Collection<CollectExpression<Row, ?>> collectExpressions, Input<Boolean> condition) {
+        rowFilter = new RowFilter<>(collectExpressions, condition);
+    }
 
-    /**
-     * Is called from the upstream in case of a failure.
-     * @param throwable the cause of the fail
-     *
-     * NOTE: This method must not throw any exceptions!
-     */
-    void fail(Throwable throwable);
+    @Override
+    public boolean setNextRow(Row row) {
+        //noinspection SimplifiableIfStatement
+        if (rowFilter.matches(row)) {
+            return downstream.setNextRow(row);
+        }
+        return true;
+    }
+
+    @Override
+    public void finish() {
+        downstream.finish();
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        downstream.fail(throwable);
+    }
 }

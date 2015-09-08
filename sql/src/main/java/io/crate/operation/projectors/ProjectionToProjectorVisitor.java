@@ -308,7 +308,8 @@ public class ProjectionToProjectorVisitor
             condition = Literal.newLiteral(true);
         }
 
-        return new FilterProjector(ctx.collectExpressions(), condition);
+        FilterPipe filterPipe = new FilterPipe(ctx.collectExpressions(), condition);
+        return new ForwardingProjector(filterPipe);
     }
 
     @Override
