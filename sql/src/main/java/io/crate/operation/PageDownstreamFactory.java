@@ -103,10 +103,11 @@ public class PageDownstreamFactory {
                             mergeNode.orderByIndices(),
                             mergeNode.reverseFlags(),
                             mergeNode.nullsFirst()
-                    )
+                    ),
+                    false
             );
         } else {
-            pagingIterator = new PassThroughPagingIterator<>();
+            pagingIterator = PassThroughPagingIterator.oneShot();
         }
         PageDownstream pageDownstream = new IteratorPageDownstream(rowReceiver, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
