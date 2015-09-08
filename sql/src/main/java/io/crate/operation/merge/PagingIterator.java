@@ -36,4 +36,10 @@ public interface PagingIterator<T> extends Iterator<T> {
      * returned on hasNext/next calls.
      */
     void finish();
+
+    /**
+     * create an iterator to repeat the previous iteration
+     * @return an iterator that will iterate through the already emitted items and emit them again in the same order as before
+     */
+    Iterator<T> repeat();
 }
