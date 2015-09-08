@@ -98,13 +98,16 @@ public class PageDownstreamFactory {
                             mergeNode.orderByIndices(),
                             mergeNode.reverseFlags(),
                             mergeNode.nullsFirst()
-                    )
+                    ),
+                    downstreamRequiresRepeat
             );
         } else {
-            pagingIterator = new PassThroughPagingIterator<>();
+            pagingIterator = (downstreamRequiresRepeat
+                    ? PassThroughPagingIterator.<Row>repeatable()
+                    : PassThroughPagingIterator.<Row>oneShot());
         }
         PageDownstream pageDownstream = new IteratorPageDownstream(
-                rowDownstream, pagingIterator, executorOptional, downstreamRequiresRepeat);
+                rowDownstream, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
     }
 }

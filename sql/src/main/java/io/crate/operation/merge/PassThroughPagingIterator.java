@@ -27,23 +27,35 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implements PagingIterator<T> {
 
     private Iterator<T> iterator = Collections.emptyIterator();
     private final ImmutableList.Builder<Iterable<T>> iterables = ImmutableList.builder();
+    private final boolean repeatable;
+    private Iterable<T> storedForRepeat = null;
 
-    private final Function<Iterable<T>, Iterator<T>> TO_ITERATOR = new Function<Iterable<T>, Iterator<T>>() {
-        @Nullable
-        @Override
-        public Iterator<T> apply(@Nullable Iterable<T> input) {
-            assert input != null;
-            return input.iterator();
-        }
-    };
+    private PassThroughPagingIterator(boolean repeatable) {
+        this.repeatable = repeatable;
+    }
+
+    /**
+     * Create an iterator that is able to repeat over what has previously been iterated
+     */
+    public static <T> PassThroughPagingIterator<T> repeatable() {
+        return new PassThroughPagingIterator<>(true);
+    }
+
+    /**
+     * Create an iterator that is not able to repeat.
+     * Calling {@link #repeat()} with instances created by this method is discouraged.
+     */
+    public static <T> PassThroughPagingIterator<T> oneShot() {
+        return new PassThroughPagingIterator<>(false);
+    }
 
     @Override
     protected Iterator<T> delegate() {
@@ -52,12 +64,15 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
 
     @Override
     public void merge(Iterable<? extends Iterable<T>> iterables) {
-       this.iterables.addAll(iterables);
+        if (repeatable) {
+            this.iterables.addAll(iterables);
+            this.storedForRepeat = null;
+        }
         if (iterator.hasNext()) {
             iterator = Iterators.concat(iterator,
-                    Iterators.concat(Iterables.transform(iterables, TO_ITERATOR).iterator()));
+                    Iterables.concat(iterables).iterator());
         } else {
-            iterator = Iterators.concat(Iterables.transform(iterables, TO_ITERATOR).iterator());
+            iterator = Iterables.concat(iterables).iterator();
         }
     }
 
@@ -67,8 +82,11 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
 
     @Override
     public Iterator<T> repeat() {
-        return Iterators.concat(
-                Iterables.transform(this.iterables.build(), TO_ITERATOR).iterator()
-        );
+        Iterable<T> repeatMe = storedForRepeat;
+        if (repeatMe == null) {
+            repeatMe = Iterables.concat(this.iterables.build());
+            this.storedForRepeat = repeatMe;
+        }
+        return repeatMe.iterator();
     }
 }

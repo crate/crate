@@ -68,7 +68,7 @@ public class SortedPagingIteratorBenchmark {
     @BenchmarkOptions(benchmarkRounds = 10, warmupRounds = 1)
     @Test
     public void testIterateWithRepeat() throws Exception {
-        SortedPagingIterator<Row> iterator = new SortedPagingIterator<>(ORDERING);
+        SortedPagingIterator<Row> iterator = new SortedPagingIterator<>(ORDERING, true);
         iterator.merge(Arrays.asList(bucket1, bucket2));
         int size1 = 0;
         while (iterator.hasNext()) {
@@ -92,7 +92,6 @@ public class SortedPagingIteratorBenchmark {
             }
 
             assertThat(size2, is(3_000_000));
-            //assertThat(new ArrayBucket(collected2.toArray(new Object[0][])), isSorted(0));
         }
 
 

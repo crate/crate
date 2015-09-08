@@ -46,13 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IteratorPageDownstream implements PageDownstream, RowUpstream {
 
-    public static final Function<Bucket, Iterator<Row>> BUCKET_TO_ROW_ITERATOR = new Function<Bucket, Iterator<Row>>() {
-        @Nullable
-        @Override
-        public Iterator<Row> apply(Bucket input) {
-            return input.iterator();
-        }
-    };
     private static final ESLogger LOGGER = Loggers.getLogger(IteratorPageDownstream.class);
 
     private final RowDownstreamHandle downstream;
@@ -67,8 +60,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
 
     public IteratorPageDownstream(RowDownstream rowDownstream,
                                   PagingIterator<Row> pagingIterator,
-                                  Optional<Executor> executor,
-                                  boolean downstreamRequiresRepeat) {
+                                  Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
         this.executor = executor.or(MoreExecutors.directExecutor());
         downstream = rowDownstream.registerUpstream(this);
@@ -93,7 +85,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         if (finished.compareAndSet(true, false)) {
             LOGGER.trace("received repeat: {}", downstream);
             paused.set(false);
-            if (processBuckets(repeatIt(), PageConsumeListener.NO_OP_LISTENER)) {
+            if (processBuckets(pagingIterator.repeat(), PageConsumeListener.NO_OP_LISTENER)) {
                 consumeRemaining();
             }
             downstream.finish();
@@ -101,10 +93,6 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         } else {
             LOGGER.trace("received repeat, but wasn't finished {}", downstream);
          }
-    }
-
-    private Iterator<Row> repeatIt() {
-        return pagingIterator.repeat();
     }
 
     private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {

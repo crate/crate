@@ -78,17 +78,6 @@ public class TestingHelpers {
         return printRows(Arrays.asList(result));
     }
 
-    public static String printedRows(Iterable<Row> rows) {
-        return printRows(Iterables.transform(rows, new com.google.common.base.Function<Row, Object[]>() {
-            @Nullable
-            @Override
-            public Object[] apply(@Nullable Row input) {
-                assert input != null;
-                return input.materialize();
-            }
-        }));
-    }
-
     public static String printedTable(Bucket result) {
         return printRows(Arrays.asList(Buckets.materialize(result)));
     }

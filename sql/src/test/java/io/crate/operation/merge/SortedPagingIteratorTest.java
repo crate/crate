@@ -21,10 +21,12 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.collect.Ordering;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -34,16 +36,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class SortedPagingIteratorTest {
+public class SortedPagingIteratorTest extends CrateUnitTest {
 
-    public static final com.google.common.collect.Ordering<io.crate.core.collections.Row> ORDERING =
+    public static final Ordering<Row> ORDERING =
             OrderingByPosition.ordering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
-        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING);
+        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
 
         pagingIterator.merge(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][] {
@@ -98,7 +99,7 @@ public class SortedPagingIteratorTest {
 
     @Test
     public void testReplayReplaysCorrectly() throws Exception {
-        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING);
+        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
         pagingIterator.merge(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][]{
                         new Object[]{"a"},

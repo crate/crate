@@ -33,6 +33,7 @@ import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
+import io.crate.testing.RowCollectionBucket;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -63,9 +64,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     private PageDownstream pageDownstream(RowDownstream rowDownstream) {
         return new IteratorPageDownstream(
                     rowDownstream,
-                    new PassThroughPagingIterator<Row>(),
-                    Optional.<Executor>absent(),
-                    true
+                    PassThroughPagingIterator.<Row>repeatable(),
+                    Optional.<Executor>absent()
             );
     }
 
@@ -167,25 +167,6 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         leftT.join();
         rightT.join();
-    }
-
-    private static class RowCollectionBucket implements Bucket {
-
-        private Collection<Row> rows;
-
-        public RowCollectionBucket(Collection<Row> rows) {
-            this.rows = rows;
-        }
-
-        @Override
-        public int size() {
-            return rows.size();
-        }
-
-        @Override
-        public Iterator<Row> iterator() {
-            return rows.iterator();
-        }
     }
 
     private Thread sendRowsThreaded(String name, final PageDownstream pageDownstream, final List<Row> rows) {
