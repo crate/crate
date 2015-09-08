@@ -21,8 +21,8 @@
 
 package io.crate.testing;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Futures;
@@ -33,6 +33,7 @@ import io.crate.core.collections.*;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -53,6 +54,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +76,17 @@ public class TestingHelpers {
      */
     public static String printedTable(Object[][] result) {
         return printRows(Arrays.asList(result));
+    }
+
+    public static String printedRows(Iterable<Row> rows) {
+        return printRows(Iterables.transform(rows, new com.google.common.base.Function<Row, Object[]>() {
+            @Nullable
+            @Override
+            public Object[] apply(@Nullable Row input) {
+                assert input != null;
+                return input.materialize();
+            }
+        }));
     }
 
     public static String printedTable(Bucket result) {

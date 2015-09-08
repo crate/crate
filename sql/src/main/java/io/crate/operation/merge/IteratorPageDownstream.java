@@ -60,11 +60,9 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final PagingIterator<Row> pagingIterator;
     private final AtomicBoolean paused = new AtomicBoolean(false);
-    private final boolean keepPages;
-    private final List<List<Bucket>> pages = new ArrayList<>();
 
     private volatile PageConsumeListener pausedListener;
-    private volatile PagingIterator<Row> pausedIterator;
+    private volatile Iterator<Row> pausedIterator;
     private volatile boolean pendingPause;
 
     public IteratorPageDownstream(RowDownstream rowDownstream,
@@ -72,7 +70,6 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
                                   Optional<Executor> executor,
                                   boolean downstreamRequiresRepeat) {
         this.pagingIterator = pagingIterator;
-        this.keepPages = downstreamRequiresRepeat;
         this.executor = executor.or(MoreExecutors.directExecutor());
         downstream = rowDownstream.registerUpstream(this);
     }
@@ -106,14 +103,11 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
          }
     }
 
-    private PagingIterator<Row> repeatIt() {
-        for (List<Bucket> page : pages) {
-            pagingIterator.merge(getBucketIterators(page));
-        }
-        return pagingIterator;
+    private Iterator<Row> repeatIt() {
+        return pagingIterator.repeat();
     }
 
-    private boolean processBuckets(PagingIterator<Row> iterator, PageConsumeListener listener) {
+    private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
         while (iterator.hasNext()) {
             if (finished.get()) {
                 listener.finish();
@@ -142,10 +136,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
-                if (keepPages) {
-                    pages.add(buckets);
-                }
-                pagingIterator.merge(getBucketIterators(buckets));
+                pagingIterator.merge(buckets);
                 processBuckets(pagingIterator, listener);
             }
 
@@ -196,9 +187,5 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         if (finished.compareAndSet(false, true)) {
             downstream.fail(t);
         }
-    }
-
-    private Iterable<Iterator<Row>> getBucketIterators(List<Bucket> buckets) {
-        return FluentIterable.from(buckets).transform(BUCKET_TO_ROW_ITERATOR);
     }
 }

@@ -28,7 +28,7 @@ public interface PagingIterator<T> extends Iterator<T> {
     /**
      * Add additional iterators to the PagingIterator. (E.g. due to a new Page that has arrived)
      */
-    void merge(Iterable<? extends Iterator<T>> iterators);
+    void merge(Iterable<? extends Iterable<T>> iterators);
 
     /**
      * This is called if the last page has been received and merge has been called for the last time.
@@ -36,4 +36,10 @@ public interface PagingIterator<T> extends Iterator<T> {
      * returned on hasNext/next calls.
      */
     void finish();
+
+    /**
+     * create an iterator to repeat the previous iteration
+     * @return an iterator that will iterate through the already emitted items and emit them again in the same order as before
+     */
+    Iterator<T> repeat();
 }

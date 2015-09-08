@@ -31,6 +31,7 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -41,7 +42,6 @@ import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -78,11 +78,11 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), PAGE_CONSUME_LISTENER);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
         b1.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
         b2.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
     }
 
     @Test
@@ -171,7 +171,19 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         pageDownstream.finish();
         pageDownstream.repeat();
         pageDownstream.finish();
-        assertThat(rowDownstream.result().get(20, TimeUnit.MILLISECONDS).size(), is(12));
+        assertThat(TestingHelpers.printedTable(rowDownstream.result().get(20, TimeUnit.MILLISECONDS)), is(
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n"));
     }
 
     @Test
@@ -223,5 +235,18 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         assertThat(collectedRows.size(), is(2));
         pageDownstream.resume(false);
         assertThat(collectedRows.size(), is(3));
+
+        pageDownstream.finish();
+        pageDownstream.repeat();
+
+        assertThat(TestingHelpers.printedRows(collectedRows), is(
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n"));
+
+
     }
 }

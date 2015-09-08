@@ -21,15 +21,29 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 
 public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implements PagingIterator<T> {
 
-    Iterator<T> iterator = Collections.emptyIterator();
+    private Iterator<T> iterator = Collections.emptyIterator();
+    private final ImmutableList.Builder<Iterable<T>> iterables = ImmutableList.builder();
+
+    private final Function<Iterable<T>, Iterator<T>> TO_ITERATOR = new Function<Iterable<T>, Iterator<T>>() {
+        @Nullable
+        @Override
+        public Iterator<T> apply(@Nullable Iterable<T> input) {
+            assert input != null;
+            return input.iterator();
+        }
+    };
 
     @Override
     protected Iterator<T> delegate() {
@@ -37,15 +51,24 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     }
 
     @Override
-    public void merge(Iterable<? extends Iterator<T>> iterators) {
+    public void merge(Iterable<? extends Iterable<T>> iterables) {
+       this.iterables.addAll(iterables);
         if (iterator.hasNext()) {
-            iterator = Iterators.concat(iterator, Iterators.concat(iterators.iterator()));
+            iterator = Iterators.concat(iterator,
+                    Iterators.concat(Iterables.transform(iterables, TO_ITERATOR).iterator()));
         } else {
-            iterator = Iterators.concat(iterators.iterator());
+            iterator = Iterators.concat(Iterables.transform(iterables, TO_ITERATOR).iterator());
         }
     }
 
     @Override
     public void finish() {
+    }
+
+    @Override
+    public Iterator<T> repeat() {
+        return Iterators.concat(
+                Iterables.transform(this.iterables.build(), TO_ITERATOR).iterator()
+        );
     }
 }

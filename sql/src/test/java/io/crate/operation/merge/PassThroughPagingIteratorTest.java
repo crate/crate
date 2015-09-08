@@ -43,7 +43,7 @@ public class PassThroughPagingIteratorTest {
     public void testInputIsPassedThrough() throws Exception {
         PassThroughPagingIterator<String> iterator = new PassThroughPagingIterator<>();
         iterator.merge(Arrays.asList(
-                Arrays.asList("a", "b", "c").iterator(), Arrays.asList("d", "e").iterator()));
+                Arrays.asList("a", "b", "c"), Arrays.asList("d", "e")));
 
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
@@ -54,8 +54,8 @@ public class PassThroughPagingIteratorTest {
     public void testInputIsPassedThroughWithSecondMergeCall() throws Exception {
         PassThroughPagingIterator<String> iterator = new PassThroughPagingIterator<>();
         iterator.merge(Arrays.asList(
-                Arrays.asList("a", "b", "c").iterator(), Arrays.asList("d", "e").iterator()));
-        iterator.merge(Collections.singletonList(Arrays.asList("f", "g").iterator()));
+                Arrays.asList("a", "b", "c"), Arrays.asList("d", "e")));
+        iterator.merge(Collections.singletonList(Arrays.asList("f", "g")));
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
         assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e", "f", "g"));

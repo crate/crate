@@ -21,10 +21,11 @@
 
 package io.crate.operation.merge;
 
-import com.google.common.collect.Ordering;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
+import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.base.Function;
+import com.google.common.collect.*;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.google.common.collect.Iterators.peekingIterator;
@@ -37,21 +38,26 @@ import static com.google.common.collect.Iterators.peekingIterator;
  */
 public class SortedPagingIterator<T> implements PagingIterator<T> {
 
-    private final SortedMergeIterator<T> mergingIterator;
+    private final RecordingSortedMergeIterator<T> mergingIterator;
     private boolean ignoreLeastExhausted = false;
 
     public SortedPagingIterator(Ordering<T> ordering) {
-        mergingIterator = new SortedMergeIterator<>(Collections.<Iterator<? extends T>>emptyList(), ordering);
+        mergingIterator = new RecordingSortedMergeIterator<>(Collections.<Iterable<T>>emptyList(), ordering);
     }
 
     @Override
-    public void merge(Iterable<? extends Iterator<T>> iterators) {
-        mergingIterator.merge(iterators);
+    public void merge(Iterable<? extends Iterable<T>> iterables) {
+        mergingIterator.merge(iterables);
     }
 
     @Override
     public void finish() {
         ignoreLeastExhausted = true;
+    }
+
+    @Override
+    public Iterator<T> repeat() {
+        return mergingIterator.replay();
     }
 
     @Override
@@ -69,32 +75,43 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
         throw new UnsupportedOperationException();
     }
 
+
+
     /**
      * MergingIterator like it is used in guava Iterators.mergedSort
      * It has (limited) shared object support.
      *
-     * And it also has a merge function with which additional backing iterators can be added to enable paging
+     * And it also has a merge function with which additional backing iterators can be added to enable paging.
+     *
+     * records sort order in order to replay it later without having to sort everything again
      */
-    private static class SortedMergeIterator<T> extends UnmodifiableIterator<T> {
+    private static class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> {
 
-        final Queue<PeekingIterator<T>> queue;
-        private PeekingIterator<T> lastUsedIter = null;
+        private final Function<Iterable<T>, Iterator<T>> TO_ITERATOR = new Function<Iterable<T>, Iterator<T>>() {
+            @Nullable
+            @Override
+            public Iterator<T> apply(Iterable<T> input) {
+                return input.iterator();
+            }
+        };
+
+        private final Queue<Indexed<PeekingIterator<T>>> queue;
+        private Indexed<PeekingIterator<T>> lastUsedIter = null;
         private boolean leastExhausted = false;
 
-        public SortedMergeIterator(Iterable<? extends Iterator<? extends T>> iterators, final Comparator<? super T> itemComparator) {
-            Comparator<PeekingIterator<T>> heapComparator = new Comparator<PeekingIterator<T>>() {
+        private final IntArrayList sortRecording = new IntArrayList();
+        private final List<Iterable<T>> storedIterables = new ArrayList<>();
+
+        public RecordingSortedMergeIterator(Iterable<? extends Iterable<T>> iterables, final Comparator<? super T> itemComparator) {
+            Comparator<Indexed<PeekingIterator<T>>> heapComparator = new Comparator<Indexed<PeekingIterator<T>>>() {
                 @Override
-                public int compare(PeekingIterator<T> o1, PeekingIterator<T> o2) {
-                    return itemComparator.compare(o1.peek(), o2.peek());
+                public int compare(Indexed<PeekingIterator<T>> o1, Indexed<PeekingIterator<T>> o2) {
+                    return itemComparator.compare(o1.val.peek(), o2.val.peek());
                 }
             };
             queue = new PriorityQueue<>(2, heapComparator);
 
-            for (Iterator<? extends T> iterator : iterators) {
-                if (iterator.hasNext()) {
-                    queue.add(peekingIterator(iterator));
-                }
-            }
+            addIterators(iterables);
         }
 
         @Override
@@ -105,7 +122,7 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
 
         private void reAddLastIterator() {
             if (lastUsedIter != null) {
-                if (lastUsedIter.hasNext()) {
+                if (lastUsedIter.val.hasNext()) {
                     queue.add(lastUsedIter);
                 } else {
                     leastExhausted = true;
@@ -120,20 +137,81 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
                 throw new NoSuchElementException();
             }
             lastUsedIter = queue.remove();
-            return lastUsedIter.next();
+            sortRecording.add(lastUsedIter.i); // record sorting for repeat
+            return lastUsedIter.val.next();
         }
 
-        void merge(Iterable<? extends Iterator<T>> iterators) {
-            if (lastUsedIter != null && lastUsedIter.hasNext()) {
+        void addIterators(Iterable<? extends Iterable<T>> iterables) {
+            for (Iterable<T> rowIterable : iterables) {
+                Iterator<T> rowIterator = rowIterable.iterator();
+                if (rowIterator.hasNext()) {
+                    // store index in stored list
+                    queue.add(new Indexed<>(storedIterables.size(), peekingIterator(rowIterator)));
+                    this.storedIterables.add(rowIterable);
+                }
+            }
+        }
+
+        void merge(Iterable<? extends Iterable<T>> iterables) {
+            if (lastUsedIter != null && lastUsedIter.val.hasNext()) {
                 queue.add(lastUsedIter);
                 lastUsedIter = null;
             }
-            for (Iterator<T> rowIterator : iterators) {
-                if (rowIterator.hasNext()) {
-                    queue.add(peekingIterator(rowIterator));
-                }
-            }
+            addIterators(iterables);
             leastExhausted = false;
+        }
+
+        Iterator<T> replay() {
+            // TODO: make a defensive copy of sortRecording.buffer ?
+            return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, new Function<Iterable<T>, Iterator<T>>() {
+                @Nullable
+                @Override
+                public Iterator<T> apply(Iterable<T> input) {
+                    return input.iterator();
+                }
+            }));
+
+        }
+
+        static class ReplayingIterator<T> extends AbstractIterator<T> {
+            private final int[] sorting;
+            private int index = 0;
+            private final List<Iterator<T>> iters;
+            private final int itersSize;
+
+            ReplayingIterator(int[] sorting, Iterable<? extends Iterator<T>> iterators) {
+                this.sorting = sorting;
+                this.iters = ImmutableList.<Iterator<T>>builder().addAll(iterators).build();
+                this.itersSize = this.iters.size();
+            }
+
+            @Override
+            protected T computeNext() {
+                if (index >= sorting.length) {
+                    return endOfData();
+                }
+                int iterIdx = sorting[index++];
+                assert iterIdx < itersSize : "invalid iters index";
+
+                Iterator<T> iter = iters.get(iterIdx);
+                if (!iter.hasNext()) {
+                    return endOfData();
+                }
+                return iter.next();
+            }
+        }
+    }
+
+    /**
+     * a container for associating some object with an int index
+     */
+    static class Indexed<T> {
+        private final int i;
+        private final T val;
+
+        public Indexed(int i, T val) {
+            this.i = i;
+            this.val = val;
         }
     }
 }
