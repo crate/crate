@@ -39,6 +39,10 @@ import java.io.StringWriter;
 
 public class RestSQLAction extends BaseRestHandler {
 
+    // Bit flags for request header
+    public static final int HEADER_FLAG_OFF = 0;
+    public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
+
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
         super(settings, controller, client);
@@ -81,11 +85,25 @@ public class RestSQLAction extends BaseRestHandler {
         }
     }
 
+    private int composeFlags(final RestRequest request) {
+        int flags = HEADER_FLAG_OFF;
+
+        if(request.header("User") != null) {
+            // Odbc is on
+            if(request.header("User").toLowerCase().contains("odbc")) {
+                flags |= HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT;
+            }
+        }
+
+        return flags;
+    }
+
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
+        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
         requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
@@ -94,6 +112,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
+        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
         requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
     }
 

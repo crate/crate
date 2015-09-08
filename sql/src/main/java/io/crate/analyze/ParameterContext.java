@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.rest.action.RestSQLAction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -40,13 +41,27 @@ public class ParameterContext {
 
     private int currentIdx = 0;
 
-    public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
+    private int headerFlags = 0;
+
+    public ParameterContext(Object[] parameters, Object[][] bulkParameters,
+                            @Nullable String defaultSchema, @Nullable Integer headerFlags) {
         this.parameters = parameters;
         this.defaultSchema = defaultSchema;
         if (bulkParameters.length > 0) {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
+        if (headerFlags != null) {
+            this.headerFlags = headerFlags.intValue();
+        }
+    }
+
+    public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
+        this(parameters, bulkParameters, defaultSchema, null);
+    }
+
+    public int headerFlags() {
+        return headerFlags;
     }
 
     @Nullable
