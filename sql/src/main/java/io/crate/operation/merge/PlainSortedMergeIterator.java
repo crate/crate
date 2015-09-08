@@ -99,4 +99,9 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
     public boolean isLeastExhausted() {
         return leastExhausted;
     }
+
+    @Override
+    public Iterator<T> repeat() {
+        throw new UnsupportedOperationException("cannot repeat with " + getClass().getSimpleName());
+    }
 }
