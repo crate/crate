@@ -24,28 +24,23 @@ package io.crate.operation.projectors;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
 
-public class AggregationProjector extends RowDownstreamAndHandle implements Projector, RowUpstream {
+public class AggregationPipe extends AbstractRowPipe {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final Object[] cells;
     private final Row row;
     private final Object[] states;
-    private RowDownstreamHandle downstream;
 
-    public AggregationProjector(Set<CollectExpression<Row, ?>> collectExpressions,
-                                AggregationContext[] aggregations,
-                                RamAccountingContext ramAccountingContext) {
+    public AggregationPipe(Set<CollectExpression<Row, ?>> collectExpressions,
+                           AggregationContext[] aggregations,
+                           RamAccountingContext ramAccountingContext) {
         cells = new Object[aggregations.length];
         row = new RowN(cells);
         states = new Object[aggregations.length];
@@ -65,17 +60,7 @@ public class AggregationProjector extends RowDownstreamAndHandle implements Proj
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
-    }
-
-    @Override
-    public void downstream(RowDownstream downstream) {
-        assert this.downstream == null;
-        this.downstream = downstream.registerUpstream(this);
-    }
-
-    @Override
-    public synchronized boolean setNextRow(Row row) {
+    public boolean setNextRow(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
@@ -88,20 +73,15 @@ public class AggregationProjector extends RowDownstreamAndHandle implements Proj
 
     @Override
     public void fail(Throwable t) {
-        super.fail(t);
-        if (downstream != null) {
-            downstream.fail(t);
-        }
+        downstream.fail(t);
     }
 
     @Override
-    public void onAllUpstreamsFinished() {
+    public void finish() {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
-        if (downstream != null) {
-            downstream.setNextRow(row);
-            downstream.finish();
-        }
+        downstream.setNextRow(row);
+        downstream.finish();
     }
 }

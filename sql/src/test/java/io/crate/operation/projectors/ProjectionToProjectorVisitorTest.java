@@ -179,7 +179,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         RowDownstreamHandle handle = projector.registerUpstream(null);
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);
-        assertThat(projector, instanceOf(AggregationProjector.class));
+        assertThat(projector, instanceOf(ForwardingProjector.class));
+        assertThat(((ForwardingProjector) projector).pipe, instanceOf(AggregationPipe.class));
 
 
         projector.startProjection(mock(ExecutionState.class));

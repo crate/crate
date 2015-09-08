@@ -175,10 +175,10 @@ public class ProjectionToProjectorVisitor
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        return new AggregationProjector(
+        return new ForwardingProjector(new AggregationPipe(
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations(),
-                context.ramAccountingContext);
+                context.ramAccountingContext));
     }
 
     @Override
