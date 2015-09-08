@@ -51,7 +51,6 @@ import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.MergeProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -248,18 +247,12 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo), nameRef, femaleRef);
         List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
 
-        MergeProjection mergeProjection = new MergeProjection(
-                collectSymbols,
-                orderBy.orderBySymbols(),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-        );
         Planner.Context ctx = newPlannerContext();
         CollectPhase collectNode = newCollectPhase(
                 ctx,
                 characters,
                 collectSymbols,
-                ImmutableList.<Projection>of(mergeProjection),
+                ImmutableList.<Projection>of(),
                 WhereClause.MATCH_ALL
         );
         collectNode.orderBy(orderBy);

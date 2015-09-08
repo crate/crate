@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
@@ -50,32 +49,32 @@ import java.util.UUID;
  */
 public class FlatProjectorChain {
 
-    private final List<Projector> projectors;
+    private final List<? extends RowReceiver> rowReceivers;
 
-    private FlatProjectorChain(List<Projector> projectors) {
-        Preconditions.checkArgument(!projectors.isEmpty(), "no projectors given");
-        this.projectors = projectors;
+    private FlatProjectorChain(List<? extends RowReceiver> rowReceivers) {
+        Preconditions.checkArgument(!rowReceivers.isEmpty(), "no projectors given");
+        this.rowReceivers = rowReceivers;
     }
 
     public void startProjections(ExecutionState executionState) {
-        for (Projector projector : Lists.reverse(projectors)) {
-            projector.startProjection(executionState);
+        for (RowReceiver rowReceiver : Lists.reverse(rowReceivers)) {
+            rowReceiver.prepare(executionState);
         }
     }
 
-    public Projector firstProjector() {
-        return projectors.get(0);
+    public RowReceiver firstProjector() {
+        return rowReceivers.get(0);
     }
 
     /**
      * No ResultProvider will be added.
-     * if <code>downstream</code> is a Projector, {@linkplain Projector#startProjection(ExecutionState)} will not be called
+     * if <code>downstream</code> is a Projector, {@linkplain Projector#prepare(ExecutionState)} will not be called
      * by this FlatProjectorChain.
      */
     public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
                                                             final RamAccountingContext ramAccountingContext,
-                                                            Collection<Projection> projections,
-                                                            RowDownstream downstream,
+                                                            Collection<? extends Projection> projections,
+                                                            RowReceiver downstream,
                                                             UUID jobId) {
         List<Projector> localProjectors = new ArrayList<>();
         Projector previousProjector = null;
@@ -95,11 +94,9 @@ public class FlatProjectorChain {
 
 
     /**
-     * Create a task from a list of projectors (that is already chained).
-     * chains created with this method might not have a ResultProvider, if the last
-     * Projector in the list is none.
+     * Create a task from a list of rowReceivers (which are already chained).
      */
-    public static FlatProjectorChain withProjectors(List<Projector> projectors) {
-        return new FlatProjectorChain(projectors);
+    public static FlatProjectorChain withReceivers(List<? extends RowReceiver> rowReceivers) {
+        return new FlatProjectorChain(rowReceivers);
     }
 }

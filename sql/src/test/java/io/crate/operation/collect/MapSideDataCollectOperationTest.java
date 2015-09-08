@@ -23,7 +23,6 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
@@ -36,7 +35,7 @@ import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -54,12 +53,14 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MapSideDataCollectOperationTest {
 
@@ -126,13 +127,14 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
-        CollectingProjector cd = new CollectingProjector();
-        cd.startProjection(mock(ExecutionState.class));
+
+        CollectingRowReceiver cd = new CollectingRowReceiver();
+        cd.prepare(mock(ExecutionState.class));
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
         when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
         collectOperation.collect(collectNode, cd, jobCollectContext);
-        assertThat(cd.result().get(), contains(
+        assertThat(cd.result(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)
         ));

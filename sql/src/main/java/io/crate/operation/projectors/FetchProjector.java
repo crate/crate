@@ -34,7 +34,8 @@ import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.fetch.PositionalBucketMerger;
 import io.crate.operation.fetch.PositionalRowDelegate;
@@ -53,7 +54,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FetchProjector extends AbstractRowPipe {
+public class FetchProjector extends AbstractProjector {
 
     private PositionalBucketMerger downstream;
     private final TransportFetchNodeAction transportFetchNodeAction;
@@ -178,7 +179,7 @@ public class FetchProjector extends AbstractRowPipe {
     }
 
     @Override
-    public void downstream(RowDownstreamHandle downstream) {
+    public void downstream(RowReceiver downstream) {
         this.downstream = new PositionalBucketMerger(downstream, numNodes, outputRow.size());
     }
 

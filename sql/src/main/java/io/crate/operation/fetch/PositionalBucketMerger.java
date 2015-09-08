@@ -23,8 +23,8 @@ package io.crate.operation.fetch;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PositionalBucketMerger implements RowUpstream {
 
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final int orderingColumnIndex;
     private final UpstreamBucket[] remainingBuckets;
@@ -46,10 +46,11 @@ public class PositionalBucketMerger implements RowUpstream {
     private volatile int leastBucketId = -1;
     private final AtomicBoolean consumeBuckets = new AtomicBoolean(true);
 
-    public PositionalBucketMerger(RowDownstreamHandle rowDownstreamHandle,
+    public PositionalBucketMerger(RowReceiver rowReceiver,
                                   int numUpstreams,
                                   int orderingColumnIndex) {
-        this.downstream = rowDownstreamHandle;
+        this.downstream = rowReceiver;
+        rowReceiver.setUpstream(this);
         this.orderingColumnIndex = orderingColumnIndex;
         remainingBuckets = new UpstreamBucket[numUpstreams];
     }

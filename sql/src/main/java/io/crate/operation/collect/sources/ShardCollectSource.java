@@ -22,6 +22,7 @@
 package io.crate.operation.collect.sources;
 
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.OrderBy;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
@@ -30,13 +31,13 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Paging;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.ShardCollectService;
-import io.crate.operation.collect.ShardProjectorChain;
+import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.RowGranularity;
@@ -99,7 +100,7 @@ public class ShardCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         int jobSearchContextId = collectPhase.routing().jobSearchContextIdBase();
 
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
@@ -123,15 +124,30 @@ public class ShardCollectSource implements CollectSource {
 
         String localNodeId = clusterService.localNode().id();
         int numShardsEstimate = normalizedPhase.routing().numShards(localNodeId);
-        ShardProjectorChain projectorChain = new ShardProjectorChain(
-                normalizedPhase.jobId(),
-                numShardsEstimate,
-                normalizedPhase.projections(),
-                downstream,
-                projectorFactory,
-                jobCollectContext.queryPhaseRamAccountingContext()
-        );
 
+        ShardProjectorChain projectorChain;
+        OrderBy orderBy = collectPhase.orderBy();
+        if (orderBy != null && orderBy.isSorted()) {
+            projectorChain = ShardProjectorChain.sortedMerge(
+                    normalizedPhase.jobId(),
+                    normalizedPhase.projections(),
+                    numShardsEstimate,
+                    downstream,
+                    projectorFactory,
+                    jobCollectContext.queryPhaseRamAccountingContext(),
+                    collectPhase.toCollect(),
+                    orderBy
+            );
+        } else {
+            projectorChain = ShardProjectorChain.passThroughMerge(
+                    normalizedPhase.jobId(),
+                    numShardsEstimate,
+                    normalizedPhase.projections(),
+                    downstream,
+                    projectorFactory,
+                    jobCollectContext.queryPhaseRamAccountingContext()
+            );
+        }
         Integer limit = collectPhase.limit();
 
         int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
@@ -178,11 +194,10 @@ public class ShardCollectSource implements CollectSource {
                 }
             } else if (TableInfo.NULL_NODE_ID.equals(nodeEntry.getKey()) && localNodeId.equals(collectPhase.handlerSideCollect())) {
                 // unassigned shards
-                RowDownstream projectorChainDownstream = projectorChain.newShardDownstreamProjector(projectorFactory);
+                RowReceiver rowReceiver = projectorChain.newShardDownstreamProjector(projectorFactory);
 
                 // use collectPhase that is only cluster-normalized as un-assigned shards aren't really on a node
-                shardCollectors.addAll(unassignedShardsCollectSource.getCollectors(
-                        collectPhase, projectorChainDownstream, jobCollectContext));
+                shardCollectors.addAll(unassignedShardsCollectSource.getCollectors(collectPhase, rowReceiver));
 
             } else if (jobSearchContextId > -1) {
                 // just increase jobSearchContextId by shard size of foreign node(s) indices

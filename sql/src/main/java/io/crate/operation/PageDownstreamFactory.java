@@ -33,6 +33,7 @@ import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergePhase;
@@ -75,7 +76,7 @@ public class PageDownstreamFactory {
     }
 
     public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,
-                                                                                   RowDownstream rowDownstream,
+                                                                                   RowReceiver rowReceiver,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
         FlatProjectorChain projectorChain = null;
@@ -84,10 +85,10 @@ public class PageDownstreamFactory {
                     projectionToProjectorVisitor,
                     ramAccountingContext,
                     mergeNode.projections(),
-                    rowDownstream,
+                    rowReceiver,
                     mergeNode.jobId()
             );
-            rowDownstream = projectorChain.firstProjector();
+            rowReceiver = projectorChain.firstProjector();
         }
 
         PagingIterator<Row> pagingIterator;
@@ -102,7 +103,7 @@ public class PageDownstreamFactory {
         } else {
             pagingIterator = new PassThroughPagingIterator<>();
         }
-        PageDownstream pageDownstream = new IteratorPageDownstream(rowDownstream, pagingIterator, executorOptional);
+        PageDownstream pageDownstream = new IteratorPageDownstream(rowReceiver, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
     }
 }

@@ -22,24 +22,42 @@
 
 package io.crate.testing;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class CollectingRowReceiver implements RowReceiver {
 
-    private final List<Object[]> rows = new ArrayList<>();
+    public final List<Object[]> rows = new ArrayList<>();
     private final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    protected RowUpstream upstream;
+
+    public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
+        return new PausingReceiver(pauseAfter);
+    }
+
+    public CollectingRowReceiver() {
+    }
+
+    @Override
+    public void prepare(ExecutionState executionState) {
+    }
 
     @Override
     public void setUpstream(RowUpstream rowUpstream) {
+        this.upstream = rowUpstream;
     }
 
     @Override
@@ -60,6 +78,40 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public Bucket result() throws Exception {
         // always timeout, don't want tests to get stuck
-        return resultFuture.get(10, TimeUnit.SECONDS);
+        try {
+            return resultFuture.get(10, TimeUnit.SECONDS);
+        } catch (ExecutionException | UncheckedExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause == null) {
+                throw e;
+            }
+            throw Throwables.propagate(cause);
+        } catch (TimeoutException e) {
+            TimeoutException timeoutException = new TimeoutException(
+                    "Didn't receive fail or finish. Upstream was \"" + upstream + "\"");
+            timeoutException.initCause(e);
+            throw timeoutException;
+        }
+    }
+
+    private static class PausingReceiver extends CollectingRowReceiver {
+
+        private final int pauseAfter;
+        private int numRows = 0;
+
+        public PausingReceiver(int pauseAfter) {
+            this.pauseAfter = pauseAfter;
+        }
+
+        @Override
+        public boolean setNextRow(Row row) {
+            boolean wantsMore = super.setNextRow(row);
+            numRows++;
+            if (numRows == pauseAfter) {
+                upstream.pause();
+                return true;
+            }
+            return wantsMore;
+        }
     }
 }

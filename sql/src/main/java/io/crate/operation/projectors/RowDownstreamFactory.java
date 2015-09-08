@@ -31,5 +31,5 @@ import java.util.UUID;
 @ImplementedBy(InternalRowDownstreamFactory.class)
 public interface RowDownstreamFactory {
 
-    RowDownstream createDownstream(NodeOperation nodeOperation, DistributionType distributionType, UUID jobId, int pageSize);
+    RowReceiver createDownstream(NodeOperation nodeOperation, DistributionType distributionType, UUID jobId, int pageSize);
 }

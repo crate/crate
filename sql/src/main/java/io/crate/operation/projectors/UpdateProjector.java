@@ -46,7 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector extends AbstractRowPipe {
+public class UpdateProjector extends AbstractProjector {
 
     public static final int DEFAULT_BULK_SIZE = 1024;
 

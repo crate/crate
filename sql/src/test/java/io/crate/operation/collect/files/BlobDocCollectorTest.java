@@ -31,7 +31,7 @@ import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
 import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,13 +61,13 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         long mtime = createFile(container, digest).lastModified();
 
         Input<Boolean> condition = Literal.BOOLEAN_TRUE;
-        CollectingProjector projector = getProjector(
+        CollectingRowReceiver projector = getProjector(
                 container,
                 Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
                 Arrays.<CollectExpression<File, ?>>asList(digestExpression, ctimeExpression),
                 condition
         );
-        Bucket result = projector.result().get();
+        Bucket result = projector.result();
         assertThat(result, contains(isRow(new BytesRef(digest), mtime)));
     }
 
@@ -77,13 +77,13 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         createFile(container, "417de3231e23dcd6d224ff60918024bc6c59aa58");
 
         Input<Boolean> condition = Literal.<Boolean>newLiteral((Boolean) null);
-        CollectingProjector projector = getProjector(
+        CollectingRowReceiver projector = getProjector(
                 container,
                 Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
                 Arrays.<CollectExpression<File, ?>>asList(digestExpression, ctimeExpression),
                 condition
         );
-        Bucket result = projector.result().get();
+        Bucket result = projector.result();
         assertThat(result.size(), is(0));
     }
 
@@ -93,11 +93,11 @@ public class BlobDocCollectorTest extends CrateUnitTest {
         return blob;
     }
 
-    private CollectingProjector getProjector(BlobContainer container,
+    private CollectingRowReceiver getProjector(BlobContainer container,
                                              List<Input<?>> inputs,
                                              List<CollectExpression<File, ?>> expressions,
                                              Input<Boolean> condition) throws Exception {
-        CollectingProjector projector = new CollectingProjector();
+        CollectingRowReceiver projector = new CollectingRowReceiver();
 
         BlobDocCollector collector = new BlobDocCollector(
                 container,
@@ -107,7 +107,7 @@ public class BlobDocCollectorTest extends CrateUnitTest {
                 projector
         );
 
-        projector.startProjection(mock(ExecutionState.class));
+        projector.prepare(mock(ExecutionState.class));
         collector.doCollect();
         return projector;
     }

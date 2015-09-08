@@ -22,39 +22,35 @@
 package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
+import io.crate.jobs.ExecutionState;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.io.IOException;
 
 
-public class SingleBucketBuilder extends ResultProviderBase {
+public class SingleBucketBuilder implements RowReceiver {
 
     private final StreamBucket.Builder bucketBuilder;
+    private final SettableFuture<Bucket> bucketFuture = SettableFuture.create();
 
     public SingleBucketBuilder(Streamer<?>[] streamers) {
         bucketBuilder = new StreamBucket.Builder(streamers);
     }
 
-    public Bucket build() {
+    private Bucket build() {
         try {
             return bucketBuilder.build();
         } catch (IOException e) {
             Throwables.propagate(e);
         }
         return null;
-    }
-
-    @Override
-    public Bucket doFinish() {
-        return build();
-    }
-
-    @Override
-    public Throwable doFail(Throwable t) {
-        return t;
     }
 
     @Override
@@ -65,5 +61,27 @@ public class SingleBucketBuilder extends ResultProviderBase {
             Throwables.propagate(e);
         }
         return true;
+    }
+
+    public ListenableFuture<Bucket> result() {
+        return bucketFuture;
+    }
+
+    @Override
+    public void finish() {
+        bucketFuture.set(build());
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        bucketFuture.setException(throwable);
+    }
+
+    @Override
+    public void prepare(ExecutionState executionState) {
+    }
+
+    @Override
+    public void setUpstream(RowUpstream rowUpstream) {
     }
 }

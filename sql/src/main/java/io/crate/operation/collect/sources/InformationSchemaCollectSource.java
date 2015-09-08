@@ -30,8 +30,11 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.collect.*;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -151,7 +154,7 @@ public class InformationSchemaCollectSource implements CollectSource {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         Routing routing =  collectPhase.routing();
         assert routing.locations().containsKey(TableInfo.NULL_NODE_ID);
         assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
@@ -167,7 +170,8 @@ public class InformationSchemaCollectSource implements CollectSource {
             condition = Literal.newLiteral(true);
         }
 
-        return ImmutableList.<CrateCollector>of(new RowsCollector<>(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition));
+        RowsCollector<?> collector = new RowsCollector<>(
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
+        return ImmutableList.<CrateCollector>of(collector);
     }
 }

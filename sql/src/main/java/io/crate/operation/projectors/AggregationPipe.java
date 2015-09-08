@@ -30,7 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
 
-public class AggregationPipe extends AbstractRowPipe {
+public class AggregationPipe extends AbstractProjector {
 
     private final Aggregator[] aggregators;
     private final Set<CollectExpression<Row, ?>> collectExpressions;

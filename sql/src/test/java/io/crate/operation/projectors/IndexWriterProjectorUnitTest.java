@@ -37,7 +37,6 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

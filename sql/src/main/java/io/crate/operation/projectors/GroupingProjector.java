@@ -47,19 +47,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 
-public class GroupingPipe extends AbstractRowPipe {
+public class GroupingProjector extends AbstractProjector {
 
 
-    private static final ESLogger logger = Loggers.getLogger(GroupingPipe.class);
+    private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
 
     private final Grouper grouper;
 
-    public GroupingPipe(List<? extends DataType> keyTypes,
-                        List<Input<?>> keyInputs,
-                        CollectExpression[] collectExpressions,
-                        AggregationContext[] aggregations,
-                        RamAccountingContext ramAccountingContext) {
+    public GroupingProjector(List<? extends DataType> keyTypes,
+                             List<Input<?>> keyInputs,
+                             CollectExpression[] collectExpressions,
+                             AggregationContext[] aggregations,
+                             RamAccountingContext ramAccountingContext) {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
         this.ramAccountingContext = ramAccountingContext;

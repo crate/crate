@@ -29,9 +29,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -65,7 +64,7 @@ public class FileReadingCollector implements CrateCollector {
     private final InputRow row;
     private final KeepAliveListener keepAliveListener;
     private URI preGlobUri;
-    private RowDownstreamHandle downstream;
+    private RowReceiver downstream;
     private final boolean compressed;
     private final List<LineCollectorExpression<?>> collectorExpressions;
 
@@ -95,7 +94,7 @@ public class FileReadingCollector implements CrateCollector {
     public FileReadingCollector(String fileUri,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
-                                RowDownstream downstream,
+                                RowReceiver downstream,
                                 FileFormat format,
                                 String compression,
                                 Map<String, FileInputFactory> additionalFileInputFactories,
@@ -119,7 +118,8 @@ public class FileReadingCollector implements CrateCollector {
                 throw new IllegalArgumentException("URI scheme is not supported");
             }
         }
-        this.downstream = downstream.registerUpstream(this);
+        this.downstream = downstream;
+        downstream.setUpstream(this);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;

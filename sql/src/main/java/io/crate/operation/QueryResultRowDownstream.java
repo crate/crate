@@ -27,68 +27,45 @@ import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class QueryResultRowDownstream implements Projector {
+public class QueryResultRowDownstream implements RowReceiver {
 
-    private final List<SettableFuture<TaskResult>> results;
-    private final AtomicInteger registeredUpstreams = new AtomicInteger(0);
+    private final SettableFuture<TaskResult> result;
+    private final List<Object[]> rows = new ArrayList<>();
 
-    public QueryResultRowDownstream(List<SettableFuture<TaskResult>> results) {
-        this.results = results;
+    public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
+        this.result = result;
     }
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        int upstreamId = registeredUpstreams.getAndIncrement();
-        final SettableFuture<TaskResult> result = results.get(upstreamId);
-        return new RowDownstreamHandle() {
-
-            List<Object[]> rows = new ArrayList<>();
-
-            @Override
-            public boolean setNextRow(Row row) {
-                rows.add(row.materialize());
-                return true;
-            }
-
-            @Override
-            public void finish() {
-                result.set(new QueryResult(new CollectionBucket(rows)));
-            }
-
-            @Override
-            public void fail(Throwable throwable) {
-                result.setException(throwable);
-            }
-        };
+    public boolean setNextRow(Row row) {
+        rows.add(row.materialize());
+        return true;
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
-
+    public void finish() {
+        result.set(new QueryResult(new CollectionBucket(rows)));
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
-        throw new UnsupportedOperationException("QueryResultRowDownstream can't have another downstream");
+    public void fail(Throwable throwable) {
+        result.setException(throwable);
     }
 
     @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
+    public void prepare(ExecutionState executionState) {
     }
 
     @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
+    public void setUpstream(RowUpstream rowUpstream) {
     }
 }

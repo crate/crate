@@ -23,9 +23,13 @@ package io.crate.operation.fetch;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.*;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
+import io.crate.operation.RowDownstream;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
@@ -49,7 +53,7 @@ public class LuceneDocFetcher implements RowUpstream {
 
     private final InputRow inputRow;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket;
     private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
@@ -69,7 +73,8 @@ public class LuceneDocFetcher implements RowUpstream {
         this.jobCollectContext = jobCollectContext;
         inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
-        this.downstream = downstream.registerUpstream(this);
+        this.downstream = downstream.newRowReceiver();
+        this.downstream.setUpstream(this);
         this.shardDocIdsBucket = shardDocIdsBucket;
         this.fieldsVisitor = new LuceneDocCollector.CollectorFieldsVisitor(collectorExpressions.size());
     }

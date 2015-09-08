@@ -24,23 +24,20 @@ package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 
-public abstract class AbstractRowPipe implements RowPipe {
+public abstract class AbstractProjector implements Projector {
 
     private final static RowUpstream NO_OP_ROW_UPSTREAM = new NoOpRowUpstream();
     private final static RowReceiver NO_OP_RECEIVER = new NoOpReceiver();
 
     private RowUpstream upstream = NO_OP_ROW_UPSTREAM;
-    protected RowDownstreamHandle downstream = NO_OP_RECEIVER;
+    protected RowReceiver downstream = NO_OP_RECEIVER;
 
     @Override
-    public void downstream(RowDownstreamHandle rowDownstreamHandle) {
-        this.downstream = rowDownstreamHandle;
-        if (rowDownstreamHandle instanceof RowReceiver) {
-            ((RowReceiver) rowDownstreamHandle).setUpstream(this);
-        }
+    public void downstream(RowReceiver rowReceiver) {
+        this.downstream = rowReceiver;
+        rowReceiver.setUpstream(this);
     }
 
     @Override
@@ -83,6 +80,9 @@ public abstract class AbstractRowPipe implements RowPipe {
 
         @Override
         public void fail(Throwable throwable) {}
+
+        @Override
+        public void prepare(ExecutionState executionState) {}
 
         @Override
         public void setUpstream(RowUpstream upstream) {}

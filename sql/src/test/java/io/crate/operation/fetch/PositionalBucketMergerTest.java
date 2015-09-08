@@ -22,15 +22,10 @@
 package io.crate.operation.fetch;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
 import io.crate.testing.CollectingRowReceiver;
 import org.junit.Rule;
 import org.junit.Test;

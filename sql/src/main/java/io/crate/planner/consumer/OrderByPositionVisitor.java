@@ -22,7 +22,10 @@
 package io.crate.planner.consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
@@ -40,13 +43,13 @@ import java.util.List;
 @Singleton
 public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor.Context, Void> {
 
-    private static OrderByPositionVisitor INSTANCE = new OrderByPositionVisitor();
+    private final static OrderByPositionVisitor INSTANCE = new OrderByPositionVisitor();
 
     public static class Context {
-        final List<Symbol> sourceSymbols;
+        final List<? extends Symbol> sourceSymbols;
         IntArrayList orderByPositions;
 
-        public Context(List<Symbol> sourceSymbols) {
+        public Context(List<? extends Symbol> sourceSymbols) {
             this.sourceSymbols = sourceSymbols;
             this.orderByPositions = new IntArrayList();
         }
@@ -59,7 +62,7 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
     private OrderByPositionVisitor() {
     }
 
-    public static int[] orderByPositions(List<Symbol> orderBySymbols, List<Symbol> sourceSymbols) {
+    public static int[] orderByPositions(List<Symbol> orderBySymbols, List<? extends Symbol> sourceSymbols) {
         Context context = new Context(sourceSymbols);
         for (Symbol orderBySymbol : orderBySymbols) {
             INSTANCE.process(orderBySymbol, context);

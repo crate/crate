@@ -33,8 +33,8 @@ import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -48,7 +48,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class UnassignedShardsCollectSource implements CollectSource {
+public class UnassignedShardsCollectSource {
 
     public static final IndexShardsEntryToShardIds INDEX_SHARDS_ENTRY_TO_SHARD_IDS = new IndexShardsEntryToShardIds();
     private final CollectInputSymbolVisitor<Input<?>> inputSymbolVisitor;
@@ -161,9 +161,8 @@ public class UnassignedShardsCollectSource implements CollectSource {
         });
     }
 
-    @Override
     @SuppressWarnings("unchecked")
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream) {
         CollectInputSymbolVisitor.Context context = inputSymbolVisitor.extractImplementations(collectPhase);
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();

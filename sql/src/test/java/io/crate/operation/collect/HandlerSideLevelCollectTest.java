@@ -40,7 +40,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -58,6 +58,7 @@ import static org.mockito.Mockito.mock;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
+
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
@@ -103,11 +104,11 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
-        CollectingProjector collectingProjector = new CollectingProjector();
-        collectingProjector.startProjection(mock(ExecutionState.class));
+    private Bucket collect(CollectPhase collectNode) throws Exception {
+        CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
+        collectingProjector.prepare(mock(ExecutionState.class));
         operation.collect(collectNode, collectingProjector, mock(JobCollectContext.class));
-        return collectingProjector.result().get();
+        return collectingProjector.result();
     }
 
     @Test
@@ -164,5 +165,4 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         result = collect(collectNode);
         assertTrue(TestingHelpers.printedTable(result).contains(expected));
     }
-
 }

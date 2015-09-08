@@ -50,7 +50,7 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
         this.transportDistributedResultAction = transportDistributedResultAction;
     }
 
-    public RowDownstream createDownstream(NodeOperation nodeOperation,
+    public RowReceiver createDownstream(NodeOperation nodeOperation,
                                           DistributionType distributionType,
                                           UUID jobId,
                                           int pageSize) {

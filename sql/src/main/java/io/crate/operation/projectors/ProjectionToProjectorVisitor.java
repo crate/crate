@@ -30,7 +30,6 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
@@ -124,32 +123,22 @@ public class ProjectionToProjectorVisitor
                 orderByIndices[idx++] = i;
             }
 
-            projector = new ForwardingProjector(new SortingTopNProjector(
-                    inputs,
-                    collectExpressions,
-                    numOutputs,
-                    OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
-                    projection.limit(),
-                    projection.offset())
+            projector = new SortingTopNProjector(
+                            inputs,
+                            collectExpressions,
+                            numOutputs,
+                            OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+                            projection.limit(),
+                            projection.offset()
             );
         } else {
-            projector = new ForwardingProjector(new SimpleTopNProjector(
+            projector = new SimpleTopNProjector(
                     inputs,
                     collectExpressions,
                     projection.limit(),
-                    projection.offset()));
+                    projection.offset());
         }
         return projector;
-    }
-
-    @Override
-    public Projector visitMergeProjection(MergeProjection projection, Context context) {
-        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
-                (List<Symbol>)projection.outputs());
-        return new MergeProjector(
-                orderByIndices,
-                projection.reverseFlags(),
-                projection.nullsFirst());
     }
 
     @Override
@@ -160,14 +149,13 @@ public class ProjectionToProjectorVisitor
         for (Aggregation aggregation : projection.values()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        return new ForwardingProjector(
-                new GroupingPipe(
-                    Symbols.extractTypes(projection.keys()),
-                    keyInputs,
-                    symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                    symbolContext.aggregations(),
-                    context.ramAccountingContext
-        ));
+        return new GroupingProjector(
+                Symbols.extractTypes(projection.keys()),
+                keyInputs,
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                symbolContext.aggregations(),
+                context.ramAccountingContext
+        );
     }
 
     @Override
@@ -176,10 +164,10 @@ public class ProjectionToProjectorVisitor
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        return new ForwardingProjector(new AggregationPipe(
+        return new AggregationPipe(
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations(),
-                context.ramAccountingContext));
+                context.ramAccountingContext);
     }
 
     @Override
@@ -213,14 +201,14 @@ public class ProjectionToProjectorVisitor
             }
             uri = sb.toString();
         }
-        return new ForwardingProjector(new WriterProjector(
+        return new WriterProjector(
                 ((ThreadPoolExecutor) threadPool.generic()),
                 uri,
                 projection.settings(),
                 inputs,
                 symbolContext.collectExpressions(),
                 overwrites
-        ));
+        );
     }
 
     protected Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
@@ -244,7 +232,7 @@ public class ProjectionToProjectorVisitor
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
-        return new ForwardingProjector(new IndexWriterProjector(
+        return new IndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
@@ -266,7 +254,7 @@ public class ProjectionToProjectorVisitor
                 projection.autoCreateIndices(),
                 projection.overwriteDuplicates(),
                 context.jobId
-        ));
+        );
     }
 
     @Override
@@ -276,7 +264,7 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
-        return new ForwardingProjector(new ColumnIndexWriterProjector(
+        return new ColumnIndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
@@ -295,7 +283,7 @@ public class ProjectionToProjectorVisitor
                 projection.bulkActions(),
                 projection.autoCreateIndices(),
                 context.jobId
-        ));
+        );
     }
 
     @Override
@@ -309,8 +297,7 @@ public class ProjectionToProjectorVisitor
             condition = Literal.newLiteral(true);
         }
 
-        FilterPipe filterPipe = new FilterPipe(ctx.collectExpressions(), condition);
-        return new ForwardingProjector(filterPipe);
+        return new FilterProjector(ctx.collectExpressions(), condition);
     }
 
     @Override
@@ -323,7 +310,7 @@ public class ProjectionToProjectorVisitor
         symbolVisitor.process(projection.uidSymbol(), ctx);
         assert ctx.collectExpressions().size() == 1;
 
-        return new ForwardingProjector(new UpdateProjector(
+        return new UpdateProjector(
                 clusterService,
                 settings,
                 shardId,
@@ -333,7 +320,7 @@ public class ProjectionToProjectorVisitor
                 projection.assignmentsColumns(),
                 projection.assignments(),
                 projection.requiredVersion(),
-                context.jobId));
+                context.jobId);
     }
 
     @Override
@@ -343,7 +330,7 @@ public class ProjectionToProjectorVisitor
         symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
         assert ctxDocId.collectExpressions().size() == 1;
 
-        return new ForwardingProjector(new FetchProjector(
+        return new FetchProjector(
                 transportActionProvider.transportFetchNodeAction(),
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
@@ -355,7 +342,7 @@ public class ProjectionToProjectorVisitor
                 projection.partitionedBy(),
                 projection.jobSearchContextIdToNode(),
                 projection.jobSearchContextIdToShard(),
-                projection.executionNodes()));
+                projection.executionNodes());
     }
 
     @Override

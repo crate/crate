@@ -22,15 +22,12 @@
 package io.crate.operation.fetch;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.testing.CollectingProjector;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -46,12 +43,13 @@ import static org.hamcrest.Matchers.is;
 
 public class PositionalRowMergerTest extends CrateUnitTest {
 
+
     @Test
     public void testConcurrentSetNextRow() throws Exception {
         int numUpstreams = 3;
 
-        CollectingProjector resultProvider = new CollectingProjector();
-        final PositionalRowMerger rowMerger = new PositionalRowMerger(resultProvider, 1);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        final PositionalRowMerger rowMerger = new PositionalRowMerger(rowReceiver, 1);
 
         final List<List<Object[]>> rowsPerUpstream = new ArrayList<>(numUpstreams);
         rowsPerUpstream.add(ImmutableList.of(new Object[]{0}, new Object[]{2}, new Object[]{6}));
@@ -62,14 +60,14 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
 
-        final List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
+        final List<RowReceiver> downstreamHandles = new ArrayList<>(numUpstreams);
         // register upstreams
         for (int i = 0; i < numUpstreams; i++) {
-            downstreamHandles.add(rowMerger.registerUpstream(null));
+            downstreamHandles.add(rowMerger.newRowReceiver());
         }
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;
-            final RowDownstreamHandle upstreamBuffer = downstreamHandles.get(i);
+            final RowReceiver upstreamBuffer = downstreamHandles.get(i);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -91,20 +89,7 @@ public class PositionalRowMergerTest extends CrateUnitTest {
 
         assertThat(setNextRowExceptions, empty());
 
-        final SettableFuture<Bucket> results = SettableFuture.create();
-        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(Bucket result) {
-                results.set(result);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                results.setException(t);
-            }
-        });
-
-        Bucket result = results.get();
+        Bucket result = rowReceiver.result();
         assertThat(result.size(), is(10));
         Iterator<Row> it = result.iterator();
         for (int i = 0; i < 10; i++) {
@@ -118,8 +103,8 @@ public class PositionalRowMergerTest extends CrateUnitTest {
     public void testOneUpstreamFail() throws Exception {
         final int numUpstreams = 3;
 
-        CollectingProjector resultProvider = new CollectingProjector();
-        final PositionalRowMerger rowMerger = new PositionalRowMerger(resultProvider, 1);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        final PositionalRowMerger rowMerger = new PositionalRowMerger(rowReceiver, 1);
 
         final List<List<Object[]>> rowsPerUpstream = new ArrayList<>(numUpstreams);
         rowsPerUpstream.add(ImmutableList.of(new Object[]{0}, new Object[]{2}));
@@ -130,14 +115,14 @@ public class PositionalRowMergerTest extends CrateUnitTest {
         final CountDownLatch latch = new CountDownLatch(numUpstreams);
         final ExecutorService executorService = Executors.newScheduledThreadPool(numUpstreams);
 
-        final List<RowDownstreamHandle> downstreamHandles = new ArrayList<>(numUpstreams);
+        final List<RowReceiver> downstreamHandles = new ArrayList<>(numUpstreams);
         // register upstreams
         for (int i = 0; i < numUpstreams; i++) {
-            downstreamHandles.add(rowMerger.registerUpstream(null));
+            downstreamHandles.add(rowMerger.newRowReceiver());
         }
         for (int i = 0; i < numUpstreams; i++) {
             final int upstreamId = i;
-            final RowDownstreamHandle upstreamBuffer = downstreamHandles.get(i);
+            final RowReceiver upstreamBuffer = downstreamHandles.get(i);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -163,23 +148,9 @@ public class PositionalRowMergerTest extends CrateUnitTest {
 
         assertThat(setNextRowExceptions, empty());
 
-        final SettableFuture<Bucket> results = SettableFuture.create();
-        Futures.addCallback(resultProvider.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(Bucket result) {
-                results.set(result);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                results.setException(t);
-            }
-        });
-
-
         expectedException.expect(Throwable.class);
         expectedException.expectMessage(String.format("[%d] I'm failing", numUpstreams-1));
-        results.get();
+        rowReceiver.result();
 
         executorService.awaitTermination(1, TimeUnit.SECONDS);
     }

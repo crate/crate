@@ -32,7 +32,11 @@ import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
-import io.crate.operation.*;
+import io.crate.operation.PageConsumeListener;
+import io.crate.operation.PageDownstream;
+import io.crate.operation.RejectionAwareExecutor;
+import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,7 +54,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
             return input.iterator();
         }
     };
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final Executor executor;
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final PagingIterator<Row> pagingIterator;
@@ -60,12 +64,13 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private volatile PagingIterator<Row> pausedIterator;
     private volatile boolean pendingPause;
 
-    public IteratorPageDownstream(RowDownstream rowDownstream,
+    public IteratorPageDownstream(RowReceiver rowReceiver,
                                   PagingIterator<Row> pagingIterator,
                                   Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
         this.executor = executor.or(MoreExecutors.directExecutor());
-        downstream = rowDownstream.registerUpstream(this);
+        downstream = rowReceiver;
+        rowReceiver.setUpstream(this);
     }
 
     @Override

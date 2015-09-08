@@ -40,7 +40,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.planner.symbol.Reference;
@@ -64,7 +63,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
-public abstract class AbstractIndexWriterProjector extends AbstractRowPipe {
+public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
     private final CollectExpression<Row, ?>[] collectExpressions;
     private final TableIdent tableIdent;
@@ -229,7 +228,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractRowPipe {
     }
 
     @Override
-    public void downstream(RowDownstreamHandle rowDownstreamHandle) {
+    public void downstream(RowReceiver rowDownstreamHandle) {
         super.downstream(rowDownstreamHandle);
         setResultCallback();
     }

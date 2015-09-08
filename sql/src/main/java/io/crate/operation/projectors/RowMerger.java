@@ -22,12 +22,8 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstreamHandle;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 
-public interface RowPipe extends RowReceiver, RowUpstream {
-
-    void prepare(ExecutionState executionState);
-    void downstream(RowDownstreamHandle rowDownstreamHandle);
+public interface RowMerger extends RowDownstream, RowUpstream {
 }

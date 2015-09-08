@@ -48,7 +48,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class WriterProjector extends AbstractRowPipe {
+public class WriterProjector extends AbstractProjector {
 
     private static final byte NEW_LINE = (byte) '\n';
 

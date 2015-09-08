@@ -30,7 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 
-public class SimpleTopNProjector extends AbstractRowPipe {
+public class SimpleTopNProjector extends AbstractProjector {
 
     private final InputRow inputRow;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;

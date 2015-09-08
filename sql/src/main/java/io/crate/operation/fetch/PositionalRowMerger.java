@@ -22,9 +22,10 @@
 package io.crate.operation.fetch;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -35,13 +36,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Merge rows of multiple upstreams ordered by a positional unique long. Rows are emitted as
- * soon as possible. Every upstream gets its own {@link RowDownstreamHandle}, this handle is
+ * soon as possible. Every upstream gets its own {@link RowReceiver}, this handle is
  * not operating thread-safe, but the merger itself is thread-safe. The main purpose of this
  * implementation is merging ordered shard rows on a node.
  */
 public class PositionalRowMerger implements RowDownstream, RowUpstream {
 
-    private final RowDownstreamHandle downstream;
+    private final RowReceiver downstream;
     private final AtomicInteger upstreamsRemaining = new AtomicInteger(0);
     private final List<UpstreamBuffer> upstreamBuffers = new ArrayList<>();
     private final int orderingColumnIndex;
@@ -50,8 +51,9 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
     private volatile int leastUpstreamBufferId = -1;
     private final AtomicBoolean consumeRows = new AtomicBoolean(true);
 
-    public PositionalRowMerger(RowDownstream downstream, int orderingColumnIndex) {
-        this.downstream = downstream.registerUpstream(this);
+    public PositionalRowMerger(RowReceiver downstream, int orderingColumnIndex) {
+        this.downstream = downstream;
+        downstream.setUpstream(this);
         this.orderingColumnIndex = orderingColumnIndex;
     }
 
@@ -102,7 +104,7 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
 
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
+    public RowReceiver newRowReceiver() {
         upstreamsRemaining.incrementAndGet();
         UpstreamBuffer upstreamBuffer = new UpstreamBuffer(this);
         upstreamBuffers.add(upstreamBuffer);
@@ -130,7 +132,7 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
         throw new UnsupportedOperationException();
     }
 
-    static class UpstreamBuffer implements RowDownstreamHandle {
+    static class UpstreamBuffer implements RowReceiver {
 
         private final LinkedList<Row> rows = new LinkedList<>();
         private final PositionalRowMerger merger;
@@ -183,6 +185,16 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
             synchronized (lock) {
                 return rows.size();
             }
+        }
+
+        @Override
+        public void prepare(ExecutionState executionState) {
+
+        }
+
+        @Override
+        public void setUpstream(RowUpstream rowUpstream) {
+
         }
     }
 }

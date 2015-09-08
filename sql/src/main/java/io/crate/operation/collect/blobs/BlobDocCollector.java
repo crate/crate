@@ -24,11 +24,10 @@ package io.crate.operation.collect.blobs;
 import io.crate.blob.BlobContainer;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowFilter;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -42,7 +41,7 @@ public class BlobDocCollector implements CrateCollector {
     private BlobContainer blobContainer;
     private final List<Input<?>> inputs;
 
-    private RowDownstreamHandle downstream;
+    private RowReceiver downstream;
     private volatile boolean killed;
 
     public BlobDocCollector(
@@ -50,11 +49,12 @@ public class BlobDocCollector implements CrateCollector {
             List<Input<?>> inputs,
             List<CollectExpression<File, ?>> expressions,
             Input<Boolean> condition,
-            RowDownstream downstream) {
+            RowReceiver downstream) {
         this.blobContainer = blobContainer;
         this.inputs = inputs;
         this.rowFilter = new RowFilter<>(expressions, condition);
-        this.downstream = downstream.registerUpstream(this);
+        this.downstream = downstream;
+        downstream.setUpstream(this);
     }
 
     @Override

@@ -25,12 +25,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnknownUpstreamFailure;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -48,10 +47,8 @@ public class CountContextTest extends CrateUnitTest {
 
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
-        RowDownstream rowDownstream = mock(RowDownstream.class);
-        when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
 
-        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
         countContext.start();
@@ -59,7 +56,7 @@ public class CountContextTest extends CrateUnitTest {
         verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         // on error
-        countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
         callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
         countContext.start();
@@ -72,9 +69,7 @@ public class CountContextTest extends CrateUnitTest {
         ListenableFuture<Long> future = mock(ListenableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        RowDownstream rowDownstream = mock(RowDownstream.class);
-        when(rowDownstream.registerUpstream(any(RowUpstream.class))).thenReturn(mock(RowDownstreamHandle.class));
-        CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
 
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);

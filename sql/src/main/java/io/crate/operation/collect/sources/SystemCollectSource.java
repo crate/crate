@@ -29,6 +29,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -64,7 +65,7 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         Set<String> tables = collectPhase.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
         IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());

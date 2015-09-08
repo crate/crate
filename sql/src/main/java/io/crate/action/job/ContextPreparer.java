@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.RowCountResult;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobExecutionContext;
@@ -36,6 +37,7 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowDownstreamFactory;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -89,35 +91,36 @@ public class ContextPreparer {
     public void prepare(UUID jobId,
                         NodeOperation nodeOperation,
                         JobExecutionContext.Builder contextBuilder,
-                        @Nullable RowDownstream rowDownstream) {
-        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, rowDownstream);
+                        @Nullable RowReceiver rowReceiver) {
+        PreparerContext preparerContext = new PreparerContext(jobId, nodeOperation, rowReceiver);
         ExecutionSubContext subContext = innerPreparer.process(nodeOperation.executionPhase(), preparerContext);
         contextBuilder.addSubContext(nodeOperation.executionPhase().executionPhaseId(), subContext);
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ExecutionSubContext> T prepare(UUID jobId, ExecutionPhase executionPhase, RowDownstream rowDownstream) {
-        PreparerContext preparerContext = new PreparerContext(jobId, null, rowDownstream);
+    public <T extends ExecutionSubContext> T prepare(UUID jobId, ExecutionPhase executionPhase, RowReceiver rowReceiver) {
+        PreparerContext preparerContext = new PreparerContext(jobId, null, rowReceiver);
         return (T) innerPreparer.process(executionPhase, preparerContext);
     }
 
     private static class PreparerContext {
 
         private final UUID jobId;
+        @Nullable
+        private final RowReceiver rowReceiver;
         private final NodeOperation nodeOperation;
-        private final RowDownstream rowDownstream;
 
-        private PreparerContext(UUID jobId, NodeOperation nodeOperation, @Nullable RowDownstream rowDownstream) {
+        private PreparerContext(UUID jobId, NodeOperation nodeOperation, @Nullable RowReceiver rowReceiver) {
             this.nodeOperation = nodeOperation;
             this.jobId = jobId;
-            this.rowDownstream = rowDownstream;
+            this.rowReceiver = rowReceiver;
         }
     }
 
     private class InnerPreparer extends ExecutionPhaseVisitor<PreparerContext, ExecutionSubContext> {
 
-        RowDownstream getDownstream(PreparerContext context, UpstreamPhase upstreamPhase, int pageSize) {
-            if (context.rowDownstream == null) {
+        RowReceiver getDownstream(PreparerContext context, UpstreamPhase upstreamPhase, int pageSize) {
+            if (context.rowReceiver == null) {
                 assert context.nodeOperation != null : "nodeOperation shouldn't be null if context.rowDownstream hasn't been set";
                 return rowDownstreamFactory.createDownstream(
                         context.nodeOperation,
@@ -126,7 +129,7 @@ public class ContextPreparer {
                         pageSize);
             }
 
-            return context.rowDownstream;
+            return context.rowReceiver;
         }
 
         @Override
@@ -143,7 +146,7 @@ public class ContextPreparer {
 
             return new CountContext(
                     countOperation,
-                    context.rowDownstream,
+                    context.rowReceiver,
                     indexShardMap,
                     phase.whereClause()
             );
@@ -153,7 +156,7 @@ public class ContextPreparer {
         public ExecutionSubContext visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            RowDownstream downstream = getDownstream(context, phase,
+            RowReceiver downstream = getDownstream(context, phase,
                     Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size()));
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
                     pageDownstreamFactory.createMergeNodePageDownstream(
@@ -187,7 +190,7 @@ public class ContextPreparer {
             LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
 
-            RowDownstream downstream = getDownstream(context, phase, pageSize);
+            RowReceiver downstream = getDownstream(context, phase, pageSize);
             return new JobCollectContext(
                     context.jobId,
                     phase,

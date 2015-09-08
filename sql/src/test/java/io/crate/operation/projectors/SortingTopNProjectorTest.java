@@ -61,8 +61,8 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         return spare;
     }
 
-    private RowPipe getPipe(int numOutputs, int limit, int offset, RowReceiver rowReceiver, Ordering<Object[]> ordering) {
-        RowPipe pipe = new SortingTopNProjector(
+    private Projector getProjector(int numOutputs, int limit, int offset, RowReceiver rowReceiver, Ordering<Object[]> ordering) {
+        Projector pipe = new SortingTopNProjector(
                 INPUT_LITERAL_LIST,
                 COLLECT_EXPRESSIONS,
                 numOutputs,
@@ -74,14 +74,14 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         return pipe;
     }
 
-    private RowPipe getPipe(int numOutputs, int limit, int offset, RowReceiver rowReceiver) {
-        return getPipe(numOutputs, limit, offset, rowReceiver, FIRST_CELL_ORDERING);
+    private Projector getProjector(int numOutputs, int limit, int offset, RowReceiver rowReceiver) {
+        return getProjector(numOutputs, limit, offset, rowReceiver, FIRST_CELL_ORDERING);
     }
 
     @Test
     public void testOrderByWithoutLimitAndOffset() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(2, TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
+        Projector pipe = getProjector(2, TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!pipe.setNextRow(spare(i))) {
@@ -103,7 +103,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testWithHighOffset() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(2, 2, 30, rowReceiver);
+        Projector pipe = getProjector(2, 2, 30, rowReceiver);
 
         for (int i = 0; i < 10; i++) {
             if (!pipe.setNextRow(spare(i))) {
@@ -118,7 +118,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByWithoutLimit() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(2, TopN.NO_LIMIT, 5, rowReceiver);
+        Projector pipe = getProjector(2, TopN.NO_LIMIT, 5, rowReceiver);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!pipe.setNextRow(spare(i))) {
@@ -140,7 +140,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderBy() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(1, 3, 5, rowReceiver);
+        Projector pipe = getProjector(1, 3, 5, rowReceiver);
 
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
@@ -162,7 +162,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByAscNullsFirst() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, true));
+        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, true));
         pipe.setNextRow(spare(1));
         pipe.setNextRow(spare(new Object[]{null}));
         pipe.finish();
@@ -174,7 +174,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByAscNullsLast() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, false));
+        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, false));
 
         pipe.setNextRow(spare(1));
         pipe.setNextRow(spare(new Object[]{null}));
@@ -187,7 +187,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByDescNullsLast() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, false));
+        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, false));
 
         pipe.setNextRow(spare(1));
         pipe.setNextRow(spare(new Object[]{null}));
@@ -200,7 +200,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByDescNullsFirst() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, true));
+        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, true));
 
         pipe.setNextRow(spare(1));
         pipe.setNextRow(spare(new Object[]{null}));
@@ -213,7 +213,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testOrderByAsc() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = getPipe(2, 3, 5, rowReceiver, OrderingByPosition.arrayOrdering(0, true, null));
+        Projector pipe = getProjector(2, 3, 5, rowReceiver, OrderingByPosition.arrayOrdering(0, true, null));
 
         int i;
         for (i = 0; i < 10; i++) {   // 0 --> 9

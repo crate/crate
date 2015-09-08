@@ -124,19 +124,16 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             rows.add(new Row1(new BytesRef(Character.toString((char) i))));
             rows.add(new Row1(new BytesRef(Character.toString((char) (i + 32)))));
         }
+
         final RowSender task1 = new RowSender(rows, distributingDownstream, executorService);
-        final RowSender task2 = new RowSender(rows, distributingDownstream, executorService);
 
         final ListenableFuture<?> f1 = executorService.submit(task1);
-        final ListenableFuture<?> f2 = executorService.submit(task2);
 
-        Futures.allAsList(f1, f2).get(2, TimeUnit.SECONDS);
+        Futures.allAsList(f1).get(2, TimeUnit.SECONDS);
         allRowsReceived.get(2, TimeUnit.SECONDS);
 
-        assertThat(receivedRows.size(), is(104));
+        assertThat(receivedRows.size(), is(52));
         assertThat(task1.numPauses(), Matchers.greaterThan(0));
         assertThat(task1.numResumes(), Matchers.greaterThan(0));
-        assertThat(task2.numPauses(), Matchers.greaterThan(0));
-        assertThat(task2.numResumes(), Matchers.greaterThan(0));
     }
 }

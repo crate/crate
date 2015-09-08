@@ -526,9 +526,7 @@ public class PlannerTest extends CrateUnitTest {
         CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        // The collectPhase has a mergeProjection and a TopNProjection which limits the sorted results
-        assertThat(collectPhase.projections().get(0), is(instanceOf(MergeProjection.class)));
-        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(1);
+        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
         assertThat(topNProjection.isOrdered(), is(false));
 

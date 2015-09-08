@@ -31,9 +31,10 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
@@ -128,7 +129,7 @@ public class ShardCollectService {
                                        int jobSearchContextId,
                                        int pageSize) throws Exception {
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        RowDownstream downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
+        RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return RowsCollector.empty(downstream);
@@ -150,7 +151,7 @@ public class ShardCollectService {
         }
     }
 
-    private CrateCollector getBlobIndexCollector(CollectPhase collectNode, RowDownstream downstream) {
+    private CrateCollector getBlobIndexCollector(CollectPhase collectNode, RowReceiver downstream) {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
@@ -169,7 +170,7 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
                                                    final CollectPhase collectNode,
-                                                   final RowDownstream downstream,
+                                                   final RowReceiver downstream,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
                                                    int pageSize) throws Exception {

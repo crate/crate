@@ -33,7 +33,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
 
-public class GroupingPipeTest extends CrateUnitTest {
+public class GroupingProjectorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
@@ -63,7 +63,7 @@ public class GroupingPipeTest extends CrateUnitTest {
                 countAggregation);
 
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
-        GroupingPipe projector = new GroupingPipe(
+        GroupingProjector projector = new GroupingProjector(
                 Arrays.asList(DataTypes.STRING),
                 keys,
                 new CollectExpression[0],

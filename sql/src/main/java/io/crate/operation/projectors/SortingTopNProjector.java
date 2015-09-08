@@ -32,7 +32,7 @@ import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Collection;
 
-public class SortingTopNProjector extends AbstractRowPipe {
+public class SortingTopNProjector extends AbstractProjector {
 
     private final int offset;
     private final int numOutputs;

@@ -22,16 +22,40 @@
 
 package io.crate.operation.projectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
+import io.crate.operation.RowUpstream;
 
-public class ProjectorAssertions {
+public abstract class ForwardingRowReceiver implements RowReceiver {
 
-    public static void assertPipe(Object pipeOrWrapper, Class<?> expectedClass) {
-        if (pipeOrWrapper instanceof ForwardingProjector) {
-            assertThat(((ForwardingProjector) pipeOrWrapper).pipe, instanceOf(expectedClass));
-        } else {
-            assertThat(pipeOrWrapper, instanceOf(expectedClass));
-        }
+    final RowReceiver rowReceiver;
+
+    public ForwardingRowReceiver(RowReceiver rowReceiver) {
+        this.rowReceiver = rowReceiver;
+    }
+
+    @Override
+    public void prepare(ExecutionState executionState) {
+        rowReceiver.prepare(executionState);
+    }
+
+    @Override
+    public void setUpstream(RowUpstream rowUpstream) {
+        rowReceiver.setUpstream(rowUpstream);
+    }
+
+    @Override
+    public boolean setNextRow(Row row) {
+        return rowReceiver.setNextRow(row);
+    }
+
+    @Override
+    public void finish() {
+        rowReceiver.finish();
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        rowReceiver.fail(throwable);
     }
 }
