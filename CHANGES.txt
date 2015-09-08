@@ -7,6 +7,8 @@ Unreleased
 
  - Added cluster checks which are exposed via the ``sys.checks`` table.
 
+ - Added the ``number of partitions`` system check.
+
  - Exposed the cluster gateway settings
 
  - Added ``os_info`` column to ``sys.nodes`` table.
@@ -25,8 +27,6 @@ Unreleased
  
    - updated Intercom to support new messaging features. The Intercom service is 
      disabled if UDC is disabled on the Crate server.
-
- - Added the ``number of partitions`` system check.
 
  - Fixed handling of non-deterministic functions
 
