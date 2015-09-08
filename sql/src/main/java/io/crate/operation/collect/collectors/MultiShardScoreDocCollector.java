@@ -95,11 +95,11 @@ public class MultiShardScoreDocCollector implements CrateCollector {
         singleShard = orderedDocCollectors.size() == 1;
 
         if (singleShard) {
-            pagingIterator = new PassThroughPagingIterator<>();
+            pagingIterator = PassThroughPagingIterator.oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {
-            pagingIterator = new SortedPagingIterator<>(rowOrdering);
+            pagingIterator = new SortedPagingIterator<>(rowOrdering, false);
             futureCallback = new FutureCallback<List<NumberedIterable<Row>>>() {
                 @Override
                 public void onSuccess(@Nullable List<NumberedIterable<Row>> result) {
