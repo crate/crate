@@ -51,6 +51,7 @@ import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
+import io.crate.rest.action.RestSQLAction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
@@ -761,7 +762,8 @@ public class ExpressionAnalyzer {
             try {
                 return fieldProvider.resolveField(node.getName(), forWrite);
             } catch (ColumnUnknownException exception) {
-                if (isQuotedSubscript(node)) {
+                int flags = parameterContext.headerFlags();
+                if (isQuotedSubscript(node) && ((flags & RestSQLAction.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == RestSQLAction.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = SUBSCRIPT_SPLIT_PATTERN.matcher(node.getName().toString()).replaceAll("\"$1\"$2");
                     return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
                 } else {

@@ -47,4 +47,8 @@ public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, 
     public void includeTypesOnResponse(boolean includeTypes) {
         request.includeTypesOnResponse(includeTypes);
     }
+
+    public void addFlagsToRequestHeader(int flags) {
+        request.putHeader("flags", flags);
+    }
 }

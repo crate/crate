@@ -37,6 +37,7 @@ import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.rest.action.RestSQLAction;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -110,7 +111,9 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources));
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(mockedAnalysisMetaData,
+                new ParameterContext(new Object[0], new Object[0][], null, RestSQLAction.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT),
+                new FullQualifedNameFieldProvider(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
