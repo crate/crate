@@ -89,7 +89,17 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
      */
     @Override
     public void repeat() {
-        throw new UnsupportedOperationException();
+        if (finished.compareAndSet(true, false)) {
+            LOGGER.trace("received repeat: {}", rowReceiver);
+            paused.set(false);
+            if (processBuckets(pagingIterator.repeat(), PageConsumeListener.NO_OP_LISTENER)) {
+                consumeRemaining();
+            }
+            rowReceiver.finish();
+            finished.set(true);
+        } else {
+            LOGGER.trace("received repeat, but wasn't finished {}", rowReceiver);
+         }
     }
 
     private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {

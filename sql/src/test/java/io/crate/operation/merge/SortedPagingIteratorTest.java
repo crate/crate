@@ -47,7 +47,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
-        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING);
+        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
 
         pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][] {
@@ -92,6 +92,51 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
         while (pagingIterator.hasNext()) {
             rows.add(pagingIterator.next().materialize());
         }
+    }
+
+    private void consumeSingleColumnRows(Iterator<Row> pagingIterator, List<Object> rows) {
+        while (pagingIterator.hasNext()) {
+            rows.add(pagingIterator.next().get(0));
+        }
+    }
+
+    @Test
+    public void testReplayReplaysCorrectly() throws Exception {
+        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+                new ArrayBucket(new Object[][]{
+                        new Object[]{"a"},
+                        new Object[]{"b"},
+                        new Object[]{"c"}}),
+                new ArrayBucket(new Object[][]{
+                        new Object[]{"x"},
+                        new Object[]{"y"},
+                }),
+                new ArrayBucket(new Object[][]{
+                        new Object[]{"m"},
+                        new Object[]{"n"},
+                        new Object[]{"o"}
+                })
+        )));
+        List<Object> rows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator, rows);
+
+        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
+                new ArrayBucket(new Object[][]{
+                        new Object[]{"d"},
+                        new Object[]{"e"},
+                        new Object[]{"f"}}),
+                new ArrayBucket(new Object[][]{
+                        new Object[]{"z"}
+                })
+        )));
+        pagingIterator.finish();
+        consumeSingleColumnRows(pagingIterator, rows);
+        assertThat(rows.toString(), is("[a, b, c, d, e, f, m, n, o, x, y, z]"));
+
+        List<Object> replayedRows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator.repeat(), replayedRows);
+        assertThat(rows, is(replayedRows));
     }
 
     private Iterable<? extends NumberedIterable<Row>> numberedBuckets(List<Bucket> buckets) {
