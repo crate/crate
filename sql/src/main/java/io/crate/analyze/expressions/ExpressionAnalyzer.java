@@ -52,14 +52,18 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.search.aggregations.support.format.ValueFormatter;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.crate.planner.symbol.Literal.newLiteral;
 
@@ -91,6 +95,9 @@ public class ExpressionAnalyzer {
     private final Schemas schemas;
     private final ParameterContext parameterContext;
     private boolean forWrite = false;
+
+    private static final Pattern SUBSCRIPT_LITERAL_PATTERN = Pattern.compile("^\".+(\\['(.*?)'\\])+\"");
+    private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\[]+)(.*?)");
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
@@ -392,6 +399,10 @@ public class ExpressionAnalyzer {
         }
         FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType);
         return context.allocateFunction(functionInfo, Arrays.asList(sourceSymbol));
+    }
+
+    protected static boolean isQuotedSubscript(QualifiedNameReference node) {
+        return SUBSCRIPT_LITERAL_PATTERN.matcher(node.toString()).matches();
     }
 
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
@@ -747,7 +758,16 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            return fieldProvider.resolveField(node.getName(), forWrite);
+            try {
+                return fieldProvider.resolveField(node.getName(), forWrite);
+            } catch (ColumnUnknownException exception) {
+                if (isQuotedSubscript(node)) {
+                    String quotedSubscriptLiteral = SUBSCRIPT_SPLIT_PATTERN.matcher(node.getName().toString()).replaceAll("\"$1\"$2");
+                    return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
+                } else {
+                    throw exception;
+                }
+            }
         }
 
         @Override
