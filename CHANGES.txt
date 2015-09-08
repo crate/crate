@@ -5,46 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Updated crate-admin to 0.14.4 which includes the following changes:
-  
-   - updated Intercom to support new messaging features. The Intercom service is 
-     disabled if UDC is disabled on the Crate server.
-
- - Added the ``number of partitions`` system check.
-
- - Fixed handling of non-deterministic functions
-
- - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to
-   indicate its configured settings.
-
- - Updated crash to version 0.14.0 which contains the following changes:
-
-    - Fixed output tabular format bug which results in wrong representation
-      of a string containing a floating point value.
-
-    - Updated wording of the cluster check command output.
-
-    - Added the check command which queries the ``sys.checks`` table for
-      cluster checks
-
-    - updated crate-python to 0.13.4
-
- - Fixed an issue that could kill long running queries on shards with few
-   segments containing huge amounts of documents
-
- - Fixed an issue that could cause `COPY FROM` to ignore a primary key
-   constraint leading to duplicate rows.
-   This could happen if a table has multiple primary keys and clustered by is
-   set to one primary key column other than the first primary key column.
-
- - Fixed an issue that could cause long running operations to get killed
-
- - Fixed an issue where the `orphan_partition` column in the `sys.shards` table
-   could return a wrong result if the shard was part of a custom table.
-
- - Fixed an issue that caused stuck jobs to return an empty result instead of
-   an error.
-
  - Added cluster checks which are exposed via the ``sys.checks`` table.
 
  - Exposed the cluster gateway settings
@@ -58,26 +18,43 @@ Unreleased
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).
    Also updated the upstream of EC2 discovery module
 
+2015/08/09 0.51.2
+=================
+
+ - Updated crate-admin to 0.14.4 which includes the following changes:
+ 
+   - updated Intercom to support new messaging features. The Intercom service is 
+     disabled if UDC is disabled on the Crate server.
+
+ - Added the ``number of partitions`` system check.
+
+ - Fixed handling of non-deterministic functions
+
+ - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to 
+   indicate its configured settings.
+
+ - Updated crash to version 0.14.0 which contains the following changes:
+
+   - Fixed output tabular format bug which results in wrong representation
+     of a string containing a floating point value.
+
+   - Updated wording of the cluster check command output.
+
+   - Added the check command which queries the ``sys.checks`` table for
+     cluster checks
+
+   - updated crate-python to 0.13.4
+
+ - Fixed an issue that could kill long running queries on shards with few
+   segments containing huge amounts of documents
+
 2015/08/13 0.51.1
 =================
 
  - Improved retry logic of EC2 unicast host discovery mechanism
 
- - Updated crate-admin to 0.14.3 which includes the following changes:
-
-   - fixed line wrapping in console result table
-
- - Fixed an issue which could cause the blob recovery process to hang under some
-   rare circumstances
-
- - Fixed an issue that caused ``COPY TO .. s3`` statements to leave the cluster
-   in an inaccessible state
-
  - Fixed a deadlock that could occur if queries with high offset or limit were
    executed concurrently
-
- - Fixed an issue that could cause a count function on partitioned tables
-   to cause an error if a partition was deleted concurrently.
 
 2015/08/06 0.50.3
 =================
@@ -94,7 +71,6 @@ Unreleased
 
  - Fixed an issue that could cause a count function on partitioned tables
    to cause an error if a partition was deleted concurrently.
-
 
 2015/07/29 0.51.0
 =================
