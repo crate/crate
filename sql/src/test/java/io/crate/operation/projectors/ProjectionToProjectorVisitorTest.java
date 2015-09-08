@@ -140,7 +140,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
-        assertThat(projector, instanceOf(SimpleTopNProjector.class));
+        assertPipe(projector, TopNPipe.class);
 
         projector.startProjection(mock(ExecutionState.class));
         int i;

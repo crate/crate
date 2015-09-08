@@ -133,11 +133,11 @@ public class ProjectionToProjectorVisitor
                     projection.limit(),
                     projection.offset());
         } else {
-            projector = new SimpleTopNProjector(
+            projector = new ForwardingProjector(new TopNPipe(
                     inputs,
-                    collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
+                    collectExpressions,
                     projection.limit(),
-                    projection.offset());
+                    projection.offset()));
         }
         return projector;
     }

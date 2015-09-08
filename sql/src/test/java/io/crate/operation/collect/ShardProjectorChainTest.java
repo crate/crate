@@ -36,7 +36,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.CollectingProjector;
 import io.crate.operation.projectors.GroupingPipe;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.SimpleTopNProjector;
+import io.crate.operation.projectors.TopNPipe;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.GroupProjection;
@@ -170,7 +170,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 RAM_ACCOUNTING_CONTEXT);
 
         assertThat(chain.nodeProjectors.size(), is(1));
-        assertThat(chain.nodeProjectors.get(0), is(instanceOf(SimpleTopNProjector.class)));
+        assertPipe(chain.nodeProjectors.get(0), TopNPipe.class);
         assertThat(chain.shardProjectors.size(), is(0));
 
         RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -202,7 +202,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
 
         assertThat(chain.nodeProjectors.size(), is(2));
         assertPipe(chain.nodeProjectors.get(0), GroupingPipe.class);
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertPipe(chain.nodeProjectors.get(1), TopNPipe.class);
         assertThat(chain.shardProjectors.size(), is(0));
 
         RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -229,7 +229,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
 
         assertThat(chain.nodeProjectors.size(), is(2));
         assertPipe(chain.nodeProjectors.get(0), GroupingPipe.class);
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertPipe(chain.nodeProjectors.get(1), TopNPipe.class);
         assertThat(chain.shardProjectors.size(), is(0));
 
         RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
@@ -256,7 +256,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
 
         assertThat(chain.nodeProjectors.size(), is(2));
         assertPipe(chain.nodeProjectors.get(0), GroupingPipe.class);
-        assertThat(chain.nodeProjectors.get(1), is(instanceOf(SimpleTopNProjector.class)));
+        assertPipe(chain.nodeProjectors.get(1), TopNPipe.class);
         assertThat(chain.shardProjectors.size(), is(0));
 
         RowDownstream shardDownstream1 = chain.newShardDownstreamProjector(projectionToProjectorVisitor);
