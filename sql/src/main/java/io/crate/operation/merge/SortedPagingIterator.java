@@ -94,7 +94,6 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
                 return input.iterator();
             }
         };
-
         private final Queue<Indexed<PeekingIterator<T>>> queue;
         private Indexed<PeekingIterator<T>> lastUsedIter = null;
         private boolean leastExhausted = false;
@@ -162,14 +161,8 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
         }
 
         Iterator<T> replay() {
-            // TODO: make a defensive copy of sortRecording.buffer ?
-            return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, new Function<Iterable<T>, Iterator<T>>() {
-                @Nullable
-                @Override
-                public Iterator<T> apply(Iterable<T> input) {
-                    return input.iterator();
-                }
-            }));
+            // TODO: make defensive copies?
+            return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, TO_ITERATOR));
 
         }
 

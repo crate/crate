@@ -169,8 +169,8 @@ public class CrossJoinBenchmark extends BenchmarkBase {
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-         @Test
-         public void testQTF10Concurrent() throws Exception {
+    @Test
+    public void testQTF10Concurrent() throws Exception {
         executeConcurrently(10,
                 "select * from articles, colors limit 1 offset 20000",
                 2, TimeUnit.MINUTES
