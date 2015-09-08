@@ -323,7 +323,7 @@ public class ProjectionToProjectorVisitor
         symbolVisitor.process(projection.uidSymbol(), ctx);
         assert ctx.collectExpressions().size() == 1;
 
-        return new UpdateProjector(
+        return new ForwardingProjector(new UpdateProjector(
                 clusterService,
                 settings,
                 shardId,
@@ -333,7 +333,7 @@ public class ProjectionToProjectorVisitor
                 projection.assignmentsColumns(),
                 projection.assignments(),
                 projection.requiredVersion(),
-                context.jobId);
+                context.jobId));
     }
 
     @Override
