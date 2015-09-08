@@ -213,14 +213,14 @@ public class ProjectionToProjectorVisitor
             }
             uri = sb.toString();
         }
-        return new WriterProjector(
+        return new ForwardingProjector(new WriterProjector(
                 ((ThreadPoolExecutor) threadPool.generic()),
                 uri,
                 projection.settings(),
                 inputs,
                 symbolContext.collectExpressions(),
                 overwrites
-        );
+        ));
     }
 
     protected Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
