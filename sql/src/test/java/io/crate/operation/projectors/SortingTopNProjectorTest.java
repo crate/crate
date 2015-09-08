@@ -21,28 +21,35 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
 
-    private static final Input INPUT = new InputCollectExpression(0);
+    private static final InputCollectExpression INPUT = new InputCollectExpression(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
+    private static final List<Input<?>> INPUT_LITERAL_LIST = ImmutableList.of(INPUT, TRUE_LITERAL);
+    private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.<CollectExpression<Row, ?>>of(INPUT);
+    private static final Ordering<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, null);
 
     private final RowN spare = new RowN(new Object[]{});
 
@@ -54,93 +61,73 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         return spare;
     }
 
+    private RowPipe getPipe(int numOutputs, int limit, int offset, RowReceiver rowReceiver, Ordering<Object[]> ordering) {
+        RowPipe pipe = new SortingTopNProjector(
+                INPUT_LITERAL_LIST,
+                COLLECT_EXPRESSIONS,
+                numOutputs,
+                ordering,
+                limit,
+                offset
+        );
+        pipe.downstream(rowReceiver);
+        return pipe;
+    }
 
+    private RowPipe getPipe(int numOutputs, int limit, int offset, RowReceiver rowReceiver) {
+        return getPipe(numOutputs, limit, offset, rowReceiver, FIRST_CELL_ORDERING);
+    }
 
     @Test
     public void testOrderByWithoutLimitAndOffset() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                2,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null},
-                TopN.NO_LIMIT,
-                TopN.NO_OFFSET);
-        CollectingProjector collector = collectingProjector(projector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(2, TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
-            if (!projector.setNextRow(spare(i))) {
+            if (!pipe.setNextRow(spare(i))) {
                 break;
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finish();
-        Bucket rows = collector.result().get();
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(10));
         int iterateLength = 0;
-        for (Row row : collector.result().get()) {
+        for (Row row : rowReceiver.result()) {
             assertThat(row, isRow(iterateLength + 1, true));
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
     }
 
-    private CollectingProjector collectingProjector(SortingTopNProjector projector) {
-        ExecutionState state = mock(ExecutionState.class);
-                projector.registerUpstream(null);
-        CollectingProjector collectingProjector = new CollectingProjector();
-        projector.downstream(collectingProjector);
-        collectingProjector.startProjection(state);
-        projector.startProjection(state);
-        return collectingProjector;
-    }
-
     @Test
     public void testWithHighOffset() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                2,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null},
-                2,
-                30
-        );
-        CollectingProjector collector = collectingProjector(projector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(2, 2, 30, rowReceiver);
+
         for (int i = 0; i < 10; i++) {
-            if (!projector.setNextRow(spare(i))) {
+            if (!pipe.setNextRow(spare(i))) {
                 break;
             }
         }
 
-        projector.finish();
-        assertThat(collector.result().get().size(), is(0));
+        pipe.finish();
+        assertThat(rowReceiver.result().size(), is(0));
     }
 
     @Test
     public void testOrderByWithoutLimit() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                2,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null},
-                TopN.NO_LIMIT,
-                5);
-        CollectingProjector collector = collectingProjector(projector);
-
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(2, TopN.NO_LIMIT, 5, rowReceiver);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
-            if (!projector.setNextRow(spare(i))) {
+            if (!pipe.setNextRow(spare(i))) {
                 break;
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finish();
-        Bucket rows = collector.result().get();
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(5));
         int iterateLength = 0;
         for (Row row : rows) {
@@ -152,23 +139,16 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testOrderBy() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                1,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null},
-                3,
-                5);
-        CollectingProjector collector = collectingProjector(projector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(1, 3, 5, rowReceiver);
+
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
-            projector.setNextRow(spare(i));
+            pipe.setNextRow(spare(i));
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finish();
-        Bucket rows = collector.result().get();
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(3));
 
         int iterateLength = 0;
@@ -181,103 +161,67 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testOrderByAscNullsFirst() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                1,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{true},
-                100,
-                0);
-        CollectingProjector collector = collectingProjector(projector);
-        projector.setNextRow(spare(1));
-        projector.setNextRow(spare(new Object[]{null}));
-        projector.finish();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, true));
+        pipe.setNextRow(spare(1));
+        pipe.setNextRow(spare(new Object[]{null}));
+        pipe.finish();
 
-        Bucket rows = collector.result().get();
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
     @Test
     public void testOrderByAscNullsLast() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                1,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{false},
-                100,
-                0);
-        CollectingProjector collector = collectingProjector(projector);
-        projector.setNextRow(spare(1));
-        projector.setNextRow(spare(new Object[]{null}));
-        projector.finish();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, false));
 
-        Bucket rows = collector.result().get();
+        pipe.setNextRow(spare(1));
+        pipe.setNextRow(spare(new Object[]{null}));
+        pipe.finish();
+
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
     @Test
     public void testOrderByDescNullsLast() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                1,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[]{false},
-                100,
-                0);
-        CollectingProjector collector = collectingProjector(projector);
-        projector.setNextRow(spare(1));
-        projector.setNextRow(spare(new Object[]{null}));
-        projector.finish();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, false));
 
-        Bucket rows = collector.result().get();
+        pipe.setNextRow(spare(1));
+        pipe.setNextRow(spare(new Object[]{null}));
+        pipe.finish();
+
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isRow(1), isNullRow()));
     }
 
     @Test
     public void testOrderByDescNullsFirst() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                1,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[]{true},
-                100,
-                0);
-        CollectingProjector collector = collectingProjector(projector);
-        projector.setNextRow(spare(1));
-        projector.setNextRow(spare(new Object[]{null}));
-        projector.finish();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, true));
 
-        Bucket rows = collector.result().get();
+        pipe.setNextRow(spare(1));
+        pipe.setNextRow(spare(new Object[]{null}));
+        pipe.finish();
+
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isNullRow(), isRow(1)));
     }
 
     @Test
     public void testOrderByAsc() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{INPUT, TRUE_LITERAL},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT},
-                2,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[]{null},
-                3,
-                5);
-        CollectingProjector collector = collectingProjector(projector);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        RowPipe pipe = getPipe(2, 3, 5, rowReceiver, OrderingByPosition.arrayOrdering(0, true, null));
+
         int i;
         for (i = 0; i < 10; i++) {   // 0 --> 9
-            projector.setNextRow(spare(i));
+            pipe.setNextRow(spare(i));
         }
         assertThat(i, is(10)); // needs to collect all it can get
-        projector.finish();
-        Bucket rows = collector.result().get();
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(
                 isRow(4, true),
                 isRow(3, true),
@@ -287,44 +231,37 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<Row, ?>) INPUT}, 2,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[]{null},
-                TopN.NO_LIMIT,
-                -10);
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, TopN.NO_LIMIT, -10);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
-        new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<Row, ?>) INPUT}, 2,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[]{null},
-                -100,
-                TopN.NO_OFFSET);
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -100, 10);
     }
 
     @Test
     public void testMultipleOrderBy() throws Exception {
         // select modulo(bla, 4), bla from x order by modulo(bla, 4), bla
-        Input input = new InputCollectExpression(1);
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{input, INPUT, /* order By input */input, INPUT},
-                new CollectExpression[]{(CollectExpression<Row, ?>) INPUT, (CollectExpression<Row, ?>) input},
+        InputCollectExpression input = new InputCollectExpression(1);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        SortingTopNProjector pipe = new SortingTopNProjector(
+                Arrays.asList(input, INPUT, /* order By input */input, INPUT),
+                Arrays.<CollectExpression<Row, ?>>asList(INPUT, input),
                 2,
-                new int[]{2, 3},
-                new boolean[]{false, false},
-                new Boolean[]{null, null},
+                Ordering.compound(Arrays.asList(
+                        OrderingByPosition.arrayOrdering(2, false, null),
+                        OrderingByPosition.arrayOrdering(3, false, null)
+                )),
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
-        CollectingProjector collector = collectingProjector(projector);
+
+        pipe.downstream(rowReceiver);
         int i;
         for (i = 0; i < 7; i++) {
-            projector.setNextRow(spare(i, i % 4));
+            pipe.setNextRow(spare(i, i % 4));
         }
-        projector.finish();
-        Bucket rows = collector.result().get();
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(
                 isRow(0, 0),
                 isRow(0, 4),

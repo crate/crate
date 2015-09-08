@@ -140,7 +140,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
         projector.downstream(collectingProjector);
-        assertPipe(projector, TopNPipe.class);
+        assertPipe(projector, SimpleTopNProjector.class);
 
         projector.startProjection(mock(ExecutionState.class));
         int i;
@@ -164,9 +164,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new Boolean[]{null, null}
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        SortingTopNProjector projector = (SortingTopNProjector) visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
-        RowDownstreamHandle handle = projector.registerUpstream(null);
-        assertThat(projector, instanceOf(SortingTopNProjector.class));
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        assertPipe(projector, SortingTopNProjector.class);
     }
 
     @Test
@@ -215,7 +214,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         topNProjection.outputs(Arrays.<Symbol>asList(
                 new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
                 new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
-        SortingTopNProjector topNProjector = (SortingTopNProjector) visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector topNProjector = visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
 
         CollectingProjector collector = new CollectingProjector();

@@ -52,7 +52,7 @@ import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class TopNPipeTest extends CrateUnitTest {
+public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     private static final InputCollectExpression input = new InputCollectExpression(0);
     public static final ImmutableList<Input<?>> INPUTS = ImmutableList.<Input<?>>of(input);
@@ -89,8 +89,8 @@ public class TopNPipeTest extends CrateUnitTest {
         }
     }
 
-    private TopNPipe preparePipe(int limit, int offset, CollectingRowReceiver rowReceiver) {
-        TopNPipe pipe = new TopNPipe(INPUTS, COLLECT_EXPRESSIONS, limit, offset);
+    private SimpleTopNProjector preparePipe(int limit, int offset, CollectingRowReceiver rowReceiver) {
+        SimpleTopNProjector pipe = new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, limit, offset);
         pipe.downstream(rowReceiver);
         pipe.prepare(mock(ExecutionState.class));
         return pipe;
@@ -228,19 +228,19 @@ public class TopNPipeTest extends CrateUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new TopNPipe(INPUTS, COLLECT_EXPRESSIONS, TopN.NO_LIMIT, -10);
+        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, TopN.NO_LIMIT, -10);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
-        new TopNPipe(INPUTS, COLLECT_EXPRESSIONS, -100, TopN.NO_OFFSET);
+        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, -100, TopN.NO_OFFSET);
     }
 
     @Test
     public void testFunctionExpression() throws Throwable {
         FunctionExpression<Integer, ?> funcExpr = new FunctionExpression<>(new TestFunction(), new Input[]{input});
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowPipe pipe = new TopNPipe(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
+        RowPipe pipe = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
         pipe.downstream(rowReceiver);
         pipe.prepare(mock(ExecutionState.class));
         int i;

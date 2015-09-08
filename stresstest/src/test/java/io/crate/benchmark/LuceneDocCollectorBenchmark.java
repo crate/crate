@@ -30,17 +30,19 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.Input;
 import io.crate.operation.Paging;
 import io.crate.operation.collect.*;
+import io.crate.operation.projectors.ForwardingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.SortingTopNProjector;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
@@ -76,6 +78,7 @@ import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -273,21 +276,18 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorUnorderedWithTopNProjection() throws Exception{
        InputCollectExpression expr = new InputCollectExpression(0);
-       SortingTopNProjector topNProjector = new SortingTopNProjector(
-                new Input[]{expr},
-                new CollectExpression[]{expr},
-                1,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{false},
-                NUMBER_OF_DOCUMENTS,
-                0
-        );
+       Projector topNProjector = new ForwardingProjector(new SortingTopNProjector(
+               Collections.singletonList(expr),
+               Collections.<CollectExpression<Row, ?>>singletonList(expr),
+               1,
+               OrderingByPosition.arrayOrdering(0, false, false),
+               NUMBER_OF_DOCUMENTS,
+               0
+        ));
         topNProjector.downstream(collectingProjector);
         topNProjector.startProjection(jobCollectContext);
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
-        topNProjector.finish();
         collectingProjector.finish();
     }
 

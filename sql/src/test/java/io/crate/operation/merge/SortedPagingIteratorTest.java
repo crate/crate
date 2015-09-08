@@ -37,7 +37,7 @@ import static org.junit.Assert.assertThat;
 public class SortedPagingIteratorTest {
 
     public static final com.google.common.collect.Ordering<io.crate.core.collections.Row> ORDERING =
-            OrderingByPosition.ordering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+            OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {

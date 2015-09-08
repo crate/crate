@@ -30,7 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 
-public class TopNPipe extends AbstractRowPipe {
+public class SimpleTopNProjector extends AbstractRowPipe {
 
     private final InputRow inputRow;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
@@ -38,10 +38,10 @@ public class TopNPipe extends AbstractRowPipe {
     private int remainingOffset;
     private int toCollect;
 
-    public TopNPipe(List<Input<?>> inputs,
-                    Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                    int limit,
-                    int offset) {
+    public SimpleTopNProjector(List<Input<?>> inputs,
+                               Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                               int limit,
+                               int offset) {
         this.collectExpressions = collectExpressions;
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset>=0, "invalid offset");
