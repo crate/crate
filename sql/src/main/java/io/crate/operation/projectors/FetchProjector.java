@@ -53,10 +53,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FetchProjector extends RowDownstreamAndHandle implements Projector {
-
-    public static final int NO_BULK_REQUESTS = -1;
-
+public class FetchProjector extends AbstractRowPipe {
 
     private PositionalBucketMerger downstream;
     private final TransportFetchNodeAction transportFetchNodeAction;
@@ -75,7 +72,6 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
     private final Object rowDelegateLock = new Object();
     private final Row outputRow;
     private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
-    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean consumingRows = new AtomicBoolean(true);
     private final List<String> executionNodes;
     private final int numNodes;
@@ -150,18 +146,14 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
     }
 
     @Override
-    public void startProjection(ExecutionState executionState) {
+    public void prepare(ExecutionState executionState) {
         this.executionState = executionState;
-        if (remainingUpstreams.get() <= 0) {
-            finish();
-        } else {
-            // register once to increment downstream upstreams counter
-            downstream.registerUpstream(this);
-        }
+        // register once to increment downstream upstreams counter
+        downstream.registerUpstream(this);
     }
 
     @Override
-    public synchronized boolean setNextRow(Row row) {
+    public boolean setNextRow(Row row) {
         if (!consumingRows.get()) {
             return false;
         }
@@ -186,36 +178,28 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
     }
 
     @Override
-    public void downstream(RowDownstream downstream) {
+    public void downstream(RowDownstreamHandle downstream) {
         this.downstream = new PositionalBucketMerger(downstream, numNodes, outputRow.size());
     }
 
     @Override
-    public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
-        remainingUpstreams.incrementAndGet();
-        return super.registerUpstream(upstream);
-    }
-
-    @Override
     public void finish() {
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            // flush all remaining buckets
-            Iterator<NodeBucket> it = nodeBuckets.values().iterator();
-            remainingRequests.set(nodeBuckets.size());
-            while (it.hasNext()) {
-                flushNodeBucket(it.next());
-                it.remove();
-            }
+        // flush all remaining buckets
+        Iterator<NodeBucket> it = nodeBuckets.values().iterator();
+        remainingRequests.set(nodeBuckets.size());
+        while (it.hasNext()) {
+            flushNodeBucket(it.next());
+            it.remove();
+        }
 
-            // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
-            if (!consumedRows) {
-                closeContextsAndFinish();
-            } else {
-                finishDownstream();
-                // projector registered itself as an upstream to prevent downstream of
-                // flushing rows before all requests finished.
-                // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
-            }
+        // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
+        if (!consumedRows) {
+            closeContextsAndFinish();
+        } else {
+            finishDownstream();
+            // projector registered itself as an upstream to prevent downstream of
+            // flushing rows before all requests finished.
+            // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
         }
     }
 
@@ -236,9 +220,7 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
     @Override
     public void fail(Throwable throwable) {
         failures.add(throwable);
-        if (remainingUpstreams.decrementAndGet() == 0) {
-            closeContextsAndFinish();
-        }
+        closeContextsAndFinish();
     }
 
     @Nullable
@@ -301,7 +283,7 @@ public class FetchProjector extends RowDownstreamAndHandle implements Projector 
                 if (!downstream.setNextBucket(rows, nodeBucket.nodeIdx)) {
                     consumingRows.set(false);
                 }
-                if (remainingRequests.decrementAndGet() <= 0 && remainingUpstreams.get() <= 0) {
+                if (remainingRequests.decrementAndGet() <= 0) {
                     closeContextsAndFinish();
                 } else {
                     downstream.finish();

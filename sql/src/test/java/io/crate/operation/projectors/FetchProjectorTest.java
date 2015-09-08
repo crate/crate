@@ -33,6 +33,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class FetchProjectorTest extends CrateUnitTest {
         TransportCloseContextNodeAction transportCloseContextNodeAction = mock(TransportCloseContextNodeAction.class);
         doThrow(new IllegalArgumentException("Node \"missing-node\" not found in cluster state!"))
                 .when(transportCloseContextNodeAction).execute(anyString(), any(NodeCloseContextRequest.class), any(ActionListener.class));
-        CollectingProjector downstream = new CollectingProjector();
+        RowReceiver rowReceiver = new CollectingRowReceiver();
 
         FetchProjector projector = new FetchProjector(
                 mock(TransportFetchNodeAction.class),
@@ -71,8 +72,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 IntObjectOpenHashMap.<String>newInstance(),
                 IntObjectOpenHashMap.<ShardId>newInstance(),
                 ImmutableSet.of("missing-node"));
-        projector.registerUpstream(mock(RowUpstream.class));
-        projector.downstream(downstream);
+        projector.downstream(rowReceiver);
         projector.fail(new Throwable("Something when wrong"));
 
     }

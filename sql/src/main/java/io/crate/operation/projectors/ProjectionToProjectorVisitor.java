@@ -343,7 +343,7 @@ public class ProjectionToProjectorVisitor
         symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
         assert ctxDocId.collectExpressions().size() == 1;
 
-        return new FetchProjector(
+        return new ForwardingProjector(new FetchProjector(
                 transportActionProvider.transportFetchNodeAction(),
                 transportActionProvider.transportCloseContextNodeAction(),
                 symbolVisitor.functions(),
@@ -355,7 +355,7 @@ public class ProjectionToProjectorVisitor
                 projection.partitionedBy(),
                 projection.jobSearchContextIdToNode(),
                 projection.jobSearchContextIdToShard(),
-                projection.executionNodes());
+                projection.executionNodes()));
     }
 
     @Override
