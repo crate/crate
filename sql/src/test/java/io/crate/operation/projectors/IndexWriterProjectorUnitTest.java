@@ -38,6 +38,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -68,7 +69,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("my dummy exception");
 
-        CollectingProjector collectingProjector = new CollectingProjector();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         InputColumn sourceInputColumn = new InputColumn(1);
         CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
@@ -95,12 +96,11 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 false,
                 null
         );
-        indexWriter.downstream(collectingProjector);
-        indexWriter.registerUpstream(null);
+        indexWriter.downstream(rowReceiver);
         indexWriter.fail(new IllegalStateException("my dummy exception"));
 
         try {
-            collectingProjector.result().get();
+            rowReceiver.result();
         } catch (InterruptedException | ExecutionException e) {
             throw e.getCause();
         }
@@ -112,7 +112,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         expectedException.expectMessage("A primary key value must not be NULL");
 
 
-        CollectingProjector collectingProjector = new CollectingProjector();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         InputColumn sourceInputColumn = new InputColumn(0);
         CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
@@ -138,9 +138,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 false,
                 UUID.randomUUID()
         );
-        indexWriter.downstream(collectingProjector);
-        indexWriter.registerUpstream(null);
-        indexWriter.startProjection(mock(ExecutionState.class));
+        indexWriter.downstream(rowReceiver);
+        indexWriter.prepare(mock(ExecutionState.class));
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.finish();
     }

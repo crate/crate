@@ -32,6 +32,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
+import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.RowGranularity;
@@ -71,7 +72,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
         CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
 
-        final IndexWriterProjector indexWriter = new IndexWriterProjector(
+        final Projector projector = new ForwardingProjector(new IndexWriterProjector(
                 internalCluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 internalCluster().getInstance(TransportActionProvider.class),
@@ -93,16 +94,16 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 false,
                 false,
                 UUID.randomUUID()
-        );
-        indexWriter.registerUpstream(null);
-        indexWriter.startProjection(mock(ExecutionState.class));
-        indexWriter.downstream(collectingProjector);
+        ));
+        final RowDownstreamHandle rowDownstreamHandle = projector.registerUpstream(null);
+        projector.startProjection(mock(ExecutionState.class));
+        projector.downstream(collectingProjector);
 
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < 100; i++) {
-                    indexWriter.setNextRow(
+                    rowDownstreamHandle.setNextRow(
                             new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}));
                 }
             }
@@ -111,7 +112,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             @Override
             public void run() {
                 for (int i = 100; i < 200; i++) {
-                    indexWriter.setNextRow(
+                    rowDownstreamHandle.setNextRow(
                             new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}")}));
                 }
             }
@@ -121,7 +122,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         t1.join();
         t2.join();
-        indexWriter.finish();
+        rowDownstreamHandle.finish();
         Bucket objects = collectingProjector.result().get();
 
         assertThat(objects, contains(isRow(200L)));

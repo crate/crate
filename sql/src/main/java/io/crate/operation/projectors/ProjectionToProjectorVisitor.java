@@ -244,7 +244,7 @@ public class ProjectionToProjectorVisitor
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
-        return new IndexWriterProjector(
+        return new ForwardingProjector(new IndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
@@ -266,7 +266,7 @@ public class ProjectionToProjectorVisitor
                 projection.autoCreateIndices(),
                 projection.overwriteDuplicates(),
                 context.jobId
-        );
+        ));
     }
 
     @Override
@@ -276,7 +276,7 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
-        return new ColumnIndexWriterProjector(
+        return new ForwardingProjector(new ColumnIndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
@@ -295,7 +295,7 @@ public class ProjectionToProjectorVisitor
                 projection.bulkActions(),
                 projection.autoCreateIndices(),
                 context.jobId
-        );
+        ));
     }
 
     @Override
