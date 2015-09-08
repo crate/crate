@@ -32,6 +32,7 @@ import io.crate.operation.PageConsumeListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -97,7 +98,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
     @Test
     public void testMultipleFinishPropagatesOnlyOnceToDownstream() throws Exception {
-        final RowReceiver rowReceiver = mock(RowReceiver.class);
+        RowReceiver rowReceiver = mock(RowReceiver.class);
         IteratorPageDownstream downstream = new IteratorPageDownstream(
                 rowReceiver, mockedPagingIterator, Optional.<Executor>absent());
 
@@ -112,7 +113,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
         IteratorPageDownstream downstream = new IteratorPageDownstream(
                 rowReceiver,
-                new PassThroughPagingIterator<Row>(),
+                PassThroughPagingIterator.<Row>oneShot(),
                 Optional.<Executor>absent()
         );
 
@@ -137,7 +138,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
          IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                  rowReceiver,
-                 new PassThroughPagingIterator<Row>(),
+                 PassThroughPagingIterator.<Row>oneShot(),
                  Optional.<Executor>of(new Executor() {
                      @Override
                      public void execute(@Nonnull Runnable command) {
@@ -162,25 +163,73 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
     }
 
     @Test
+    public void testRepeat() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+                rowReceiver,
+                PassThroughPagingIterator.<Row>repeatable(),
+                Optional.<Executor>absent());
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        b1.set(new ArrayBucket(
+                new Object[][] {
+                        new Object[] {"a"},
+                        new Object[] {"b"},
+                        new Object[] {"c"}
+                }
+        ));
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.finish();
+        pageDownstream.repeat();
+        pageDownstream.finish();
+        assertThat(TestingHelpers.printedTable(rowReceiver.result()), is(
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n"));
+    }
+
+    @Test
     public void testPauseAndResume() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                 rowReceiver,
-                new PassThroughPagingIterator<Row>(),
-                Optional.<Executor>absent()
-        );
+                PassThroughPagingIterator.<Row>repeatable(),
+                Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         b1.set(new ArrayBucket(
-                new Object[][]{
-                        new Object[]{"a"},
-                        new Object[]{"b"},
-                        new Object[]{"c"}
+                new Object[][] {
+                        new Object[] {"a"},
+                        new Object[] {"b"},
+                        new Object[] {"c"}
                 }
         ));
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
         assertThat(rowReceiver.rows.size(), is(2));
         pageDownstream.resume(false);
         assertThat(rowReceiver.rows.size(), is(3));
+
+        pageDownstream.finish();
+        pageDownstream.repeat();
+
+        assertThat(TestingHelpers.printedTable(rowReceiver.result()), is(
+                "a\n" +
+                "b\n" +
+                "c\n" +
+                "a\n" +
+                "b\n" +
+                "c\n"));
+
+
     }
 }
