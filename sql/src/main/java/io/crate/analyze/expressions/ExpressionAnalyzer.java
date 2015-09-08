@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SQLBaseRequest;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.FieldProvider;
@@ -52,7 +53,9 @@ import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
+import io.crate.rest.action.RestSQLAction;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
@@ -61,6 +64,8 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.crate.planner.symbol.Literal.newLiteral;
 
@@ -92,6 +97,8 @@ public class ExpressionAnalyzer {
     private final Schemas schemas;
     private final ParameterContext parameterContext;
     private boolean forWrite = false;
+
+    private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
@@ -395,6 +402,32 @@ public class ExpressionAnalyzer {
         }
         FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType, tryCast);
         return context.allocateFunction(functionInfo, Arrays.asList(sourceSymbol));
+    }
+
+    @Nullable
+    protected static String getQuotedSubscriptLiteral(String nodeName) {
+        Matcher matcher = SUBSCRIPT_SPLIT_PATTERN.matcher(nodeName);
+        if (matcher.matches()) {
+            StringBuilder quoted = new StringBuilder();
+            String group1 = matcher.group(1);
+            if (!group1.isEmpty()) {
+                quoted.append("\"").append(group1).append("\"");
+            } else {
+                quoted.append(group1);
+            }
+            String group2 = matcher.group(2);
+            String group3 = matcher.group(3);
+            if (!group2.isEmpty() && !group3.isEmpty()) {
+                quoted.append(matcher.group(2));
+                quoted.append("\"").append(group3).append("\"");
+            } else if (!group2.isEmpty() && group3.isEmpty()){
+                return null;
+            }
+            quoted.append(matcher.group(4));
+            return quoted.toString();
+        } else {
+            return null;
+        }
     }
 
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
@@ -764,7 +797,20 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            return fieldProvider.resolveField(node.getName(), forWrite);
+            try {
+                return fieldProvider.resolveField(node.getName(), forWrite);
+            } catch (ColumnUnknownException exception) {
+                if ((parameterContext.headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
+                    String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
+                    if (quotedSubscriptLiteral != null) {
+                        return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
+                    } else {
+                        throw exception;
+                    }
+                } else {
+                    throw exception;
+                }
+            }
         }
 
         @Override

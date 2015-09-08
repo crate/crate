@@ -51,6 +51,11 @@ import java.io.IOException;
 public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 
     private static final String SCHEMA_HEADER_KEY = "_s";
+    public static final String FLAGS_HEADER_KEY = "flags";
+
+    // Bit flags for request header
+    public static final int HEADER_FLAG_OFF = 0;
+    public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
 
     protected String stmt;
     protected long creationTime;
@@ -111,6 +116,16 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
             return; // don't set schemaName if null to avoid overhead
         }
         putHeader(SCHEMA_HEADER_KEY, schemaName);
+    }
+
+    public Integer getRequestFlags() {
+        Integer flags;
+        try {
+            flags = getHeader(FLAGS_HEADER_KEY);
+        } catch (ClassCastException ex) {
+            flags = HEADER_FLAG_OFF;
+        }
+        return flags;
     }
 
     @Nullable

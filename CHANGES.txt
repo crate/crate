@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Allow quoted subscript expressions in SQL statement. This will allow 
+   supporting various client applications on Windows that use ODBC.
+
  - Added ``try_cast`` scalar function.
 
  - Added cluster checks which are exposed via the ``sys.checks`` table.

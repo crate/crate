@@ -23,9 +23,11 @@ package io.crate.analyze.expressions;
 
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SQLBaseRequest;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
@@ -46,8 +48,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
@@ -69,7 +70,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
         emptyParameterContext = new ParameterContext(new Object[0], new Object[0][], null);
-        dummySources = ImmutableMap.of(new QualifiedName("foo"), mock(AnalyzedRelation.class));
+        dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) new DummyRelation());
         context = new ExpressionAnalysisContext();
 
         Injector injector = new ModulesBuilder()
@@ -105,6 +106,39 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
+    }
+
+    @Test
+    public void testQuotedSubscriptExpression() throws Exception {
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(mockedAnalysisMetaData,
+                new ParameterContext(new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT),
+                new FullQualifedNameFieldProvider(dummySources));
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
+        Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
+        Field field2 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"obj['x']\""), expressionAnalysisContext);
+        assertEquals(field1, field2);
+
+        Field field3 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']\""), expressionAnalysisContext);
+        assertEquals("myObj['x']", field3.path().toString());
+        Field field4 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']['AbC']\""), expressionAnalysisContext);
+        assertEquals("myObj['x']['AbC']", field4.path().toString());
+    }
+
+    @Test
+    public void testSubscriptSplitPatternMatcher() throws Exception {
+        assertEquals("\"foo\".\"bar\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.bar['x']['y']"));
+        assertEquals("\"foo\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo['x']['y']"));
+        assertEquals("\"foo\"['x']", ExpressionAnalyzer.getQuotedSubscriptLiteral("foo['x']"));
+        assertEquals("\"myFoo\"['xY']", ExpressionAnalyzer.getQuotedSubscriptLiteral("myFoo['xY']"));
+
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo"));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.."));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral(".foo."));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("foo.['x']"));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj"));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj.x"));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj[x][y]"));
     }
 
     @Test
@@ -151,5 +185,40 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         // but equal
         assertThat(fn1, is(equalTo(fn2)));
         assertThat(fn1, is(not(equalTo(fn3))));
+    }
+
+    private static class DummyRelation implements AnalyzedRelation {
+
+        public final Set<ColumnIdent> supportedReference = new HashSet<>();
+
+        public DummyRelation() {
+            supportedReference.add(ColumnIdent.fromPath("obj.x"));
+            supportedReference.add(ColumnIdent.fromPath("myObj.x"));
+            supportedReference.add(ColumnIdent.fromPath("myObj.x.AbC"));
+        }
+
+        @Override
+        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+            return null;
+        }
+
+        @Override
+        public Field getField(Path path) {
+            ColumnIdent columnIdent = (ColumnIdent) path;
+            if (supportedReference.contains(columnIdent)) {
+                return new Field(this, columnIdent, DataTypes.STRING);
+            }
+            return null;
+        }
+
+        @Override
+        public Field getWritableField(Path path) throws UnsupportedOperationException {
+            return getField(path);
+        }
+
+        @Override
+        public List<Field> fields() {
+            return null;
+        }
     }
 }

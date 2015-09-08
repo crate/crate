@@ -51,4 +51,8 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         request.includeTypesOnResponse(includeTypes);
     }
 
+    public void addFlagsToRequestHeader(int flags) {
+        request.putHeader(request.FLAGS_HEADER_KEY, flags);
+    }
+
 }

@@ -68,7 +68,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     @Override
     public Analysis getAnalysis(Statement statement, SQLBulkRequest request) {
         return analyzer.analyze(statement, new ParameterContext(
-                SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema()));
+                SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema(), request.getRequestFlags()));
     }
 
     @Override
