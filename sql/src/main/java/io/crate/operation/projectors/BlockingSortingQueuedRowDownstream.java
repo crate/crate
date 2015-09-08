@@ -232,7 +232,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                         break;
                     }
                 }
-                if (paused && cellsQueue.size() <= MAX_QUEUE_SIZE) {
+                if (paused && cellsQueue.size() < MAX_QUEUE_SIZE) {
                     resume();
                 }
             }
