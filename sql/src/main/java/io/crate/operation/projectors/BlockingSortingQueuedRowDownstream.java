@@ -256,7 +256,6 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                 return false;
             }
             int size;
-            boolean pause = false;
             synchronized (lock) {
                 Object[] cells = addCellsToQueue(row);
                 size = cellsQueue.size();
@@ -317,11 +316,11 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
 
         private void resume() {
             synchronized (pauseLock) {
+                runningHandles.incrementAndGet();
                 if (!pendingPause.getAndSet(false)) {
                     paused = false;
                     pauseLock.notify();
                 }
-                runningHandles.incrementAndGet();
             }
         }
     }
