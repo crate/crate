@@ -23,6 +23,16 @@ package io.crate.operation;
 
 public interface PageConsumeListener {
 
+    PageConsumeListener NO_OP_LISTENER = new PageConsumeListener() {
+        @Override
+        public void needMore() {
+        }
+
+        @Override
+        public void finish() {
+        }
+    };
+
     void needMore();
 
     void finish();
