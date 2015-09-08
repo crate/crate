@@ -23,8 +23,6 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -43,14 +41,11 @@ import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -96,7 +91,7 @@ public class MapSideDataCollectOperation implements RowUpstream {
                                        CollectSourceResolver collectSourceResolver) {
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
-        this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
+        this.executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.poolSize = executor.getCorePoolSize();
         this.listeningExecutorService = MoreExecutors.listeningDecorator(executor);
         this.clusterService = clusterService;
@@ -122,9 +117,9 @@ public class MapSideDataCollectOperation implements RowUpstream {
      * &nbsp; -&gt; run node level collect (cluster level)<br>
      * </p>
      */
-    public Collection<CrateCollector> collect(CollectPhase collectPhase,
-                                              RowDownstream downstream,
-                                              final JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
+                                                       RowDownstream downstream,
+                                                       final JobCollectContext jobCollectContext) {
         assert collectPhase.isRouted(); // not routed collect is not handled here
         assert collectPhase.jobId() != null : "no jobId present for collect operation";
 
@@ -136,18 +131,7 @@ public class MapSideDataCollectOperation implements RowUpstream {
         } else {
             CollectSource service = collectSourceResolver.getService(collectPhase, localNodeId);
             collectPhase = normalize(collectPhase);
-
-            if (collectPhase.whereClause().noMatch()) {
-                downstream.registerUpstream(this).finish();
-                return ImmutableList.of();
-            }
-            Collection<CrateCollector> collectors = service.getCollectors(collectPhase, downstream, jobCollectContext);
-            try {
-                launchCollectors(collectPhase, collectors);
-            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                downstream.registerUpstream(this).fail(e);
-            }
-            return collectors;
+            return service.getCollectors(collectPhase, downstream, jobCollectContext);
         }
     }
 
@@ -163,39 +147,36 @@ public class MapSideDataCollectOperation implements RowUpstream {
         return collectPhase;
     }
 
-    private ListenableFuture<List<Void>> launchCollectors(CollectPhase collectPhase,
-                                                          final Collection<CrateCollector> shardCollectors) throws RejectedExecutionException {
+    public void launchCollectors(CollectPhase collectPhase,
+                                 final Collection<CrateCollector> shardCollectors) throws RejectedExecutionException {
+        assert !shardCollectors.isEmpty();
         if (collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
-            return listeningExecutorService.submit(new Callable<List<Void>>() {
+            executor.execute(new Runnable() {
                 @Override
-                public List<Void> call() throws Exception {
+                public void run() {
                     for (CrateCollector collector : shardCollectors) {
                         collector.doCollect();
                     }
-                    return ImmutableList.of();
                 }
             });
         } else {
-            return ThreadPools.runWithAvailableThreads(
+            ThreadPools.runWithAvailableThreads(
                     executor,
                     poolSize,
-                    collectors2Callables(shardCollectors),
-                    new VoidFunction<List<Void>>());
+                    collectors2Runnables(shardCollectors));
         }
     }
 
-    private Collection<Callable<Void>> collectors2Callables(Collection<CrateCollector> collectors) {
-        return Collections2.transform(collectors, new Function<CrateCollector, Callable<Void>>() {
-
+    private Collection<Runnable> collectors2Runnables(Collection<CrateCollector> collectors) {
+        return Collections2.transform(collectors, new Function<CrateCollector, Runnable>() {
             @Override
-            public Callable<Void> apply(final CrateCollector collector) {
-                return new Callable<Void>() {
+            public Runnable apply(final CrateCollector collector) {
+                return new Runnable() {
                     @Override
-                    public Void call() throws Exception {
+                    public void run() {
                         collector.doCollect();
-                        return null;
                     }
                 };
             }

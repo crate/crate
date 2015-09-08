@@ -75,6 +75,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
     @Nullable
     private SymbolBasedBulkShardProcessorContext bulkShardProcessorContext;
+    private JobExecutionContext jobExecutionContext;
 
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,
@@ -121,6 +122,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
             }
 
         } else if (bulkShardProcessorContext != null) {
+            assert jobExecutionContext != null;
             for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
                 bulkShardProcessorContext.add(
                         item.index(),
@@ -130,7 +132,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                         item.routing(),
                         item.version());
             }
-            bulkShardProcessorContext.start();
+            jobExecutionContext.start();
         }
     }
 
@@ -148,14 +150,15 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
-        registerContext(upsertByIdContext);
-        upsertByIdContext.start();
+        createJobExecutionContext(upsertByIdContext);
+        jobExecutionContext.start();
     }
 
-    private void registerContext(ExecutionSubContext context) {
+    private void createJobExecutionContext(ExecutionSubContext context) {
+        assert jobExecutionContext == null;
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         contextBuilder.addSubContext(node.executionPhaseId(), context);
-        jobContextService.createContext(contextBuilder);
+        jobExecutionContext = jobContextService.createContext(contextBuilder);
     }
 
     private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
@@ -180,7 +183,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 transportShardUpsertActionDelegate,
                 jobId());
         bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(bulkShardProcessor);
-        registerContext(bulkShardProcessorContext);
+        createJobExecutionContext(bulkShardProcessorContext);
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();

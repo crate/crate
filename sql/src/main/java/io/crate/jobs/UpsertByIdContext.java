@@ -116,6 +116,11 @@ public class UpsertByIdContext implements ExecutionSubContext {
     }
 
     @Override
+    public void prepare() {
+
+    }
+
+    @Override
     public void close() {
         doClose(null);
     }

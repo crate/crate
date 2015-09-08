@@ -138,9 +138,9 @@ public class JobCollectContextTest extends CrateUnitTest {
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
-        when(collectOperationMock.collect(eq(collectPhaseMock), any(RowDownstream.class), eq(jobCtx)))
+        when(collectOperationMock.createCollectors(eq(collectPhaseMock), any(RowDownstream.class), eq(jobCtx)))
                 .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
-
+        jobCtx.prepare();
         jobCtx.start();
         jobCtx.kill(null);
 

@@ -23,7 +23,6 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.jobs.ContextCallback;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
@@ -131,7 +130,8 @@ public class MapSideDataCollectOperationTest {
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
         when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
-        collectOperation.collect(collectNode, cd, jobCollectContext);
+        Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
+        collectOperation.launchCollectors(collectNode, collectors);
         assertThat(cd.result().get(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)

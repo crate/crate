@@ -40,6 +40,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     @Test
     public void testKill() throws Exception {
         ArgumentCaptor<ActionListener> listener = ArgumentCaptor.forClass(ActionListener.class);
+        context.prepare();
         context.start();
         verify(delegate).execute(any(SymbolBasedShardUpsertRequest.class), listener.capture());
 
@@ -56,6 +57,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
 
     @Test
     public void testStartAfterKill() throws Exception {
+        context.prepare();
         context.kill(null);
         verify(callback, times(1)).onKill();
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
@@ -72,6 +74,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
 
     @Test
     public void testStartAfterClose() throws Exception {
+        context.prepare();
         context.close();
         verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 

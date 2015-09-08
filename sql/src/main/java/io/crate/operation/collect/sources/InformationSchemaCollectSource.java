@@ -160,6 +160,9 @@ public class InformationSchemaCollectSource implements CollectSource {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 
         Input<Boolean> condition;
+        if (collectPhase.whereClause().noMatch()) {
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+        }
         if (collectPhase.whereClause().hasQuery()) {
             // TODO: single arg method
             condition = (Input<Boolean>) docInputSymbolVisitor.process(collectPhase.whereClause().query(), ctx);

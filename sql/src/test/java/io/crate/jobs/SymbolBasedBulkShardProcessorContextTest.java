@@ -49,6 +49,7 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
     @Test
     public void testKill() throws Exception {
+        context.prepare();
         context.start();
         verify(processor, times(1)).close();
 
@@ -59,6 +60,7 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
     @Test
     public void testCloseAfterKill() throws Exception {
+        context.prepare();
         context.start();
         context.kill(null);
         context.close();
@@ -69,6 +71,7 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
     @Test
     public void testStartAfterKill() throws Exception {
+        context.prepare();
         context.kill(null);
         verify(processor, times(1)).kill(any(CancellationException.class));
         verify(callback, times(1)).onKill();

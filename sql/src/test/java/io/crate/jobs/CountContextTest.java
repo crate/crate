@@ -54,6 +54,7 @@ public class CountContextTest extends CrateUnitTest {
         CountContext countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
+        countContext.prepare();
         countContext.start();
         future.set(1L);
         verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
@@ -62,6 +63,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext = new CountContext(countOperation, rowDownstream, null, WhereClause.MATCH_ALL);
         callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
+        countContext.prepare();
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
         verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
@@ -78,6 +80,7 @@ public class CountContextTest extends CrateUnitTest {
 
         ContextCallback callback = mock(ContextCallback.class);
         countContext.addCallback(callback);
+        countContext.prepare();
         countContext.start();
         countContext.kill(null);
 

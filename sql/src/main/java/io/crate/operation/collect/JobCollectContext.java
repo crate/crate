@@ -36,7 +36,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
@@ -59,7 +58,7 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     private final AtomicBoolean killed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private final SettableFuture<Void> killFuture = SettableFuture.create();
-    private final Collection<CrateCollector> collectors = new ArrayList<>();
+    private Collection<CrateCollector> collectors;
 
     private ContextCallback contextCallback = ContextCallback.NO_OP;
 
@@ -216,14 +215,30 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
                 '}';
     }
 
+    private void propagateFailure(Throwable t){
+        assert contextCallback != null;
+        RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
+        rowDownstreamHandle.fail(t);
+        if (contextCallback != null){
+            contextCallback.onClose(t, -1);
+        }
+    }
+
+    @Override
+    public void prepare() {
+        try {
+            collectors = collectOperation.createCollectors(collectNode, downstream, this);
+        } catch (Throwable t) {
+            propagateFailure(t);
+        }
+    }
+
     @Override
     public void start() {
         try {
-            collectors.addAll(collectOperation.collect(collectNode, downstream, this));
+            collectOperation.launchCollectors(collectNode, collectors);
         } catch (Throwable t) {
-            RowDownstreamHandle rowDownstreamHandle = downstream.registerUpstream(this);
-            rowDownstreamHandle.fail(t);
-            contextCallback.onClose(t, -1);
+            propagateFailure(t);
         }
     }
 

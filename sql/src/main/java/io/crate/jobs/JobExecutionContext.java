@@ -126,13 +126,24 @@ public class JobExecutionContext {
         return jobId;
     }
 
+    private void prepare(){
+        for (Integer id : reverseContextIds) {
+            ExecutionSubContext subContext = subContexts.get(id);
+            if (subContext == null || closed.get()) {
+                break; // got killed before prepare was called
+            }
+            statsTables.operationStarted(id, jobId, subContext.name());
+            subContext.prepare();
+        }
+    }
+
     public void start() {
+        prepare();
         for (Integer id : reverseContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called
             }
-            statsTables.operationStarted(id, jobId, subContext.name());
             subContext.start();
         }
     }
@@ -240,8 +251,6 @@ public class JobExecutionContext {
             } else {
                 lastAccessTime = threadPool.estimatedTimeInMillis();
             }
-
-
         }
 
         @Override

@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
@@ -38,7 +37,6 @@ import io.crate.metadata.NestedReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
 import io.crate.planner.node.ExecutionPhase;
@@ -46,12 +44,14 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.DistributedGroupBy;
+import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,7 +66,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
     private ShowStatementDispatcher showStatementDispatcherProvider;
     private final NodeVisitor nodeVisitor;
-    private final ThreadPool threadPool;
 
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
@@ -75,11 +74,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
-
-    // operation for handler side collecting
-    private final CircuitBreaker circuitBreaker;
-
-    private final PageDownstreamFactory pageDownstreamFactory;
 
     private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
 
@@ -92,17 +86,13 @@ public class TransportExecutor implements Executor, TaskExecutor {
                              ThreadPool threadPool,
                              Functions functions,
                              NestedReferenceResolver referenceResolver,
-                             PageDownstreamFactory pageDownstreamFactory,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
-                             CrateCircuitBreakerService breakerService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
-        this.pageDownstreamFactory = pageDownstreamFactory;
-        this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.showStatementDispatcherProvider = showStatementDispatcherProvider;
@@ -110,7 +100,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         nodeVisitor = new NodeVisitor();
         planVisitor = new TaskCollectingVisitor();
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.CLUSTER);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(

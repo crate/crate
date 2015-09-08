@@ -114,6 +114,8 @@ public class ExecutionPhasesTask extends JobTask {
                 continue;
             }
             if (hasDirectResponse) {
+                // TODO: create a JobExecutionContext for this case too, once we have the local downstream changes merged
+                executionSubContext.prepare();
                 executionSubContext.start();
                 pageDownstreamContexts.add(executionSubContext.pageDownstreamContext((byte) 0));
             } else {

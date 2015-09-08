@@ -289,9 +289,10 @@ public class JobContextServiceTest extends CrateUnitTest {
         }
 
         @Override
-        public void start() {
+        public void prepare() {}
 
-        }
+        @Override
+        public void start() {}
 
         @Override
         public void close() {

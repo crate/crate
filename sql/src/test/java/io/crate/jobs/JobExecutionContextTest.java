@@ -187,6 +187,9 @@ public class JobExecutionContextTest extends CrateUnitTest {
         }
 
         @Override
+        public void prepare() {}
+
+        @Override
         public void start() {}
 
         @Override

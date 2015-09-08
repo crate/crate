@@ -205,6 +205,11 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
     }
 
     @Override
+    public void prepare() {
+
+    }
+
+    @Override
     public void start() {
         if (projectorChain != null) {
             projectorChain.startProjections(this);

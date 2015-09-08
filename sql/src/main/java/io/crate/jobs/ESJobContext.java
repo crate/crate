@@ -85,6 +85,11 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
     }
 
     @Override
+    public void prepare() {
+
+    }
+
+    @Override
     public void close() {
         doClose(null);
     }

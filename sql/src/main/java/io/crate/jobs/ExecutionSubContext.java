@@ -25,9 +25,33 @@ import javax.annotation.Nullable;
 
 public interface ExecutionSubContext {
 
+    /**
+     * Add a callback to listen to events and failures of this subcontext. This callback is required to be set before
+     * any of the other methods are called.
+     *
+     * @param contextCallback
+     */
     void addCallback(ContextCallback contextCallback);
+
+    /**
+     * In the prepare phase implementations of this interface can allocate any resources.
+     *
+     * In this phase failures must not be propagated to downstream phases directly, but instead being reported by
+     * calling {@link io.crate.jobs.ContextCallback#onClose(Throwable, long)} with the throwable.
+     */
+    void prepare();
+
+    /**
+     * In the start phase implementations of this interface are required to start any executors.
+     *
+     * Startup failures must not be propagated to downstream phases directly, but instead being reported by
+     * calling {@link io.crate.jobs.ContextCallback#onClose(Throwable, long)} with the throwable. However, it is ok
+     * for the started executors to use their downstreams to propagate failures.
+     */
     void start();
+
     void close();
+
     void kill(@Nullable Throwable throwable);
 
     String name();

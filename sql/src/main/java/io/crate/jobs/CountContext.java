@@ -47,9 +47,10 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     private final CountOperation countOperation;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
-    private final RowDownstreamHandle rowDownstreamHandle;
+    private RowDownstreamHandle rowDownstreamHandle;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
+    private final RowDownstream downstream;
 
     private ListenableFuture<Long> countFuture;
     private ContextCallback callback = ContextCallback.NO_OP;
@@ -62,7 +63,7 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
         this.countOperation = countOperation;
-        rowDownstreamHandle = rowDownstream.registerUpstream(this);
+        this.downstream = rowDownstream;
         this.indexShardMap = indexShardMap;
         this.whereClause = whereClause;
     }
@@ -96,6 +97,10 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
     }
 
     @Override
+    public void prepare() {
+        rowDownstreamHandle = downstream.registerUpstream(this);
+    }
+
     public void close() {
         doClose(null);
     }

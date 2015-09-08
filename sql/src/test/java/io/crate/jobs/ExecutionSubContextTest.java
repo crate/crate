@@ -71,6 +71,7 @@ public class ExecutionSubContextTest extends CrateUnitTest {
             }
         };
         subContext.addCallback(callback);
+        subContext.prepare();
         subContext.start();
         Runnable closeAndVerify = new Runnable() {
             @Override

@@ -106,7 +106,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(CollectPhase collectNode) throws InterruptedException, java.util.concurrent.ExecutionException {
         CollectingProjector collectingProjector = new CollectingProjector();
         collectingProjector.startProjection(mock(ExecutionState.class));
-        operation.collect(collectNode, collectingProjector, mock(JobCollectContext.class));
+        Collection<CrateCollector> collectors = operation.createCollectors(collectNode, collectingProjector, mock(JobCollectContext.class));
+        operation.launchCollectors(collectNode, collectors);
         return collectingProjector.result().get();
     }
 

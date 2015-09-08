@@ -100,8 +100,13 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             contextPreparer.prepare(request.jobId(), nodeOperation, contextBuilder, bucketBuilder);
         }
 
-        JobExecutionContext context = jobContextService.createContext(contextBuilder);
-        context.start();
+        try {
+            JobExecutionContext context = jobContextService.createContext(contextBuilder);
+            context.start();
+        } catch (Throwable t){
+            actionListener.onFailure(t);
+            return;
+        }
 
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());

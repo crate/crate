@@ -52,6 +52,12 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
         callback = MultiContextCallback.merge(callback, contextCallback);
     }
 
+    @Override
+    public void prepare() {
+
+    }
+
+    @Override
     public void start() {
         if(closed.get()){
             return;

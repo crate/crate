@@ -27,6 +27,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
@@ -55,6 +56,10 @@ public class FileCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowDownstream downstream, JobCollectContext jobCollectContext) {
+
+        if (collectPhase.whereClause().noMatch()){
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+        }
 
         FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase);
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;

@@ -172,6 +172,10 @@ public class UnassignedShardsCollectSource implements CollectSource {
         Iterable<UnassignedShard> iterable = createIterator(indexShardMap);
 
         Input<Boolean> condition;
+
+        if (collectPhase.whereClause().noMatch()){
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+        }
         if (collectPhase.whereClause().hasQuery()) {
             condition = (Input<Boolean>) inputSymbolVisitor.process(collectPhase.whereClause().query(), context);
         } else {
