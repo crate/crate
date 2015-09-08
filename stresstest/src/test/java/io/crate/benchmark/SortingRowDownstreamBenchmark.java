@@ -58,7 +58,7 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
     public static final int WARMUP_ROUNDS = 10;
     public static final int NUM_UPSTREAMS = 5;
 
-    public static final int SAME_VALUES = 100; // 30 = break even to use queue
+    public static final int SAME_VALUES = 5; // 30 = break even to use queue
 
     public static final int OFFSET = 100_000;
 

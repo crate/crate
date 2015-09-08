@@ -30,6 +30,8 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,6 +48,10 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     private Object[] lowestToEmit = null;
     private final Object lowestToEmitLock = new Object();
     private final int rowSize;
+    private final AtomicInteger runningHandles = new AtomicInteger(0);
+
+
+    private final ESLogger LOGGER = Loggers.getLogger(BlockingSortingQueuedRowDownstream.class);
 
     /**
      * To prevent the Handles to block and unblock frequently when the queue size is reached
@@ -54,7 +60,8 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
      * So the handle is blocked when queue has reached MAX_QUEUE_SIZE
      * And unblock the handle if the queue has 0 rows
      */
-    public static int MAX_QUEUE_SIZE = 10;
+    public static int MAX_QUEUE_SIZE = 5;
+    public static int RESUME_AFTER = 3;
 
     public BlockingSortingQueuedRowDownstream(int rowSize,
                                               int[] orderBy,
@@ -79,6 +86,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     public RowDownstreamHandle registerUpstream(RowUpstream upstream) {
         upstreams.add(upstream);
         remainingUpstreams.incrementAndGet();
+        runningHandles.incrementAndGet();
         BlockingSortingQueuedRowDownstreamHandle handle = new BlockingSortingQueuedRowDownstreamHandle(this, rowSize);
         downstreamHandles.add(handle);
         return handle;
@@ -90,6 +98,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     }
 
     public void upstreamFinished() {
+        runningHandles.decrementAndGet();
         emit();
         if (remainingUpstreams.decrementAndGet() <= 0) {
             if (downstreamContext != null) {
@@ -99,6 +108,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     }
 
     public void upstreamFailed(Throwable throwable) {
+        runningHandles.decrementAndGet();
         downstreamAborted.compareAndSet(false, true);
         if (remainingUpstreams.decrementAndGet() == 0) {
             if (downstreamContext != null) {
@@ -232,7 +242,8 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                         break;
                     }
                 }
-                if (paused && cellsQueue.size() < MAX_QUEUE_SIZE) {
+                int size = cellsQueue.size();
+                if (paused && (size <= RESUME_AFTER || (size < MAX_QUEUE_SIZE && runningHandles.get() == 1))) {
                     resume();
                 }
             }
@@ -253,11 +264,12 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                     firstCells = cells;
                 }
                 if (!paused && size == MAX_QUEUE_SIZE){
-                    pause = true;
+                    paused = true;
                     pendingPause.set(true);
+                    runningHandles.decrementAndGet();
                 }
             }
-            if (pause) {
+            if (paused) {
                 pause();
             }
             // Only try to emit if this handler was empty before
@@ -294,7 +306,6 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             synchronized (pauseLock) {
                 if (pendingPause.compareAndSet(true, false)) {
                     try {
-                        paused = true;
                         pauseLock.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -310,6 +321,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                     paused = false;
                     pauseLock.notify();
                 }
+                runningHandles.incrementAndGet();
             }
         }
     }
