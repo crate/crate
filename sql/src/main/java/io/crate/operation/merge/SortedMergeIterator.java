@@ -34,4 +34,5 @@ import java.util.Iterator;
 public interface SortedMergeIterator<T> extends Iterator<T> {
     void merge(Iterable<? extends Iterable<T>> iterables);
     boolean isLeastExhausted();
+    Iterator<T> repeat();
 }
