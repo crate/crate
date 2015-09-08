@@ -22,12 +22,16 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstreamHandle;
-import io.crate.operation.RowUpstream;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 
-public interface RowPipe extends RowReceiver, RowUpstream {
+public class ProjectorAssertions {
 
-    void prepare(ExecutionState executionState);
-    void downstream(RowDownstreamHandle rowDownstreamHandle);
+    public static void assertPipe(Object pipeOrWrapper, Class<?> expectedClass) {
+        if (pipeOrWrapper instanceof ForwardingProjector) {
+            assertThat(((ForwardingProjector) pipeOrWrapper).pipe, instanceOf(expectedClass));
+        } else {
+            assertThat(pipeOrWrapper, instanceOf(expectedClass));
+        }
+    }
 }

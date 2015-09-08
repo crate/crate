@@ -66,6 +66,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.operation.projectors.ProjectorAssertions.assertPipe;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -177,10 +178,10 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         ));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         RowDownstreamHandle handle = projector.registerUpstream(null);
+
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);
-        assertThat(projector, instanceOf(ForwardingProjector.class));
-        assertThat(((ForwardingProjector) projector).pipe, instanceOf(AggregationPipe.class));
+        assertPipe(projector, AggregationPipe.class);
 
 
         projector.startProjection(mock(ExecutionState.class));
@@ -226,7 +227,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         topNProjector.startProjection(state);
         projector.startProjection(state);
 
-        assertThat(projector, instanceOf(GroupingProjector.class));
+        assertPipe(projector, GroupingPipe.class);
 
         BytesRef human = new BytesRef("human");
         BytesRef vogon = new BytesRef("vogon");

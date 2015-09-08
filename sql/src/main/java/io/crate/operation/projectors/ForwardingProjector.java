@@ -86,7 +86,7 @@ public class ForwardingProjector implements Projector {
 
     @Override
     public void startProjection(ExecutionState executionState) {
-
+        pipe.prepare(executionState);
     }
 
     @Override

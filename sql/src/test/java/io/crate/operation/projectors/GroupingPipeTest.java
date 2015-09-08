@@ -17,7 +17,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingProjector;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -27,13 +27,13 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-public class GroupingProjectorTest extends CrateUnitTest {
+
+public class GroupingPipeTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
@@ -45,7 +45,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
      **/
 
     @Test
-    public void testAggregationToPartial() throws ExecutionException, InterruptedException {
+    public void testAggregationToPartial() throws Exception {
 
         ImmutableList<Input<?>> keys = ImmutableList.<Input<?>>of(
                 new DummyInput(new BytesRef("one"), new BytesRef("one"), new BytesRef("three")));
@@ -63,25 +63,25 @@ public class GroupingProjectorTest extends CrateUnitTest {
                 countAggregation);
 
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
-        GroupingProjector projector = new GroupingProjector(
+        GroupingPipe projector = new GroupingPipe(
                 Arrays.asList(DataTypes.STRING),
                 keys,
                 new CollectExpression[0],
                 aggregations,
                 RAM_ACCOUNTING_CONTEXT
         );
-        CollectingProjector collectingProjector = new CollectingProjector();
-        projector.registerUpstream(null);
-        projector.downstream(collectingProjector);
+
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        projector.downstream(rowReceiver);
 
         Row emptyRow = new RowN(new Object[]{});
 
-        projector.startProjection(mock(JobCollectContext.class));
+        projector.prepare(mock(JobCollectContext.class));
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.finish();
-        Bucket rows = collectingProjector.result().get();
+        Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(2));
         assertThat(rows.iterator().next().get(1), instanceOf(Long.class));
     }

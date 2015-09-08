@@ -23,6 +23,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 
@@ -41,6 +42,9 @@ public abstract class AbstractRowPipe implements RowPipe {
             ((RowReceiver) rowDownstreamHandle).setUpstream(this);
         }
     }
+
+    @Override
+    public void prepare(ExecutionState executionState) {}
 
     @Override
     public void pause() {

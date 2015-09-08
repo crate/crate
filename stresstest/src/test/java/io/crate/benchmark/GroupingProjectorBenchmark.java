@@ -36,7 +36,7 @@ import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.projectors.GroupingProjector;
+import io.crate.operation.projectors.GroupingPipe;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -103,11 +103,10 @@ public class GroupingProjectorBenchmark {
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
         aggregationContext.addInput(keyInput);
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
-        GroupingProjector groupingProjector = new GroupingProjector(
+        GroupingPipe groupingPipe = new GroupingPipe(
                 Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
-        groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection(mock(ExecutionState.class));
+        groupingPipe.prepare(mock(ExecutionState.class));
 
         List<BytesRef> keys = new ArrayList<>(Locale.getISOCountries().length);
         for (String s : Locale.getISOCountries()) {
@@ -117,10 +116,10 @@ public class GroupingProjectorBenchmark {
         SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {
             row.value = keys.get(i % keys.size());
-            groupingProjector.setNextRow(row);
+            groupingPipe.setNextRow(row);
         }
 
-        groupingProjector.finish();
+        groupingPipe.finish();
     }
 
     @Test
@@ -141,18 +140,17 @@ public class GroupingProjectorBenchmark {
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
         aggregationContext.addInput(keyInput);
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
-        GroupingProjector groupingProjector = new GroupingProjector(
+        GroupingPipe groupingPipe = new GroupingPipe(
                 Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
 
-        groupingProjector.registerUpstream(null);
-        groupingProjector.startProjection(mock(ExecutionState.class));
+        groupingPipe.prepare(mock(ExecutionState.class));
 
         SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {
             row.value = i % 200;
-            groupingProjector.setNextRow(row);
+            groupingPipe.setNextRow(row);
         }
 
-        groupingProjector.finish();
+        groupingPipe.finish();
     }
 }

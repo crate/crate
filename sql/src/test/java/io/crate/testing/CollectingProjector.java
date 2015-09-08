@@ -36,7 +36,10 @@ import java.util.Vector;
  * Downstreams are not supported with this projector. This class should only be used as a fallback if
  * there are no other projectors in a chain but the result needs to be fetched at once after all
  * upstreams provided their rows.
+ *
+ * @deprecated use {@link CollectingRowReceiver} instead
  */
+@Deprecated
 public class CollectingProjector extends ResultProviderBase implements Projector {
 
     public final Vector<Object[]> rows = new Vector<>();

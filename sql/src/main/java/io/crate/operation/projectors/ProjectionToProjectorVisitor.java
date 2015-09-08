@@ -160,13 +160,14 @@ public class ProjectionToProjectorVisitor
         for (Aggregation aggregation : projection.values()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        return new GroupingProjector(
-                Symbols.extractTypes(projection.keys()),
-                keyInputs,
-                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                symbolContext.aggregations(),
-                context.ramAccountingContext
-        );
+        return new ForwardingProjector(
+                new GroupingPipe(
+                    Symbols.extractTypes(projection.keys()),
+                    keyInputs,
+                    symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                    symbolContext.aggregations(),
+                    context.ramAccountingContext
+        ));
     }
 
     @Override
