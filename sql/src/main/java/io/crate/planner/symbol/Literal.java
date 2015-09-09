@@ -3,6 +3,7 @@ package io.crate.planner.symbol;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.spatial4j.core.shape.Shape;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.Input;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
@@ -240,16 +241,19 @@ public class Literal<ReturnType>
      * @param symbol that is expected to be a literal
      * @param type type that the literal should have
      * @return converted literal
-     * @throws IllegalArgumentException if symbol isn't a literal
+     * @throws ConversionException if symbol cannot be converted to the given type
      */
-    public static Literal convert(Symbol symbol, DataType type) throws IllegalArgumentException {
-        if (symbol instanceof Literal) {
-            Literal literal = (Literal) symbol;
-            if (literal.valueType().equals(type)) {
-                return literal;
-            }
-            return newLiteral(type, type.value(literal.value()));
+    public static Literal convert(Symbol symbol, DataType type) throws ConversionException {
+        assert symbol instanceof Literal : "expected a parameter or literal symbol";
+        Literal literal = (Literal) symbol;
+        if (literal.valueType().equals(type)) {
+            return literal;
         }
-        throw new IllegalArgumentException("expected a parameter or literal symbol");
+        try {
+            return newLiteral(type, type.value(literal.value()));
+        } catch (NumberFormatException | ClassCastException e) {
+            throw new ConversionException(e.getLocalizedMessage());
+        }
     }
+
 }

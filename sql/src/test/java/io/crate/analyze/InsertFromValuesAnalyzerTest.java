@@ -584,7 +584,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: 11!");
+        expectedException.expectMessage("Validation failed for id: Invalid value 11! of type 'long'");
         analyze("insert into users (id, name) values (?, ?)",
                 new Object[][]{
                         new Object[]{10, "foo"},

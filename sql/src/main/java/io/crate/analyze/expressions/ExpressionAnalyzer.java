@@ -32,6 +32,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -55,6 +56,7 @@ import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
@@ -162,7 +164,7 @@ public class ExpressionAnalyzer {
     public Symbol normalizeInputForReference(
             Symbol valueSymbol, Reference reference, ExpressionAnalysisContext context) {
 
-        Literal literal;
+        Literal literal = null;
         try {
             valueSymbol = normalizer.normalize(valueSymbol);
             assert valueSymbol != null : "valueSymbol must not be null";
@@ -189,10 +191,11 @@ public class ExpressionAnalyzer {
                 validateInputType(literal.valueType(), reference.info().ident().columnIdent());
                 literal = Literal.convert(literal, reference.valueType());
             }
-        } catch (ClassCastException e) {
+        } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value of type '%s'", valueSymbol.symbolType().name()));
+                    String.format("Invalid value %s of type '%s'",
+                            ((BytesRef) literal.value()).utf8ToString(), reference.valueType().getName()));
         }
 
         try {
@@ -214,7 +217,7 @@ public class ExpressionAnalyzer {
                         normalizeObjectArrayValue(value, reference.info(), true)
                 );
             }
-        } catch (ClassCastException | NumberFormatException e) {
+        } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
                     SymbolFormatter.format(
@@ -251,7 +254,7 @@ public class ExpressionAnalyzer {
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
         try {
             return Literal.convert(normalizer.normalize(inputValue), dataType);
-        } catch (ClassCastException | NumberFormatException e) {
+        } catch (ConversionException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
         }
@@ -376,7 +379,7 @@ public class ExpressionAnalyzer {
             // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
             try {
                 return cast(symbolToCast, targetType, context);
-            } catch (ClassCastException | NumberFormatException e) {
+            } catch (ConversionException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
                 throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
                         SymbolFormatter.format(symbolToCast), targetType.getName()), e);
