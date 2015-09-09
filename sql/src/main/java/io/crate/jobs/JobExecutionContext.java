@@ -28,6 +28,7 @@ import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.Callback;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -49,7 +50,7 @@ public class JobExecutionContext {
     private StatsTables statsTables;
     private final SettableFuture<Void> killFuture = SettableFuture.create();
 
-    volatile ContextCallback contextCallback;
+    private volatile  Callback<JobExecutionContext> closeCallback;
 
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
 
@@ -105,8 +106,9 @@ public class JobExecutionContext {
         }
     }
 
-    void contextCallback(ContextCallback contextCallback) {
-        this.contextCallback = contextCallback;
+    void setCloseCallback(Callback<JobExecutionContext> contextCallback) {
+        assert closeCallback == null;
+        this.closeCallback = contextCallback;
     }
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
@@ -171,7 +173,7 @@ public class JobExecutionContext {
         long numKilled = 0L;
         if (!closed.getAndSet(true)) {
             if (activeSubContexts.get() == 0) {
-                callContextCallback();
+                callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
                     // kill will trigger the ContextCallback onClose too
@@ -196,7 +198,7 @@ public class JobExecutionContext {
         if (!closed.getAndSet(true)) {
             LOGGER.trace("close called on JobExecutionContext {}", jobId);
             if (activeSubContexts.get() == 0) {
-                callContextCallback();
+                callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
                     executionSubContext.close();
@@ -205,12 +207,12 @@ public class JobExecutionContext {
         }
     }
 
-    private void callContextCallback() {
-        if (contextCallback == null) {
+    private void callCloseCallback() {
+        if (closeCallback == null) {
             return;
         }
         if (activeSubContexts.get() == 0) {
-            contextCallback.onClose(null, -1L);
+            closeCallback.handle(this);
         }
     }
 
@@ -247,7 +249,7 @@ public class JobExecutionContext {
             }
 
             if (remaining == 0) {
-                callContextCallback();
+                callCloseCallback();
             } else {
                 lastAccessTime = threadPool.estimatedTimeInMillis();
             }

@@ -31,6 +31,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.Callback;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -120,7 +121,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
         readLock.lock();
         try {
-            newContext.contextCallback(new RemoveContextCallback(jobId));
+            newContext.setCloseCallback(new JobContextCallback());
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
                 throw new IllegalArgumentException(
@@ -142,7 +143,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             }
             for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
                 jobExecutionContext.kill();
-                 // don't use  numKilled = activeContext.size() because the content of activeContexts could change
+                // don't use  numKilled = activeContext.size() because the content of activeContexts could change
                 numKilled++;
             }
             assert activeContexts.size() == 0 :
@@ -175,35 +176,16 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return numKilled;
     }
 
-    private class RemoveContextCallback implements ContextCallback {
-        private final UUID jobId;
 
-        public RemoveContextCallback(UUID jobId) {
-            this.jobId = jobId;
-        }
-
+    private class JobContextCallback implements Callback<JobExecutionContext> {
         @Override
-        public void onClose(@Nullable Throwable error, long bytesUsed) {
-            activeContexts.remove(jobId);
+        public void handle(JobExecutionContext context) {
+            activeContexts.remove(context.jobId());
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}]: JobExecutionContext called onClose for job {} removing it -" +
+                LOGGER.trace("[{}]: JobExecutionContext closed for job {} removed it -" +
                                 " {} executionContexts remaining",
-                        System.identityHashCode(activeContexts), jobId, activeContexts.size());
+                        System.identityHashCode(activeContexts), context.jobId(), activeContexts.size());
             }
-        }
-
-        @Override
-        public void onKill() {
-            activeContexts.remove(jobId);
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}]: JobExecutionContext called onKill for job {} removing it -" +
-                                " {} executionContexts remaining",
-                        System.identityHashCode(activeContexts), jobId, activeContexts.size());
-            }
-        }
-
-        @Override
-        public void keepAlive() {
         }
     }
 
