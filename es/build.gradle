@@ -5,7 +5,10 @@ repositories {
     mavenCentral()
 }
 
-configurations { lucenetest }
+configurations {
+    lucenetest
+    testOutput.extendsFrom (testCompile, lucenetest)
+}
 
 idea {
     module {
@@ -84,10 +87,10 @@ dependencies {
     lucenetest ('junit:junit:4.11') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-    lucenetest ('org.apache.lucene:lucene-codecs:4.10.4') {
+    lucenetest ('org.apache.lucene:lucene-test-framework:4.10.4') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('org.apache.lucene:lucene-test-framework:4.10.4') {
+    lucenetest ('org.apache.lucene:lucene-codecs:4.10.4') {
         exclude group: 'junit', module: 'junit'
     }
     lucenetest ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.11') {
@@ -98,6 +101,15 @@ dependencies {
 
 sourceSets.test.compileClasspath = configurations.lucenetest + sourceSets.test.compileClasspath
 sourceSets.test.runtimeClasspath = configurations.lucenetest + sourceSets.test.runtimeClasspath
+
+task testJar (type: Jar, dependsOn: testClasses) {
+    from sourceSets.test.output
+    classifier = 'test'
+}
+
+artifacts {
+    testOutput testJar
+}
 
 test {
     enabled = false

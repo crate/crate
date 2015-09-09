@@ -56,6 +56,18 @@ allprojects {
     tasks.withType(Javadoc) {
         failOnError = false
     }
+
+    tasks.withType(Test) {
+        doFirst {
+            // move lucene-test-framework to the beginning of the classpath
+            // for cli ./gradlew use
+            def cp = project.sourceSets.test.runtimeClasspath
+            def testFrameworkEntry = cp.find({it.name.contains("lucene-test-framework")})
+            if (testFrameworkEntry != null) {
+                project.sourceSets.test.runtimeClasspath = files(testFrameworkEntry) + cp.filter({ !it.name.contains("lucene-test-framework") })
+            }
+        }
+    }
 }
 
 configure(subprojects.findAll {it.name != 'es'}) {
@@ -156,21 +168,26 @@ subprojects {
                 // when calling tests from intellij
                 withXml {
                     def node = it.asNode()
-                    def testingNode = node.component.orderEntry.find {
-                        it.@'module-name' == 'testing'
-                    }
 
-                    if (testingNode != null) {
-                        def parent = testingNode.parent()
-                        def newNode = new Node(parent, testingNode.name(), testingNode.attributes())
-                        parent.remove(testingNode)
-                        parent.children().add(4, newNode)
+                    def testFramework = node.component.orderEntry.find {
+                        it.@'type' == 'module-library' && it.library.CLASSES.root.find {
+                            it.@'url'.contains('lucene-test-framework')
+                        }
+                    }
+                    if (testFramework != null) {
+                        println "moving test framework"
+                        def parent = testFramework.parent()
+                        def newNode = new Node(parent, testFramework.name(), testFramework.attributes(), testFramework.value())
+                        parent.remove(testFramework)
+                        parent.children().add(5, newNode)
                     }
                 }
             }
         }
     }
 }
+
+
 
 def jvmTestFlags = ['-ea']
 

@@ -12,12 +12,14 @@ dependencies {
     compile project(':es')
     compile 'commons-codec:commons-codec:1.9'
     compile 'org.apache.xbean:xbean-finder:4.2'
+
     testCompile project(':testing')
 }
 
 test {
-    testLogging.exceptionFormat = 'full'
+    outputs.upToDateWhen { false }
 
+    testLogging.exceptionFormat = 'full'
     jacoco {
         excludes = [
                 "*Test*"
