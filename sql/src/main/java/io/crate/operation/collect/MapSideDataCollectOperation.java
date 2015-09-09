@@ -23,8 +23,6 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
@@ -42,7 +40,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
@@ -58,18 +55,9 @@ public class MapSideDataCollectOperation {
     private final ClusterService clusterService;
     private final CollectSourceResolver collectSourceResolver;
     private final ThreadPoolExecutor executor;
-    private final ListeningExecutorService listeningExecutorService;
     private final int poolSize;
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
-
-    private static class VoidFunction<Arg> implements Function<Arg, Void> {
-        @Nullable
-        @Override
-        public Void apply(@Nullable Arg input) {
-            return null;
-        }
-    }
 
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
@@ -82,7 +70,6 @@ public class MapSideDataCollectOperation {
         this.nodeSysExpression = nodeSysExpression;
         this.executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.poolSize = executor.getCorePoolSize();
-        this.listeningExecutorService = MoreExecutors.listeningDecorator(executor);
         this.clusterService = clusterService;
         this.collectSourceResolver = collectSourceResolver;
 
