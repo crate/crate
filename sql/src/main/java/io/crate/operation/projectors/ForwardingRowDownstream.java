@@ -31,6 +31,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -41,18 +42,18 @@ public class ForwardingRowDownstream implements RowDownstream, RowUpstream {
     private final Set<RowUpstream> rowUpstreams = new HashSet<>();
     private final AtomicInteger activeUpstreams = new AtomicInteger();
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
-
     private final RowReceiver rowReceiver;
 
+
     public ForwardingRowDownstream(final RowReceiver rowReceiver) {
-        this.rowReceiver = rowReceiver;
         rowReceiver.setUpstream(this);
+        this.rowReceiver = new MultiUpstreamRowReceiver(rowReceiver);
     }
 
     @Override
     public RowReceiver newRowReceiver() {
         activeUpstreams.incrementAndGet();
-        return new MultiUpstreamRowReceiver(rowReceiver);
+        return rowReceiver;
     }
 
     @Override
@@ -72,6 +73,7 @@ public class ForwardingRowDownstream implements RowDownstream, RowUpstream {
     class MultiUpstreamRowReceiver implements RowReceiver {
 
         final RowReceiver rowReceiver;
+        private AtomicBoolean prepared = new AtomicBoolean(false);
 
         public MultiUpstreamRowReceiver(RowReceiver rowReceiver) {
             this.rowReceiver = rowReceiver;
@@ -97,13 +99,17 @@ public class ForwardingRowDownstream implements RowDownstream, RowUpstream {
 
         @Override
         public void prepare(ExecutionState executionState) {
-            rowReceiver.prepare(executionState);
+            if (prepared.compareAndSet(false, true)) {
+                rowReceiver.prepare(executionState);
+            }
         }
 
         @Override
         public void setUpstream(RowUpstream rowUpstream) {
-            if (!rowUpstreams.add(rowUpstream)) {
-                LOGGER.debug("Upstream {} registered itself twice", rowUpstream);
+            synchronized (rowReceiver) {
+                if (!rowUpstreams.add(rowUpstream)) {
+                    LOGGER.debug("Upstream {} registered itself twice", rowUpstream);
+                }
             }
         }
 
