@@ -100,12 +100,7 @@ public class GroupingProjector extends AbstractProjector {
 
     @Override
     public boolean setNextRow(Row row) {
-        try {
-            return grouper.setNextRow(row);
-        } catch (CircuitBreakingException e) {
-            downstream.fail(e);
-            throw e;
-        }
+        return grouper.setNextRow(row);
     }
 
     @Override

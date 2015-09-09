@@ -26,7 +26,6 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +56,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     @Test
     public void selectGroupByWithBreaking() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(Matchers.startsWith("[QUERY] Data too large, data for "));
+        expectedException.expectMessage("Data too large, data for ");
         execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
     }
 }
