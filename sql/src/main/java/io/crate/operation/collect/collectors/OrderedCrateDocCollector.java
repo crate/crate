@@ -91,6 +91,11 @@ public class OrderedCrateDocCollector implements CrateCollector {
             public void run() {
                 innerCollect(state.scoreDocs, state.scoreDocPos, state.lastDoc);
             }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                throw new UnsupportedOperationException("repeat not supported");
+            }
         });
         this.searchContext = searchContext;
         this.rowReceiver = rowReceiver;

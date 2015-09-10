@@ -85,7 +85,6 @@ public class SortingRowDownstreamTest extends CrateUnitTest {
         for (RowSender upstream : upstreams) {
             assertThat(upstream.isPaused(), is(false));
         }
-
     }
 
 }
