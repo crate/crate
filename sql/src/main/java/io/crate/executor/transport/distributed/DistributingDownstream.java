@@ -130,6 +130,11 @@ public class DistributingDownstream implements RowReceiver {
         upstream.pause();
     }
 
+    @Override
+    public boolean requiresRepeatSupport() {
+        return false;
+    }
+
     private void resume() {
         upstream.resume(true);
     }
