@@ -56,6 +56,11 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     @Override
+    public boolean requiresRepeatSupport() {
+        return false;
+    }
+
+    @Override
     public void setUpstream(RowUpstream rowUpstream) {
         this.upstream = rowUpstream;
     }

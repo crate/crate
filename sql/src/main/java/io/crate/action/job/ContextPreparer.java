@@ -41,6 +41,7 @@ import io.crate.operation.Paging;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
+import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
@@ -388,18 +389,78 @@ public class ContextPreparer {
         @Override
         public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-
-            RowReceiver rowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
-            if (rowReceiver == null) {
+            RowReceiver downstreamRowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
+            if (downstreamRowReceiver == null) {
                 context.executionPhasesToProcess.add(phase);
                 return null;
             }
+
+            FlatProjectorChain flatProjectorChain;
+            if (!phase.projections().isEmpty()) {
+                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                        pageDownstreamFactory.projectorFactory(),
+                        ramAccountingContext,
+                        phase.projections(),
+                        downstreamRowReceiver,
+                        phase.jobId()
+                );
+            } else {
+                flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
+            }
+
+            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(flatProjectorChain.firstProjector());
             return new NestedLoopContext(
                     phase,
-                    rowReceiver,
+                    flatProjectorChain,
+                    nestedLoopOperation,
                     ramAccountingContext,
-                    pageDownstreamFactory,
-                    threadPool);
+                    pageDownstreamContextForNestedLoop(
+                            phase.executionPhaseId(),
+                            context,
+                            (byte) 0,
+                            phase.leftMergePhase(),
+                            nestedLoopOperation.leftRowReceiver(),
+                            ramAccountingContext),
+                    pageDownstreamContextForNestedLoop(
+                            phase.executionPhaseId(),
+                            context,
+                            (byte) 1,
+                            phase.rightMergePhase(),
+                            nestedLoopOperation.rightRowReceiver(),
+                            ramAccountingContext
+                    )
+            );
+        }
+
+        @Nullable
+        private PageDownstreamContext pageDownstreamContextForNestedLoop(int nlPhaseId,
+                                                                         PreparerContext ctx,
+                                                                         byte inputId,
+                                                                         @Nullable MergePhase mergePhase,
+                                                                         RowReceiver rowReceiver,
+                                                                         RamAccountingContext ramAccountingContext) {
+            boolean upstreamOnSameNode = ctx.getPhaseHasSameNodeUpstream(nlPhaseId, inputId);
+            if (upstreamOnSameNode) {
+                assert mergePhase == null : "if upstream is on same node the phase must be null";
+                ctx.registerRowReceiver(nlPhaseId, inputId, rowReceiver);
+                return null;
+            }
+            assert mergePhase != null : "if upstream isn't on the same node, there must be a mergePhase";
+            Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain = pageDownstreamFactory.createMergeNodePageDownstream(
+                    mergePhase,
+                    rowReceiver,
+                    true,
+                    ramAccountingContext,
+                    Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
+            );
+            return new PageDownstreamContext(
+                    mergePhase.name(),
+                    pageDownstreamWithChain.v1(),
+                    StreamerVisitor.streamerFromOutputs(mergePhase),
+                    ramAccountingContext,
+                    mergePhase.numUpstreams(),
+                    pageDownstreamWithChain.v2()
+            );
         }
     }
 }

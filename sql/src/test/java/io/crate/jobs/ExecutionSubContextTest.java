@@ -7,22 +7,18 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.operation.PageDownstream;
-import io.crate.operation.PageDownstreamFactory;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -207,19 +203,4 @@ public class ExecutionSubContextTest extends CrateUnitTest {
                 SettableFuture.<TaskResult>create(),
                 mock(SymbolBasedTransportShardUpsertActionDelegate.class)));
     }
-
-    @Test
-    public void testParallelCloseNestedLoopContext() throws Throwable {
-        verifyParallelClose(new NestedLoopContext(mock(NestedLoopPhase.class),
-                mock(RowReceiver.class), mock(RamAccountingContext.class),
-                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
-    }
-
-    @Test
-    public void testParallelKillNestedLoopContext() throws Throwable {
-        verifyParallelKill(new NestedLoopContext(mock(NestedLoopPhase.class),
-                mock(RowReceiver.class), mock(RamAccountingContext.class),
-                mock(PageDownstreamFactory.class), mock(ThreadPool.class)));
-    }
-
 }

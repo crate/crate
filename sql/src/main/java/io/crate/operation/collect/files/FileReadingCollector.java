@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
@@ -51,7 +52,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-public class FileReadingCollector implements CrateCollector {
+public class FileReadingCollector implements CrateCollector, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;

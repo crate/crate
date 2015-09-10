@@ -21,11 +21,15 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowFilter;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.symbol.Literal;
@@ -35,12 +39,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
-public class RowsCollector<R> implements CrateCollector, RowUpstream {
+public class RowsCollector<R> implements CrateCollector, ExecutionState {
 
-    private final Iterable<R> rows;
-    private final RowReceiver rowDownstream;
-    private final InputRow row;
-    private final RowFilter<R> rowFilter;
+    private final IterableRowEmitter emitter;
     private volatile boolean killed;
 
     public static <T> RowsCollector<T> empty(RowReceiver rowDownstream) {
@@ -63,37 +64,39 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
         );
     }
 
-    public RowsCollector(List<Input<?>> inputs,
-                         Collection<CollectExpression<R, ?>> collectExpressions,
+    public RowsCollector(final List<Input<?>> inputs,
+                         final Collection<CollectExpression<R, ?>> collectExpressions,
                          RowReceiver rowDownstream,
                          Iterable<R> rows,
-                         Input<Boolean> condition) {
-        this.row = new InputRow(inputs);
-        this.rows = rows;
-        this.rowFilter = new RowFilter<>(collectExpressions, condition);
-        this.rowDownstream = rowDownstream;
-        rowDownstream.setUpstream(this);
+                         final Input<Boolean> condition) {
+
+        this.emitter = new IterableRowEmitter(
+                rowDownstream,
+                this,
+                Iterables.filter(Iterables.transform(rows, new Function<R, Row>() {
+
+                            final RowFilter<R> rowFilter = new RowFilter<>(collectExpressions, condition);
+                            final Row row = new InputRow(inputs);
+
+                            @Nullable
+                            @Override
+                            public Row apply(@Nullable R input) {
+                                if (killed) {
+                                    throw new CancellationException();
+                                }
+                                if (rowFilter.matches(input)) {
+                                    return row;
+                                }
+                                return null;
+                            }
+                        }
+
+                ), Predicates.notNull()));
     }
 
     @Override
     public void doCollect() {
-        try {
-            for (R row : rows) {
-                if (killed) {
-                    rowDownstream.fail(new CancellationException());
-                    return;
-                }
-                if (rowFilter.matches(row)) {
-                    if (!rowDownstream.setNextRow(this.row)) {
-                        // no more rows required, we can stop here
-                        break;
-                    }
-                }
-            }
-            rowDownstream.finish();
-        } catch (Throwable t) {
-            rowDownstream.fail(t);
-        }
+        emitter.run();
     }
 
     @Override
@@ -102,20 +105,7 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     }
 
     @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
+    public boolean isKilled() {
+        return killed;
     }
 }

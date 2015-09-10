@@ -83,7 +83,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
     }
 
     @Override
-    protected void searchAndCollect() throws IOException {
+    protected boolean searchAndCollect() throws IOException {
         LOGGER.trace("Collecting data: batchSize: {}", batchSizeHint);
         while (limit == null || rowCount < limit) {
             if (killed) {
@@ -93,7 +93,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
             ScoreDoc scoreDoc = null;
             if (internalCollectContext.topFieldDocs == null) {
                 if (shouldPause()) {
-                    return;
+                    return false;
                 }
                 if (internalCollectContext.lastCollected == null) {
                     internalCollectContext.topFieldDocs = searchContext.searcher().search(internalCollectContext.buildQuery(), batchSize(), internalCollectContext.sort);
@@ -103,7 +103,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                 }
                 if (internalCollectContext.topFieldDocs.scoreDocs.length == 0) {
                     // no (more) hits
-                    return;
+                    break;
                 }
                 internalCollectContext.topFieldPosition = 0;
 
@@ -112,22 +112,23 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                     setScorer(internalCollectContext.scorer);
                     scoreDoc = emitTopFieldDocs();
                 } else {
-                    return;
+                    break;
                 }
             } else {
                 scoreDoc = emitTopFieldDocs();
 
             }
             if (paused.get()) {
-                return;
+                return false;
             }
             if (internalCollectContext.topFieldDocs.scoreDocs.length < batchSize()) {
                 // last batch, no more hits
-                return;
+                break;
             }
             internalCollectContext.lastCollected = scoreDoc;
             internalCollectContext.topFieldDocs = null;
         }
+        return true;
     }
 
     private ScoreDoc emitTopFieldDocs() throws IOException {
