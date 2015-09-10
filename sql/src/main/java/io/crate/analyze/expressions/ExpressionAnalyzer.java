@@ -56,7 +56,6 @@ import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
@@ -194,8 +193,8 @@ public class ExpressionAnalyzer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value %s of type '%s'",
-                            ((BytesRef) literal.value()).utf8ToString(), reference.valueType().getName()));
+                    String.format("%s can not be cast to \'%s\'", SymbolFormatter.format(valueSymbol),
+                            reference.valueType().getName()));
         }
 
         try {

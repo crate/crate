@@ -201,7 +201,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidWhereClause() throws Exception {
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("byte value out of range: 129");
+        expectedException.expectMessage("129 cannot be cast to type byte");
 
         setUpSimple();
         execute("delete from t1 where byte_field=129");

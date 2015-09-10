@@ -172,16 +172,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNumericTypeOutOfRange() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for shorts: short value out of range: -100000");
+        expectedException.expectMessage("Validation failed for shorts: -100000 can not be cast to 'short'");
 
         analyze("update users set shorts=-100000");
     }
 
-
     @Test
     public void testNumericOutOfRangeFromFunction() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: byte value out of range: 1234");
+        expectedException.expectMessage("Validation failed for bytes: 1234 can not be cast to 'byte'");
 
         analyze("update users set bytes=abs(-1234)");
     }

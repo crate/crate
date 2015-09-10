@@ -251,7 +251,7 @@ public class Literal<ReturnType>
         }
         try {
             return newLiteral(type, type.value(literal.value()));
-        } catch (NumberFormatException | ClassCastException e) {
+        } catch (IllegalArgumentException | ClassCastException e) {
             throw new ConversionException(e.getLocalizedMessage());
         }
     }

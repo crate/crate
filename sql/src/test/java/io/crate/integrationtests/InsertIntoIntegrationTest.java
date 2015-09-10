@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
@@ -187,7 +186,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureGreen();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to validate ip [192.168.1.500], not a valid ipv4 address");
+        expectedException.expectMessage("Validation failed for i: '192.168.1.500' can not be cast to 'ip'");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 

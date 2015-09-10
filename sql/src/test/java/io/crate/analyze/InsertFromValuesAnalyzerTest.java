@@ -160,8 +160,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithNumericTypeOutOfRange() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: byte value out of range: 1234");
-
+        expectedException.expectMessage("Validation failed for bytes: 1234 can not be cast to 'byte'");
         analyze("insert into users (name, id, bytes) values ('Trillian', 4, 1234)");
     }
 
@@ -584,7 +583,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: Invalid value 11! of type 'long'");
+        expectedException.expectMessage("Validation failed for id: '11!' can not be cast to 'long'");
         analyze("insert into users (id, name) values (?, ?)",
                 new Object[][]{
                         new Object[]{10, "foo"},
