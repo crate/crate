@@ -121,6 +121,10 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
 
     @Override
     public void nodeOperation(KillJobsRequest request, ActionListener<KillResponse> listener) {
-        listener.onResponse(new KillResponse(jobContextService.killJobs(request.toKill())));
+        try {
+            listener.onResponse(new KillResponse(jobContextService.killJobs(request.toKill())));
+        } catch (Throwable t) {
+            listener.onFailure(t);
+        }
     }
 }

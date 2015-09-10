@@ -97,14 +97,14 @@ public class NodeFetchOperationTest extends CrateUnitTest {
     public void testFetchOperationNoCollectContext() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(1, new JobCollectContext(jobId,
+        builder.addSubContext(new JobCollectContext(
                 mock(CollectPhase.class), mock(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, new CollectingRowReceiver()));
         jobContextService.createContext(builder);
 
         NodeFetchOperation nodeFetchOperation = new NodeFetchOperation(
                 jobId,
-                1,
+                0,
                 LongArrayList.from(0L),
                 ImmutableList.<Reference>of(),
                 jobContextService,

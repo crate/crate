@@ -168,7 +168,11 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
             List<ListenableFuture<Bucket>> bucketResults = contextPreparer.prepareOnRemote(collectNode.jobId(), ImmutableList.of(nodeOperation), builder);
 
             JobExecutionContext context = contextService.createContext(builder);
-            context.start();
+            try {
+                context.start();
+            } catch (Throwable throwable) {
+                fail();
+            }
             results.add(bucketResults.get(0).get(2, TimeUnit.SECONDS));
         }
         return results;

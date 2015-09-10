@@ -45,8 +45,6 @@ import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -66,12 +64,10 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
     private final SymbolBasedUpsertByIdNode node;
-    private final List<ListenableFuture<TaskResult>> resultList;
+    private final List<SettableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final JobContextService jobContextService;
-
-    private final static ESLogger logger = Loggers.getLogger(SymbolBasedUpsertByIdTask.class);
 
     @Nullable
     private SymbolBasedBulkShardProcessorContext bulkShardProcessorContext;
@@ -109,30 +105,36 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
     @Override
     public void start() {
-        if (node.items().size() == 1) {
-            // directly execute upsert request without usage of bulk processor
-            @SuppressWarnings("unchecked")
-            SettableFuture<TaskResult> futureResult = (SettableFuture)resultList.get(0);
-            SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
-            if (node.isPartitionedTable()
-                    && autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
-                createIndexAndExecuteUpsertRequest(item, futureResult);
-            } else {
-                executeUpsertRequest(item, futureResult);
-            }
+        try {
+            if (node.items().size() == 1) {
+                // directly execute upsert request without usage of bulk processor
+                @SuppressWarnings("unchecked")
+                SettableFuture<TaskResult> futureResult = (SettableFuture) resultList.get(0);
+                SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
+                if (node.isPartitionedTable()
+                        && autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
+                    createIndexAndExecuteUpsertRequest(item, futureResult);
+                } else {
+                    executeUpsertRequest(item, futureResult);
+                }
 
-        } else if (bulkShardProcessorContext != null) {
-            assert jobExecutionContext != null;
-            for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
-                bulkShardProcessorContext.add(
-                        item.index(),
-                        item.id(),
-                        item.updateAssignments(),
-                        item.insertValues(),
-                        item.routing(),
-                        item.version());
+            } else if (bulkShardProcessorContext != null) {
+                assert jobExecutionContext != null;
+                for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
+                    bulkShardProcessorContext.add(
+                            item.index(),
+                            item.id(),
+                            item.updateAssignments(),
+                            item.insertValues(),
+                            item.routing(),
+                            item.version());
+                }
+                jobExecutionContext.start();
             }
-            jobExecutionContext.start();
+        } catch (Throwable t){
+            for (SettableFuture<TaskResult> future : resultList) {
+                future.setException(t);
+            }
         }
     }
 
@@ -149,19 +151,24 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
-        UpsertByIdContext upsertByIdContext = new UpsertByIdContext(upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
+        UpsertByIdContext upsertByIdContext = new UpsertByIdContext(
+                node.executionPhaseId(), upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
         createJobExecutionContext(upsertByIdContext);
-        jobExecutionContext.start();
+        try {
+            jobExecutionContext.start();
+        } catch (Throwable throwable) {
+            futureResult.setException(throwable);
+        }
     }
 
     private void createJobExecutionContext(ExecutionSubContext context) {
         assert jobExecutionContext == null;
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(node.executionPhaseId(), context);
+        contextBuilder.addSubContext(context);
         jobExecutionContext = jobContextService.createContext(contextBuilder);
     }
 
-    private List<ListenableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
+    private List<SettableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
 
         assert node.updateColumns() != null | node.insertColumns() != null;
         SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
@@ -182,12 +189,13 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 builder,
                 transportShardUpsertActionDelegate,
                 jobId());
-        bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(bulkShardProcessor);
+        bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(
+                node.executionPhaseId(), bulkShardProcessor);
         createJobExecutionContext(bulkShardProcessorContext);
 
         if (!node.isBulkRequest()) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
-            List<ListenableFuture<TaskResult>> resultList = new ArrayList<>(1);
+            List<SettableFuture<TaskResult>> resultList = new ArrayList<>(1);
             resultList.add(futureResult);
             Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
                 @Override
@@ -209,7 +217,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
             return resultList;
         } else {
             final int numResults = node.items().size();
-            final List<ListenableFuture<TaskResult>> resultList = new ArrayList<>(numResults);
+            final List<SettableFuture<TaskResult>> resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
                 resultList.add(SettableFuture.<TaskResult>create());
             }
@@ -223,7 +231,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                     }
 
                     for (int i = 0; i < numResults; i++) {
-                        SettableFuture<TaskResult> future = (SettableFuture<TaskResult>) resultList.get(i);
+                        SettableFuture<TaskResult> future = resultList.get(i);
                         future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
                     }
                     bulkShardProcessorContext.close();

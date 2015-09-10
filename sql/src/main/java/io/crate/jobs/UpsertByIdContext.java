@@ -35,10 +35,8 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class UpsertByIdContext implements ExecutionSubContext {
+public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
 
@@ -46,31 +44,25 @@ public class UpsertByIdContext implements ExecutionSubContext {
     private final SymbolBasedUpsertByIdNode.Item item;
     private final SettableFuture<TaskResult> futureResult;
     private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
-    private volatile boolean killed = false;
-    private ContextCallback callback = ContextCallback.NO_OP;
-
-    public UpsertByIdContext(SymbolBasedShardUpsertRequest request,
+    public UpsertByIdContext(int id,
+                             SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
-                             SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate){
+                             SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate) {
+        super(id);
         this.request = request;
         this.item = item;
         this.futureResult = futureResult;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
     }
 
-    public void start() {
-        if(closed.get()){
-            futureResult.setException(new ContextClosedException());
-            return;
-        }
+    @Override
+    protected void innerStart() {
         transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
             @Override
             public void onResponse(ShardUpsertResponse updateResponse) {
-                if(closed.get()){
+                if (future.closed()) {
                     return;
                 }
                 int location = updateResponse.itemIndices().get(0);
@@ -87,12 +79,12 @@ public class UpsertByIdContext implements ExecutionSubContext {
                     }
                     futureResult.set(TaskResult.ZERO);
                 }
-                doClose(null);
+                close(null);
             }
 
             @Override
             public void onFailure(Throwable e) {
-                if(closed.get()){
+                if (future.closed()) {
                     return;
                 }
                 e = ExceptionsHelper.unwrapCause(e);
@@ -104,52 +96,26 @@ public class UpsertByIdContext implements ExecutionSubContext {
                 } else {
                     futureResult.setException(e);
                 }
-                doClose(e);
+                close(e);
             }
         });
     }
 
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callback = MultiContextCallback.merge(callback, contextCallback);
-    }
-
-    @Override
-    public void prepare() {
-
-    }
-
-    @Override
-    public void close() {
-        doClose(null);
-    }
-
-    private void doClose(@Nullable Throwable t) {
-        if (!closed.getAndSet(true)) {
-            if (killed) {
-                callback.onKill();
-            } else {
-                callback.onClose(t, -1L);
-            }
-            closeFuture.set(null);
-        } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                logger.warn("Error while waiting for already running close {}", e);
-            }
-        }
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        killed = true;
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
+    public void innerKill(@Nullable Throwable throwable) {
         futureResult.cancel(true);
-        doClose(throwable);
+    }
+
+    @Override
+    protected void innerClose(@Nullable Throwable t) {
+        if (!futureResult.isDone()) {
+            if (t == null) {
+                futureResult.set(TaskResult.EMPTY_RESULT);
+            } else {
+                futureResult.setException(t);
+            }
+        }
     }
 
     @Override

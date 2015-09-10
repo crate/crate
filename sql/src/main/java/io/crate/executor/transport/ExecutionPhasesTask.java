@@ -23,8 +23,8 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.ContextPreparer;
@@ -107,14 +107,23 @@ public class ExecutionPhasesTask extends JobTask {
         if (nodeOperationTrees.size() > 1) {
             // bulk Operation with rowCountResult
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
-                RowCountResultRowDownstream rowDownstream = new RowCountResultRowDownstream(results.get(i));
-                setupContext(operationByServer, pageDownstreamContexts, rowDownstream, nodeOperationTrees.get(i));
+                SettableFuture<TaskResult> result = results.get(i);
+                RowCountResultRowDownstream rowDownstream = new RowCountResultRowDownstream(result);
+                try {
+                    setupContext(operationByServer, pageDownstreamContexts, rowDownstream, nodeOperationTrees.get(i));
+                } catch (Throwable throwable) {
+                    result.setException(throwable);
+                }
             }
         } else {
-            QueryResultRowDownstream downstream = new QueryResultRowDownstream(Iterables.getOnlyElement(results));
-            setupContext(operationByServer, pageDownstreamContexts, downstream, Iterables.getOnlyElement(nodeOperationTrees));
+            SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
+            QueryResultRowDownstream downstream = new QueryResultRowDownstream(result);
+            try {
+                setupContext(operationByServer, pageDownstreamContexts, downstream, Iterables.getOnlyElement(nodeOperationTrees));
+            } catch (Throwable throwable) {
+                result.setException(throwable);
+            }
         }
-
         if (operationByServer.isEmpty()) {
             return;
         }
@@ -124,7 +133,7 @@ public class ExecutionPhasesTask extends JobTask {
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
                               List<PageDownstreamContext> pageDownstreamContexts,
                               RowReceiver rowReceiver,
-                              NodeOperationTree nodeOperationTree) {
+                              NodeOperationTree nodeOperationTree) throws Throwable {
         boolean noNodeOperations = false;
         if (operationByServer.isEmpty()) {
             // this should never happen, instead we should use a NOOP plan instead
@@ -175,7 +184,7 @@ public class ExecutionPhasesTask extends JobTask {
     @Nullable
     private ExecutionSubContext createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
                                                                     ExecutionPhase handlerFinalMergePhase,
-                                                                    RowReceiver handlerPhaseRowReceiver) {
+                                                                    RowReceiver handlerPhaseRowReceiver) throws Throwable {
         String localNodeId = clusterService.localNode().id();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         Collection<NodeOperation> localNodeOperations = null;

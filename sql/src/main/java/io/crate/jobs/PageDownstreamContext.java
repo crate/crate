@@ -36,10 +36,8 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PageDownstreamContext implements DownstreamExecutionSubContext, ExecutionState {
+public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
@@ -53,21 +51,18 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
-    private volatile boolean isKilled = false;
-    private ContextCallback callback = ContextCallback.NO_OP;
 
     @Nullable
     private final FlatProjectorChain projectorChain;
 
-
-    public PageDownstreamContext(String name,
+    public PageDownstreamContext(int id,
+                                 String name,
                                  PageDownstream pageDownstream,
                                  Streamer<?>[] streamer,
                                  RamAccountingContext ramAccountingContext,
                                  int numBuckets,
                                  @Nullable FlatProjectorChain projectorChain) {
+        super(id);
         this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
@@ -172,72 +167,33 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
         return streamer;
     }
 
-    public void finish() {
-        LOGGER.trace("calling finish on pageDownstream {}", pageDownstream);
-        doFinish(null);
-    }
-
-
-    private void doFinish(@Nullable Throwable throwable) {
-        if (!closed.getAndSet(true)) {
-            if (isKilled) {
-                pageDownstream.fail(throwable);
-                callback.onKill();
-            } else {
-                pageDownstream.finish();
-                callback.onClose(throwable, ramAccountingContext.totalBytes());
-            }
-            ramAccountingContext.close();
-            closeFuture.set(null);
+    @Override
+    protected void innerClose(@Nullable Throwable throwable) {
+        if (throwable == null){
+            pageDownstream.finish();
         } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
-            }
+            pageDownstream.fail(throwable);
         }
 
-    }
-
-    public void addCallback(ContextCallback contextCallback) {
-        assert !closed.get() : "may not add a callback on a closed context";
-        callback = MultiContextCallback.merge(callback, contextCallback);
+        future.bytesUsed(ramAccountingContext.totalBytes());
+        ramAccountingContext.close();
     }
 
     @Override
-    public void prepare() {
-
+    protected void innerKill(@Nullable Throwable t) {
+        innerClose(t);
     }
 
     @Override
-    public void start() {
+    public void innerStart() {
         if (projectorChain != null) {
             projectorChain.startProjections(this);
         }
     }
 
     @Override
-    public void close() {
-        finish();
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        isKilled = true;
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
-        doFinish(throwable);
-    }
-
-    @Override
     public String name() {
         return name;
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
     @Nullable
@@ -265,7 +221,7 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
                 listeners.clear();
             }
             if (allExhausted) {
-                PageDownstreamContext.this.finish();
+                PageDownstreamContext.this.close();
             }
         }
 
@@ -277,7 +233,7 @@ public class PageDownstreamContext implements DownstreamExecutionSubContext, Exe
                     listener.needMore(false);
                 }
                 listeners.clear();
-                PageDownstreamContext.this.finish();
+                PageDownstreamContext.this.close();
             }
         }
     }

@@ -180,9 +180,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        jobCollectContext = new JobCollectContext(
-                jobId, node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector);
-        builder.addSubContext(node.executionPhaseId(), jobCollectContext);
+        jobCollectContext = new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector);
+        builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
         LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
                 node, projectorChain, jobCollectContext, 0, pageSize);
@@ -470,8 +469,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         node.orderBy(orderBy);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(node.jobId());
-        builder.addSubContext(node.executionPhaseId(),
-                new JobCollectContext(node.jobId(), node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
+        builder.addSubContext(
+                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
         jobContextService.createContext(builder);
 
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
@@ -498,8 +497,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(rowReceiver);
         // Nulls first
         builder = jobContextService.newBuilder(node.jobId());
-        builder.addSubContext(node.executionPhaseId(),
-                new JobCollectContext(node.jobId(), node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
+        builder.addSubContext(
+                new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, rowReceiver));
         jobContextService.createContext(builder);
         jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
 

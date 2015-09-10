@@ -184,7 +184,7 @@ public class ShardCollectService {
                     searcher,
                     collectNode.whereClause()
             );
-            jobCollectContext.addContext(jobSearchContextId, searchContext);
+            jobCollectContext.addSearchContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             if (collectNode.orderBy() != null) {
                 return new OrderedLuceneDocCollector(

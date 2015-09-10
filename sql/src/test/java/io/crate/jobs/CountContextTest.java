@@ -28,11 +28,13 @@ import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -48,22 +50,25 @@ public class CountContextTest extends CrateUnitTest {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
-        CountContext countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
-        ContextCallback callback = mock(ContextCallback.class);
-        countContext.addCallback(callback);
+        CountContext countContext = new CountContext(1, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
         future.set(1L);
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
+        assertTrue(countContext.future().closed());
+        // assure that there was no exception
+        countContext.future().get(500, TimeUnit.MILLISECONDS);
 
         // on error
-        countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
-        callback = mock(ContextCallback.class);
-        countContext.addCallback(callback);
+        future = SettableFuture.create();
+        when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
+
+        countContext = new CountContext(2, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
+        assertTrue(countContext.future().closed());
+        expectedException.expectCause(TestingHelpers.cause(UnknownUpstreamFailure.class));
+        countContext.future().get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -71,16 +76,14 @@ public class CountContextTest extends CrateUnitTest {
         ListenableFuture<Long> future = mock(ListenableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountContext countContext = new CountContext(countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(1, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
 
-        ContextCallback callback = mock(ContextCallback.class);
-        countContext.addCallback(callback);
         countContext.prepare();
         countContext.start();
         countContext.kill(null);
 
         verify(future, times(1)).cancel(true);
-        verify(callback, times(1)).onKill();
+        assertTrue(countContext.future().closed());
     }
 
     private static class FakeCountOperation implements CountOperation {

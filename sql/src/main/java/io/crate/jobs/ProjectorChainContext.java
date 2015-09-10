@@ -23,51 +23,40 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.*;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ProjectorChainContext implements ExecutionSubContext, ExecutionState {
-
-    private final static ESLogger LOGGER = Loggers.getLogger(ProjectorChainContext.class);
+public class ProjectorChainContext extends AbstractExecutionSubContext {
 
     private final String name;
-    private final AtomicBoolean finished = new AtomicBoolean(false);
-    private final SettableFuture<Void> finishedFuture = SettableFuture.create();
     private final RowReceiver rowReceiver;
     private final FlatProjectorChain projectorChain;
 
-    private volatile boolean killed = false;
-    private List<ContextCallback> callbacks = new ArrayList<>();
-
-    public ProjectorChainContext(String name,
+    public ProjectorChainContext(int id,
+                                 String name,
                                  UUID jobId,
                                  ProjectorFactory projectorFactory,
                                  List<Projection> projections,
                                  RowReceiver rowReceiver,
                                  RamAccountingContext ramAccountingContext) {
+        super(id);
         this.name = name;
         ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
         Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
             @Override
             public void onSuccess(@Nullable Void result) {
-                ProjectorChainContext.this.finish(null);
+                ProjectorChainContext.this.close(null);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                ProjectorChainContext.this.finish(t);
+                ProjectorChainContext.this.close(t);
             }
         });
         projectorChain = FlatProjectorChain.withAttachedDownstream(
@@ -81,30 +70,8 @@ public class ProjectorChainContext implements ExecutionSubContext, ExecutionStat
     }
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callbacks.add(contextCallback);
-    }
-
-    @Override
-    public void prepare() {
-    }
-
-    @Override
-    public void start() {
+    public void innerStart() {
         projectorChain.startProjections(this);
-    }
-
-    @Override
-    public void close() {
-        finish(null);
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
-        finish(throwable);
     }
 
     @Override
@@ -112,33 +79,8 @@ public class ProjectorChainContext implements ExecutionSubContext, ExecutionStat
         return name;
     }
 
-    @Override
-    public boolean isKilled() {
-        return killed;
-    }
-
     public RowReceiver rowReceiver() {
         return rowReceiver;
     }
 
-    private void finish(@Nullable Throwable throwable) {
-        if (finished.compareAndSet(false, true)) {
-            if (killed) {
-                for (ContextCallback callback : callbacks) {
-                    callback.onKill();
-                }
-            } else {
-                for (ContextCallback callback : callbacks) {
-                    callback.onClose(throwable, -1);
-                }
-            }
-            finishedFuture.set(null);
-        } else {
-            try {
-                finishedFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running {} {}", killed ? "kill" : "close", e);
-            }
-        }
-    }
 }

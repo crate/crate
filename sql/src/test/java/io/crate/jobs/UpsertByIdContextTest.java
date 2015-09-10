@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
 
@@ -22,7 +23,6 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     private SymbolBasedTransportShardUpsertActionDelegate delegate;
     private UpsertByIdContext context;
     private SettableFuture<TaskResult> future;
-    private ContextCallback callback;
 
     @Before
     public void setUp() throws Exception {
@@ -31,10 +31,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         SymbolBasedShardUpsertRequest request = mock(SymbolBasedShardUpsertRequest.class);
         SymbolBasedUpsertByIdNode.Item item = mock(SymbolBasedUpsertByIdNode.Item.class);
         future = SettableFuture.create();
-        context = new UpsertByIdContext(request, item, future, delegate);
-
-        callback = mock(ContextCallback.class);
-        context.addCallback(callback);
+        context = new UpsertByIdContext(1, request, item, future, delegate);
     }
 
     @Test
@@ -50,44 +47,25 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ShardUpsertResponse response = mock(ShardUpsertResponse.class);
         listener.getValue().onResponse(response);
 
-        verify(callback, times(1)).onKill();
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
-        future.get();
+        context.future().get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
-    public void testStartAfterKill() throws Exception {
+    public void testKillBeforeStart() throws Exception {
         context.prepare();
         context.kill(null);
-        verify(callback, times(1)).onKill();
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
-        future.get();
-
-        // start does nothing, because the context is already closed
-        context.start();
-        verify(delegate, never()).execute(any(SymbolBasedShardUpsertRequest.class), any(ActionListener.class));
-
-        // close context and verify that the callbacks are not called twice
-        context.close();
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
+        context.future().get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void testStartAfterClose() throws Exception {
         context.prepare();
         context.close();
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
 
         context.start();
-        expectedException.expectCause(TestingHelpers.cause(ContextClosedException.class));
-        expectedException.expectMessage("Can't start already closed context");
-        future.get();
         // start does nothing, because the context is already closed
         verify(delegate, never()).execute(any(SymbolBasedShardUpsertRequest.class), any(ActionListener.class));
-
-        // kill context to verify that the callbacks are not called twice
-        context.kill(null);
-        verify(callback, times(1)).onClose(any(Throwable.class), anyLong());
-        verify(callback, times(0)).onKill();
     }
 }

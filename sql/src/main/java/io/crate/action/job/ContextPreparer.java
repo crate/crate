@@ -132,7 +132,7 @@ public class ContextPreparer {
         // and it is needed as a row receiver by others
         ExecutionSubContext finalLocalMergeContext = innerPreparer.process(handlerMergePhase, preparerContext);
         if (finalLocalMergeContext != null) {
-            contextBuilder.addSubContext(handlerMergePhase.executionPhaseId(), finalLocalMergeContext);
+            contextBuilder.addSubContext(finalLocalMergeContext);
         }
 
         List<NodeOperation> reversedNodeOperations = Lists.reverse(Lists.newArrayList(nodeOperations));
@@ -163,7 +163,7 @@ public class ContextPreparer {
                                        JobExecutionContext.Builder contextBuilder) {
         ExecutionSubContext subContext = innerPreparer.process(executionPhase, preparerContext);
         if (subContext != null) {
-            contextBuilder.addSubContext(executionPhase.executionPhaseId(), subContext);
+            contextBuilder.addSubContext(subContext);
         }
     }
 
@@ -293,6 +293,7 @@ public class ContextPreparer {
             }
 
             return new CountContext(
+                    phase.executionPhaseId(),
                     countOperation,
                     rowReceiver,
                     indexShardMap,
@@ -316,6 +317,7 @@ public class ContextPreparer {
             if (upstreamOnSameNode) {
                 if (!phase.projections().isEmpty()) {
                     ProjectorChainContext projectorChainContext = new ProjectorChainContext(
+                            phase.executionPhaseId(),
                             phase.name(),
                             context.jobId,
                             pageDownstreamFactory.projectorFactory(),
@@ -340,6 +342,7 @@ public class ContextPreparer {
 
 
             return new PageDownstreamContext(
+                    phase.executionPhaseId(),
                     phase.name(),
                     pageDownstreamProjectorChain.v1(),
                     DataTypes.getStreamer(phase.inputTypes()),
@@ -370,7 +373,6 @@ public class ContextPreparer {
             }
 
             return new JobCollectContext(
-                    context.jobId,
                     phase,
                     collectOperation,
                     ramAccountingContext,

@@ -22,10 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.ContextCallback;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.test.integration.CrateUnitTest;
@@ -37,20 +35,12 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import javax.annotation.Nullable;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
  * This class requires PowerMock in order to mock the final {@link SearchContext#close} method.
@@ -67,7 +57,6 @@ public class JobCollectContextTest extends CrateUnitTest {
     public void setUp() throws Exception {
         super.setUp();
         jobCollectContext = new JobCollectContext(
-                UUID.randomUUID(),
                 mock(CollectPhase.class),
                 mock(MapSideDataCollectOperation.class), ramAccountingContext, new CollectingRowReceiver());
     }
@@ -77,8 +66,8 @@ public class JobCollectContextTest extends CrateUnitTest {
         CrateSearchContext mock1 = mock(CrateSearchContext.class);
         CrateSearchContext mock2 = mock(CrateSearchContext.class);
         try {
-            jobCollectContext.addContext(1, mock1);
-            jobCollectContext.addContext(1, mock2);
+            jobCollectContext.addSearchContext(1, mock1);
+            jobCollectContext.addSearchContext(1, mock2);
 
             assertFalse(true); // second addContext call should have raised an exception
         } catch (IllegalArgumentException e) {
@@ -92,8 +81,8 @@ public class JobCollectContextTest extends CrateUnitTest {
         CrateSearchContext mock1 = mock(CrateSearchContext.class);
         CrateSearchContext mock2 = mock(CrateSearchContext.class);
 
-        jobCollectContext.addContext(1, mock1);
-        jobCollectContext.addContext(2, mock2);
+        jobCollectContext.addSearchContext(1, mock1);
+        jobCollectContext.addSearchContext(2, mock2);
 
         jobCollectContext.close();
 
@@ -104,39 +93,18 @@ public class JobCollectContextTest extends CrateUnitTest {
 
     @Test
     public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
-        final SettableFuture<Throwable> errorFuture = SettableFuture.create();
-
         CrateSearchContext mock1 = mock(CrateSearchContext.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
         CollectPhase collectPhaseMock = mock(CollectPhase.class);
-        UUID jobId = UUID.randomUUID();
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
         JobCollectContext jobCtx = new JobCollectContext(
-                jobId,
                 collectPhaseMock,
                 collectOperationMock,
                 ramAccountingContext,
                 rowReceiver);
 
-        jobCtx.addContext(1, mock1);
-        jobCtx.addCallback(new ContextCallback() {
-            @Override
-            public void onClose(@Nullable Throwable error, long bytesUsed) {
-                errorFuture.set(error);
-            }
-
-            @Override
-            public void onKill() {
-                errorFuture.set(new CancellationException());
-            }
-
-            @Override
-            public void keepAlive() {
-
-            }
-        });
-
+        jobCtx.addSearchContext(1, mock1);
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
@@ -150,8 +118,6 @@ public class JobCollectContextTest extends CrateUnitTest {
         verify(collectorMock2, times(1)).kill(any(CancellationException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
-
-        assertThat(errorFuture.get(50, TimeUnit.MILLISECONDS), instanceOf(CancellationException.class));
     }
 
 }

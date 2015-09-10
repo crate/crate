@@ -33,7 +33,6 @@ import static org.mockito.Mockito.*;
 
 public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
-    private ContextCallback callback;
     private SymbolBasedBulkShardProcessorContext context;
     private SymbolBasedBulkShardProcessor processor;
 
@@ -41,11 +40,8 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
     public void setUp() throws Exception {
         super.setUp();
         processor = mock(SymbolBasedBulkShardProcessor.class);
-        context = new SymbolBasedBulkShardProcessorContext(processor);
-        callback = mock(ContextCallback.class);
-        context.addCallback(callback);
+        context = new SymbolBasedBulkShardProcessorContext(1, processor);
     }
-
 
     @Test
     public void testKill() throws Exception {
@@ -55,7 +51,6 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
 
         context.kill(null);
         verify(processor, times(1)).kill(any(CancellationException.class));
-        verify(callback, times(1)).onKill();
     }
 
     @Test
@@ -66,7 +61,6 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
         context.close();
         // BulkShardProcessor is killed and callback is closed once
         verify(processor, times(1)).kill(any(CancellationException.class));
-        verify(callback, times(1)).onKill();
     }
 
     @Test
@@ -74,8 +68,6 @@ public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
         context.prepare();
         context.kill(null);
         verify(processor, times(1)).kill(any(CancellationException.class));
-        verify(callback, times(1)).onKill();
-
         // close is never called on BulkShardProcessor so no requests are issued
         context.start();
         verify(processor, never()).close();

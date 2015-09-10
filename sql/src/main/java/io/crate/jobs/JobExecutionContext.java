@@ -21,10 +21,12 @@
 
 package io.crate.jobs;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -36,9 +38,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class JobExecutionContext {
+public class JobExecutionContext implements KeepAliveListener {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
 
@@ -46,15 +47,18 @@ public class JobExecutionContext {
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
     private final List<Integer> orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ArrayList<SubExecutionContextFuture> futures;
+    private final ListenableFuture<List<SubExecutionContextFuture.State>> chainedFuture;
     private ThreadPool threadPool;
     private StatsTables statsTables;
-    private final SettableFuture<Void> killFuture = SettableFuture.create();
-
-    private volatile  Callback<JobExecutionContext> closeCallback;
-
-    private final AtomicInteger activeSubContexts = new AtomicInteger(0);
-
+    private volatile Throwable failure;
+    private volatile Callback<JobExecutionContext> closeCallback;
     private volatile long lastAccessTime;
+
+    @Override
+    public void keepAlive() {
+        this.lastAccessTime = threadPool.estimatedTimeInMillis();
+    }
 
     public static class Builder {
 
@@ -69,11 +73,11 @@ public class JobExecutionContext {
             this.statsTables = statsTables;
         }
 
-        public void addSubContext(int executionNodeId, ExecutionSubContext subContext) {
-            ExecutionSubContext collectContext = subContexts.put(executionNodeId, subContext);
-            if (collectContext != null) {
+        public void addSubContext(ExecutionSubContext subContext) {
+            ExecutionSubContext existingSubContext = subContexts.put(subContext.id(), subContext);
+            if (existingSubContext != null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "ExecutionSubContext for %d already added", executionNodeId));
+                        "ExecutionSubContext for %d already added", subContext.id()));
             }
         }
 
@@ -101,9 +105,11 @@ public class JobExecutionContext {
         this.statsTables = statsTables;
         lastAccessTime = threadPool.estimatedTimeInMillis();
 
+        this.futures = new ArrayList<>(subContexts.size());
         for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
             addContext(entry.getKey(), entry.getValue());
         }
+        this.chainedFuture = Futures.successfulAsList(this.futures);
     }
 
     void setCloseCallback(Callback<JobExecutionContext> contextCallback) {
@@ -112,16 +118,15 @@ public class JobExecutionContext {
     }
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
-        int numActive = activeSubContexts.incrementAndGet();
-        ExecutionSubContext existing = subContexts.put(subContextId, subContext);
-        if (existing == null) {
-            subContext.addCallback(new RemoveContextCallback(subContextId));
-            LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, numActive);
-            return;
+        if (subContexts.put(subContextId, subContext) == null) {
+            subContext.keepAliveListener(this);
+            SubExecutionContextFuture future = subContext.future();
+            future.addCallback(new RemoveSubContextCallback(subContextId));
+            futures.add(future);
+            LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
+        } else {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "subContext %d is already present", subContextId));
         }
-
-        activeSubContexts.decrementAndGet();
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "subContext %d is already present", subContextId));
     }
 
     public UUID jobId() {
@@ -139,14 +144,20 @@ public class JobExecutionContext {
         }
     }
 
-    public void start() {
+    public void start() throws Throwable {
         prepare();
+        if (failure != null){
+            throw failure;
+        }
         for (Integer id : orderedContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called
             }
             subContext.start();
+        }
+        if (failure != null){
+            throw failure;
         }
     }
 
@@ -172,7 +183,9 @@ public class JobExecutionContext {
     public long kill() {
         long numKilled = 0L;
         if (!closed.getAndSet(true)) {
-            if (activeSubContexts.get() == 0) {
+            LOGGER.trace("kill called on JobExecutionContext {}", jobId);
+
+            if (subContexts.size() == 0) {
                 callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
@@ -182,22 +195,20 @@ public class JobExecutionContext {
                     numKilled++;
                 }
             }
-            killFuture.set(null);
-        } else {
-            try {
-                killFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running kill {}", e);
-                return numKilled;
-            }
+        }
+        try {
+            chainedFuture.get();
+            assert subContexts.values().size() == 0: "unexpected subcontexts there: " +  subContexts.values().size();
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
         }
         return numKilled;
     }
 
     public void close() {
-        if (!closed.getAndSet(true)) {
+        if (closed.compareAndSet(false, true)) {
             LOGGER.trace("close called on JobExecutionContext {}", jobId);
-            if (activeSubContexts.get() == 0) {
+            if (subContexts.size() == 0) {
                 callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
@@ -205,89 +216,79 @@ public class JobExecutionContext {
                 }
             }
         }
+        try {
+            chainedFuture.get();
+        } catch (Exception e) {
+            Throwables.propagate(e);
+        }
     }
 
     private void callCloseCallback() {
         if (closeCallback == null) {
             return;
         }
-        if (activeSubContexts.get() == 0) {
-            closeCallback.handle(this);
-        }
+        closeCallback.handle(this);
     }
 
     @Override
     public String toString() {
         return "JobExecutionContext{" +
                 "jobId=" + jobId +
-                ", subContexts=" + subContexts +
-                ", activeSubContexts=" + activeSubContexts +
+                ", activeSubContexts=" + subContexts.size() +
                 ", closed=" + closed +
                 '}';
     }
 
-    private class RemoveContextCallback implements ContextCallback {
+    private class RemoveSubContextCallback implements FutureCallback<SubExecutionContextFuture.State> {
 
-        private final int executionPhaseId;
+        private final int id;
 
-        public RemoveContextCallback(int executionPhaseId) {
-            this.executionPhaseId = executionPhaseId;
+        private RemoveSubContextCallback(int id) {
+            this.id = id;
         }
 
-        private void close(@Nullable Throwable error, long bytesUsed) {
-            Object remove;
-            synchronized (subContexts) {
-                remove = subContexts.remove(executionPhaseId);
-            }
+        private RemoveSubContextPosition remove(){
+            ExecutionSubContext removed;
             int remaining;
-            if (remove == null) {
-                LOGGER.trace("Closed context {} which was already closed.", executionPhaseId);
-                remaining = activeSubContexts.get();
-            } else {
-                statsTables.operationFinished(executionPhaseId, Exceptions.messageOf(error), bytesUsed);
-                remaining = activeSubContexts.decrementAndGet();
+            synchronized (subContexts){
+                removed = subContexts.remove(id);
+                remaining = subContexts.size();
             }
-
-            if (remaining == 0) {
+            assert removed != null;
+            if (remaining == 0){
                 callCloseCallback();
-            } else {
-                lastAccessTime = threadPool.estimatedTimeInMillis();
+                return RemoveSubContextPosition.LAST;
             }
+            return RemoveSubContextPosition.UNKNOWN;
         }
 
         @Override
-        public void onClose(@Nullable Throwable error, long bytesUsed) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}] subContext called onClose(...) {}",
-                        System.identityHashCode(subContexts), executionPhaseId);
-            }
-
-            close(error, bytesUsed);
-
-            // close due to failure, close all other sub contexts
-            if (error != null) {
-                LOGGER.trace("killing all other subContexts..");
-                synchronized (subContexts) {
-                    for (ExecutionSubContext subContext : subContexts.values()) {
-                        subContext.kill(error);
-                    }
-                }
-            }
+        public void onSuccess(@Nullable SubExecutionContextFuture.State state) {
+            keepAlive();
+            assert state != null;
+            statsTables.operationFinished(id, null, state.bytesUsed());
+            remove();
         }
 
         @Override
-        public void onKill() {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}] subContext called onKill() {}",
-                        System.identityHashCode(subContexts), executionPhaseId);
+        public void onFailure(Throwable t) {
+            keepAlive();
+            if (t != null){
+                failure = t;
             }
-            close(null, -1);
+            statsTables.operationFinished(id, null, -1);
+            if (remove() == RemoveSubContextPosition.LAST){
+                return;
+            }
+            LOGGER.trace("onFailure killing all other subContexts..");
+            for (ExecutionSubContext subContext : subContexts.values()) {
+                subContext.kill(t);
+            }
         }
+    }
 
-        @Override
-        public void keepAlive() {
-            LOGGER.trace("trigger keepAlive on context for execution phase {}", executionPhaseId);
-            lastAccessTime = threadPool.estimatedTimeInMillis();
-        }
+    private enum RemoveSubContextPosition {
+        UNKNOWN,
+        LAST
     }
 }

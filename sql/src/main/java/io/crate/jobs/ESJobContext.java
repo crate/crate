@@ -27,39 +27,31 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ESJobContext implements ExecutionSubContext, ExecutionState {
-
-    private ContextCallback callback = ContextCallback.NO_OP;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+public class ESJobContext extends AbstractExecutionSubContext {
 
     private final List<? extends ActionListener> listeners;
     private String operationName;
     private final List<? extends ActionRequest> requests;
-    private final List<? extends Future<TaskResult>> resultFutures;
+    private final List<SettableFuture<TaskResult>> resultFutures;
     private final TransportAction transportAction;
-    private volatile boolean iskilled = false;
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
+
+
     @Nullable
     private final FlatProjectorChain projectorChain;
 
-    private final static ESLogger LOGGER = Loggers.getLogger(ESJobContext.class);
-
-
-    public ESJobContext(String operationName,
+    public ESJobContext(int id,
+                        String operationName,
                         List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
-                        List<? extends Future<TaskResult>> resultFutures,
+                        List<SettableFuture<TaskResult>> resultFutures,
                         TransportAction transportAction,
                         @Nullable FlatProjectorChain projectorChain) {
+        super(id);
         this.operationName = operationName;
         this.requests = requests;
         this.listeners = listeners;
@@ -68,68 +60,36 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
         this.projectorChain = projectorChain;
     }
 
-    public void start() {
-        if (!closed.get()) {
-            if (projectorChain != null) {
-                projectorChain.startProjections(this);
-            }
-            for (int i = 0; i < requests.size(); i++) {
-                transportAction.execute(requests.get(i), new InternalActionListener(listeners.get(i), this));
-            }
+    @Override
+    protected void innerStart() {
+        if (projectorChain != null) {
+            projectorChain.startProjections(this);
+        }
+        for (int i = 0; i < requests.size(); i++) {
+            transportAction.execute(requests.get(i), new InternalActionListener(listeners.get(i), this));
         }
     }
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callback = MultiContextCallback.merge(callback, contextCallback);
-    }
-
-    @Override
-    public void prepare() {
-
-    }
-
-    @Override
-    public void close() {
-        doClose(null);
-    }
-
-    void doClose(@Nullable Throwable t) {
-        if (!closed.getAndSet(true)) {
-            if (iskilled) {
-                callback.onKill();
-            } else {
-                callback.onClose(t, -1L);
-            }
-            closeFuture.set(null);
-        } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
-            }
-        }
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        iskilled = true;
+    protected void innerKill(@Nullable Throwable t) {
         for (Future<?> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
-        if (throwable == null) {
-            throwable = new CancellationException();
+    }
+
+    @Override
+    protected void innerClose(@Nullable Throwable t) {
+        if (t != null) {
+            for (SettableFuture<TaskResult> resultFuture : resultFutures) {
+                if (!resultFuture.isDone()) {
+                    resultFuture.setException(t);
+                }
+            }
         }
-        doClose(throwable);
     }
 
     public String name() {
         return operationName;
-    }
-
-    @Override
-    public boolean isKilled() {
-        return iskilled;
     }
 
     private static class InternalActionListener implements ActionListener {
@@ -137,21 +97,21 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
         private final ActionListener listener;
         private final ESJobContext context;
 
-        public InternalActionListener (ActionListener listener, ESJobContext context) {
+        public InternalActionListener(ActionListener listener, ESJobContext context) {
             this.listener = listener;
             this.context = context;
         }
 
         @Override
         public void onResponse(Object o) {
-            context.doClose(null);
             listener.onResponse(o);
+            context.close(null);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            context.doClose(e);
             listener.onFailure(e);
+            context.close(e);
         }
     }
 }

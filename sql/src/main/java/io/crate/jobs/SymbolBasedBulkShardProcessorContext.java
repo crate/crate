@@ -21,69 +21,34 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext {
-
-    private final static ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessorContext.class);
-
-    private ContextCallback callback = ContextCallback.NO_OP;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+public class SymbolBasedBulkShardProcessorContext extends AbstractExecutionSubContext {
 
     private final SymbolBasedBulkShardProcessor bulkShardProcessor;
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
 
-    private volatile boolean killed = false;
-
-    public SymbolBasedBulkShardProcessorContext(SymbolBasedBulkShardProcessor bulkShardProcessor) {
+    public SymbolBasedBulkShardProcessorContext(int id, SymbolBasedBulkShardProcessor bulkShardProcessor) {
+        super(id);
         this.bulkShardProcessor = bulkShardProcessor;
     }
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callback = MultiContextCallback.merge(callback, contextCallback);
-    }
-
-    @Override
-    public void prepare() {
-
-    }
-
-    @Override
-    public void start() {
-        if(closed.get()){
-            return;
-        }
+    protected void innerStart() {
         bulkShardProcessor.close();
     }
 
     @Override
-    public void close() {
-        doClose(null);
+    protected void innerKill(@Nullable Throwable t) {
+        bulkShardProcessor.kill(t);
     }
-    
-    private void doClose(@Nullable Throwable t) {
-        if (!closed.getAndSet(true)) {
-            if (killed) {
-                callback.onKill();
-            } else {
-                callback.onClose(t, -1L);
-            }
-            closeFuture.set(null);
-        } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
-            }
+
+    @Override
+    protected void innerClose(@Nullable Throwable t) {
+        if (t != null) {
+            bulkShardProcessor.kill(t);
         }
     }
 
@@ -94,16 +59,6 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
                        @Nullable String routing,
                        @Nullable Long version) {
         return bulkShardProcessor.add(indexName, id, assignments, missingAssignments, routing, version);
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        killed = true;
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
-        bulkShardProcessor.kill(throwable);
-        doClose(throwable);
     }
 
     @Override

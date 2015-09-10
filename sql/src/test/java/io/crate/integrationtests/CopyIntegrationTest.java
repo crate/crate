@@ -317,7 +317,6 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 " details object" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-
         String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
         execute("COPY characters TO ?", new Object[]{directoryUri});
     }

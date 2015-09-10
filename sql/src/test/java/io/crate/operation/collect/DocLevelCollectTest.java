@@ -151,7 +151,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCollectDocLevel() throws Exception {
+    public void testCollectDocLevel() throws Throwable {
         List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
         CollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
@@ -162,7 +162,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCollectDocLevelWhereClause() throws Exception {
+    public void testCollectDocLevelWhereClause() throws Throwable {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
@@ -195,7 +195,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCollectWithPartitionedColumns() throws Exception {
+    public void testCollectWithPartitionedColumns() throws Throwable {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL, null);
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         CollectPhase collectNode = getCollectNode(
@@ -221,7 +221,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws Exception {
+    private Bucket collect(CollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());

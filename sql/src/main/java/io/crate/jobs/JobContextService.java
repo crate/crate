@@ -206,7 +206,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                     UUID id = entry.getKey();
                     logger.debug("closing job collect context [{}], time [{}], lastAccessTime [{}]",
                             id, time, lastAccessTime);
-                    context.kill();
+                    try {
+                        context.kill();
+                    } catch (Throwable t) {
+                        logger.warn("An error occurred while killing context for job {}", t, context.jobId());
+                    }
                 }
             }
         }

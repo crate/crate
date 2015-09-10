@@ -61,10 +61,10 @@ public class EsJobContextTask extends JobTask {
                                  List<? extends ActionListener> listeners,
                                  TransportAction transportAction,
                                  @Nullable FlatProjectorChain projectorChain) {
-        ESJobContext esJobContext = new ESJobContext(operationName,
+        ESJobContext esJobContext = new ESJobContext(executionPhaseId, operationName,
                 requests, listeners, results, transportAction, projectorChain);
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(executionPhaseId, esJobContext);
+        contextBuilder.addSubContext(esJobContext);
         context = jobContextService.createContext(contextBuilder);
     }
 

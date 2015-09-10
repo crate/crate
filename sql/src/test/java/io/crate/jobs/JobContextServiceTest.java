@@ -38,9 +38,10 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
@@ -69,8 +70,8 @@ public class JobContextServiceTest extends CrateUnitTest {
         // create new context
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
-        ExecutionSubContext subContext = mock(PageDownstreamContext.class);
-        builder1.addSubContext(1, subContext);
+        ExecutionSubContext subContext = new DummySubContext();
+        builder1.addSubContext(subContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
         assertThat(ctx1.getSubContext(1), is(subContext));
     }
@@ -85,12 +86,12 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         // create new context
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);
-        builder1.addSubContext(1, mock(PageDownstreamContext.class));
+        builder1.addSubContext(new DummySubContext(1));
         jobContextService.createContext(builder1);
 
         // creating a context with the same jobId will fail
         JobExecutionContext.Builder builder2 = jobContextService.newBuilder(jobId);
-        builder2.addSubContext(2, mock(PageDownstreamContext.class));
+        builder2.addSubContext(new DummySubContext(2));
 
         jobContextService.createContext(builder2);
     }
@@ -119,14 +120,13 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void kill(@Nullable Throwable throwable) {
-                super.kill(throwable);
+            public void innerKill(@Nullable Throwable throwable) {
                 killCalled.set(true);
             }
         };
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, dummyContext);
+        builder.addSubContext(dummyContext);
         jobContextService.createContext(builder);
 
         Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
@@ -147,22 +147,20 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void kill(@Nullable Throwable throwable) {
-                super.kill(throwable);
+            public void innerKill(@Nullable Throwable throwable) {
                 killCalled.set(true);
             }
         };
 
         UUID jobId = UUID.randomUUID();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        builder.addSubContext(1, dummyContext);
+        builder.addSubContext(dummyContext);
         jobContextService.createContext(builder);
 
         builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, new DummySubContext() {
+        builder.addSubContext(new DummySubContext() {
             @Override
-            public void kill(@Nullable Throwable throwable) {
-                super.kill(throwable);
+            public void innerKill(@Nullable Throwable throwable) {
                 kill2Called.set(true);
             }
         });
@@ -181,33 +179,42 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     }
 
+
+    private int numContexts(JobContextService ctx) throws Exception {
+        Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
+        activeContexts.setAccessible(true);
+        return ((Map) activeContexts.get(ctx)).size();
+    }
+
+    private int numContexts(JobExecutionContext ctx) throws Exception {
+        Field subContexts = JobExecutionContext.class.getDeclaredField("subContexts");
+        subContexts.setAccessible(true);
+        return ((Map) subContexts.get(ctx)).size();
+    }
+
     @Test
     public void testJobExecutionContextIsSelfClosing() throws Exception {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
-        PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
-        builder1.addSubContext(1, pageDownstreamContext);
+        DummySubContext subContext = new DummySubContext();
+
+        builder1.addSubContext(subContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
 
-        Field activeSubContexts = JobExecutionContext.class.getDeclaredField("activeSubContexts");
-        activeSubContexts.setAccessible(true);
-        assertThat(((AtomicInteger) activeSubContexts.get(ctx1)).get(), is(1));
-
-        pageDownstreamContext.finish();
-
-        assertThat(((AtomicInteger) activeSubContexts.get(ctx1)).get(), is(0));
+        assertThat(numContexts(ctx1), is(1));
+        subContext.close();
+        assertThat(numContexts(ctx1), is(0));
     }
 
     @Test
     public void testKillReturnsNumberOfJobsKilled() throws Exception {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, new DummySubContext());
-        builder.addSubContext(2, new DummySubContext());
-        builder.addSubContext(3, new DummySubContext());
-        builder.addSubContext(4, new DummySubContext());
+        builder.addSubContext(new DummySubContext(1));
+        builder.addSubContext(new DummySubContext(2));
+        builder.addSubContext(new DummySubContext(3));
+        builder.addSubContext(new DummySubContext(4));
         jobContextService.createContext(builder);
         builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, new DummySubContext());
+        builder.addSubContext(new DummySubContext(1));
         jobContextService.createContext(builder);
 
         assertThat(jobContextService.killAll(), is(2L));
@@ -217,37 +224,32 @@ public class JobContextServiceTest extends CrateUnitTest {
     public void testKillSingleJob() {
         ImmutableList<UUID> jobsToKill = ImmutableList.<UUID>of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobsToKill.get(0));
-        builder.addSubContext(1, new DummySubContext());
+        builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
 
         builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, new DummySubContext());
+        builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
 
         builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(1, new DummySubContext());
+        builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
         assertThat(jobContextService.killJobs(jobsToKill), is(1L));
     }
 
     @Test
-    public void testCloseContext() throws Exception {
+    public void testCloseContextRemovesSubContext() throws Exception {
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
-
-        Field activeSubContexts = JobExecutionContext.class.getDeclaredField("activeSubContexts");
-        activeSubContexts.setAccessible(true);
-        assertThat(((AtomicInteger) activeSubContexts.get(ctx1)).get(), is(1));
-
+        assertThat(numContexts(ctx1), is(1));
         ctx1.close();
-
-        assertThat(((AtomicInteger) activeSubContexts.get(ctx1)).get(), is(0));
+        assertThat(numContexts(ctx1), is(0));
     }
 
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext("dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
-        builder1.addSubContext(1, pageDownstreamContext);
+                new PageDownstreamContext(1, "dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
+        builder1.addSubContext(pageDownstreamContext);
         return jobContextService.createContext(builder1);
     }
 
@@ -257,19 +259,17 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobContextService.KEEP_ALIVE = timeValueMillis(0).millis();
         JobContextService jobContextService1 = new JobContextService(settings, testThreadPool, mock(StatsTables.class));
 
-        final ExecutionSubContext executionSubContext = mock(ExecutionSubContext.class);
+        final AbstractExecutionSubContextTest.TestingExecutionSubContext executionSubContext = new AbstractExecutionSubContextTest.TestingExecutionSubContext();
 
         JobExecutionContext.Builder builder = jobContextService1.newBuilder(UUID.randomUUID());
-        builder.addSubContext(0, executionSubContext);
+        builder.addSubContext(executionSubContext);
         jobContextService1.createContext(builder);
 
-        Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
-        assertThat(((Map) activeContexts.get(jobContextService1)).size(), is(1));
-
+        assertThat(numContexts(jobContextService1), is(1));
         Thread.sleep(300);
 
-        verify(executionSubContext, times(1)).kill(null);
+        assertTrue(executionSubContext.isKilled());
+        assertThat(numContexts(jobContextService1), is(0));
 
         // close service, stop reaper thread
         jobContextService1.close();
@@ -279,38 +279,19 @@ public class JobContextServiceTest extends CrateUnitTest {
         JobContextService.KEEP_ALIVE = timeValueMinutes(5).millis();
     }
 
-    protected static class DummySubContext implements ExecutionSubContext {
+    protected static class DummySubContext extends AbstractExecutionSubContext {
 
-        private List<ContextCallback> callbacks = new ArrayList<>();
-
-        @Override
-        public void addCallback(ContextCallback contextCallback) {
-            callbacks.add(contextCallback);
+        public DummySubContext() {
+            super(1);
         }
 
-        @Override
-        public void prepare() {}
-
-        @Override
-        public void start() {}
-
-        @Override
-        public void close() {
-            for (ContextCallback callback : callbacks) {
-                callback.onClose(null, -1L);
-            }
-        }
-
-        @Override
-        public void kill(@Nullable Throwable throwable) {
-            for (ContextCallback callback : callbacks) {
-                callback.onKill();
-            }
+        public DummySubContext(int id) {
+            super(id);
         }
 
         @Override
         public String name() {
-            return "dummy";
+            return "dummy " + id();
         }
     }
 }

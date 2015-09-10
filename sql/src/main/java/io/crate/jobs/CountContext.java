@@ -21,45 +21,36 @@
 
 package io.crate.jobs;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CountContext implements RowUpstream, ExecutionSubContext {
+public class CountContext extends AbstractExecutionSubContext implements RowUpstream {
 
     private final CountOperation countOperation;
     private final RowReceiver rowReceiver;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
-
     private ListenableFuture<Long> countFuture;
-    private ContextCallback callback = ContextCallback.NO_OP;
-    private volatile boolean killed = false;
 
-    private final static ESLogger LOGGER = Loggers.getLogger(CountContext.class);
-
-    public CountContext(CountOperation countOperation,
+    public CountContext(int id,
+                        CountOperation countOperation,
                         RowReceiver rowReceiver,
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
+        super(id);
         this.countOperation = countOperation;
         this.rowReceiver = rowReceiver;
         rowReceiver.setUpstream(this);
@@ -67,74 +58,52 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
         this.whereClause = whereClause;
     }
 
-    public void start() {
+    @Override
+    protected void innerPrepare() {
+        rowReceiver.prepare(this);
+    }
+
+    @Override
+    public void innerStart() {
         try {
             countFuture = countOperation.count(indexShardMap, whereClause);
-            Futures.addCallback(countFuture, new FutureCallback<Long>() {
-                @Override
-                public void onSuccess(@Nullable Long result) {
-                    rowReceiver.setNextRow(new Row1(result));
-                    rowReceiver.finish();
-                    close();
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    rowReceiver.fail(t);
-                    close();
-                }
-            });
-        } catch (InterruptedException | IOException e) {
-            rowReceiver.fail(e);
-            close();
+        } catch (IOException | InterruptedException e) {
+            throw Throwables.propagate(e);
         }
+        Futures.addCallback(countFuture, new FutureCallback<Long>() {
+            @Override
+            public void onSuccess(@Nullable Long result) {
+                rowReceiver.setNextRow(new Row1(result));
+                close();
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                close(t);
+            }
+        });
     }
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callback = MultiContextCallback.merge(callback, contextCallback);
-    }
-
-    @Override
-    public void prepare() {
-    }
-
-    public void close() {
-        doClose(null);
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        killed = true;
+    public void innerKill(@Nullable Throwable throwable) {
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        if (throwable == null) {
-            throwable = new CancellationException();
+        rowReceiver.fail(throwable);
+    }
+
+    @Override
+    protected void innerClose(@Nullable Throwable t) {
+        if (t == null) {
+            rowReceiver.finish();
+        } else {
+            rowReceiver.fail(t);
         }
-        doClose(throwable);
     }
 
     @Override
     public String name() {
         return "count(*)";
-    }
-
-    private void doClose(@Nullable Throwable throwable) {
-        if (!closed.getAndSet(true)) {
-            if (killed) {
-                callback.onKill();
-            } else {
-                callback.onClose(throwable, -1L);
-            }
-            closeFuture.set(null);
-        } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
-            }
-        }
     }
 
     @Override

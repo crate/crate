@@ -68,12 +68,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1993,7 +1988,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                         execute("select * from t");
                     } catch (Throwable t) {
                         // The failed job should have three started operations
-                        SQLResponse res = execute("select id from sys.jobs_log where error is not null order by started desc limit 1");
+                        SQLResponse res= execute("select id from sys.jobs_log where error is not null order by started desc limit 1");
                         if (res.rowCount() > 0) {
                             String id = (String) res.rows()[0][0];
                             res = execute("select count(*) from sys.operations_log where name=? and job_id = ?", new Object[]{"collect", id});

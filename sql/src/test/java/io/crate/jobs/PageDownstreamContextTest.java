@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.FutureCallback;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row1;
@@ -31,8 +32,8 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -62,7 +63,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
         }).when(pageDownstream).fail((Throwable)notNull());
 
-        PageDownstreamContext ctx = new PageDownstreamContext("dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+        PageDownstreamContext ctx = new PageDownstreamContext(1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -74,17 +75,25 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     }
 
     @Test
-    public void testKill() throws Exception {
+    public void testKillCallsDownstream() throws Exception {
         PageDownstream downstream = mock(PageDownstream.class);
-        ContextCallback callback = mock(ContextCallback.class);
 
-        PageDownstreamContext ctx = new PageDownstreamContext("dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
-        ctx.addCallback(callback);
+        PageDownstreamContext ctx = new PageDownstreamContext(1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+        final AtomicReference<Throwable> throwable = new AtomicReference<>();
+
+        ctx.future().addCallback(new FutureCallback<SubExecutionContextFuture.State>() {
+            @Override
+            public void onSuccess(SubExecutionContextFuture.State result) {
+
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                assertTrue(throwable.compareAndSet(null, t));
+            }
+        });
         ctx.kill(null);
-
-        verify(callback, times(1)).onKill();
-        ArgumentCaptor<CancellationException> e = ArgumentCaptor.forClass(CancellationException.class);
-        verify(downstream, times(1)).fail(e.capture());
-        assertThat(e.getValue(), instanceOf(CancellationException.class));
+        assertThat(throwable.get(), Matchers.instanceOf(CancellationException.class));
+        verify(downstream, times(1)).fail(any(CancellationException.class));
     }
 }

@@ -23,31 +23,26 @@ package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.*;
 import io.crate.operation.projectors.ListenableRowReceiver;
+import io.crate.jobs.ExecutionState;
+import io.crate.jobs.AbstractExecutionSubContext;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JobCollectContext implements ExecutionSubContext, ExecutionState {
+public class JobCollectContext extends AbstractExecutionSubContext implements ExecutionState {
 
-    private final UUID id;
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
@@ -56,22 +51,13 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
     private final Object subContextLock = new Object();
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final AtomicBoolean killed = new AtomicBoolean(false);
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
-    private final SettableFuture<Void> killFuture = SettableFuture.create();
-    private Collection<CrateCollector> collectors = ImmutableList.of();
+    private Collection<CrateCollector> collectors;
 
-    private ContextCallback contextCallback = ContextCallback.NO_OP;
-
-    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
-
-    public JobCollectContext(UUID jobId,
-                             final CollectPhase collectPhase,
+    public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver) {
-        id = jobId;
+        super(collectPhase.executionPhaseId());
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
@@ -93,14 +79,8 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
         this.rowReceiver = listenableRowReceiver;
     }
 
-    @Override
-    public void addCallback(ContextCallback contextCallback) {
-        assert !closed.get() : "may not add a callback on a closed context";
-        this.contextCallback = MultiContextCallback.merge(this.contextCallback, contextCallback);
-    }
-
-    public void addContext(int jobSearchContextId, CrateSearchContext searchContext) {
-        if (closed.get()) {
+    public void addSearchContext(int jobSearchContextId, CrateSearchContext searchContext) {
+        if (future.closed()) {
             // if this is closed and addContext is called this means the context got killed.
             searchContext.close();
             return;
@@ -129,26 +109,14 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     }
 
     @Override
-    public void close() {
-        close(null);
+    protected void cleanup() {
+        closeSearchContexts();
+        queryPhaseRamAccountingContext.close();
     }
 
-    private void close(@Nullable Throwable throwable) {
-        if (closed.compareAndSet(false, true)) { // prevent double close
-            LOGGER.trace("closing JobCollectContext: {}", id);
-            closeSearchContexts();
-            long bytesUsed = queryPhaseRamAccountingContext.totalBytes();
-            contextCallback.onClose(throwable, bytesUsed);
-            queryPhaseRamAccountingContext.close();
-            closeFuture.set(null);
-        } else {
-            LOGGER.trace("close called on an already closed JobCollectContext: {}", id);
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e, id);
-            }
-        }
+    @Override
+    protected void innerClose(@Nullable Throwable throwable) {
+        future.bytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
 
     private void closeSearchContexts() {
@@ -161,28 +129,16 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     }
 
     @Override
-    public void kill(@Nullable Throwable throwable) {
-        if (killed.compareAndSet(false, true)) { // prevent double kill
-            LOGGER.trace("killing JobCollectContext: {}", id);
-            if (throwable == null) {
-                throwable = new CancellationException();
-            }
+    public void innerKill(@Nullable Throwable throwable) {
+        if (throwable == null) {
+            throwable = new CancellationException();
+        }
+        if (collectors != null) {
             for (CrateCollector collector : collectors) {
                 collector.kill(throwable);
             }
-            closeSearchContexts();
-            contextCallback.onKill();
-            queryPhaseRamAccountingContext.close();
-            killFuture.set(null);
-        } else {
-            LOGGER.trace("kill called on an already killed JobCollectContext: {}", id);
-            try {
-                killFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running kill {}", e);
-            }
-
         }
+        future.bytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
 
     @Override
@@ -195,40 +151,28 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     public String toString() {
         return "JobCollectContext{" +
                 "searchContexts=" + searchContexts +
-                ", closed=" + closed +
-                ", id=" + id +
+                ", closed=" + future.closed() +
+                ", keepAliveListener=" + keepAliveListener +
                 '}';
     }
 
-    private void propagateFailure(Throwable t){
-        assert contextCallback != null;
-        rowReceiver.fail(t);
-        if (contextCallback != null){
-            contextCallback.onClose(t, -1);
-        }
+    @Override
+    protected void innerPrepare() {
+        collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
     }
 
     @Override
-    public void prepare() {
-        try {
-            collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
-        } catch (Throwable t) {
-            propagateFailure(t);
-        }
-    }
-
-    @Override
-    public void start() {
-        try {
+    protected void innerStart() {
+        if (collectors.isEmpty()) {
+            rowReceiver.finish();
+        } else {
             collectOperation.launchCollectors(collectPhase, collectors);
-        } catch (Throwable t) {
-            propagateFailure(t);
         }
     }
 
     @Override
     public boolean isKilled() {
-        return killed.get();
+        return future.closed();
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
@@ -236,6 +180,6 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     }
 
     public KeepAliveListener keepAliveListener() {
-        return contextCallback;
+        return keepAliveListener;
     }
 }
