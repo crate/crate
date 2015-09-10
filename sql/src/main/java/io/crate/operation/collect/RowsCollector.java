@@ -110,4 +110,12 @@ public class RowsCollector<R> implements CrateCollector, RowUpstream {
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }
