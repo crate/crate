@@ -435,4 +435,8 @@ public class FetchProjector extends AbstractProjector {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public boolean requiresRepeatSupport() {
+        return false;
+    }
 }

@@ -77,6 +77,11 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
+    public boolean requiresRepeatSupport() {
+        return false;
+    }
+
+    @Override
     public void setUpstream(RowUpstream rowUpstream) {
     }
 }
