@@ -37,7 +37,6 @@ public class IterableRowEmitter implements Runnable {
     private final RowReceiver rowReceiver;
     private final ExecutionState executionState;
     private final TopRowUpstream topRowUpstream;
-
     private Iterator<? extends Row> rowsIt;
 
     public IterableRowEmitter(RowReceiver rowReceiver,
