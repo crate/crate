@@ -79,6 +79,15 @@ public class MultiShardScoreDocCollector implements CrateCollector {
             public void run() {
                 processIterator();
             }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                if (singleShard) {
+                    runWithoutThreads(orderedDocCollectors.get(0));
+                } else {
+                    runThreaded();
+                }
+            }
         });
         rowReceiver = flatProjectorChain.firstProjector();
         rowReceiver.setUpstream(topRowUpstream);

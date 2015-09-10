@@ -42,11 +42,21 @@ public class IterableRowEmitter implements Runnable {
 
     public IterableRowEmitter(RowReceiver rowReceiver,
                               ExecutionState executionState,
-                              Iterable<? extends Row> rows,
+                              final Iterable<? extends Row> rows,
                               Optional<Executor> executor) {
         this.rowReceiver = rowReceiver;
         this.executionState = executionState;
-        topRowUpstream = new TopRowUpstream(executor.or(MoreExecutors.directExecutor()), this);
+        topRowUpstream = new TopRowUpstream(
+                executor.or(MoreExecutors.directExecutor()),
+                this,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        rowsIt = rows.iterator();
+                        IterableRowEmitter.this.run();
+                    }
+                }
+        );
         rowReceiver.setUpstream(topRowUpstream);
         this.rowsIt = rows.iterator();
     }

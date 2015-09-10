@@ -231,4 +231,12 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
         super.downstream(rowDownstreamHandle);
         setResultCallback();
     }
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }
