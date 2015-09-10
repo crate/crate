@@ -94,13 +94,16 @@ public class SortingTopNProjector extends AbstractProjector {
             downstream.finish();
             return;
         }
+        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter.run();
+    }
+
+    private IterableRowEmitter createRowEmitter(int resultSize) {
         Object[][] rows = new Object[resultSize][];
         for (int i = resultSize - 1; i >= 0; i--) {
             rows[i] = pq.pop();
         }
-        pq.clear();
-        IterableRowEmitter rowEmitter = new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
-        rowEmitter.run();
+        return new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
     }
 
     @Override
@@ -113,6 +116,13 @@ public class SortingTopNProjector extends AbstractProjector {
      */
     @Override
     public void repeat() {
-        throw new UnsupportedOperationException();
+        final int resultSize = Math.max(pq.size() - offset, 0);
+        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter.run();
+    }
+
+    @Override
+    public boolean requiresRepeatSupport() {
+        return false;
     }
 }

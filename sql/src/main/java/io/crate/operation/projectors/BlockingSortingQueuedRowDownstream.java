@@ -330,6 +330,11 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
             projector.upstreams.add(rowUpstream);
         }
 
+        @Override
+        public boolean requiresRepeatSupport() {
+            return false;
+        }
+
         private void pauseThread() {
             synchronized (pauseLock) {
                 if (pendingPause.compareAndSet(true, false)) {
