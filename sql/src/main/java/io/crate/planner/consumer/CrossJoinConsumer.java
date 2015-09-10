@@ -22,7 +22,9 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ObjectArrays;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
@@ -39,6 +41,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 
@@ -276,7 +279,9 @@ public class CrossJoinConsumer implements Consumer {
                         "nested-loop",
                         ImmutableList.<Projection>of(),
                         leftMerge,
+                        getOutputTypes(leftMerge, leftOutputs),
                         rightMerge,
+                        getOutputTypes(rightMerge, rightRelation.querySpec().outputs()),
                         localExecutionNodes
                 );
                 nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, true);
@@ -284,15 +289,33 @@ public class CrossJoinConsumer implements Consumer {
             return nl;
         }
 
+        /**
+         * get the output types from either the mergePhase if not-null or from the symbols
+         */
+        private List<DataType> getOutputTypes(@Nullable MergePhase mergePhase, List<Symbol> symbols) {
+            if (mergePhase == null) {
+                return Symbols.extractTypes(symbols);
+            } else {
+                return mergePhase.outputTypes();
+            }
+        }
+
+        @Nullable
         private MergePhase mergePhase(ConsumerContext context,
                                       Set<String> localExecutionNodes,
                                       DQLPlanNode previousPhase,
                                       List<Symbol> previousOutputs,
                                       @Nullable OrderBy orderBy) {
+            if (previousPhase.executionNodes().isEmpty()
+                || previousPhase.executionNodes().equals(localExecutionNodes)) {
+                // if the nested loop is on the same node we don't need a mergePhase to receive requests
+                // but can access the RowReceiver of the nestedLoop directly
+                return null;
+            }
+
             if (previousPhase instanceof MergePhase && previousPhase.executionNodes().isEmpty()) {
                 ((MergePhase) previousPhase).executionNodes(localExecutionNodes);
             }
-
             MergePhase mergePhase;
             if (OrderBy.isSorted(orderBy)) {
                 mergePhase = MergePhase.sortedMerge(
