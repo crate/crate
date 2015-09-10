@@ -424,4 +424,9 @@ public class FetchProjector extends AbstractProjector {
     public void repeat() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean requiresRepeatSupport() {
+        return false;
+    }
 }

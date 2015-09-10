@@ -245,6 +245,11 @@ public class SortingRowMerger implements RowMerger {
         }
 
         @Override
+        public boolean requiresRepeatSupport() {
+            return false;
+        }
+
+        @Override
         public void setUpstream(RowUpstream rowUpstream) {
             upstreams.add(rowUpstream);
         }

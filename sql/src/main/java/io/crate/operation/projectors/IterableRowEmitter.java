@@ -43,11 +43,12 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
 
     private final RowReceiver rowReceiver;
     private final ExecutionState executionState;
+    private final Iterable<? extends Row> rows;
+    private Iterator<? extends Row> rowsIt;
     private final Executor executor;
     private final AtomicBoolean paused = new AtomicBoolean(false);
 
     private volatile boolean pendingPause = false;
-    private Iterator<? extends Row> rowsIt;
 
     public IterableRowEmitter(RowReceiver rowReceiver,
                               ExecutionState executionState,
@@ -56,6 +57,7 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
         this.rowReceiver = rowReceiver;
         this.executionState = executionState;
         rowReceiver.setUpstream(this);
+        this.rows = rows;
         this.rowsIt = rows.iterator();
         this.executor = executor.or(MoreExecutors.directExecutor());
     }
@@ -113,5 +115,11 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
                 run();
             }
         }
+    }
+
+    @Override
+    public void repeat() {
+        rowsIt = rows.iterator();
+        run();
     }
 }
