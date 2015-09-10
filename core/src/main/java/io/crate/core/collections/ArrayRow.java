@@ -20,47 +20,44 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.core.collections;
 
-import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowUpstream;
+import java.util.Arrays;
 
-public abstract class ForwardingRowReceiver implements RowReceiver {
+/**
+ * A Row that is similar to {@link RowN} in that is uses a backing array which can be changed.
+ *
+ * The only difference is that size is always derived from the backing array and not changeable.
+ */
+public class ArrayRow implements Row {
 
-    final RowReceiver rowReceiver;
+    private Object[] cells;
 
-    public ForwardingRowReceiver(RowReceiver rowReceiver) {
-        this.rowReceiver = rowReceiver;
+    @Override
+    public int size() {
+        return cells.length;
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
-        rowReceiver.prepare(executionState);
+    public Object get(int index) {
+        return cells[index];
     }
 
     @Override
-    public boolean requiresRepeatSupport() {
-        return rowReceiver.requiresRepeatSupport();
+    public Object[] materialize() {
+        Object[] copy = new Object[cells.length];
+        System.arraycopy(cells, 0, copy, 0, cells.length);
+        return copy;
+    }
+
+    public void cells(Object[] cells) {
+        this.cells = cells;
     }
 
     @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-        rowReceiver.setUpstream(rowUpstream);
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
-        return rowReceiver.setNextRow(row);
-    }
-
-    @Override
-    public void finish() {
-        rowReceiver.finish();
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        rowReceiver.fail(throwable);
+    public String toString() {
+        return "ArrayRow{" +
+                "cells=" + Arrays.toString(cells) +
+                '}';
     }
 }

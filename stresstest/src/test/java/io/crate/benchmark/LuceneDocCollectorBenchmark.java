@@ -223,7 +223,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                     orderBy.nullsFirst()
             );
         } else {
-            rowDownstream = new SynchronizingPassThroughRowMerger(rowReceiver);
+            rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
         }
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
