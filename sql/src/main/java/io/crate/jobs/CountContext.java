@@ -115,4 +115,9 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
     public void resume(boolean async) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }
