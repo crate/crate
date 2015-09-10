@@ -169,6 +169,13 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         }
     }
 
+    @Override
+    public void repeat() {
+        for (RowUpstream upstream : upstreams) {
+            upstream.repeat();
+        }
+    }
+
     /**
      * we need to pause the collector and give away the current thread instead of block it
      * when:

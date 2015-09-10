@@ -63,7 +63,7 @@ public class CrateDocCollector implements CrateCollector {
     private final TopRowUpstream upstreamState;
     private final State state = new State();
 
-    public CrateDocCollector(CrateSearchContext searchContext,
+    public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
                              KeepAliveListener keepAliveListener,
                              CollectPhase collectPhase,
@@ -73,12 +73,22 @@ public class CrateDocCollector implements CrateCollector {
                              Collection<? extends LuceneCollectorExpression<?>> expressions) {
         this.searchContext = searchContext;
         this.rowReceiver = rowReceiver;
-        upstreamState = new TopRowUpstream(executor, new Runnable() {
-            @Override
-            public void run() {
-                innerCollect(state.collector, state.weight, state.leaveIt, state.scorer);
-            }
-        });
+        upstreamState = new TopRowUpstream(
+                executor,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        innerCollect(state.collector, state.weight, state.leaveIt, state.scorer);
+                    }
+                },
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        Iterator<AtomicReaderContext> iterator = searchContext.searcher().getTopReaderContext().leaves().iterator();
+                        innerCollect(state.collector, state.weight, iterator, null);
+                    }
+                }
+        );
         this.expressions = expressions;
         CollectorFieldsVisitor fieldsVisitor = new CollectorFieldsVisitor(expressions.size());
         collectorContext = new CollectorContext(
