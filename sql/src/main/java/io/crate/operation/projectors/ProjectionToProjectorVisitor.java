@@ -146,8 +146,16 @@ public class ProjectionToProjectorVisitor
     public Projector visitMergeProjection(MergeProjection projection, Context context) {
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(projection.orderBy(),
                 (List<Symbol>)projection.outputs());
+        int maxOrderByIndex = 0;
+        for (int curIndex : orderByIndices) {
+            if (curIndex > maxOrderByIndex) {
+                maxOrderByIndex = curIndex;
+            }
+        }
+        // it might be that we have less outputs, than order by symbols
+        int mergeRowSize = Math.max(maxOrderByIndex + 1, projection.outputs().size());
         return new BlockingSortingQueuedRowDownstream(
-                projection.outputs().size(),
+                mergeRowSize,
                 orderByIndices,
                 projection.reverseFlags(),
                 projection.nullsFirst());

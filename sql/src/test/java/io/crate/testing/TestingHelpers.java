@@ -651,8 +651,10 @@ public class TestingHelpers {
                         if (ord.compare(previous, current) > 0) {
                             mismatchDescription
                                     .appendText("element ").appendValue(current)
-                                    .appendText("at position ").appendValue(i)
-                                    .appendText("is bigger than previous element ")
+                                    .appendText(" at position ").appendValue(i)
+                                    .appendText(" is ")
+                                    .appendText(reverse ? "bigger" : "smaller")
+                                    .appendText(" than previous element ")
                                     .appendValue(previous);
                             return false;
                         }
@@ -670,7 +672,7 @@ public class TestingHelpers {
                 if (reverse) {
                     description.appendText(" reverse ");
                 }
-                description.appendText("nulls ").appendText(nullsFirst != null && nullsFirst ? "first" : "last");
+                description.appendText(" nulls ").appendText(nullsFirst != null && nullsFirst ? "first" : "last");
             }
         };
     }

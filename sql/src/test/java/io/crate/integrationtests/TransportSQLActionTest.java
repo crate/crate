@@ -1003,7 +1003,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
-                "and \"_score\" >= 0.98 order by quote ");
+                "and \"_score\" >= 0.98 order by quote");
         assertEquals(1L, response.rowCount());
         assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
     }

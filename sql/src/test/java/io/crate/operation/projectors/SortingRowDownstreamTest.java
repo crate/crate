@@ -31,6 +31,7 @@ import io.crate.operation.RowDownstreamHandle;
 import io.crate.operation.RowUpstream;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingProjector;
+import io.crate.testing.TestingHelpers;
 import org.apache.commons.lang3.RandomUtils;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
@@ -220,16 +221,7 @@ public class SortingRowDownstreamTest extends CrateUnitTest {
         Bucket result = collectingProjector.result().get(3, TimeUnit.SECONDS);
 
         assertThat(result.size(), is(80));
-        Row lastRow = null;
-        for (Row row : result) {
-            if (lastRow == null)  {
-                lastRow = row;
-                continue;
-            }
-            assertThat((Integer)row.get(0), is(greaterThanOrEqualTo((Integer)lastRow.get(0))));
-            lastRow = row;
-        }
-
+        assertThat(result, TestingHelpers.isSorted(0));
     }
 
 }

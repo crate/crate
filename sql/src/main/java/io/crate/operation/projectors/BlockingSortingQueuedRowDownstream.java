@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.Ordering;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,13 +47,13 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
     private RowDownstreamHandle downstreamContext;
-    private Object[] lowestToEmit = null;
+    private Object[] lowestToEmit;
     private final Object lowestToEmitLock = new Object();
     private final int rowSize;
     private final AtomicInteger runningHandles = new AtomicInteger(0);
 
 
-    private final ESLogger LOGGER = Loggers.getLogger(BlockingSortingQueuedRowDownstream.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(BlockingSortingQueuedRowDownstream.class);
 
     /**
      * To prevent the Handles to block and unblock frequently when the queue size is reached
@@ -117,20 +119,24 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
         }
     }
 
-    public boolean emit() {
-        Object[] lowestToEmit;
+    public synchronized boolean emit() {
+        SharedArrayRef localLowest = new SharedArrayRef(rowSize); // create new array
+        Object[] foundLowest;
         synchronized (lowestToEmitLock) {
-            lowestToEmit = this.lowestToEmit;
+            foundLowest = lowestToEmit;
         }
-        if (lowestToEmit == null) {
-            lowestToEmit = findLowestCells();
+        if (foundLowest == null) {
+            foundLowest = findLowestCells();
         }
+        // copies the array or invalidates if null
+        localLowest.set(foundLowest);
 
-        while (lowestToEmit != null) {
+        while (localLowest.isValid()) {
+
             Object[] nextLowest = null;
             boolean emptyHandle = false;
             for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles) {
-                if (!handle.emitUntil(lowestToEmit)) {
+                if (!handle.emitUntil(localLowest.get())) {
                     downstreamAborted.set(true);
                     return false;
                 }
@@ -150,11 +156,11 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             if (emptyHandle) {
                 break;
             } else {
-                lowestToEmit = nextLowest;
+                localLowest.set(nextLowest);
             }
         }
         synchronized (lowestToEmitLock) {
-            this.lowestToEmit = lowestToEmit;
+            this.lowestToEmit = localLowest.get();
         }
         return true;
     }
@@ -171,9 +177,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                 continue;
             }
 
-            if (lowest == null) {
-                lowest = cells;
-            } else if (ordering.compare(cells, lowest) > 0) {
+            if (lowest == null || ordering.compare(cells, lowest) > 0) {
                 lowest = cells;
             }
         }
@@ -203,7 +207,13 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
         private Object[] firstCells = null;
         private final RowN row;
 
-        private ArrayDeque<Object[]> cellsQueue = new ArrayDeque<>();
+        private final ArrayDeque<Object[]> cellsQueue = new ArrayDeque<>(MAX_QUEUE_SIZE);
+        private final ObjectPool<Object[]> pool = new ObjectPool<Object[]>(MAX_QUEUE_SIZE) {
+            @Override
+            public Object[] createObject() {
+                return new Object[rowSize];
+            }
+        };
 
         private final AtomicBoolean pendingPause = new AtomicBoolean(false);
         private boolean paused = false;
@@ -213,23 +223,16 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             this.row = new RowN(rowSize);
         }
 
-        public Object[] firstCells() throws NoSuchElementException {
-            synchronized (lock) {
-                return firstCells;
-            }
+        @Nullable
+        public Object[] firstCells() {
+            return firstCells;
         }
 
-        public Row poll() {
+        public Object[] poll() {
             synchronized (lock) {
                 Object[] cells = cellsQueue.poll();
-                int size = cellsQueue.size();
-                if (size == 0) {
-                    firstCells = null;
-                } else {
-                    firstCells = cellsQueue.getFirst();
-                }
-                row.cells(cells);
-                return row;
+                firstCells = cellsQueue.peekFirst();
+                return cells;
             }
         }
 
@@ -237,7 +240,11 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             boolean res = true;
             synchronized (lock) {
                 while (firstCells != null && ordering.compare(firstCells, until) >= 0) {
-                    if (!downstreamContext.setNextRow(poll())) {
+                    Object[] cells = poll();
+                    row.cells(cells);
+                    boolean wantMore = downstreamContext.setNextRow(row);
+                    pool.checkin(cells);
+                    if (!wantMore) {
                         res = false;
                         break;
                     }
@@ -277,7 +284,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
         }
 
         private Object[] addCellsToQueue(Row row) {
-            Object[] cells = new Object[rowSize];
+            Object[] cells = pool.checkout();
             for (int i = 0; i < rowSize; i++) {
                 cells[i] = row.get(i);
             }
@@ -311,7 +318,6 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                     }
                 }
             }
-
         }
 
         private void resume() {
@@ -322,6 +328,77 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                     pauseLock.notify();
                 }
             }
+        }
+    }
+
+
+    /**
+     * Simple object pool with fixed size.
+     *
+     * it is possible that it creates more objects than initially defined, but at no point,
+     * more are put in the pool. they are silently discarded
+     * @param <T> the type of the pooled instances
+     */
+    private abstract static class ObjectPool<T> {
+        private final EvictingQueue<T> spareQueue;
+
+        public ObjectPool(int size) {
+            this.spareQueue = EvictingQueue.create(size);
+        }
+
+        public abstract T createObject();
+
+        private T checkout() {
+            if (spareQueue.isEmpty()) {
+                return createObject();
+            } else {
+                return spareQueue.poll();
+            }
+        }
+
+        private void checkin(T obj) {
+            spareQueue.add(obj);
+        }
+    }
+
+    /**
+     * keep a reference on a single array,
+     * encapsulating invalidity (which was done with null before)
+     * and copying array contents to the internal array instead of
+     * keeping a shared array around whose contents may change.
+     *
+     * This class is not thread safe.
+     */
+    private static class SharedArrayRef {
+
+        private final Object[] emitMe;
+        private boolean valid;
+
+        public SharedArrayRef(int rowSize) {
+            emitMe = new Object[rowSize];
+            valid = false;
+        }
+
+
+        public void set(@Nullable Object[] newEmitMe) {
+            if (newEmitMe == null) {
+                valid = false;
+            } else {
+                System.arraycopy(newEmitMe, 0, emitMe, 0, emitMe.length);
+                valid = true;
+            }
+        }
+
+        @Nullable
+        public Object[] get() {
+            if (!valid) {
+                return null;
+            }
+            return emitMe;
+        }
+
+        public boolean isValid() {
+            return valid;
         }
     }
 }

@@ -86,7 +86,8 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
         }
 
         private void doStart() {
-            for (int i = offset; i < offset + NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES); i++) {
+            int limit = offset + NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES);
+            for (int i = offset; i < limit; i++) {
                 cells[0] = i;
                 for ( int j = 0; j < SAME_VALUES; j++) {
                     downstreamHandle.setNextRow(row);

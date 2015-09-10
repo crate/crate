@@ -284,7 +284,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new boolean[]{false, false},
                 new Boolean[]{false, false}
         );
-        MergeProjector projector = (MergeProjector)visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        BlockingSortingQueuedRowDownstream projector = (BlockingSortingQueuedRowDownstream)visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);
