@@ -107,4 +107,12 @@ public class SortingTopNProjector extends AbstractProjector {
     public void fail(Throwable t) {
         downstream.fail(t);
     }
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }
