@@ -105,7 +105,7 @@ public class PageDownstreamFactory {
                             mergeNode.reverseFlags(),
                             mergeNode.nullsFirst()
                     ),
-                    false
+                    requiresRepeatSupport
             );
         } else {
             pagingIterator = requiresRepeatSupport ?

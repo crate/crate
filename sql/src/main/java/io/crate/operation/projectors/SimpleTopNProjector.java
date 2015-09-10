@@ -85,11 +85,8 @@ public class SimpleTopNProjector extends AbstractProjector {
         downstream.fail(throwable);
     }
 
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
     @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
+    public boolean requiresRepeatSupport() {
+        return downstream.requiresRepeatSupport();
     }
 }
