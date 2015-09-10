@@ -24,15 +24,16 @@ package io.crate.operation.projectors.writer;
 import com.google.common.base.Preconditions;
 import org.elasticsearch.common.settings.Settings;
 
+import java.io.IOException;
 import java.io.OutputStream;
 
 public abstract class Output {
 
-    public abstract void open() throws java.io.IOException;
-
-    public abstract void close() throws java.io.IOException;
-
-    public abstract OutputStream getOutputStream();
+    /**
+     * calling this method creates & acquires an OutputStream which must be closed by the caller if it is no longer needed
+     * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
+     */
+    public abstract OutputStream acquireOutputStream() throws IOException;
 
     protected boolean parseCompression(Settings settings) {
         String compressionType = settings.get("compression");

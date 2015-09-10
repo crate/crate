@@ -133,14 +133,13 @@ public class WriterProjector extends AbstractProjector {
     public void prepare(ExecutionState executionState) {
         counter.set(0);
         try {
-            output.open();
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
-                        output.getOutputStream(), collectExpressions, overwrites);
+                        output.acquireOutputStream(), collectExpressions, overwrites);
             } else if (inputs != null && !inputs.isEmpty()) {
-                rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs);
+                rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
             } else {
-                rowWriter = new RawRowWriter(output.getOutputStream());
+                rowWriter = new RawRowWriter(output.acquireOutputStream());
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format("Failed to open output: '%s'", e.getMessage()), e);
@@ -167,7 +166,6 @@ public class WriterProjector extends AbstractProjector {
             if (rowWriter != null) {
                 rowWriter.close();
             }
-            output.close();
         } catch (IOException e) {
             downstream.fail(new UnhandledServerException("Failed to close output", e));
             return true;
@@ -185,7 +183,7 @@ public class WriterProjector extends AbstractProjector {
     interface RowWriter {
 
         void write(Row row);
-        void close();
+        void close() throws IOException;
     }
 
     static class DocWriter implements RowWriter {
@@ -222,7 +220,8 @@ public class WriterProjector extends AbstractProjector {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
+            outputStream.close();
         }
     }
 
@@ -246,7 +245,8 @@ public class WriterProjector extends AbstractProjector {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
+            outputStream.close();
         }
     }
 
@@ -284,8 +284,9 @@ public class WriterProjector extends AbstractProjector {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
             builder.close();
+            outputStream.close();
         }
     }
 }

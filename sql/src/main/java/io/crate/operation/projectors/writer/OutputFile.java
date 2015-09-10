@@ -34,7 +34,6 @@ import java.util.zip.GZIPOutputStream;
 public class OutputFile extends Output {
 
     private final String path;
-    private OutputStream os;
     private final boolean overwrite;
     private final boolean compression;
 
@@ -46,7 +45,7 @@ public class OutputFile extends Output {
     }
 
     @Override
-    public void open() throws IOException {
+    public OutputStream acquireOutputStream() throws IOException {
         File outFile = new File(path);
         if (outFile.exists()){
             if (!overwrite){
@@ -56,22 +55,10 @@ public class OutputFile extends Output {
                 throw new IOException("Output path is a directory: " + path);
             }
         }
-        os = new FileOutputStream(outFile);
+        OutputStream os = new FileOutputStream(outFile);
         if (compression) {
             os = new GZIPOutputStream(os);
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (os != null) { // if open failed os is null here
-            os.close();
-            os = null;
-        }
-    }
-
-    @Override
-    public OutputStream getOutputStream() {
         return os;
     }
 }

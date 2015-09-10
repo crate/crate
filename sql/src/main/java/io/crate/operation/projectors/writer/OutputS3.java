@@ -49,7 +49,6 @@ public class OutputS3 extends Output {
     private final ExecutorService executorService;
     private final URI uri;
     private final boolean compression;
-    private OutputStream outputStream;
 
     public OutputS3(ExecutorService executorService, URI uri, Settings settings) {
         this.executorService = executorService;
@@ -58,23 +57,11 @@ public class OutputS3 extends Output {
     }
 
     @Override
-    public void open() throws IOException {
-        outputStream = new S3OutputStream(executorService, uri, new S3ClientHelper());
+    public OutputStream acquireOutputStream() throws IOException {
+        OutputStream outputStream = new S3OutputStream(executorService, uri, new S3ClientHelper());
         if (compression) {
             outputStream = new GZIPOutputStream(outputStream);
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (outputStream != null) {
-            outputStream.close();
-            outputStream = null;
-        }
-    }
-
-    @Override
-    public OutputStream getOutputStream() {
         return outputStream;
     }
 
