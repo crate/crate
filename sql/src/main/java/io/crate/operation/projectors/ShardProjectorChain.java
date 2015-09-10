@@ -83,7 +83,7 @@ public class ShardProjectorChain {
 
     public static ShardProjectorChain sortedMerge(UUID jobId,
                                                   List<? extends Projection> projections,
-                                                  int numShardsEstimate,
+                                                  int maxNumShards,
                                                   RowReceiver finalDownstream,
                                                   ProjectorFactory projectorFactory,
                                                   RamAccountingContext ramAccountingContext,
@@ -92,7 +92,7 @@ public class ShardProjectorChain {
         return new ShardProjectorChain(
                 jobId,
                 projections,
-                numShardsEstimate,
+                maxNumShards,
                 finalDownstream,
                 projectorFactory,
                 ramAccountingContext,
@@ -102,7 +102,7 @@ public class ShardProjectorChain {
     }
 
     public static ShardProjectorChain passThroughMerge(UUID jobId,
-                                                       int numShardsEstimate,
+                                                       int maxNumShards,
                                                        List<? extends Projection> projections,
                                                        RowReceiver finalDownstream,
                                                        ProjectorFactory projectorFactory,
@@ -110,7 +110,7 @@ public class ShardProjectorChain {
         return new ShardProjectorChain(
                 jobId,
                 projections,
-                numShardsEstimate,
+                maxNumShards,
                 finalDownstream,
                 projectorFactory,
                 ramAccountingContext,
@@ -122,7 +122,7 @@ public class ShardProjectorChain {
 
     private ShardProjectorChain(UUID jobId,
                                 List<? extends Projection> projections,
-                                int numShardsEstimate,
+                                int maxNumShards,
                                 RowReceiver finalDownstream,
                                 ProjectorFactory projectorFactory,
                                 RamAccountingContext ramAccountingContext,
@@ -163,8 +163,10 @@ public class ShardProjectorChain {
             nodeProjectors.get(nodeProjectors.size()-1).downstream(finalDownstream);
         }
 
-        if (orderBy == null || !orderBy.isSorted()) {
-            rowDownstream = new ForwardingRowDownstream(firstNodeProjector);
+        if (maxNumShards == 1) {
+            rowDownstream = new SingleUpstreamRowDownstream(firstNodeProjector);
+        } else if (orderBy == null || !orderBy.isSorted()) {
+            rowDownstream = new SynchronizingPassThroughRowMerger(firstNodeProjector);
         } else {
             assert outputs != null : "must have outputs if orderBy is present";
             int[] orderByPositions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), outputs);
@@ -173,7 +175,7 @@ public class ShardProjectorChain {
 
         if (shardProjectionsIndex >= 0) {
             // shardProjector will be created later
-            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShardsEstimate);
+            shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * maxNumShards);
         } else {
             shardProjectors = ImmutableList.of();
         }

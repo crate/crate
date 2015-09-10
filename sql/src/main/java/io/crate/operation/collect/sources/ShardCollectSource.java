@@ -123,7 +123,9 @@ public class ShardCollectSource implements CollectSource {
         );
 
         String localNodeId = clusterService.localNode().id();
-        int numShardsEstimate = normalizedPhase.routing().numShards(localNodeId);
+        // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
+        int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
+        maxNumShards += normalizedPhase.routing().numShards(TableInfo.NULL_NODE_ID);
 
         ShardProjectorChain projectorChain;
         OrderBy orderBy = collectPhase.orderBy();
@@ -131,7 +133,7 @@ public class ShardCollectSource implements CollectSource {
             projectorChain = ShardProjectorChain.sortedMerge(
                     normalizedPhase.jobId(),
                     normalizedPhase.projections(),
-                    numShardsEstimate,
+                    maxNumShards,
                     downstream,
                     projectorFactory,
                     jobCollectContext.queryPhaseRamAccountingContext(),
@@ -141,7 +143,7 @@ public class ShardCollectSource implements CollectSource {
         } else {
             projectorChain = ShardProjectorChain.passThroughMerge(
                     normalizedPhase.jobId(),
-                    numShardsEstimate,
+                    maxNumShards,
                     normalizedPhase.projections(),
                     downstream,
                     projectorFactory,
@@ -153,7 +155,7 @@ public class ShardCollectSource implements CollectSource {
         int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), normalizedPhase.routing().numShards());
         LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
                 batchSizeHint, limit, batchSizeHint);
-        final List<CrateCollector> shardCollectors = new ArrayList<>(numShardsEstimate);
+        final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : normalizedPhase.routing().locations().entrySet()) {
             if (nodeEntry.getKey().equals(localNodeId)) {
                 Map<String, List<Integer>> shardIdMap = nodeEntry.getValue();

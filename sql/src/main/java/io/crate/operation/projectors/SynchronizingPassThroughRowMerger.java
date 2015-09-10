@@ -35,9 +35,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ForwardingRowDownstream implements RowDownstream, RowUpstream {
+public class SynchronizingPassThroughRowMerger implements RowDownstream, RowUpstream {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ForwardingRowDownstream.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(SynchronizingPassThroughRowMerger.class);
 
     private final Set<RowUpstream> rowUpstreams = new HashSet<>();
     private final AtomicInteger activeUpstreams = new AtomicInteger();
@@ -45,7 +45,7 @@ public class ForwardingRowDownstream implements RowDownstream, RowUpstream {
     private final RowReceiver rowReceiver;
 
 
-    public ForwardingRowDownstream(final RowReceiver rowReceiver) {
+    public SynchronizingPassThroughRowMerger(final RowReceiver rowReceiver) {
         rowReceiver.setUpstream(this);
         this.rowReceiver = new MultiUpstreamRowReceiver(rowReceiver);
     }

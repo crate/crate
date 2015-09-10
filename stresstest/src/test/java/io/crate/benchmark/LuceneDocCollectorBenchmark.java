@@ -206,7 +206,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                     orderBy.nullsFirst()
             );
         } else {
-            rowDownstream = new ForwardingRowDownstream(rowReceiver);
+            rowDownstream = new SynchronizingPassThroughRowMerger(rowReceiver);
         }
         ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
