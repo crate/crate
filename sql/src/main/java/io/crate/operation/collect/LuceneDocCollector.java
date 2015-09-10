@@ -182,7 +182,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
         if (!wantMore || (limit != null && rowCount >= limit)) {
             // no more rows required, we can stop here
-            throw new CollectionFinishedEarlyException();
+            throw CollectionFinishedEarlyException.INSTANCE;
         }
     }
 

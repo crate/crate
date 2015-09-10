@@ -30,4 +30,13 @@ import java.io.IOException;
  * the next leaf (segment).
  */
 public class CollectionFinishedEarlyException extends IOException {
+
+    /**
+     * As this exception is just used to break out of {@link org.apache.lucene.search.Collector#collect(int)}
+     * we're not interested in a stacktrace and re-use a single instance
+     */
+    @SuppressWarnings("ThrowableInstanceNeverThrown")
+    public static final CollectionFinishedEarlyException INSTANCE = new CollectionFinishedEarlyException();
+
+    private CollectionFinishedEarlyException() {}
 }
