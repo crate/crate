@@ -38,7 +38,6 @@ import org.junit.Test;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.Mockito.mock;
 
 public class NestedLoopPhaseTest extends CrateUnitTest {
 
@@ -46,15 +45,19 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
     public void testSerialization() throws Exception {
         TopNProjection topNProjection = new TopNProjection(10, 0);
         UUID jobId = UUID.randomUUID();
+        MergePhase mp1 = new MergePhase(jobId, 2, "merge", 1,
+                ImmutableList.<DataType>of(DataTypes.STRING),
+                ImmutableList.<Projection>of(),
+                DistributionType.BROADCAST);
+        MergePhase mp2 = new MergePhase(jobId, 3, "merge", 1,
+                ImmutableList.<DataType>of(DataTypes.STRING),
+                ImmutableList.<Projection>of(),
+                DistributionType.BROADCAST);
         NestedLoopPhase node = new NestedLoopPhase(jobId, 1, "nestedLoop", ImmutableList.<Projection>of(topNProjection),
-                new MergePhase(jobId, 2, "merge", 1,
-                        ImmutableList.<DataType>of(DataTypes.STRING),
-                        ImmutableList.<Projection>of(),
-                        DistributionType.BROADCAST),
-                new MergePhase(jobId, 3, "merge", 1,
-                        ImmutableList.<DataType>of(DataTypes.STRING),
-                        ImmutableList.<Projection>of(),
-                        DistributionType.BROADCAST),
+                mp1,
+                mp1.outputTypes(),
+                mp2,
+                mp2.outputTypes(),
                 Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();

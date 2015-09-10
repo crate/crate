@@ -65,6 +65,11 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
+    public boolean requiresRepeatSupport() {
+        return downstream.requiresRepeatSupport();
+    }
+
+    @Override
     public void setUpstream(RowUpstream upstream) {
         assert upstream != null : "upstream must not be null";
         this.upstream = upstream;
@@ -116,6 +121,11 @@ public abstract class AbstractProjector implements Projector {
 
         @Override
         public void setUpstream(RowUpstream upstream) {
+            throw new IllegalStateException(STATE_ERROR);
+        }
+
+        @Override
+        public boolean requiresRepeatSupport() {
             throw new IllegalStateException(STATE_ERROR);
         }
     }
