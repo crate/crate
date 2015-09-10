@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import com.google.common.io.ByteStreams;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.common.Hex;
 import org.apache.lucene.util.IOUtils;
@@ -138,15 +139,13 @@ public class DigestBlob {
 
     private void calculateDigest() {
         assert headSize.get() == headLength : "Head hasn't catched up, can't calculate digest";
-        try {
-            FileInputStream stream = new FileInputStream(file);
-            stream.skip(headLength);
+        try (FileInputStream stream = new FileInputStream(file)) {
+            ByteStreams.skipFully(stream, headLength);
             byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = stream.read(buffer, 0, 4096)) > 0) {
                 md.update(buffer, 0, bytesRead);
             }
-            stream.close();
         } catch (IOException ex) {
             logger.error("error accessing file to calculate digest", ex);
         }
@@ -222,7 +221,6 @@ public class DigestBlob {
 
         try {
             logger.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);
-
             digestBlob.headFileChannel = new FileOutputStream(digestBlob.file, false).getChannel();
             digestBlob.headLength = currentPos;
             digestBlob.headSize = new AtomicLong();
