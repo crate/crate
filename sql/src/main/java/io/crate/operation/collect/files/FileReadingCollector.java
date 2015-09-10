@@ -87,6 +87,14 @@ public class FileReadingCollector implements CrateCollector {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     public enum FileFormat {
         JSON
     }

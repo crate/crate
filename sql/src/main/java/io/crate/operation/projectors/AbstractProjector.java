@@ -60,11 +60,15 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
+    public void repeat() {
+        upstream.repeat();
+    }
+
+    @Override
     public void setUpstream(RowUpstream upstream) {
         assert upstream != null : "upstream must not be null";
         this.upstream = upstream;
     }
-
 
     private static class StateCheckRowUpstream implements RowUpstream {
 
@@ -77,6 +81,11 @@ public abstract class AbstractProjector implements Projector {
 
         @Override
         public void resume(boolean async) {
+            throw new IllegalStateException(STATE_ERROR);
+        }
+
+        @Override
+        public void repeat() {
             throw new IllegalStateException(STATE_ERROR);
         }
     }

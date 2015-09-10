@@ -83,6 +83,14 @@ public class BlobDocCollector implements CrateCollector {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
 
         private final InputRow row = new InputRow(inputs);

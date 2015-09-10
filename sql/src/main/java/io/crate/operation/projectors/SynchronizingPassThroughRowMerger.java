@@ -70,6 +70,14 @@ public class SynchronizingPassThroughRowMerger implements RowDownstream, RowUpst
         }
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     class MultiUpstreamRowReceiver implements RowReceiver {
 
         final RowReceiver rowReceiver;
