@@ -28,7 +28,7 @@ public interface PagingIterator<T> extends Iterator<T> {
     /**
      * Add additional iterators to the PagingIterator. (E.g. due to a new Page that has arrived)
      */
-    void merge(Iterable<? extends Iterator<T>> iterators);
+    void merge(Iterable<? extends Iterable<T>> iterators);
 
     /**
      * This is called if the last page has been received and merge has been called for the last time.

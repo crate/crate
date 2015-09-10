@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.collect.Iterators;
+import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -29,21 +30,24 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class PassThroughPagingIteratorTest {
+public class PassThroughPagingIteratorTest extends CrateUnitTest {
+
+    private static <T> PassThroughPagingIterator<T> iter() {
+        return new PassThroughPagingIterator<>();
+    }
 
     @Test
     public void testHasNextCallWithoutMerge() throws Exception {
-        PassThroughPagingIterator<Object> iterator = new PassThroughPagingIterator<>();
+        PassThroughPagingIterator<Object> iterator = iter();
         assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testInputIsPassedThrough() throws Exception {
-        PassThroughPagingIterator<String> iterator = new PassThroughPagingIterator<>();
+        PassThroughPagingIterator<String> iterator = iter();
         iterator.merge(Arrays.asList(
-                Arrays.asList("a", "b", "c").iterator(), Arrays.asList("d", "e").iterator()));
+                Arrays.asList("a", "b", "c"), Arrays.asList("d", "e")));
 
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
@@ -52,10 +56,10 @@ public class PassThroughPagingIteratorTest {
 
     @Test
     public void testInputIsPassedThroughWithSecondMergeCall() throws Exception {
-        PassThroughPagingIterator<String> iterator = new PassThroughPagingIterator<>();
+        PassThroughPagingIterator<String> iterator = iter();
         iterator.merge(Arrays.asList(
-                Arrays.asList("a", "b", "c").iterator(), Arrays.asList("d", "e").iterator()));
-        iterator.merge(Collections.singletonList(Arrays.asList("f", "g").iterator()));
+                Arrays.asList("a", "b", "c"), Arrays.asList("d", "e")));
+        iterator.merge(Collections.singletonList(Arrays.asList("f", "g")));
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
         assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e", "f", "g"));

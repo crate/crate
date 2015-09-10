@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import java.util.Collections;
@@ -29,7 +30,10 @@ import java.util.Iterator;
 
 public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implements PagingIterator<T> {
 
-    Iterator<T> iterator = Collections.emptyIterator();
+    private Iterator<T> iterator = Collections.emptyIterator();
+
+    public PassThroughPagingIterator() {
+    }
 
     @Override
     protected Iterator<T> delegate() {
@@ -37,11 +41,11 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     }
 
     @Override
-    public void merge(Iterable<? extends Iterator<T>> iterators) {
+    public void merge(Iterable<? extends Iterable<T>> iterables) {
         if (iterator.hasNext()) {
-            iterator = Iterators.concat(iterator, Iterators.concat(iterators.iterator()));
+            iterator = Iterators.concat(iterator, Iterables.concat(iterables).iterator());
         } else {
-            iterator = Iterators.concat(iterators.iterator());
+            iterator = Iterables.concat(iterables).iterator();
         }
     }
 

@@ -22,12 +22,8 @@
 package io.crate.operation.merge;
 
 import com.google.common.collect.Ordering;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.UnmodifiableIterator;
 
-import java.util.*;
-
-import static com.google.common.collect.Iterators.peekingIterator;
+import java.util.Collections;
 
 /**
  * A pagingIterator that sorts on consumption
@@ -40,13 +36,16 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
     private final SortedMergeIterator<T> mergingIterator;
     private boolean ignoreLeastExhausted = false;
 
+    /**
+     * @param ordering determining how the items are sorted
+     */
     public SortedPagingIterator(Ordering<T> ordering) {
-        mergingIterator = new SortedMergeIterator<>(Collections.<Iterator<? extends T>>emptyList(), ordering);
+        mergingIterator = new PlainSortedMergeIterator<>(Collections.<Iterable<T>>emptyList(), ordering);
     }
 
     @Override
-    public void merge(Iterable<? extends Iterator<T>> iterators) {
-        mergingIterator.merge(iterators);
+    public void merge(Iterable<? extends Iterable<T>> iterables) {
+        mergingIterator.merge(iterables);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
 
     @Override
     public boolean hasNext() {
-        return mergingIterator.hasNext() && (ignoreLeastExhausted || !mergingIterator.leastExhausted);
+        return mergingIterator.hasNext() && (ignoreLeastExhausted || !mergingIterator.isLeastExhausted());
     }
 
     @Override
@@ -67,73 +66,5 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
-    }
-
-    /**
-     * MergingIterator like it is used in guava Iterators.mergedSort
-     * It has (limited) shared object support.
-     *
-     * And it also has a merge function with which additional backing iterators can be added to enable paging
-     */
-    private static class SortedMergeIterator<T> extends UnmodifiableIterator<T> {
-
-        final Queue<PeekingIterator<T>> queue;
-        private PeekingIterator<T> lastUsedIter = null;
-        private boolean leastExhausted = false;
-
-        public SortedMergeIterator(Iterable<? extends Iterator<? extends T>> iterators, final Comparator<? super T> itemComparator) {
-            Comparator<PeekingIterator<T>> heapComparator = new Comparator<PeekingIterator<T>>() {
-                @Override
-                public int compare(PeekingIterator<T> o1, PeekingIterator<T> o2) {
-                    return itemComparator.compare(o1.peek(), o2.peek());
-                }
-            };
-            queue = new PriorityQueue<>(2, heapComparator);
-
-            for (Iterator<? extends T> iterator : iterators) {
-                if (iterator.hasNext()) {
-                    queue.add(peekingIterator(iterator));
-                }
-            }
-        }
-
-        @Override
-        public boolean hasNext() {
-            reAddLastIterator();
-            return !queue.isEmpty();
-        }
-
-        private void reAddLastIterator() {
-            if (lastUsedIter != null) {
-                if (lastUsedIter.hasNext()) {
-                    queue.add(lastUsedIter);
-                } else {
-                    leastExhausted = true;
-                }
-                lastUsedIter = null;
-            }
-        }
-
-        @Override
-        public T next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            lastUsedIter = queue.remove();
-            return lastUsedIter.next();
-        }
-
-        void merge(Iterable<? extends Iterator<T>> iterators) {
-            if (lastUsedIter != null && lastUsedIter.hasNext()) {
-                queue.add(lastUsedIter);
-                lastUsedIter = null;
-            }
-            for (Iterator<T> rowIterator : iterators) {
-                if (rowIterator.hasNext()) {
-                    queue.add(peekingIterator(rowIterator));
-                }
-            }
-            leastExhausted = false;
-        }
     }
 }

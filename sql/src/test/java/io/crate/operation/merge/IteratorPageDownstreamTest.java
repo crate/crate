@@ -40,7 +40,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
-import java.util.Iterator;
 import java.util.concurrent.Executor;
 
 import static org.hamcrest.core.Is.is;
@@ -74,11 +73,11 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), PAGE_CONSUME_LISTENER);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
         b1.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
         b2.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends Iterator<Row>>>any());
+        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
     }
 
     @Test
@@ -150,10 +149,10 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         b1.set(new ArrayBucket(
-                new Object[][] {
-                        new Object[] {"a"},
-                        new Object[] {"b"},
-                        new Object[] {"c"}
+                new Object[][]{
+                        new Object[]{"a"},
+                        new Object[]{"b"},
+                        new Object[]{"c"}
                 }
         ));
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
