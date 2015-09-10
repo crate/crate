@@ -53,4 +53,12 @@ public class FilterProjector extends AbstractProjector {
     public void fail(Throwable throwable) {
         downstream.fail(throwable);
     }
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
 }
