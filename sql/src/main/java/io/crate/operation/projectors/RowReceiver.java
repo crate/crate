@@ -69,4 +69,7 @@ public interface RowReceiver {
      * so that the RowReceiver can call pause/resume on the upstream.
      */
     void setUpstream(RowUpstream rowUpstream);
+
+
+    boolean requiresRepeatSupport();
 }

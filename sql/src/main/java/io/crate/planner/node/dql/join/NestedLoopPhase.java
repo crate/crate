@@ -30,9 +30,11 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -57,15 +59,17 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
                            String name,
                            List<Projection> projections,
                            MergePhase leftMergePhase,
+                           Collection<? extends DataType> leftOutputTypes,
                            MergePhase rightMergePhase,
+                           Collection<? extends DataType> rightOutputTypes,
                            Set<String> executionNodes) {
         super(jobId, executionNodeId, name, projections);
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;
         this.executionNodes = executionNodes;
-        outputTypes = new ArrayList<>(leftMergePhase.outputTypes().size() + rightMergePhase.outputTypes().size());
-        outputTypes.addAll(leftMergePhase.outputTypes());
-        outputTypes.addAll(rightMergePhase.outputTypes());
+        outputTypes = new ArrayList<>(leftOutputTypes.size() + rightOutputTypes.size());
+        outputTypes.addAll(leftOutputTypes);
+        outputTypes.addAll(rightOutputTypes);
     }
 
     @Override
@@ -82,10 +86,12 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
         }
     }
 
+    @Nullable
     public MergePhase leftMergePhase() {
         return leftMergePhase;
     }
 
+    @Nullable
     public MergePhase rightMergePhase() {
         return rightMergePhase;
     }
