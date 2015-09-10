@@ -40,19 +40,19 @@ import static org.hamcrest.core.Is.is;
 
 public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
 
-    private String functionName = ToLongFunction.NAME;
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_LONG;
 
-    private ToLongFunction getFunction(DataType type) {
-        return (ToLongFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+    private ToPrimitiveFunction getFunction(DataType type) {
+        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
     private Long evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
-        return getFunction(type).evaluate(input);
+        return (Long) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToLongFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
     }

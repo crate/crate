@@ -32,7 +32,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubstrFunction;
-import io.crate.operation.scalar.cast.ToStringFunction;
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
@@ -195,7 +195,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function)outputSymbols.get(1);
-        assertThat(castFunction.info().ident().name(), is(ToStringFunction.NAME));
+        assertThat(castFunction.info().ident().name(), is(CastFunctionResolver.FunctionNames.TO_STRING));
     }
 
     @Test

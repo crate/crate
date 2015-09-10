@@ -40,19 +40,19 @@ import static org.hamcrest.core.Is.is;
 
 public class ToByteFunctionTest extends AbstractScalarFunctionsTest {
 
-    private String functionName = ToByteFunction.NAME;
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_BYTE;
 
-    private ToByteFunction getFunction(DataType type) {
-        return (ToByteFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+    private ToPrimitiveFunction getFunction(DataType type) {
+        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
     private Byte evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
-        return getFunction(type).evaluate(input);
+        return (Byte) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToByteFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
     }

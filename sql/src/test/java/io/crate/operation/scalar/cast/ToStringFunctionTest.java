@@ -42,22 +42,24 @@ import static org.hamcrest.core.Is.is;
 
 public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
 
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_STRING;
+
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
 
-        FunctionImplementation castIntegerToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)));
+        FunctionImplementation castIntegerToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.INTEGER)));
 
         Function function = new Function(castIntegerToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(123)));
         Symbol result = castIntegerToString.normalizeSymbol(function);
         assertLiteralSymbol(result, "123");
 
-        FunctionImplementation castFloatToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)));
+        FunctionImplementation castFloatToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT)));
         function = new Function(castFloatToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(0.5f)));
         result = castFloatToString.normalizeSymbol(function);
         assertLiteralSymbol(result, "0.5");
 
-        FunctionImplementation castStringToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
+        FunctionImplementation castStringToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
         function = new Function(castStringToString.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
         result = castStringToString.normalizeSymbol(function);
         assertLiteralSymbol(result, "hello");
@@ -67,13 +69,13 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("type 'object' not supported for conversion");
-        functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+        functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        FunctionIdent ident = new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER));
+        FunctionIdent ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.INTEGER));
         Scalar<Object, Object> format = (Scalar<Object, Object>) functions.get(ident);
         Input<Object> arg1 = new Input<Object>() {
             @Override

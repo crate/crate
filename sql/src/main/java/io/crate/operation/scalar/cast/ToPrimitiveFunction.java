@@ -22,9 +22,13 @@
 package io.crate.operation.scalar.cast;
 
 import com.google.common.base.Preconditions;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -34,16 +38,39 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
-public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
+public class ToPrimitiveFunction extends Scalar<Object, Object> {
 
-    protected final DataType returnType;
-    protected final FunctionInfo info;
+    private final DataType returnType;
+    private final FunctionInfo info;
 
-
-    protected ToPrimitiveFunction(FunctionInfo functionInfo){
+    private ToPrimitiveFunction(FunctionInfo functionInfo) {
         this.returnType = functionInfo.returnType();
         this.info = functionInfo;
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.primitiveFunctionMap.entrySet()) {
+            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        }
+      }
+
+    private static class Resolver implements DynamicFunctionResolver {
+
+        private final String name;
+        private final DataType dataType;
+
+        protected Resolver(DataType dataType, String name) {
+            this.name = name;
+            this.dataType = dataType;
+        }
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            ToPrimitiveFunction.checkPreconditions(dataTypes);
+            return new ToPrimitiveFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
+        }
     }
 
     protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -77,8 +104,8 @@ public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
     }
 
     @Override
-    public T evaluate(Input[] args) {
+    public Object evaluate(Input[] args) {
         assert args.length == 1;
-        return (T)returnType.value(args[0].value());
+        return returnType.value(args[0].value());
     }
 }

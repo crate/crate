@@ -40,19 +40,19 @@ import static org.hamcrest.core.Is.is;
 
 public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
 
-    private String functionName = ToShortFunction.NAME;
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_SHORT;
 
-    private ToShortFunction getFunction(DataType type) {
-        return (ToShortFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+    private ToPrimitiveFunction getFunction(DataType type) {
+        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
     private Short evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
-        return getFunction(type).evaluate(input);
+        return (Short) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToShortFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
     }

@@ -46,8 +46,8 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.cast.ToStringArrayFunction;
-import io.crate.operation.scalar.cast.ToStringFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.symbol.*;
@@ -1126,14 +1126,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testUnknownSubscriptInSelectList() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column o['no_such_column'] unknown");
-        SelectAnalyzedStatement analysis = analyze("select o['no_such_column'] from users");
+       analyze("select o['no_such_column'] from users");
     }
 
     @Test
     public void testUnknownSubscriptInQuery() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column o['no_such_column'] unknown");
-        SelectAnalyzedStatement analysis = analyze("select * from users where o['no_such_column'] is not null");
+        analyze("select * from users where o['no_such_column'] is not null");
     }
 
 
@@ -1456,8 +1456,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCastExpression() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select cast(other_id as string) from users");
-        assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(ToStringFunction.NAME,
-                Arrays.<DataType>asList(DataTypes.LONG)));
+        assertThat(analysis.relation().querySpec().outputs().get(0),
+                isFunction(CastFunctionResolver.FunctionNames.TO_STRING, Arrays.<DataType>asList(DataTypes.LONG)));
 
         analysis = analyze("select cast(1+1 as string) from users");
         assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));

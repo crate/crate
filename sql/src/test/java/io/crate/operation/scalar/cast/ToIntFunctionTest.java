@@ -41,17 +41,19 @@ import static org.hamcrest.core.Is.is;
 
 public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
 
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_INTEGER;
+
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
 
-        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
+        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
 
         Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("123")));
         Symbol result = castStringToInteger.normalizeSymbol(function);
         assertLiteralSymbol(result, 123);
 
-        FunctionImplementation castFloatToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)));
+        FunctionImplementation castFloatToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT)));
 
         function = new Function(castFloatToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral(12.5f)));
         result = castStringToInteger.normalizeSymbol(function);
@@ -62,14 +64,14 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("type 'object' not supported for conversion");
-        functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+        functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast 'hello' to int");
-        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
+        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
         Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
         castStringToInteger.normalizeSymbol(function);
     }
@@ -77,7 +79,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        FunctionIdent ident = new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING));
+        FunctionIdent ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING));
         Scalar<Object, Object> format = (Scalar<Object, Object>) functions.get(ident);
         Input<Object> arg1 = new Input<Object>() {
             @Override
@@ -88,7 +90,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         Object result = format.evaluate(arg1);
         assertThat((Integer)result, is(123));
 
-        ident = new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT));
+        ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT));
         format = (Scalar<Object, Object>) functions.get(ident);
         arg1 = new Input<Object>() {
             @Override

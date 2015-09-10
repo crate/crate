@@ -32,18 +32,35 @@ import java.util.Locale;
 
 public class CastFunctionResolver {
 
+    public static class FunctionNames {
+        public static final String TO_STRING = "toString";
+        public static final String TO_INTEGER = "toInt";
+        public static final String TO_LONG = "toLong";
+        public static final String TO_TIMESTAMP = "toTimestamp";
+        public static final String TO_DOUBLE = "toDouble";
+        public static final String TO_BOOLEAN = "toBoolean";
+        public static final String TO_FLOAT = "toFloat";
+        public static final String TO_BYTE = "toByte";
+        public static final String TO_SHORT = "toShort";
+        public static final String TO_NULL = "toNull";
+    }
+
+    static final ImmutableMap<DataType, String> primitiveFunctionMap = new ImmutableMap.Builder<DataType, String>()
+            .put(DataTypes.STRING, FunctionNames.TO_STRING)
+            .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
+            .put(DataTypes.LONG, FunctionNames.TO_LONG)
+            .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
+            .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
+            .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
+            .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
+            .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
+            .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
+            .put(DataTypes.UNDEFINED, FunctionNames.TO_NULL)
+            .build();
+
     // TODO: register all type conversion functions here
     private static final ImmutableMap<DataType, String> functionMap = new ImmutableMap.Builder<DataType, String>()
-            .put(DataTypes.STRING, ToStringFunction.NAME)
-            .put(DataTypes.INTEGER, ToIntFunction.NAME)
-            .put(DataTypes.LONG, ToLongFunction.NAME)
-            .put(DataTypes.TIMESTAMP, ToTimestampFunction.NAME)
-            .put(DataTypes.BOOLEAN, ToBooleanFunction.NAME)
-            .put(DataTypes.DOUBLE, ToDoubleFunction.NAME)
-            .put(DataTypes.FLOAT, ToFloatFunction.NAME)
-            .put(DataTypes.BYTE, ToByteFunction.NAME)
-            .put(DataTypes.SHORT, ToShortFunction.NAME)
-            .put(DataTypes.UNDEFINED, ToNullFunction.NAME)
+            .putAll(primitiveFunctionMap)
             .put(ToStringArrayFunction.ARRAY_STRING_TYPE, ToStringArrayFunction.NAME)
             .put(ToLongArrayFunction.LONG_ARRAY_TYPE, ToLongArrayFunction.NAME)
             .put(ToIntArrayFunction.INT_ARRAY_TYPE, ToIntArrayFunction.NAME)

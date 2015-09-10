@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
-    private String functionName = ToTimestampFunction.NAME;
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_TIMESTAMP;
 
     @Test
     public void testResolveFunction() throws Throwable {
@@ -50,8 +50,8 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
         for (DataType dataType : supportedTypes) {
             FunctionIdent ident = new FunctionIdent(functionName, Arrays.asList(dataType));
             FunctionImplementation implementation = functions.get(ident);
-            assertThat(implementation, instanceOf(ToTimestampFunction.class));
-            assertEquals(((ToTimestampFunction) implementation).returnType, DataTypes.TIMESTAMP);
+            assertThat(implementation, instanceOf(ToPrimitiveFunction.class));
+            assertEquals(implementation.info().returnType(), DataTypes.TIMESTAMP);
         }
     }
 

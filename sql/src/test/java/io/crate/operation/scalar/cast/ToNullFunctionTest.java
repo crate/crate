@@ -40,10 +40,10 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class ToNullFunctionTest extends AbstractScalarFunctionsTest {
 
-    private String functionName = ToNullFunction.NAME;
+    private final String functionName = CastFunctionResolver.FunctionNames.TO_NULL;
 
-    private ToNullFunction getFunction(DataType type) {
-        return (ToNullFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+    private ToPrimitiveFunction getFunction(DataType type) {
+        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
     private Object evaluate(Object value, DataType type) {
@@ -52,7 +52,7 @@ public class ToNullFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToNullFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
     }
