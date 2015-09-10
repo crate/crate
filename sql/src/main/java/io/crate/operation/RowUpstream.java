@@ -37,4 +37,10 @@ public interface RowUpstream {
      * tells the RowUpstream that it should resume sending rows.
      */
     void resume(boolean async);
+
+
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    void repeat();
 }
