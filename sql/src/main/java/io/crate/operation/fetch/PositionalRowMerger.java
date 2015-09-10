@@ -132,6 +132,14 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     static class UpstreamBuffer implements RowReceiver {
 
         private final LinkedList<Row> rows = new LinkedList<>();

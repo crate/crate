@@ -81,6 +81,14 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         }
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
         while (iterator.hasNext()) {
             if (finished.get()) {
