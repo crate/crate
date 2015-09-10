@@ -424,6 +424,9 @@ Some Examples::
 Type Conversion
 ===============
 
+CAST
+----
+
 A type ``cast`` specifies a conversion from one data type to
 another. It will only succeed if the value of the expression is
 convertable to the desired data type, otherwise an error is thrown.
@@ -463,14 +466,80 @@ types, e.g. converting an array of integer values to a boolean array.
     +---------------------+
     | active_threads      |
     +---------------------+
-    | [false, true, true] | 
+    | [false, true, true] |
     +---------------------+
     SELECT 1 row in set (... sec)
 
 .. note::
 
-   It is not possible to cast to or from ``object``, ``geopoint`` and
+   It is not possible to cast to or from ``object``, ``geopoint``, and
    ``geoshape`` data type.
+
+
+TRY_CAST
+--------
+
+While ``cast`` throws an error for incompatible type casts,
+``try_cast`` returns ``null`` in this case. Otherwise the result is the same as
+with ``cast``.
+
+::
+
+   try_cast(expression as type)
+
+
+Example usages:
+::
+
+    cr> select try_cast('true' as boolean) from sys.nodes limit 1;
+    +-----------------------------+
+    | TRY_CAST('true' AS boolean) |
+    +-----------------------------+
+    | TRUE                        |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
+``string`` is no valid integer but return ``null`` with ``try_cast``:
+
+::
+
+    cr> select try_cast(name as integer) from sys.nodes limit 1;
+    +---------------------------+
+    | TRY_CAST(name AS integer) |
+    +---------------------------+
+    | NULL                      |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
+
+
+This allows to ignore invalid conversions within aggregate functions and
+returns more homogenious results. For example to find valid IP addresses in a
+column that also stores hostnames:
+
+::
+
+    cr> select try_cast(nameOrIp as ip) from hosts limit 100;
+    +--------------------------+
+    | TRY_CAST(nameOrIp as ip) |
+    +--------------------------+
+    | 10.0.0.1                 |
+    | NULL                     |
+    | NULL                     |
+    | 10.0.0.14                |
+    | 10.0.2.1                 |
+    | 8.8.8.8                  |
+    +--------------------------+
+    SELECT 6 rows in set (... sec)
+
+However since there is no casting function available for ``object``,
+``geopoint``, and ``geoshape``, a ``try_cast`` to and from one of these types
+will result in an exception:
+
+::
+
+    cr> select try_cast('hello' as object) from example;
+    SQLActionException[No cast function found for return type 'object']
 
 
 

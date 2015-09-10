@@ -444,6 +444,11 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        protected String visitTryCast(TryCast node, Void context) {
+            return "TRY_CAST(" + process(node.getExpression(), context) + " AS " + process(node.getType(), context) + ")";
+        }
+
+        @Override
         protected String visitSearchedCaseExpression(SearchedCaseExpression node, Void context)
         {
             ImmutableList.Builder<String> parts = ImmutableList.builder();

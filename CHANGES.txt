@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Added ``try_cast`` scalar function
 
  - Added cluster checks which are exposed via the ``sys.checks`` table.
 
