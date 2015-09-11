@@ -89,7 +89,7 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidArgumentType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument must be a collection type");
+        expectedException.expectMessage("Argument must be an array type");
         functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
                 ImmutableList.<DataType>of(DataTypes.STRING)));
     }
