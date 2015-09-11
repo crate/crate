@@ -21,16 +21,16 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ForwardingRowReceiver;
-import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,24 +58,23 @@ public class ProjectorChainContext implements ExecutionSubContext, ExecutionStat
                                  RowReceiver rowReceiver,
                                  RamAccountingContext ramAccountingContext) {
         this.name = name;
-        RowReceiver projectorChainRowReceiver = new ForwardingRowReceiver(rowReceiver) {
+        ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
+        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
             @Override
-            public void finish() {
-                super.finish();
+            public void onSuccess(@Nullable Void result) {
                 ProjectorChainContext.this.finish(null);
             }
 
             @Override
-            public void fail(Throwable throwable) {
-                super.fail(throwable);
-                ProjectorChainContext.this.finish(throwable);
+            public void onFailure(@Nonnull Throwable t) {
+                ProjectorChainContext.this.finish(t);
             }
-        };
+        });
         projectorChain = FlatProjectorChain.withAttachedDownstream(
                 projectorFactory,
                 ramAccountingContext,
                 projections,
-                projectorChainRowReceiver,
+                listenableRowReceiver,
                 jobId
         );
         this.rowReceiver = projectorChain.firstProjector();

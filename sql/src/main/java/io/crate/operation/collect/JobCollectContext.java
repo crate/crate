@@ -23,16 +23,20 @@ package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.*;
-import io.crate.operation.projectors.ForwardingRowReceiver;
+import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Locale;
@@ -70,22 +74,22 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
-        this.rowReceiver = new ForwardingRowReceiver(rowReceiver) {
 
+        ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
+        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
             @Override
-            public void finish() {
-                super.finish();
+            public void onSuccess(@Nullable Void result) {
                 if (!collectPhase.keepContextForFetcher()) {
                     close();
                 }
             }
 
             @Override
-            public void fail(Throwable throwable) {
-                super.fail(throwable);
-                closeDueToFailure(throwable);
+            public void onFailure(@Nonnull Throwable t) {
+                closeDueToFailure(t);
             }
-        };
+        });
+        this.rowReceiver = listenableRowReceiver;
     }
 
     @Override
