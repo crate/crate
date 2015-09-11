@@ -89,8 +89,9 @@ public class ToIntArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithReference() throws Exception {
         final DataType arrayType = new ArrayType(DataTypes.STRING);
-        ToIntArrayFunction impl = (ToIntArrayFunction)functions.get(
-                new FunctionIdent(ToIntArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = (ToArrayFunction)functions.get(
+                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_INTEGER_ARRAY,
+                        ImmutableList.of(arrayType)));
 
         Reference foo = TestingHelpers.createReference("foo", arrayType);
         Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(foo)));
@@ -105,8 +106,9 @@ public class ToIntArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToIntArrayFunction impl = (ToIntArrayFunction)functions.get(
-                new FunctionIdent(ToIntArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = (ToArrayFunction)functions.get(
+                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_INTEGER_ARRAY,
+                        ImmutableList.of(arrayType)));
 
         Literal input = new Literal() {
             @Override

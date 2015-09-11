@@ -47,7 +47,6 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.operation.scalar.cast.ToStringArrayFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.symbol.*;
@@ -1463,7 +1462,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
 
         analysis = analyze("select cast(friends['id'] as array(string)) from users");
-        assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(ToStringArrayFunction.NAME,
+        assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(
+                CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
                 Arrays.<DataType>asList(new ArrayType(DataTypes.LONG))));
     }
 

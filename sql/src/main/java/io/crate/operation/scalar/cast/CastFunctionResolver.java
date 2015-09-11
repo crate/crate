@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -43,6 +44,15 @@ public class CastFunctionResolver {
         public static final String TO_BYTE = "toByte";
         public static final String TO_SHORT = "toShort";
         public static final String TO_NULL = "toNull";
+
+        public static final String TO_STRING_ARRAY = "toStringArray";
+        public static final String TO_LONG_ARRAY = "toLongArray";
+        public static final String TO_INTEGER_ARRAY = "toIntArray";
+        public static final String TO_DOUBLE_ARRAY = "toDoubleArray";
+        public static final String TO_BOOLEAN_ARRAY = "toBooleanArray";
+        public static final String TO_BYTE_ARRAY = "toByteArray";
+        public static final String TO_FLOAT_ARRAY = "toFloatArray";
+        public static final String TO_SHORT_ARRAY = "toShortArray";
     }
 
     static final ImmutableMap<DataType, String> primitiveFunctionMap = new ImmutableMap.Builder<DataType, String>()
@@ -58,17 +68,21 @@ public class CastFunctionResolver {
             .put(DataTypes.UNDEFINED, FunctionNames.TO_NULL)
             .build();
 
+    static final ImmutableMap<DataType, String> arrayFunctionMap = new ImmutableMap.Builder<DataType, String>()
+            .put(new ArrayType(DataTypes.STRING), FunctionNames.TO_STRING_ARRAY)
+            .put(new ArrayType(DataTypes.LONG), FunctionNames.TO_LONG_ARRAY)
+            .put(new ArrayType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_ARRAY)
+            .put(new ArrayType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_ARRAY)
+            .put(new ArrayType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_ARRAY)
+            .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
+            .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
+            .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
+            .build();
+
     // TODO: register all type conversion functions here
     private static final ImmutableMap<DataType, String> functionMap = new ImmutableMap.Builder<DataType, String>()
             .putAll(primitiveFunctionMap)
-            .put(ToStringArrayFunction.ARRAY_STRING_TYPE, ToStringArrayFunction.NAME)
-            .put(ToLongArrayFunction.LONG_ARRAY_TYPE, ToLongArrayFunction.NAME)
-            .put(ToIntArrayFunction.INT_ARRAY_TYPE, ToIntArrayFunction.NAME)
-            .put(ToDoubleArrayFunction.DOUBLE_ARRAY_TYPE, ToDoubleArrayFunction.NAME)
-            .put(ToBooleanArrayFunction.BOOLEAN_ARRAY_TYPE, ToBooleanArrayFunction.NAME)
-            .put(ToByteArrayFunction.BYTE_ARRAY_TYPE, ToByteArrayFunction.NAME)
-            .put(ToFloatArrayFunction.FLOAT_ARRAY_TYPE, ToFloatArrayFunction.NAME)
-            .put(ToShortArrayFunction.SHORT_ARRAY_TYPE, ToShortArrayFunction.NAME)
+            .putAll(arrayFunctionMap)
             .build();
 
     /**

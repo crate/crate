@@ -48,16 +48,17 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(new Integer[]{ 1, 2, 3 }, new ArrayType(DataTypes.INTEGER))
         );
         BytesRef[] expected = new BytesRef[]{ new BytesRef("1"), new BytesRef("2"), new BytesRef("3") };
-        Function function = createFunction(ToStringArrayFunction.NAME, new ArrayType(DataTypes.STRING), arguments);
-        ToStringArrayFunction arrayFunction = (ToStringArrayFunction) functions.get(function.info().ident());
+        Function function = createFunction(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY, new ArrayType(DataTypes.STRING), arguments);
+        ToArrayFunction arrayFunction = (ToArrayFunction) functions.get(function.info().ident());
 
         Symbol result = arrayFunction.normalizeSymbol(function);
         assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
 
         arguments.set(0, Literal.newLiteral(new Float[]{ 1.0f, 2.0f, 3.0f }, new ArrayType(DataTypes.FLOAT)));
         expected = new BytesRef[]{ new BytesRef("1.0"), new BytesRef("2.0"), new BytesRef("3.0") };
-        function = createFunction(ToStringArrayFunction.NAME, new ArrayType(DataTypes.STRING), arguments);
-        arrayFunction = (ToStringArrayFunction) functions.get(function.info().ident());
+        function = createFunction(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
+                new ArrayType(DataTypes.STRING), arguments);
+        arrayFunction = (ToArrayFunction) functions.get(function.info().ident());
 
         result = arrayFunction.normalizeSymbol(function);
         assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
@@ -69,8 +70,9 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
                 createReference("int_array", new ArrayType(DataTypes.INTEGER))
         );
         Object[] expected = new BytesRef[]{ new BytesRef("1"), new BytesRef("2"), new BytesRef("3") };
-        Function function = createFunction(ToStringArrayFunction.NAME, new ArrayType(DataTypes.STRING), arguments);
-        ToStringArrayFunction arrayFunction = (ToStringArrayFunction) functions.get(function.info().ident());
+        Function function = createFunction(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
+                new ArrayType(DataTypes.STRING), arguments);
+        ToArrayFunction arrayFunction = (ToArrayFunction) functions.get(function.info().ident());
 
         Input[] args = new Input[1];
         args[0] = new Input<Object>() {
@@ -88,14 +90,16 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidArgumentType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument must be a collection type");
-        functions.get(new FunctionIdent(ToStringArrayFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
+        functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
+                ImmutableList.<DataType>of(DataTypes.STRING)));
     }
 
     @Test
     public void testInvalidArgumentInnerType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array inner type 'object' not supported for conversion");
-        functions.get(new FunctionIdent(ToStringArrayFunction.NAME, ImmutableList.<DataType>of(new ArrayType(DataTypes.OBJECT))));
+        functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
+                ImmutableList.<DataType>of(new ArrayType(DataTypes.OBJECT))));
     }
 
 }

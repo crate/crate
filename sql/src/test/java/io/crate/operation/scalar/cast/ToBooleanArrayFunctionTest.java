@@ -58,14 +58,14 @@ public class ToBooleanArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument must be an array type");
-        functions.get(new FunctionIdent(ToBooleanArrayFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+        functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_BOOLEAN_ARRAY, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToBooleanArrayFunction impl = (ToBooleanArrayFunction)functions.get(
-                new FunctionIdent(ToBooleanArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = (ToArrayFunction)functions.get(
+                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_BOOLEAN_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = new Literal() {
             @Override

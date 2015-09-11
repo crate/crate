@@ -80,21 +80,12 @@ public class ScalarFunctionModule extends AbstractModule {
         SquareRootFunction.register(this);
         LogFunction.register(this);
 
-        // all cast functions must be registered at CastFunctionResolver
-        ToStringArrayFunction.register(this);
-        ToIntArrayFunction.register(this);
-        ToLongArrayFunction.register(this);
-        ToDoubleArrayFunction.register(this);
-        ToBooleanArrayFunction.register(this);
-        ToByteArrayFunction.register(this);
-        ToFloatArrayFunction.register(this);
-        ToShortArrayFunction.register(this);
-
         DateTruncFunction.register(this);
         ExtractFunctions.register(this);
         CurrentTimestampFunction.register(this);
         DateFormatFunction.register(this);
         ToPrimitiveFunction.register(this);
+        ToArrayFunction.register(this);
 
         ConcatFunction.register(this);
 

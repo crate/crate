@@ -57,8 +57,8 @@ public class ToShortArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToShortArrayFunction impl = (ToShortArrayFunction)functions.get(
-                new FunctionIdent(ToShortArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = (ToArrayFunction) functions.get(
+                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_SHORT_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = new Literal() {
             @Override

@@ -58,8 +58,8 @@ public class ToFloatArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToFloatArrayFunction impl = (ToFloatArrayFunction)functions.get(
-                new FunctionIdent(ToFloatArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = (ToArrayFunction) functions.get(
+                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_FLOAT_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = new Literal() {
             @Override
