@@ -135,6 +135,14 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testSubscriptSplitPatternMatcher() throws Exception {
+        assertEquals("\"foo\".\"bar\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral(new QualifiedNameReference(new QualifiedName("foo.bar['x']['y']"))));
+        assertEquals("\"foo\"['x']['y']", ExpressionAnalyzer.getQuotedSubscriptLiteral(new QualifiedNameReference(new QualifiedName("foo['x']['y']"))));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral(new QualifiedNameReference(new QualifiedName(""))));
+        assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral(new QualifiedNameReference(new QualifiedName("['x']['y']"))));
+    }
+
+    @Test
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.getReferenceInfo(new ColumnIdent("id"))).thenReturn(

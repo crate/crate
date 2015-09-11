@@ -21,6 +21,7 @@
 
 package io.crate.analyze.expressions;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -406,6 +407,33 @@ public class ExpressionAnalyzer {
         return SUBSCRIPT_LITERAL_PATTERN.matcher(node.toString()).matches();
     }
 
+    @Nullable
+    @VisibleForTesting
+    static String getQuotedSubscriptLiteral(QualifiedNameReference node) {
+        Matcher matcher = SUBSCRIPT_SPLIT_PATTERN.matcher(node.getName().toString());
+        if (matcher.matches()) {
+            String group1 = matcher.group(1);
+            String group2 = matcher.group(2);
+
+            if (group1.contains(".")) {
+                String[] cols = group1.split("\\.");
+                if (cols.length >= 1 && !"".equals(cols[0])) {
+                    if (cols.length >= 2 && !"".equals(cols[1])) {
+                        group1 = "\"" + cols[0] + "\".\"" + cols[1] + "\"";
+                    } else {
+                        group1 = "\"" + cols[0] + "\"";
+                    }
+                }
+            } else {
+                group1 = "\"" + group1 + "\"";
+            }
+
+            return group1 + group2;
+        } else {
+            return null;
+        }
+    }
+
     class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         @Override
@@ -764,8 +792,12 @@ public class ExpressionAnalyzer {
             } catch (ColumnUnknownException exception) {
                 int flags = parameterContext.headerFlags();
                 if (isQuotedSubscript(node) && ((flags & RestSQLAction.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == RestSQLAction.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT)) {
-                    String quotedSubscriptLiteral = SUBSCRIPT_SPLIT_PATTERN.matcher(node.getName().toString()).replaceAll("\"$1\"$2");
-                    return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
+                    String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node);
+                    if (quotedSubscriptLiteral != null) {
+                        return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
+                    } else {
+                        throw exception;
+                    }
                 } else {
                     throw exception;
                 }
