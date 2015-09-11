@@ -42,5 +42,8 @@ public class ColumnIdentTest {
 
         ident = new ColumnIdent("a", Collections.singletonList(""));
         assertThat(ident.sqlFqn(), is("a['']"));
+
+        ident = new ColumnIdent("a.b", Collections.singletonList("c"));
+        assertThat(ident.sqlFqn(), is("a.b['c']"));
     }
 }
