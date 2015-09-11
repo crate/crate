@@ -34,15 +34,6 @@ public class StringUtils {
 
 
 
-    public static String dottedToSqlPath(String dottedPath) {
-        Iterable<String> splitted = PATH_SPLITTER.split(dottedPath);
-        Iterator<String> iter = splitted.iterator();
-        StringBuilder builder = new StringBuilder(iter.next());
-        while (iter.hasNext()) {
-            builder.append("['").append(iter.next()).append("']");
-        }
-        return builder.toString();
-    }
 
     /**
      * Return the common ancestors of a list of fields.<br>
