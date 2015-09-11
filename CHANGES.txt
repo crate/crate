@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Display column names that contain a dot correctly in information schema
+   and result column headers
+
 2015/09/08 0.51.2
 =================
 

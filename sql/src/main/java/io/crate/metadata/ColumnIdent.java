@@ -159,7 +159,13 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     public String sqlFqn() {
-        return StringUtils.dottedToSqlPath(fqn());
+        StringBuilder sb = new StringBuilder(name);
+        for (String s : path) {
+            sb.append("['");
+            sb.append(s);
+            sb.append("']");
+        }
+        return sb.toString();
     }
 
     public List<String> path() {

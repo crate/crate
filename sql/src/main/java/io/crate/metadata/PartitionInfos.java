@@ -29,7 +29,6 @@ import com.google.common.collect.FluentIterable;
 import io.crate.Constants;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.core.NumberOfReplicas;
-import io.crate.core.StringUtils;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -99,7 +98,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         Map<String, Object> valuesMap = new HashMap<>();
         Iterable<Tuple<ColumnIdent, DataType>> partitionColumnInfoIterable = PartitionedByMappingExtractor.extractPartitionedByColumns(mappingMetaData.sourceAsMap());
         for (Tuple<ColumnIdent, DataType> columnInfo : partitionColumnInfoIterable) {
-            String columnName = StringUtils.dottedToSqlPath(columnInfo.v1().fqn());
+            String columnName = columnInfo.v1().sqlFqn();
             // produce string type values as string, not bytesref
             Object value = BytesRefs.toString(partitionName.values().get(i));
             if (!columnInfo.v2().equals(DataTypes.STRING)) {
