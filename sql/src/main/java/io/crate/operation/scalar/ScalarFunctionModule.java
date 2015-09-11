@@ -86,6 +86,7 @@ public class ScalarFunctionModule extends AbstractModule {
         DateFormatFunction.register(this);
         ToPrimitiveFunction.register(this);
         ToArrayFunction.register(this);
+        TryCastScalarFunction.register(this);
 
         ConcatFunction.register(this);
 

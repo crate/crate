@@ -21,8 +21,10 @@
 
 package io.crate.operation.scalar.cast;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
@@ -30,8 +32,11 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
+import java.util.Map;
 
 public class CastFunctionResolver {
+
+    private static final String TRY_CAST_PREFIX = "try_";
 
     public static class FunctionNames {
         public static final String TO_STRING = "toString";
@@ -88,14 +93,30 @@ public class CastFunctionResolver {
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */
-    public static FunctionInfo functionInfo(DataType dataType, DataType returnType) {
+    public static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
         String functionName = functionMap.get(returnType);
         if (functionName == null) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "No cast function found for return type %s",
                             returnType.getName()));
         }
+        functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
         return new FunctionInfo(new FunctionIdent(functionName, ImmutableList.of(dataType)), returnType);
+    }
+
+    public static boolean supportsExplicitConversion(DataType returnType) {
+        return functionMap.get(returnType) != null;
+    }
+
+    private static Function<String, String> toTryCastMap = new Function<String, String>() {
+        @Override
+        public String apply(String functionName) {
+            return TRY_CAST_PREFIX + functionName;
+        }
+    };
+
+    public static Map<DataType, String> tryFunctionsMap() {
+        return Maps.transformValues(functionMap, toTryCastMap);
     }
 
 }

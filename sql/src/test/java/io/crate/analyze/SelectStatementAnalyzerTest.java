@@ -1451,7 +1451,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 new Object[2]);
     }
 
-
     @Test
     public void testCastExpression() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select cast(other_id as string) from users");
@@ -1465,6 +1464,44 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(
                 CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
                 Arrays.<DataType>asList(new ArrayType(DataTypes.LONG))));
+    }
+
+    @Test
+    public void testTryCastExpression() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select try_cast(other_id as string) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(
+                CastFunctionResolver.tryFunctionsMap().get(DataTypes.STRING),
+                Arrays.<DataType>asList(DataTypes.LONG)));
+
+        analysis = analyze("select try_cast(1+1 as string) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
+
+        analysis = analyze("select try_cast(null as string) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral(null, DataTypes.STRING));
+
+        analysis = analyze("select try_cast(counters as array(boolean)) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(
+                CastFunctionResolver.tryFunctionsMap().get(new ArrayType(DataTypes.BOOLEAN)),
+                Arrays.<DataType>asList(new ArrayType(DataTypes.LONG))));
+    }
+
+    @Test
+    public void testTryCastReturnNullWhenCastFailsOnLiterals() {
+        SelectAnalyzedStatement analysis = analyze("select try_cast('124123asdf' as integer) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral(null));
+
+        analysis = analyze("select try_cast(['fd', '3', '5'] as array(integer)) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral(null));
+
+        analysis = analyze("select try_cast('1' as boolean) from users");
+        assertThat(analysis.relation().querySpec().outputs().get(0), isLiteral(null));
+    }
+
+    @Test
+    public void testInvalidTryCastExpression() {
+        expectedException.expect(Exception.class);
+        expectedException.expectMessage("No cast function found for return type object");
+        analyze("select try_cast(name as object) from users");
     }
 
     @Test

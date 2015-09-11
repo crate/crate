@@ -356,6 +356,7 @@ expr returns [Expression value]
     | extract               { $value = $extract.value; }
     | current_time          { $value = $current_time.value; }
     | cast                  { $value = $cast.value; }
+    | tryCast               { $value = $tryCast.value; }
     | arrayLiteral          { $value = $arrayLiteral.value; }
     | objectLiteral         { $value = $objectLiteral.value; }
     ;
@@ -460,6 +461,10 @@ extract returns [Extract value]
 
 cast returns [Cast value]
     : ^(CAST expr dataType) { $value = new Cast($expr.value, $dataType.value); }
+    ;
+
+tryCast returns [TryCast value]
+    : ^(TRY_CAST expr dataType) { $value = new TryCast($expr.value, $dataType.value); }
     ;
 
 current_time returns [CurrentTime value]

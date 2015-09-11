@@ -377,7 +377,7 @@ public class ExpressionAnalyzer {
             // cast further below doesn't always fail because it might be lazy as it wraps functions/references inside a cast function.
             // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
             try {
-                return cast(symbolToCast, targetType, context);
+                return cast(symbolToCast, targetType, context, false);
             } catch (ConversionException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
                 throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
@@ -388,11 +388,12 @@ public class ExpressionAnalyzer {
                 SymbolFormatter.format(symbolToCast), targetType.getName()));
     }
 
-    private static Symbol cast(Symbol sourceSymbol, DataType targetType, ExpressionAnalysisContext context) {
+    private static Symbol cast(Symbol sourceSymbol, DataType targetType, ExpressionAnalysisContext context,
+                               boolean tryCast) {
         if (sourceSymbol.symbolType().isValueSymbol()) {
             return Literal.convert(sourceSymbol, targetType);
         }
-        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType);
+        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType, tryCast);
         return context.allocateFunction(functionInfo, Arrays.asList(sourceSymbol));
     }
 
@@ -429,7 +430,22 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
-            return cast(process(node.getExpression(), context), returnType, context);
+            return cast(process(node.getExpression(), context), returnType, context, false);
+        }
+
+        @Override
+        protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
+            DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
+
+            if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
+                try {
+                    return cast(process(node.getExpression(), context), returnType, context, true);
+                } catch (ConversionException e) {
+                    return Literal.NULL;
+                }
+            }
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "No cast function found for return type %s", returnType.getName()));
         }
 
         @Override
@@ -438,7 +454,6 @@ public class ExpressionAnalyzer {
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP, context);
             return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
         }
-
 
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {
@@ -497,8 +512,8 @@ public class ExpressionAnalyzer {
                 Symbol right = expression.accept(this, context);
                 if (!right.valueType().equals(leftType)) {
                     if (right.valueType().isConvertableTo(leftType)) {
-                        right = context.allocateFunction(CastFunctionResolver.functionInfo(right.valueType(), leftType),
-                                Arrays.asList(right));
+                        right = context.allocateFunction(CastFunctionResolver
+                                .functionInfo(right.valueType(), leftType, false), Arrays.asList(right));
                     } else {
                         throw new IllegalArgumentException(
                                 String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",

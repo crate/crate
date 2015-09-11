@@ -169,7 +169,7 @@ public class QuerySpec {
                 if (!sourceType.equals(targetType)) {
                     if (sourceType.isConvertableTo(targetType)) {
                         Function castFunction = new Function(
-                                CastFunctionResolver.functionInfo(sourceType, targetType),
+                                CastFunctionResolver.functionInfo(sourceType, targetType, false),
                                 Arrays.asList(output));
                         if (groupBy() != null) {
                             Collections.replaceAll(groupBy(), output, castFunction);

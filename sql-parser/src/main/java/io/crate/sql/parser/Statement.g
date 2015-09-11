@@ -596,6 +596,7 @@ specialFunction
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
     | EXTRACT '(' ident FROM expr ')'              -> ^(EXTRACT ident expr)
     | CAST '(' expr AS dataType ')'                -> ^(CAST expr dataType)
+    | TRY_CAST '(' expr AS dataType ')'            -> ^(TRY_CAST expr dataType)
     ;
 
 
@@ -1169,6 +1170,7 @@ GRAPHVIZ: 'GRAPHVIZ';
 LOGICAL: 'LOGICAL';
 DISTRIBUTED: 'DISTRIBUTED';
 CAST: 'CAST';
+TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
 TABLES: 'TABLES';
 SCHEMAS: 'SCHEMAS';
