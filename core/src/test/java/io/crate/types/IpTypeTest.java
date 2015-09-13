@@ -61,6 +61,12 @@ public class IpTypeTest extends CrateUnitTest {
                 new BytesRef("..168.00.255"),
                 new BytesRef(".192.168.0.255."),
                 new BytesRef("192.168.1.500"),
+                new BytesRef("192.0000.1.1"),
+                new BytesRef("192.168.1."),
+                new BytesRef("192.168.."),
+                new BytesRef("192.100.1"),
+                new BytesRef("192.168"),
+                new BytesRef("192."),
                 new BytesRef(""),
 
         };
