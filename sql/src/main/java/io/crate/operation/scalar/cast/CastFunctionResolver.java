@@ -49,6 +49,7 @@ public class CastFunctionResolver {
         public static final String TO_BYTE = "toByte";
         public static final String TO_SHORT = "toShort";
         public static final String TO_NULL = "toNull";
+        public static final String TO_IP = "toIp";
 
         public static final String TO_STRING_ARRAY = "toStringArray";
         public static final String TO_LONG_ARRAY = "toLongArray";
@@ -58,6 +59,7 @@ public class CastFunctionResolver {
         public static final String TO_BYTE_ARRAY = "toByteArray";
         public static final String TO_FLOAT_ARRAY = "toFloatArray";
         public static final String TO_SHORT_ARRAY = "toShortArray";
+        public static final String TO_IP_ARRAY = "toIpArray";
     }
 
     static final ImmutableMap<DataType, String> primitiveFunctionMap = new ImmutableMap.Builder<DataType, String>()
@@ -71,6 +73,7 @@ public class CastFunctionResolver {
             .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
             .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
             .put(DataTypes.UNDEFINED, FunctionNames.TO_NULL)
+            .put(DataTypes.IP, FunctionNames.TO_IP)
             .build();
 
     static final ImmutableMap<DataType, String> arrayFunctionMap = new ImmutableMap.Builder<DataType, String>()
@@ -82,6 +85,7 @@ public class CastFunctionResolver {
             .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
             .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
             .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
+            .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
             .build();
 
     // TODO: register all type conversion functions here

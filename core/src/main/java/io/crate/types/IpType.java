@@ -51,6 +51,10 @@ public class IpType extends StringType {
             return ip;
         } else {
             Long longIp = ((Number)value).longValue();
+            if (longIp < 0) {
+                throw new IllegalArgumentException(String.format("Failed to convert long value: %s to ipv4 address)",
+                        longIp));
+            }
             String strIp = IpFieldMapper.longToIp(longIp);
             return new BytesRef(strIp);
         }

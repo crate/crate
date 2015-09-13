@@ -91,36 +91,42 @@ public class TypeConversionTest extends CrateUnitTest {
 
         for (Byte byteVal : bytes(10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
+                byteVal = t.equals(DataTypes.IP) ? (byte) Math.abs(byteVal) : byteVal;
                 t.value(byteVal);
             }
         }
 
         for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
+                shortVal = t.equals(DataTypes.IP) ?  Math.abs(shortVal) : shortVal;
                 t.value(shortVal.shortValue());
             }
         }
 
         for (Integer intValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
+                intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
                 t.value(intValue);
             }
         }
 
         for (Integer longValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
+                longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
                 t.value(longValue.longValue());
             }
         }
 
         for (Integer floatValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
+                floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
                 t.value(floatValue.floatValue());
             }
         }
 
         for (Integer doubleValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
+                doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
                 t.value(doubleValue.doubleValue());
             }
         }
@@ -163,6 +169,11 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void testFloatOutOfRangenegative() throws Exception {
         DataTypes.FLOAT.value(-Double.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIpNegativeValue() throws Exception {
+        DataTypes.IP.value(Long.MIN_VALUE);
     }
 
     @Test
