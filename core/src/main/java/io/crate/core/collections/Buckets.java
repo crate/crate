@@ -21,11 +21,24 @@
 
 package io.crate.core.collections;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
 import java.util.Iterator;
 
 public class Buckets {
+
+    public static Function<Object[], Row> arrayToRowFunction() {
+        return new Function<Object[], Row>() {
+            SharedRow row = new SharedRow();
+
+            @Override
+            public Row apply(Object[] input) {
+                row.cells = input;
+                return row;
+            }
+        };
+    }
 
     public static Object[][] materialize(Bucket bucket) {
         Object[][] res = new Object[bucket.size()][];
@@ -58,4 +71,25 @@ public class Buckets {
         };
     }
 
+    private static class SharedRow implements Row {
+
+        Object[] cells;
+
+        @Override
+        public int size() {
+            return cells.length;
+        }
+
+        @Override
+        public Object get(int index) {
+            return cells[index];
+        }
+
+        @Override
+        public Object[] materialize() {
+            Object[] copy = new Object[cells.length];
+            System.arraycopy(cells, 0, copy, 0, cells.length);
+            return copy;
+        }
+    }
 }

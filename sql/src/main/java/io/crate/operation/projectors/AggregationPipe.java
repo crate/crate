@@ -73,7 +73,7 @@ public class AggregationPipe extends AbstractProjector {
 
     @Override
     public void fail(Throwable t) {
-        downstream.fail(t);
+        super.fail(t);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class AggregationPipe extends AbstractProjector {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
-        downstream.setNextRow(row);
-        downstream.finish();
+        super.setNextRow(row);
+        super.finish();
     }
 }

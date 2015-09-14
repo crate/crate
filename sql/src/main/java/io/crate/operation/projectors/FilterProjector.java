@@ -39,18 +39,18 @@ public class FilterProjector extends AbstractProjector {
     public boolean setNextRow(Row row) {
         //noinspection SimplifiableIfStatement
         if (rowFilter.matches(row)) {
-            return downstream.setNextRow(row);
+            return super.setNextRow(row);
         }
         return true;
     }
 
     @Override
     public void finish() {
-        downstream.finish();
+        super.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+        super.fail(throwable);
     }
 }

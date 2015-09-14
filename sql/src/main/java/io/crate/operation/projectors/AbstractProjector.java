@@ -22,6 +22,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Preconditions;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
@@ -34,7 +35,8 @@ public abstract class AbstractProjector implements Projector {
     private final static RowReceiver STATE_CHECK_RECEIVER = new StateCheckReceiver();
 
     private RowUpstream upstream = STATE_CHECK_ROW_UPSTREAM;
-    protected RowReceiver downstream = STATE_CHECK_RECEIVER;
+    private boolean done = false;
+    private RowReceiver downstream = STATE_CHECK_RECEIVER;
     protected ExecutionState executionState;
 
     @Override
@@ -42,6 +44,12 @@ public abstract class AbstractProjector implements Projector {
         assert rowReceiver != null : "rowReceiver must not be null";
         this.downstream = rowReceiver;
         rowReceiver.setUpstream(this);
+    }
+
+    @Override
+    public boolean setNextRow(Row row) {
+        assert !done : "Must not call setNextRow after finish/fail";
+        return downstream.setNextRow(row);
     }
 
     @Override
@@ -60,11 +68,33 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
+    public void finish() {
+        Preconditions.checkState(!done, "Already finished or failed. May not finish twice!");
+        downstream.finish();
+        done = true;
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        Preconditions.checkState(!done, "Already finished or failed. May not finish twice!", throwable);
+        downstream.fail(throwable);
+        done = true;
+    }
+
+    @Override
     public void setUpstream(RowUpstream upstream) {
         assert upstream != null : "upstream must not be null";
         this.upstream = upstream;
     }
 
+    /**
+     * creates a new {@link IterableRowEmitter} which will become the RowUpstream for the rowReceiver
+     * and sends all rows from the given iterable.
+     */
+    protected void emitRows(Iterable<? extends Row> rows) {
+        IterableRowEmitter emitter = new IterableRowEmitter(downstream, executionState, rows);
+        emitter.run();
+    }
 
     private static class StateCheckRowUpstream implements RowUpstream {
 

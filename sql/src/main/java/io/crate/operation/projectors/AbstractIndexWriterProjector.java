@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
@@ -84,6 +85,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
     private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
+    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     /**
      * 3 states:
@@ -188,7 +190,9 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
     @Override
     public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+        super.fail(throwable);
+        failed.set(true);
+
         if (throwable instanceof CancellationException) {
             bulkShardProcessor.kill();
         } else {
@@ -201,13 +205,17 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
             @Override
             public void onSuccess(@Nullable BitSet result) {
                 long rowCount = result == null ? 0L : result.cardinality();
-                downstream.setNextRow(new Row1(rowCount));
-                downstream.finish();
+                if (!failed.get()) {
+                    AbstractIndexWriterProjector.super.setNextRow(new Row1(rowCount));
+                    AbstractIndexWriterProjector.super.finish();
+                }
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                downstream.fail(t);
+                if (!failed.get()) {
+                    AbstractIndexWriterProjector.super.fail(t);
+                }
             }
         });
     }
