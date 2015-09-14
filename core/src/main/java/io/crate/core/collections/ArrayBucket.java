@@ -60,23 +60,7 @@ public class ArrayBucket implements Bucket {
     public Iterator<Row> iterator() {
         return new Iterator<Row>() {
             int pos = 0;
-            Object[] current;
-            final Row row = new Row() {
-                @Override
-                public int size() {
-                    return numColumns;
-                }
-
-                @Override
-                public Object get(int index) {
-                    return current[index];
-                }
-
-                @Override
-                public Object[] materialize() {
-                    return Buckets.materialize(this);
-                }
-            };
+            final RowN row = new RowN(numColumns);
 
             @Override
             public boolean hasNext() {
@@ -85,7 +69,7 @@ public class ArrayBucket implements Bucket {
 
             @Override
             public Row next() {
-                current = rows[pos++];
+                row.cells(rows[pos++]);
                 return row;
             }
 

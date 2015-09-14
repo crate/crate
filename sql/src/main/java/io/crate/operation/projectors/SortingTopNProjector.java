@@ -21,19 +21,15 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import io.crate.Constants;
+import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 
 public class SortingTopNProjector extends AbstractProjector {
@@ -103,16 +99,7 @@ public class SortingTopNProjector extends AbstractProjector {
             rows[i] = pq.pop();
         }
         pq.clear();
-        final RowN row = new RowN(numOutputs);
-        IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                downstream, executionState, Iterables.transform(Arrays.asList(rows), new Function<Object[], Row>() {
-            @Nullable
-            @Override
-            public Row apply(Object[] input) {
-                row.cells(input);
-                return row;
-            }
-        }));
+        IterableRowEmitter rowEmitter = new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
         rowEmitter.run();
     }
 

@@ -26,7 +26,7 @@ import java.util.Iterator;
 
 public interface Bucket extends Iterable<Row> {
 
-    public static final Bucket EMPTY = new Bucket() {
+    Bucket EMPTY = new Bucket() {
         @Override
         public Iterator<Row> iterator() {
             return Collections.emptyIterator();
@@ -48,6 +48,5 @@ public interface Bucket extends Iterable<Row> {
      *
      * @return the number of rows
      */
-    public int size();
-
+    int size();
 }
