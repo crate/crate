@@ -34,7 +34,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +46,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicBoolean downstreamAborted = new AtomicBoolean(false);
     private RowDownstreamHandle downstreamContext;
-    private Object[] lowestToEmit;
+    private final SharedArrayRef lowestToEmit;
     private final Object lowestToEmitLock = new Object();
     private final int rowSize;
     private final AtomicInteger runningHandles = new AtomicInteger(0);
@@ -75,6 +74,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             comparators.add(OrderingByPosition.arrayOrdering(orderBy[i], reverseFlags[i], nullsFirst[i]));
         }
         ordering = Ordering.compound(comparators);
+        lowestToEmit = new SharedArrayRef(rowSize);
     }
 
     @Override
@@ -120,23 +120,16 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     }
 
     public synchronized boolean emit() {
-        SharedArrayRef localLowest = new SharedArrayRef(rowSize); // create new array
-        Object[] foundLowest;
-        synchronized (lowestToEmitLock) {
-            foundLowest = lowestToEmit;
+        if (!lowestToEmit.isValid()) {
+            lowestToEmit.set(findLowestCells());
         }
-        if (foundLowest == null) {
-            foundLowest = findLowestCells();
-        }
-        // copies the array or invalidates if null
-        localLowest.set(foundLowest);
 
-        while (localLowest.isValid()) {
+        while (lowestToEmit.isValid()) {
 
             Object[] nextLowest = null;
             boolean emptyHandle = false;
             for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles) {
-                if (!handle.emitUntil(localLowest.get())) {
+                if (!handle.emitUntil(lowestToEmit.get())) {
                     downstreamAborted.set(true);
                     return false;
                 }
@@ -156,11 +149,8 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             if (emptyHandle) {
                 break;
             } else {
-                localLowest.set(nextLowest);
+                lowestToEmit.set(nextLowest);
             }
-        }
-        synchronized (lowestToEmitLock) {
-            this.lowestToEmit = localLowest.get();
         }
         return true;
     }
@@ -340,10 +330,12 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
      * @param <T> the type of the pooled instances
      */
     private abstract static class ObjectPool<T> {
-        private final EvictingQueue<T> spareQueue;
+        private final ArrayDeque<T> spareQueue;
+        private final int maxSize;
 
         public ObjectPool(int size) {
-            this.spareQueue = EvictingQueue.create(size);
+            this.spareQueue = new ArrayDeque<>(size);
+            this.maxSize = size;
         }
 
         public abstract T createObject();
@@ -357,7 +349,9 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
         }
 
         private void checkin(T obj) {
-            spareQueue.add(obj);
+            if (spareQueue.size() < maxSize) {
+                spareQueue.add(obj);
+            }
         }
     }
 
