@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
@@ -59,7 +60,7 @@ public class JobCollectContext implements ExecutionSubContext, ExecutionState {
     private final AtomicBoolean killed = new AtomicBoolean(false);
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private final SettableFuture<Void> killFuture = SettableFuture.create();
-    private Collection<CrateCollector> collectors;
+    private Collection<CrateCollector> collectors = ImmutableList.of();
 
     private ContextCallback contextCallback = ContextCallback.NO_OP;
 
