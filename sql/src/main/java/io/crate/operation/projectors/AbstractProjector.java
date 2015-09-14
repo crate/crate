@@ -35,6 +35,7 @@ public abstract class AbstractProjector implements Projector {
 
     private RowUpstream upstream = STATE_CHECK_ROW_UPSTREAM;
     protected RowReceiver downstream = STATE_CHECK_RECEIVER;
+    protected ExecutionState executionState;
 
     @Override
     public void downstream(RowReceiver rowReceiver) {
@@ -44,7 +45,9 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {}
+    public void prepare(ExecutionState executionState) {
+        this.executionState = executionState;
+    }
 
     @Override
     public void pause() {

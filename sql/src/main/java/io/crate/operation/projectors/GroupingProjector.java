@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.breaker.RamAccountingContext;
@@ -45,7 +46,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CancellationException;
 
 public class GroupingProjector extends AbstractProjector {
 
@@ -220,21 +220,23 @@ public class GroupingProjector extends AbstractProjector {
                 downstream.fail(e);
                 return;
             }
-            RowN row = new RowN(1 + aggregators.length);
-            for (Map.Entry<Object, Object[]> entry : result.entrySet()) {
-                if (executionState.isKilled()) {
-                    downstream.fail(new CancellationException());
-                    return;
-                }
 
+            IterableRowEmitter rowEmitter = new IterableRowEmitter(
+                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
+
+                RowN row = new RowN(1 + aggregators.length); // 1 for key
                 Object[] cells = new Object[row.size()];
-                singleTransformToRow(entry, cells, aggregators);
-                row.cells(cells);
-                if (!downstream.setNextRow(row)) {
-                    break;
+
+                @Nullable
+                @Override
+                public Row apply(@Nullable Map.Entry<Object, Object[]> input) {
+                    assert input != null : "input must not be null";
+                    singleTransformToRow(input, cells, aggregators);
+                    row.cells(cells);
+                    return row;
                 }
-            }
-            downstream.finish();
+            }));
+            rowEmitter.run();
         }
 
         @Override
@@ -326,21 +328,23 @@ public class GroupingProjector extends AbstractProjector {
                 downstream.fail(e);
                 return;
             }
-            RowN row = new RowN(keyInputs.size() + aggregators.length);
-            for (Map.Entry<List<Object>, Object[]> entry : result.entrySet()) {
-                if (executionState.isKilled()) {
-                    downstream.fail(new CancellationException());
-                    return;
-                }
 
+            IterableRowEmitter rowEmitter = new IterableRowEmitter(
+                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
+
+                RowN row = new RowN(keyInputs.size() + aggregators.length);
                 Object[] cells = new Object[row.size()];
-                transformToRow(entry, cells, aggregators);
-                row.cells(cells);
-                if (!downstream.setNextRow(row)){
-                    break;
+
+                @Nullable
+                @Override
+                public Row apply(@Nullable Map.Entry<List<Object>, Object[]> input) {
+                    assert input != null : "input must not be null";
+                    transformToRow(input, cells, aggregators);
+                    row.cells(cells);
+                    return row;
                 }
-            }
-            downstream.finish();
+            }));
+            rowEmitter.run();
         }
 
         @Override

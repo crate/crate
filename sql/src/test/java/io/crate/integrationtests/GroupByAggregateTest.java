@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.core.collections.ArrayBucket;
+import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.core.Is;
@@ -65,6 +66,22 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         assertEquals("male", response.rows()[1][1]);
         assertEquals(34, response.rows()[1][0]);
+    }
+
+    @Test
+    public void testSelectDistinctWithPaging() throws Exception {
+        int pageSize = Paging.PAGE_SIZE;
+        Paging.PAGE_SIZE = 2;
+        try {
+            execute("create table t (name string) with (number_of_replicas = 0)");
+            ensureYellow();
+            execute("insert into t (name) values ('Marvin'), ('Trillian'), ('Ford'), ('Arthur')");
+            execute("refresh table t");
+
+            execute("select distinct name from t");
+        } finally {
+            Paging.PAGE_SIZE = pageSize;
+        }
     }
 
     @Test
