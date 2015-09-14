@@ -120,16 +120,12 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
     }
 
     public synchronized boolean emit() {
-        if (!lowestToEmit.isValid()) {
-            lowestToEmit.set(findLowestCells());
-        }
-
-        while (lowestToEmit.isValid()) {
-
+        do {
+            Object[] currentLowest = lowestToEmit.get();
             Object[] nextLowest = null;
             boolean emptyHandle = false;
             for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles) {
-                if (!handle.emitUntil(lowestToEmit.get())) {
+                if (currentLowest != null && !handle.emitUntil(currentLowest)) {
                     downstreamAborted.set(true);
                     return false;
                 }
@@ -137,6 +133,7 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
                 if (cells == null) {
                     if (!handle.isFinished()) {
                         emptyHandle = true;
+                        break;
                     }
                     continue;
                 }
@@ -151,27 +148,8 @@ public class BlockingSortingQueuedRowDownstream implements Projector  {
             } else {
                 lowestToEmit.set(nextLowest);
             }
-        }
+        } while (lowestToEmit.isValid());
         return true;
-    }
-
-    @Nullable
-    private Object[] findLowestCells() {
-        Object[] lowest = null;
-        for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles ) {
-            Object[] cells = handle.firstCells();
-            if (cells == null) {
-                if (!handle.isFinished()) {
-                    return null; // There is an empty downstreamHandle, abort
-                }
-                continue;
-            }
-
-            if (lowest == null || ordering.compare(cells, lowest) > 0) {
-                lowest = cells;
-            }
-        }
-        return lowest;
     }
 
     @Override
