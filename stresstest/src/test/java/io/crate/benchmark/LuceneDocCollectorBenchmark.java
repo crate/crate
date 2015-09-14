@@ -62,7 +62,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -101,7 +100,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
 
-    private ShardId shardId = new ShardId(INDEX_NAME, 0);
     private JobContextService jobContextService;
     private ShardCollectService shardCollectService;
     private OrderBy orderBy;
@@ -111,6 +109,25 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
     private JobCollectContext jobCollectContext;
+
+
+    public class PausingCollectingRowReceiver extends CollectingRowReceiver {
+
+        public boolean finished = false;
+
+        @Override
+        public boolean setNextRow(Row row) {
+            upstream.pause();
+            return super.setNextRow(row);
+        }
+
+        @Override
+        public void finish() {
+            super.finish();
+            finished = true;
+        }
+
+    }
 
     @Override
     public byte[] generateRowSource() throws IOException {
@@ -276,11 +293,39 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
+    public void testLuceneDocCollectorOrderedWithScrollingStartStopPerformance() throws Exception{
+        PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, rowReceiver, orderBy.orderBySymbols());
+
+        while (!rowReceiver.finished) {
+            docCollector.doCollect();
+            docCollector.resume(false);
+        }
+        MatcherAssert.assertThat(rowReceiver.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
+    @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception{
-        LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, orderBy.orderBySymbols());
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
         collectingRowReceiver.finish();
     }
+
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
+    @Test
+    public void testLuceneDocCollectorOrderedWithoutScrollingStartStopPerformance() throws Exception{
+        PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
+        LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
+        while (!rowReceiver.finished) {
+            docCollector.doCollect();
+            docCollector.resume(false);
+        }
+        MatcherAssert.assertThat(rowReceiver.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
+    }
+
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
@@ -306,6 +351,18 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
+        collectingRowReceiver.finish();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
+    @Test
+    public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception{
+        PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
+        LuceneDocCollector docCollector = createDocCollector(null, null, rowReceiver, ImmutableList.of((Symbol) reference));
+        while (!rowReceiver.finished) {
+            docCollector.doCollect();
+            docCollector.resume(false);
+        }
         collectingRowReceiver.finish();
     }
 

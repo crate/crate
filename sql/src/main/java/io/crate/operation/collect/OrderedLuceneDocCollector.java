@@ -28,7 +28,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
@@ -91,10 +90,11 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                 throw new CancellationException();
             }
 
-            if (shouldPause()) {
-                return;
-            }
+            ScoreDoc scoreDoc = null;
             if (internalCollectContext.topFieldDocs == null) {
+                if (shouldPause()) {
+                    return;
+                }
                 if (internalCollectContext.lastCollected == null) {
                     internalCollectContext.topFieldDocs = searchContext.searcher().search(internalCollectContext.buildQuery(), batchSize(), internalCollectContext.sort);
                 } else {
@@ -106,32 +106,47 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
                     return;
                 }
                 internalCollectContext.topFieldPosition = 0;
-            }
 
-            IndexReaderContext indexReaderContext = searchContext.searcher().getTopReaderContext();
-            ScoreDoc scoreDoc = null;
-            if (!indexReaderContext.leaves().isEmpty()) {
-                setScorer(internalCollectContext.scorer);
-                for (; internalCollectContext.topFieldPosition < internalCollectContext.topFieldDocs.scoreDocs.length; internalCollectContext.topFieldPosition++) {
-                    scoreDoc = internalCollectContext.topFieldDocs.scoreDocs[internalCollectContext.topFieldPosition];
-                    int readerIndex = ReaderUtil.subIndex(scoreDoc.doc, searchContext.searcher().getIndexReader().leaves());
-                    AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
-                    int subDoc = scoreDoc.doc - subReaderContext.docBase;
-                    setNextReader(subReaderContext);
-                    setNextOrderByValues(scoreDoc);
-                    internalCollectContext.scorer.score(scoreDoc.score);
-                    collect(subDoc);
-                }
-                if (internalCollectContext.topFieldDocs.scoreDocs.length < batchSize()) {
-                    // last batch, no more hits
+                IndexReaderContext indexReaderContext = searchContext.searcher().getTopReaderContext();
+                if (!indexReaderContext.leaves().isEmpty()) {
+                    setScorer(internalCollectContext.scorer);
+                    scoreDoc = emitTopFieldDocs();
+                } else {
                     return;
                 }
             } else {
+                scoreDoc = emitTopFieldDocs();
+
+            }
+            if (paused.get()) {
+                return;
+            }
+            if (internalCollectContext.topFieldDocs.scoreDocs.length < batchSize()) {
+                // last batch, no more hits
                 return;
             }
             internalCollectContext.lastCollected = scoreDoc;
             internalCollectContext.topFieldDocs = null;
         }
+    }
+
+    private ScoreDoc emitTopFieldDocs() throws IOException {
+        ScoreDoc scoreDoc = null;
+        for (; internalCollectContext.topFieldPosition < internalCollectContext.topFieldDocs.scoreDocs.length; internalCollectContext.topFieldPosition++) {
+            scoreDoc = internalCollectContext.topFieldDocs.scoreDocs[internalCollectContext.topFieldPosition];
+            int readerIndex = ReaderUtil.subIndex(scoreDoc.doc, searchContext.searcher().getIndexReader().leaves());
+            AtomicReaderContext subReaderContext = searchContext.searcher().getIndexReader().leaves().get(readerIndex);
+            int subDoc = scoreDoc.doc - subReaderContext.docBase;
+            setNextReader(subReaderContext);
+            setNextOrderByValues(scoreDoc);
+            internalCollectContext.scorer.score(scoreDoc.score);
+            if (shouldPause()) {
+                break;
+            }
+            doCollect(subDoc);
+        }
+        return scoreDoc;
+
     }
 
     @Override

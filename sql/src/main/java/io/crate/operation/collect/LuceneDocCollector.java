@@ -105,7 +105,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected final Integer limit;
     protected final CrateSearchContext searchContext;
     private final RamAccountingContext ramAccountingContext;
-    private final AtomicBoolean paused = new AtomicBoolean(false);
+    protected final AtomicBoolean paused = new AtomicBoolean(false);
 
     protected volatile boolean killed = false;
     private boolean visitorEnabled = false;
@@ -147,6 +147,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         if (shouldPause()) {
             throw new CollectionPauseException();
         }
+        doCollect(doc);
+    }
+
+    protected void doCollect(int doc) throws IOException {
         if (killed) {
             throw new CancellationException();
         }
