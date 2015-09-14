@@ -23,7 +23,7 @@ package io.crate.core.collections;
 
 public interface Row {
 
-    public int size();
+    int size();
 
     /**
      * Returns the element at the specified column
@@ -33,10 +33,10 @@ public interface Row {
      * @throws IndexOutOfBoundsException if the index is out of range
      *         (<tt>index &lt; 0 || index &gt;= size()</tt>)
      */
-    public Object get(int index);
+    Object get(int index);
 
     /**
      * Returns a materialized view of this row.
      */
-    public Object[] materialize();
+    Object[] materialize();
 }

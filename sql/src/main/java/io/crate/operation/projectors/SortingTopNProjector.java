@@ -21,19 +21,15 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import io.crate.Constants;
+import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 
 public class SortingTopNProjector extends AbstractProjector {
@@ -95,7 +91,7 @@ public class SortingTopNProjector extends AbstractProjector {
     public void finish() {
         final int resultSize = Math.max(pq.size() - offset, 0);
         if (resultSize == 0) {
-            downstream.finish();
+            super.finish();
             return;
         }
         Object[][] rows = new Object[resultSize][];
@@ -103,21 +99,11 @@ public class SortingTopNProjector extends AbstractProjector {
             rows[i] = pq.pop();
         }
         pq.clear();
-        final RowN row = new RowN(numOutputs);
-        IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                downstream, executionState, Iterables.transform(Arrays.asList(rows), new Function<Object[], Row>() {
-            @Nullable
-            @Override
-            public Row apply(Object[] input) {
-                row.cells(input);
-                return row;
-            }
-        }));
-        rowEmitter.run();
+        emitRows(new ArrayBucket(rows, numOutputs));
     }
 
     @Override
     public void fail(Throwable t) {
-        downstream.fail(t);
+        super.fail(t);
     }
 }

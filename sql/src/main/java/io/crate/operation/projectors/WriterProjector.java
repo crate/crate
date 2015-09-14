@@ -157,8 +157,8 @@ public class WriterProjector extends AbstractProjector {
     public void finish() {
         if (closeWriterAndOutput()) return;
 
-        downstream.setNextRow(new Row1(counter.get()));
-        downstream.finish();
+        super.setNextRow(new Row1(counter.get()));
+        super.finish();
     }
 
     private boolean closeWriterAndOutput() {
@@ -167,7 +167,7 @@ public class WriterProjector extends AbstractProjector {
                 rowWriter.close();
             }
         } catch (IOException e) {
-            downstream.fail(new UnhandledServerException("Failed to close output", e));
+            super.fail(new UnhandledServerException("Failed to close output", e));
             return true;
         }
         return false;
@@ -177,7 +177,7 @@ public class WriterProjector extends AbstractProjector {
     public void fail(Throwable throwable) {
         if (closeWriterAndOutput()) return;
 
-        downstream.fail(throwable);
+        super.fail(throwable);
     }
 
     interface RowWriter {

@@ -66,7 +66,7 @@ public class SimpleTopNProjector extends AbstractProjector {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        if (!downstream.setNextRow(this.inputRow)) {
+        if (!super.setNextRow(this.inputRow)) {
             toCollect = -1;
             return false;
         } else {
@@ -77,11 +77,11 @@ public class SimpleTopNProjector extends AbstractProjector {
 
     @Override
     public void finish() {
-        downstream.finish();
+        super.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+        super.fail(throwable);
     }
 }

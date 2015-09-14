@@ -49,7 +49,6 @@ import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
 
@@ -98,11 +97,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         indexWriter.downstream(rowReceiver);
         indexWriter.fail(new IllegalStateException("my dummy exception"));
 
-        try {
-            rowReceiver.result();
-        } catch (InterruptedException | ExecutionException e) {
-            throw e.getCause();
-        }
+        rowReceiver.result();
     }
 
     @Test

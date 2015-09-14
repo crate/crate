@@ -107,6 +107,9 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
                 try {
                     executor.execute(this);
                 } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(e.getMessage(), e);
+                    }
                     run();
                 }
             } else {

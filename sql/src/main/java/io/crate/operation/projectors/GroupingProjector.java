@@ -29,7 +29,6 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.Aggregator;
@@ -93,12 +92,6 @@ public class GroupingProjector extends AbstractProjector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
-        super.prepare(executionState);
-        grouper.prepare(executionState);
-    }
-
-    @Override
     public boolean setNextRow(Row row) {
         return grouper.setNextRow(row);
     }
@@ -113,7 +106,7 @@ public class GroupingProjector extends AbstractProjector {
 
     @Override
     public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+        super.fail(throwable);
     }
 
     /**
@@ -153,7 +146,6 @@ public class GroupingProjector extends AbstractProjector {
         boolean setNextRow(final Row row);
 
         void finish();
-        void prepare(ExecutionState executionState);
     }
 
     private class SingleKeyGrouper implements Grouper {
@@ -163,7 +155,6 @@ public class GroupingProjector extends AbstractProjector {
         private final Input keyInput;
         private final CollectExpression[] collectExpressions;
         private final SizeEstimator<Object> sizeEstimator;
-        private ExecutionState executionState;
 
         public SingleKeyGrouper(Input keyInput,
                                 DataType keyInputType,
@@ -217,12 +208,11 @@ public class GroupingProjector extends AbstractProjector {
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(
                         (1 + aggregators.length) * 4 + 12));
             } catch (CircuitBreakingException e) {
-                downstream.fail(e);
+                GroupingProjector.super.fail(e);
                 return;
             }
 
-            IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
+            emitRows(Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
 
                 RowN row = new RowN(1 + aggregators.length); // 1 for key
                 Object[] cells = new Object[row.size()];
@@ -236,12 +226,6 @@ public class GroupingProjector extends AbstractProjector {
                     return row;
                 }
             }));
-            rowEmitter.run();
-        }
-
-        @Override
-        public void prepare(ExecutionState executionState) {
-            this.executionState = executionState;
         }
 
         @Override
@@ -255,7 +239,6 @@ public class GroupingProjector extends AbstractProjector {
         private final Aggregator[] aggregators;
         private final Map<List<Object>, Object[]> result;
         private final List<Input<?>> keyInputs;
-        private ExecutionState executionState;
         private final CollectExpression[] collectExpressions;
         private final List<SizeEstimator<Object>> sizeEstimators;
 
@@ -325,12 +308,11 @@ public class GroupingProjector extends AbstractProjector {
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
                         (keyInputs.size() + aggregators.length) * 4));
             } catch (CircuitBreakingException e) {
-                downstream.fail(e);
+                GroupingProjector.super.fail(e);
                 return;
             }
 
-            IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
+            emitRows(Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
                 RowN row = new RowN(keyInputs.size() + aggregators.length);
                 Object[] cells = new Object[row.size()];
@@ -344,12 +326,6 @@ public class GroupingProjector extends AbstractProjector {
                     return row;
                 }
             }));
-            rowEmitter.run();
-        }
-
-        @Override
-        public void prepare(ExecutionState executionState) {
-            this.executionState = executionState;
         }
 
         @Override
