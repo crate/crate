@@ -46,9 +46,6 @@ compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
 test {
     testLogging.exceptionFormat = 'full'
 
-    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
-    outputs.upToDateWhen { false }
-
     jacoco {
         excludes = [ "*Test*" ]
     }

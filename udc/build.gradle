@@ -22,8 +22,6 @@ test {
     // show standard out and standard error of the test JVM(s) on the console
     testLogging.showStandardStreams = true
     testLogging.exceptionFormat = 'full'
-    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
-    outputs.upToDateWhen { false }
 
     jacoco {
         excludes = [ "*Test*" ]

@@ -23,6 +23,9 @@ allprojects {
     }
 
     tasks.withType(Test) {
+        // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
+        outputs.upToDateWhen { false }
+
         // allow to set the number of test forks from the CLI
         if (project.hasProperty('testForks')) {
             maxParallelForks = project.testForks as int
