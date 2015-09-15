@@ -150,10 +150,9 @@ public class ContextPreparer {
     private void postPrepare(JobExecutionContext.Builder contextBuilder,
                              PreparerContext preparerContext) {
         while (!preparerContext.executionPhasesToProcess.isEmpty()) {
-            Iterator<ExecutionPhase> it = preparerContext.executionPhasesToProcess.iterator();
-            while (it.hasNext()) {
-                ExecutionPhase executionPhase = it.next();
-                it.remove();
+            List<ExecutionPhase> executionPhasesToProcess = Lists.newArrayList(preparerContext.executionPhasesToProcess);
+            preparerContext.executionPhasesToProcess.clear();
+            for (ExecutionPhase executionPhase : executionPhasesToProcess) {
                 processExecutionPhase(executionPhase, preparerContext, contextBuilder);
             }
         }
