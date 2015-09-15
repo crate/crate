@@ -169,7 +169,7 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
     }
 
     @Override
-    protected void skipSegmentReader() {
+    protected void skipSegmentReader(int docBase) {
         // do nothing, all done in searchAndCollect()
     }
 

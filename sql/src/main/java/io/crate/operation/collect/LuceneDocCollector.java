@@ -146,7 +146,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void collect(int doc) throws IOException {
         if (shouldPause()) {
-            throw new CollectionPauseException();
+            throw CollectionPauseException.INSTANCE;
         }
         doCollect(doc);
     }
@@ -194,7 +194,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected boolean skipDoc(int doc) {
         ScoreDoc after = internalCollectContext.lastCollected;
         if (after != null) {
-            return currentDocBase == internalCollectContext.lastDocBase && doc <= after.doc;
+            return doc <= after.doc;
         }
         return false;
     }
@@ -202,17 +202,17 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected void postCollectDoc(int doc) {
         if (internalCollectContext.lastCollected == null) {
             internalCollectContext.lastCollected = new ScoreDoc(doc, Float.NaN);
+        } else {
+            internalCollectContext.lastCollected.doc = doc;
         }
-        internalCollectContext.lastCollected.doc = doc;
-        internalCollectContext.lastDocBase = currentDocBase;
     }
 
 
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
+        skipSegmentReader(context.docBase);
         currentReader = context.reader();
         currentDocBase = context.docBase;
-        skipSegmentReader();
 
         // trigger keep-alive here as well
         // in case we have a long running query without actual matches
@@ -223,10 +223,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    protected void skipSegmentReader() {
-        if (currentDocBase < internalCollectContext.lastDocBase) {
+    protected void skipSegmentReader(int docBase) {
+        if (docBase < currentDocBase) {
             // skip this segment reader, all docs of this segment are already collected
             throw COLLECTION_TERMINATED_EXCEPTION;
+        }
+        if (currentDocBase != docBase && internalCollectContext.lastCollected != null) {
+            internalCollectContext.lastCollected.doc = -1;
         }
     }
 
@@ -357,7 +360,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected static class InternalCollectContext {
 
         protected final Query query;
-        protected int lastDocBase = 0;
         @Nullable protected ScoreDoc lastCollected;
 
         public InternalCollectContext(Query query) {

@@ -28,4 +28,8 @@ import java.io.IOException;
  * pause the collection.
  */
 public class CollectionPauseException extends IOException {
+
+    public static final CollectionPauseException INSTANCE = new CollectionPauseException();
+
+    private CollectionPauseException() {}
 }
