@@ -22,6 +22,12 @@ Unreleased
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).
    Also updated the upstream of EC2 discovery module
 
+2015/09/15 0.51.3
+=================
+
+ - Display column names that contain a dot correctly in information schema
+   and result column headers
+
 2015/08/09 0.51.2
 =================
 
