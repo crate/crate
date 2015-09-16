@@ -26,6 +26,8 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
+import java.util.Set;
+
 public interface RowReceiver {
 
     /**
@@ -71,5 +73,10 @@ public interface RowReceiver {
     void setUpstream(RowUpstream rowUpstream);
 
 
-    boolean requiresRepeatSupport();
+    /**
+     * specifies which requirements a downstream requires from an upstream in order to work correctly.
+     *
+     * This can be used to switch to optimized implementations if something isn't/is requirement
+     */
+    Set<Requirement> requirements();
 }
