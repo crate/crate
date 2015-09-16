@@ -91,7 +91,9 @@ public class TypeConversionTest extends CrateUnitTest {
 
         for (Byte byteVal : bytes(10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
-                byteVal = t.equals(DataTypes.IP) ? (byte) Math.abs(byteVal) : byteVal;
+                if (t.equals(DataTypes.IP)) {
+                    byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
+                }
                 t.value(byteVal);
             }
         }
