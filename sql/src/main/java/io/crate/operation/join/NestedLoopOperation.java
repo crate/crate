@@ -28,9 +28,13 @@ import io.crate.core.collections.RowN;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ListenableRowReceiver;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+
+import java.util.Set;
 
 public class NestedLoopOperation implements RowUpstream {
 
@@ -177,17 +181,22 @@ public class NestedLoopOperation implements RowUpstream {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return false;
+        public Set<Requirement> requirements() {
+            return Requirements.add(downstream.requirements(), Requirement.REPEAT);
         }
     }
 
     private class RightRowReceiver extends AbstractRowReceiver {
 
+        private final Set<Requirement> requirements;
         volatile Row lastRow = null;
 
         boolean receivedRows = false;
         boolean leftIsPaused = false;
+
+        public RightRowReceiver() {
+            requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
+        }
 
         @Override
         public boolean setNextRow(final Row rightRow) {
@@ -241,8 +250,8 @@ public class NestedLoopOperation implements RowUpstream {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return true;
+        public Set<Requirement> requirements() {
+            return requirements;
         }
 
         boolean resume() {
