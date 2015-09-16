@@ -245,8 +245,8 @@ public class SortingRowMerger implements RowMerger {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return false;
+        public Set<Requirement> requirements() {
+            return projector.rowReceiver.requirements();
         }
 
         @Override

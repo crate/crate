@@ -30,10 +30,13 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -56,8 +59,8 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     @Override
-    public boolean requiresRepeatSupport() {
-        return false;
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
     }
 
     @Override

@@ -46,7 +46,7 @@ public class RowMergers {
 
     public static RowDownstream passThroughRowMerger(RowReceiver delegate) {
         MultiUpstreamRowReceiver rowReceiver;
-        if (delegate.requiresRepeatSupport()) {
+        if (delegate.requirements().contains(Requirement.REPEAT)) {
             rowReceiver = new RowCachingMultiUpstreamRowReceiver(delegate);
         } else {
             rowReceiver = new MultiUpstreamRowReceiver(delegate);
@@ -55,7 +55,7 @@ public class RowMergers {
     }
 
     public static RowDownstream sortingRowMerger(RowReceiver delegate, int[] orderByPositions, boolean[] reverseFlags, Boolean[] nullsFirst) {
-        if (delegate.requiresRepeatSupport()) {
+        if (delegate.requirements().contains(Requirement.REPEAT)) {
             Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(orderByPositions, reverseFlags, nullsFirst);
             return new MultiUpstreamRowMerger(new SortingRowCachingMultiUpstreamRowReceiver(delegate, ordering));
         }
@@ -125,8 +125,8 @@ public class RowMergers {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return false;
+        public Set<Requirement> requirements() {
+            return Requirements.NO_REQUIREMENTS;
         }
 
         @Override
