@@ -44,7 +44,7 @@ public class RowMergers {
 
     public static RowDownstream passThroughRowMerger(RowReceiver delegate) {
         MultiUpstreamRowReceiver rowReceiver;
-        if (delegate.requiresRepeatSupport()) {
+        if (delegate.requirements().contains(Requirement.REPEAT)) {
             rowReceiver = new RowCachingMultiUpstreamRowReceiver(delegate);
         } else {
             rowReceiver = new MultiUpstreamRowReceiver(delegate);
@@ -115,8 +115,8 @@ public class RowMergers {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return false;
+        public Set<Requirement> requirements() {
+            return Requirements.NO_REQUIREMENTS;
         }
 
         @Override

@@ -151,15 +151,15 @@ public class ShardProjectorChain {
 
     private RowDownstream getRowDownstream(int maxNumShards) {
         if (maxNumShards == 1) {
-            LOGGER.debug("Getting RowDownstream for 1 upstream, repeat support: " + firstNodeProjector.requiresRepeatSupport());
-            if (firstNodeProjector.requiresRepeatSupport()) {
+            LOGGER.debug("Getting RowDownstream for 1 upstream, repeat support: " + firstNodeProjector.requirements());
+            if (firstNodeProjector.requirements().contains(Requirement.REPEAT)) {
                 return RowMergers.passThroughRowMerger(firstNodeProjector);
             } else {
                 return new SingleUpstreamRowDownstream(firstNodeProjector);
             }
         } else {
             LOGGER.debug("Getting RowDownstream for multiple upstreams; unsorted; repeat support: "
-                    + firstNodeProjector.requiresRepeatSupport());
+                    + firstNodeProjector.requirements());
             return RowMergers.passThroughRowMerger(firstNodeProjector);
         }
     }
