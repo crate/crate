@@ -22,47 +22,26 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowUpstream;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 
-public abstract class ForwardingRowReceiver implements RowReceiver {
+public class Requirements {
 
-    final RowReceiver rowReceiver;
+    public final static Set<Requirement> NO_REQUIREMENTS = ImmutableSet.of();
 
-    public ForwardingRowReceiver(RowReceiver rowReceiver) {
-        this.rowReceiver = rowReceiver;
+    public static Set<Requirement> add(Set<Requirement> requirements, Requirement additionalRequirement) {
+        EnumSet<Requirement> newRequirements = Sets.newEnumSet(requirements, Requirement.class);
+        newRequirements.add(additionalRequirement);
+        return Collections.unmodifiableSet(newRequirements);
     }
 
-    @Override
-    public void prepare(ExecutionState executionState) {
-        rowReceiver.prepare(executionState);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        return rowReceiver.requirements();
-    }
-
-    @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-        rowReceiver.setUpstream(rowUpstream);
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
-        return rowReceiver.setNextRow(row);
-    }
-
-    @Override
-    public void finish() {
-        rowReceiver.finish();
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        rowReceiver.fail(throwable);
+    public static Set<Requirement> remove(Set<Requirement> requirements, Requirement requirementToRemove) {
+        EnumSet<Requirement> newRequirements = Sets.newEnumSet(requirements, Requirement.class);
+        newRequirements.remove(requirementToRemove);
+        return Collections.unmodifiableSet(newRequirements);
     }
 }
