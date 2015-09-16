@@ -427,16 +427,8 @@ public class FetchProjector extends AbstractProjector {
         }
     }
 
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
     @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean requiresRepeatSupport() {
-        return false;
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
     }
 }
