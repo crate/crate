@@ -31,10 +31,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -331,8 +328,8 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
-            return false;
+        public Set<Requirement> requirements() {
+            return projector.downstreamRowReceiver.requirements();
         }
 
         private void pauseThread() {
