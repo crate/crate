@@ -179,19 +179,19 @@ public class ShardProjectorChain {
 
     private RowDownstream getRowDownstream(int maxNumShards, @Nullable List<? extends Symbol> outputs, @Nullable OrderBy orderBy) {
         if (maxNumShards == 1) {
-            LOGGER.debug("Getting RowDownstream for 1 upstream, repeat support: " + firstNodeProjector.requiresRepeatSupport());
-            if (firstNodeProjector.requiresRepeatSupport()) {
+            LOGGER.debug("Getting RowDownstream for 1 upstream, repeat support: " + firstNodeProjector.requirements());
+            if (firstNodeProjector.requirements().contains(Requirement.REPEAT)) {
                 return RowMergers.passThroughRowMerger(firstNodeProjector);
             } else {
                 return new SingleUpstreamRowDownstream(firstNodeProjector);
             }
         } else if (orderBy == null || !orderBy.isSorted()) {
             LOGGER.debug("Getting RowDownstream for multiple upstreams; unsorted; repeat support: "
-                    + firstNodeProjector.requiresRepeatSupport());
+                    + firstNodeProjector.requirements());
             return RowMergers.passThroughRowMerger(firstNodeProjector);
         } else {
             LOGGER.debug("Getting RowDownstream for multiple upstreams; sorted; repeat support: "
-                    + firstNodeProjector.requiresRepeatSupport());
+                    + firstNodeProjector.requirements());
             assert outputs != null : "must have outputs if orderBy is present";
             int[] orderByPositions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), outputs);
             return RowMergers.sortingRowMerger(firstNodeProjector, orderByPositions, orderBy.reverseFlags(), orderBy.nullsFirst());
