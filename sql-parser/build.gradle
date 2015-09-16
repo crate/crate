@@ -72,5 +72,7 @@ clean {
         generateWithANTLR3.ext.parserOutputFiles.each {
             it.delete()
         }
+        file('Statement.tokens').delete()
+        file('StatementBuilder.tokens').delete()
     }
 }
