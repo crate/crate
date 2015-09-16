@@ -26,6 +26,8 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
+import java.util.Set;
+
 public abstract class AbstractProjector implements Projector {
 
     // these stateCheck classes are used to avoid having to do null-state checks in concrete implementations
@@ -65,8 +67,8 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
-    public boolean requiresRepeatSupport() {
-        return downstream.requiresRepeatSupport();
+    public Set<Requirement> requirements() {
+        return downstream.requirements();
     }
 
     @Override
@@ -125,7 +127,7 @@ public abstract class AbstractProjector implements Projector {
         }
 
         @Override
-        public boolean requiresRepeatSupport() {
+        public Set<Requirement> requirements() {
             throw new IllegalStateException(STATE_ERROR);
         }
     }
