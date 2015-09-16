@@ -30,9 +30,12 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.io.IOException;
+import java.util.Set;
 
 
 public class SingleBucketBuilder implements RowReceiver {
@@ -77,8 +80,8 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
-    public boolean requiresRepeatSupport() {
-        return false;
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
     }
 
     @Override
