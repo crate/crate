@@ -144,15 +144,15 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         InputCollectExpression firstCol = new InputCollectExpression(0);
         InputCollectExpression secondCol = new InputCollectExpression(1);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         SimpleTopNProjector topNProjector = new SimpleTopNProjector(
                 Arrays.<Input<?>>asList(firstCol, secondCol),
                 Arrays.asList(firstCol, secondCol),
                 3,
                 1
         );
-        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(topNProjector);
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         topNProjector.downstream(rowReceiver);
+        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(topNProjector);
 
         PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftRowReceiver());
         PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightRowReceiver());
