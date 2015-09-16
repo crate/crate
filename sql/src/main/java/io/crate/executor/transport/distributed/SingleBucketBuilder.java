@@ -44,17 +44,8 @@ public class SingleBucketBuilder implements RowReceiver {
         bucketBuilder = new StreamBucket.Builder(streamers);
     }
 
-    private Bucket build() {
-        try {
-            return bucketBuilder.build();
-        } catch (IOException e) {
-            Throwables.propagate(e);
-        }
-        return null;
-    }
-
     @Override
-    public synchronized boolean setNextRow(Row row) {
+    public boolean setNextRow(Row row) {
         try {
             bucketBuilder.add(row);
         } catch (Throwable e) {
@@ -69,7 +60,11 @@ public class SingleBucketBuilder implements RowReceiver {
 
     @Override
     public void finish() {
-        bucketFuture.set(build());
+        try {
+            bucketFuture.set(bucketBuilder.build());
+        } catch (IOException e) {
+            bucketFuture.setException(e);
+        }
     }
 
     @Override
