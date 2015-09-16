@@ -289,17 +289,4 @@ public class WriterProjector extends AbstractProjector {
             outputStream.close();
         }
     }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean requiresRepeatSupport() {
-        return false;
-    }
 }
