@@ -22,32 +22,21 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
-import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
-
-import static com.google.common.base.Charsets.UTF_8;
 
 public class StringLiteral
         extends Literal
 {
     private final String value;
-    private final Slice slice;
 
     public StringLiteral(String value)
     {
         Preconditions.checkNotNull(value, "value is null");
         this.value = value;
-        this.slice = Slices.wrappedBuffer(value.getBytes(UTF_8));
     }
 
     public String getValue()
     {
         return value;
-    }
-
-    public Slice getSlice()
-    {
-        return slice;
     }
 
     @Override
