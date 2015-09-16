@@ -84,9 +84,4 @@ public class SimpleTopNProjector extends AbstractProjector {
     public void fail(Throwable throwable) {
         downstream.fail(throwable);
     }
-
-    @Override
-    public boolean requiresRepeatSupport() {
-        return downstream.requiresRepeatSupport();
-    }
 }
