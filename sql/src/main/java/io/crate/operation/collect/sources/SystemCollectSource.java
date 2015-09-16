@@ -27,7 +27,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
