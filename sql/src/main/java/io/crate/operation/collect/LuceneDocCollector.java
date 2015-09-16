@@ -106,6 +106,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected final CrateSearchContext searchContext;
     private final RamAccountingContext ramAccountingContext;
     protected final AtomicBoolean paused = new AtomicBoolean(false);
+    private volatile boolean finished = false;
 
     protected volatile boolean killed = false;
     private boolean visitorEnabled = false;
@@ -264,25 +265,27 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
     }
 
-    protected void searchAndCollect() throws IOException {
+    protected boolean searchAndCollect() throws IOException {
         searchContext.searcher().search(internalCollectContext.query, this);
+        return !shouldPause();
     }
 
     private void innerCollect() {
         try {
-            searchAndCollect();
-
-            if (!paused.get()) {
+            if (searchAndCollect()) {
+                finished = true;
                 downstream.finish();
-            }
+            } /// else = pause
         } catch (CollectionFinishedEarlyException e) {
             paused.set(false);
+            finished = true;
             downstream.finish();
         } catch (CollectionPauseException e) {
             // paused - do nothing
         } catch (Throwable e) {
             paused.set(false);
             searchContext.close();
+            finished = true;
             downstream.fail(e);
         } finally {
             finishCollect();
@@ -290,7 +293,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     private void finishCollect() {
-        if (!paused.get()) {
+        if (finished) {
             searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
             searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         }
@@ -317,6 +320,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     public void resume(boolean async) {
         pendingPause = false;
         if (paused.compareAndSet(true, false)) {
+            if (finished) {
+                downstream.finish();
+                return;
+            }
             if (!async) {
                 innerCollect();
             } else {
