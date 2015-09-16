@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
@@ -37,9 +38,11 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.GroupingProjector;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -84,6 +87,34 @@ public class GroupingProjectorBenchmark {
         }
     }
 
+    static class NoOpRowReceiver implements RowReceiver {
+
+        @Override
+        public boolean setNextRow(Row row) {
+            return true;
+        }
+
+        @Override
+        public void finish() {
+
+        }
+
+        @Override
+        public void fail(Throwable throwable) {
+
+        }
+
+        @Override
+        public void prepare(ExecutionState executionState) {
+
+        }
+
+        @Override
+        public void setUpstream(RowUpstream rowUpstream) {
+
+        }
+    }
+
 
     @Test
     public void testGroupByMinBytesRef() throws Exception {
@@ -105,6 +136,8 @@ public class GroupingProjectorBenchmark {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
+        NoOpRowReceiver finalReceiver = new NoOpRowReceiver();
+        groupingProjector.downstream(finalReceiver);
 
         groupingProjector.prepare(mock(ExecutionState.class));
 
@@ -142,7 +175,8 @@ public class GroupingProjectorBenchmark {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
-
+        NoOpRowReceiver finalReceiver = new NoOpRowReceiver();
+        groupingProjector.downstream(finalReceiver);
         groupingProjector.prepare(mock(ExecutionState.class));
 
         SpareRow row = new SpareRow();
