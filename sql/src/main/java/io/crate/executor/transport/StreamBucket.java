@@ -27,8 +27,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -37,7 +37,6 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -136,27 +135,7 @@ public class StreamBucket implements Bucket, Streamable {
         private final StreamInput input = bytes.streamInput();
         private int pos = 0;
         private final Object[] current = new Object[streamers.length];
-        private final Row row = new Row() {
-            @Override
-            public int size() {
-                return current.length;
-            }
-
-            @Override
-            public Object get(int index) {
-                return current[index];
-            }
-
-            @Override
-            public Object[] materialize() {
-                return Buckets.materialize(this);
-            }
-
-            @Override
-            public String toString() {
-                return Arrays.toString(current);
-            }
-        };
+        private final Row row = new RowN(current);
 
         @Override
         public boolean hasNext() {
