@@ -149,12 +149,21 @@ public class ContextPreparer {
      */
     private void postPrepare(JobExecutionContext.Builder contextBuilder,
                              PreparerContext preparerContext) {
-        while (!preparerContext.executionPhasesToProcess.isEmpty()) {
+
+        /**
+         * if a phase has its upstream on the same node it might need to be processes 2 times
+         * (the first time it might be skipped if the upstream hasn't been processed yet)
+         */
+        int reProcessLimit = preparerContext.executionPhasesToProcess.size() * 2;
+        for (int i = 0; i < reProcessLimit && !preparerContext.executionPhasesToProcess.isEmpty(); i++) {
             List<ExecutionPhase> executionPhasesToProcess = Lists.newArrayList(preparerContext.executionPhasesToProcess);
             preparerContext.executionPhasesToProcess.clear();
             for (ExecutionPhase executionPhase : executionPhasesToProcess) {
                 processExecutionPhase(executionPhase, preparerContext, contextBuilder);
             }
+        }
+        if (!preparerContext.executionPhasesToProcess.isEmpty()) {
+            throw new IllegalStateException("Aborted context preparation as an infinite loop was detected");
         }
     }
 
