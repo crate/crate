@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed calculation of the retry delay in order to prevent exceeding of the
+   AWS API Request limit.
+
  - Updated crate-admin to 0.15.0 which includes following changes:
 
    - display cluster checks on overview page
