@@ -28,9 +28,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@ParametersAreNonnullByDefault
 public class SubExecutionContextFuture implements ListenableFuture<SubExecutionContextFuture.State> {
 
     public static class State {
@@ -73,7 +75,7 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
         }
     }
 
-    public void addCallback(FutureCallback<State> callback) {
+    public void addCallback(FutureCallback<? super State> callback) {
         Futures.addCallback(internalFuture, callback);
     }
 
