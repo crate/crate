@@ -158,21 +158,6 @@ public class OrderedLuceneDocCollector extends LuceneDocCollector {
         }
     }
 
-    @Override
-    protected boolean skipDoc(int doc) {
-        return false;
-    }
-
-    @Override
-    protected void postCollectDoc(int doc) {
-        // do nothing, all done in searchAndCollect()
-    }
-
-    @Override
-    protected void skipSegmentReader(int docBase) {
-        // do nothing, all done in searchAndCollect()
-    }
-
     public void setNextOrderByValues(ScoreDoc scoreDoc) {
         for (OrderByCollectorExpression expr : orderByCollectorExpressions) {
             expr.setNextFieldDoc((FieldDoc) scoreDoc);

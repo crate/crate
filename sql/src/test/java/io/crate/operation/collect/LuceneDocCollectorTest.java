@@ -252,13 +252,34 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testUnorderedPauseResume() throws Exception {
-        int pauseAfter = NUMBER_OF_DOCS - 1;
+        int pauseAfter = NUMBER_OF_DOCS - 5;
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(pauseAfter);
         ReferenceIdent populationIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "population");
         Reference population = new Reference(new ReferenceInfo(populationIdent, RowGranularity.DOC, DataTypes.INTEGER));
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(pauseAfter));
+        docCollector.resume(false);
+
+        Bucket bucket = rowReceiver.result();
+        assertThat(bucket.size(), is(NUMBER_OF_DOCS));
+        assertThat(new ArrayList<>(rowReceiver.rows), containsInAnyOrder(new ArrayList() {{
+            for (int i = 0; i < NUMBER_OF_DOCS; i++) {
+                add(equalTo(new Object[]{i}));
+            }
+        }}));
+    }
+
+    @Test
+    public void testUnorderedPauseAfterLastDoc() throws Exception {
+        int pauseAfter = NUMBER_OF_DOCS;
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(pauseAfter);
+        ReferenceIdent populationIdent = new ReferenceIdent(new TableIdent("doc", "countries"), "population");
+        Reference population = new Reference(new ReferenceInfo(populationIdent, RowGranularity.DOC, DataTypes.INTEGER));
+        LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.<Symbol>of(population), WhereClause.MATCH_ALL, PAGE_SIZE, rowReceiver);
+        docCollector.doCollect();
+        assertThat(rowReceiver.rows.size(), is(pauseAfter));
+        assertThat(rowReceiver.isFinished(), is(false));
         docCollector.resume(false);
 
         Bucket bucket = rowReceiver.result();

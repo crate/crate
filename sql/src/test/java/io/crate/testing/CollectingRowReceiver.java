@@ -42,6 +42,7 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
     private final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    private boolean isFinished = false;
     protected RowUpstream upstream;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
@@ -69,11 +70,17 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void finish() {
         resultFuture.set(new CollectionBucket(rows));
+        isFinished = true;
+    }
+
+    public boolean isFinished() {
+        return isFinished;
     }
 
     @Override
     public void fail(Throwable throwable) {
         resultFuture.setException(throwable);
+        isFinished = true;
     }
 
     public Bucket result() throws Exception {

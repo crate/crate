@@ -39,6 +39,7 @@ import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
@@ -114,7 +115,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     protected int rowCount = 0;
     private volatile boolean pendingPause = false;
     private InternalCollectContext internalCollectContext;
-    private int currentDocBase = 0;
+
+    private final InternalIndexSearcher internalIndexSearcher;
 
     public LuceneDocCollector(ThreadPool threadPool,
                               CrateSearchContext searchContext,
@@ -127,6 +129,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         this.keepAliveListener = keepAliveListener;
         this.executor = (ThreadPoolExecutor)threadPool.executor(ThreadPool.Names.SEARCH);
         this.searchContext = searchContext;
+        internalIndexSearcher = new InternalIndexSearcher(searchContext);
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectPhase.limit();
         this.downstream = downStreamProjector;
@@ -146,6 +149,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void collect(int doc) throws IOException {
         if (shouldPause()) {
+            internalCollectContext.pausedDoc = doc;
             throw CollectionPauseException.INSTANCE;
         }
         doCollect(doc);
@@ -169,10 +173,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             keepAliveListener.keepAlive();
         }
 
-        if (skipDoc(doc)) {
-            return;
-        }
-
         rowCount++;
         if (visitorEnabled) {
             fieldsVisitor.reset();
@@ -183,36 +183,15 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         }
         boolean wantMore = downstream.setNextRow(inputRow);
 
-        postCollectDoc(doc);
-
         if (!wantMore || (limit != null && rowCount >= limit)) {
             // no more rows required, we can stop here
             throw CollectionFinishedEarlyException.INSTANCE;
         }
     }
 
-    protected boolean skipDoc(int doc) {
-        ScoreDoc after = internalCollectContext.lastCollected;
-        if (after != null) {
-            return doc <= after.doc;
-        }
-        return false;
-    }
-
-    protected void postCollectDoc(int doc) {
-        if (internalCollectContext.lastCollected == null) {
-            internalCollectContext.lastCollected = new ScoreDoc(doc, Float.NaN);
-        } else {
-            internalCollectContext.lastCollected.doc = doc;
-        }
-    }
-
-
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
-        skipSegmentReader(context.docBase);
         currentReader = context.reader();
-        currentDocBase = context.docBase;
 
         // trigger keep-alive here as well
         // in case we have a long running query without actual matches
@@ -222,17 +201,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
             expr.setNextReader(context);
         }
     }
-
-    protected void skipSegmentReader(int docBase) {
-        if (docBase < currentDocBase) {
-            // skip this segment reader, all docs of this segment are already collected
-            throw COLLECTION_TERMINATED_EXCEPTION;
-        }
-        if (currentDocBase != docBase && internalCollectContext.lastCollected != null) {
-            internalCollectContext.lastCollected.doc = -1;
-        }
-    }
-
 
     @Override
     public boolean acceptsDocsOutOfOrder() {
@@ -269,7 +237,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     }
 
     protected boolean searchAndCollect() throws IOException {
-        searchContext.searcher().search(internalCollectContext.query, this);
+        internalIndexSearcher.search(internalCollectContext.query, this);
         return !shouldPause();
     }
 
@@ -362,8 +330,76 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         protected final Query query;
         @Nullable protected ScoreDoc lastCollected;
 
+        @Nullable Weight weight = null;
+        @Nullable BulkScorer scorer = null;
+        public int pausedDoc = -1;
+
         public InternalCollectContext(Query query) {
             this.query = query;
+        }
+    }
+
+    public class InternalIndexSearcher  {
+
+        private final CrateSearchContext context;
+        /* In some cases the collector is paused after the last document is emitted.
+           to prevent double emitting, it's important to track that.
+         */
+        private boolean lastDoc = false;
+        private int currentDocBase = 0;
+
+        public InternalIndexSearcher(CrateSearchContext context) {
+            this.context = context;
+        }
+
+        public void search(Query query, Collector results) throws IOException {
+            if (lastDoc) {
+                return;
+            }
+            if (internalCollectContext.weight == null) {
+                internalCollectContext.weight = context.engineSearcher().searcher().createNormalizedWeight(query);
+
+            } else if (internalCollectContext.pausedDoc != -1) {
+                collect(internalCollectContext.pausedDoc);
+                internalCollectContext.pausedDoc = -1;
+            }
+            search(context.searcher().getTopReaderContext().leaves(), internalCollectContext.weight, results);
+        }
+
+        /**
+         * Almost the same implementation as {@link org.apache.lucene.search.IndexSearcher#search(List, Weight, Collector)}
+         * but it stores the current scorer on {@link io.crate.operation.collect.LuceneDocCollector.InternalIndexSearcher},
+         * so it's possible to resume there
+         */
+        protected void search(List<AtomicReaderContext> leaves, Weight weight, Collector collector) throws IOException {
+            if (searchContext.minimumScore() != null) {
+                collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
+            }
+            try {
+                for (AtomicReaderContext ctx : leaves) { // search each subreader
+                    if (ctx.docBase < currentDocBase) {
+                        continue;
+                    }
+                    currentDocBase = ctx.docBase;
+                    collector.setNextReader(ctx);
+                    if (internalCollectContext.scorer == null) {
+                        internalCollectContext.scorer = weight.bulkScorer(ctx, !collector.acceptsDocsOutOfOrder(), ctx.reader().getLiveDocs());
+                    }
+                    if (internalCollectContext.scorer != null) {
+                        try {
+                            internalCollectContext.scorer.score(collector);
+                        } catch (CollectionTerminatedException e) {
+                            // collection was terminated prematurely
+                            // continue with the following leaf
+                        }
+                        internalCollectContext.scorer = null;
+
+                    }
+                }
+                lastDoc = true;
+            } finally {
+                searchContext.clearReleasables(SearchContext.Lifetime.COLLECTION);
+            }
         }
     }
 }

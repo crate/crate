@@ -65,8 +65,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.sort.SortBuilders;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -118,7 +116,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         @Override
         public boolean setNextRow(Row row) {
             upstream.pause();
-            return super.setNextRow(row);
+            return true;
         }
 
         @Override
@@ -287,8 +285,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         collectingRowReceiver.rows.clear();
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
         docCollector.doCollect();
-        collectingRowReceiver.finish();
-        MatcherAssert.assertThat(collectingRowReceiver.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -301,7 +297,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
-        MatcherAssert.assertThat(rowReceiver.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -310,7 +305,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
-        collectingRowReceiver.finish();
     }
 
 
@@ -323,7 +317,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
-        MatcherAssert.assertThat(rowReceiver.rows.size(), CoreMatchers.is(NUMBER_OF_DOCUMENTS));
     }
 
 
@@ -343,7 +336,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         topNProjector.prepare(jobCollectContext);
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
-        collectingRowReceiver.finish();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -351,7 +343,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
-        collectingRowReceiver.finish();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -363,7 +354,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
-        collectingRowReceiver.finish();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
