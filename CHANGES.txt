@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.15.0 which includes following changes:
+
+   - display cluster checks on overview page
+
+   - display relative Crate process CPU usage as bar chart and show number of 
+     cores per node
+
  - Allow quoted subscript expressions in SQL statement. This will allow 
    supporting various client applications on Windows that use ODBC.
 
