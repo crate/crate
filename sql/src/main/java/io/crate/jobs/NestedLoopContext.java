@@ -23,80 +23,81 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class NestedLoopContext implements DownstreamExecutionSubContext, ExecutionState {
+public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, ExecutionState {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(NestedLoopContext.class);
-
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final AtomicBoolean killed = new AtomicBoolean(false);
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
-    private ContextCallback callback = ContextCallback.NO_OP;
-
     private final NestedLoopPhase nestedLoopPhase;
     private final FlatProjectorChain flatProjectorChain;
-    private final RamAccountingContext ramAccountingContext;
+
     @Nullable
     private final PageDownstreamContext leftPageDownstreamContext;
     @Nullable
     private final PageDownstreamContext rightPageDownstreamContext;
-    private final SettableFuture<Void> closeFuture = SettableFuture.create();
+    private final ListenableRowReceiver leftRowReceiver;
+    private final ListenableRowReceiver rightRowReceiver;
 
+    private volatile boolean isKilled;
+    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public NestedLoopContext(NestedLoopPhase phase,
                              FlatProjectorChain flatProjectorChain,
                              NestedLoopOperation nestedLoopOperation,
-                             final RamAccountingContext ramAccountingContext,
                              @Nullable PageDownstreamContext leftPageDownstreamContext,
                              @Nullable PageDownstreamContext rightPageDownstreamContext) {
+        super(phase.executionPhaseId());
 
         nestedLoopPhase = phase;
         this.flatProjectorChain = flatProjectorChain;
-        this.ramAccountingContext = ramAccountingContext;
         this.leftPageDownstreamContext = leftPageDownstreamContext;
         this.rightPageDownstreamContext = rightPageDownstreamContext;
 
+        leftRowReceiver = nestedLoopOperation.leftRowReceiver();
+        rightRowReceiver = nestedLoopOperation.rightRowReceiver();
 
-        activeSubContexts.incrementAndGet();
         if (leftPageDownstreamContext == null) {
-            Futures.addCallback(nestedLoopOperation.leftRowReceiver().finishFuture(), new RemoveContextCallback(0));
+            Futures.addCallback(leftRowReceiver.finishFuture(), new RemoveContextCallback());
         } else {
-            leftPageDownstreamContext.addCallback(new RemoveContextCallback(0));
+            leftPageDownstreamContext.future.addCallback(new RemoveContextCallback());
         }
 
-        activeSubContexts.incrementAndGet();
         if (rightPageDownstreamContext == null) {
-            Futures.addCallback(nestedLoopOperation.rightRowReceiver().finishFuture(), new RemoveContextCallback(1));
+            Futures.addCallback(rightRowReceiver.finishFuture(), new RemoveContextCallback());
         } else {
-            rightPageDownstreamContext.addCallback(new RemoveContextCallback(1));
+            rightPageDownstreamContext.future.addCallback(new RemoveContextCallback());
         }
     }
 
     @Override
-    public void addCallback(ContextCallback contextCallback) {
-        callback = MultiContextCallback.merge(callback, contextCallback);
+    public String name() {
+        return nestedLoopPhase.name();
     }
 
     @Override
-    public void prepare() {
+    public int id() {
+        return nestedLoopPhase.executionPhaseId();
+    }
+
+    @Override
+    public void keepAliveListener(KeepAliveListener listener) {
+    }
+
+    @Override
+    protected void innerPrepare() {
         flatProjectorChain.startProjections(this);
     }
 
     @Override
-    public void start() {
+    protected void innerStart() {
         if (leftPageDownstreamContext != null) {
             leftPageDownstreamContext.start();
         }
@@ -106,27 +107,45 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
     }
 
     @Override
-    public void close() {
-        doClose(null);
+    protected void innerClose(@Nullable Throwable t) {
+        closeSubContext(t, leftPageDownstreamContext, leftRowReceiver);
+        closeSubContext(t, rightPageDownstreamContext, rightRowReceiver);
     }
 
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        killed.set(true);
-        if (throwable == null) {
-            throwable = new CancellationException();
+    private static void closeSubContext(@Nullable Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+        if (subContext == null) {
+            finishOrFail(t, rowReceiver);
+        } else {
+            subContext.close(t);
         }
-        doClose(throwable);
+    }
+
+    private static void finishOrFail(@Nullable Throwable t, ListenableRowReceiver rowReceiver) {
+        if (t == null) {
+            rowReceiver.finish();
+        } else {
+            rowReceiver.fail(t);
+        }
     }
 
     @Override
-    public String name() {
-        return nestedLoopPhase.name();
+    protected void innerKill(@Nullable Throwable t) {
+        isKilled = true;
+        killSubContext(t, leftPageDownstreamContext, leftRowReceiver);
+        killSubContext(t, rightPageDownstreamContext, rightRowReceiver);
+    }
+
+    private static void killSubContext(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+        if (subContext == null) {
+            rowReceiver.fail(t);
+        } else {
+            subContext.kill(t);
+        }
     }
 
     @Override
     public boolean isKilled() {
-        return killed.get();
+        return isKilled;
     }
 
     @Override
@@ -138,103 +157,30 @@ public class NestedLoopContext implements DownstreamExecutionSubContext, Executi
         return rightPageDownstreamContext;
     }
 
-    private void doClose(@Nullable Throwable throwable) {
-        if (!closed.getAndSet(true)) {
-            if (activeSubContexts.get() == 0) {
-                callContextCallback(0);
-            } else {
-                if (leftPageDownstreamContext != null) {
-                    if (killed.get()) {
-                        leftPageDownstreamContext.kill(throwable);
-                    } else {
-                        leftPageDownstreamContext.close();
-                    }
-                }
-                if (rightPageDownstreamContext != null) {
-                    if (killed.get()) {
-                        rightPageDownstreamContext.kill(throwable);
-                    } else {
-                        rightPageDownstreamContext.close();
-                    }
-                }
-            }
-            closeFuture.set(null);
-        } else {
-            try {
-                closeFuture.get();
-            } catch (Throwable e) {
-                LOGGER.warn("Error while waiting for already running close {}", e);
-            }
-        }
-    }
+    private class RemoveContextCallback implements FutureCallback<Object> {
 
-    private boolean callContextCallback(int activeSubContexts) {
-        if (activeSubContexts == 0) {
-            if (killed.get()) {
-                callback.onKill();
-            } else {
-                callback.onClose(null, ramAccountingContext.totalBytes());
-            }
-            ramAccountingContext.close();
-            return true;
-        }
-        return false;
-    }
-
-    private class RemoveContextCallback implements ContextCallback, FutureCallback<Void> {
-
-        private final int inputId;
-
-        public RemoveContextCallback(int inputId) {
-            this.inputId = inputId;
-        }
-
-        private void doClose(@Nullable Throwable t) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("calling removal listener of subContext {}", inputId);
-            }
-            int remainingSubContexts = activeSubContexts.decrementAndGet();
-            if (!callContextCallback(remainingSubContexts) && t != null) {
-                // kill other sub context
-                if (inputId == 0 && rightPageDownstreamContext != null) {
-                    rightPageDownstreamContext.kill(t);
-                } else if (leftPageDownstreamContext != null) {
-                    leftPageDownstreamContext.kill(t);
-                }
-            }
+        public RemoveContextCallback() {
+            activeSubContexts.incrementAndGet();
         }
 
         @Override
-        public void onClose(@Nullable Throwable error, long bytesUsed) {
-            doClose(error);
+        public void onSuccess(@Nullable Object result) {
+            countdown();
         }
 
-        @Override
-        public void onSuccess(@Nullable Void result) {
-            doClose(null);
+        private void countdown() {
+            if (activeSubContexts.decrementAndGet() == 0) {
+                Throwable t = failure.get();
+                if (future.firstClose()) {
+                    future.close(t);
+                }
+            }
         }
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
-            if (t instanceof CancellationException) {
-                onKill();
-            } else {
-                doClose(t);
-            }
-        }
-
-        @Override
-        public void onKill() {
-            if (activeSubContexts.decrementAndGet() == 0) {
-                callback.onKill();
-                ramAccountingContext.close();
-            }
-        }
-
-        @Override
-        public void keepAlive() {
-            callback.keepAlive();
+            failure.set(t);
+            countdown();
         }
     }
-
 }

@@ -38,12 +38,18 @@ public class RowSender implements Runnable, RowUpstream {
     private volatile int numResumes = 0;
     private Iterator<Row> iterator;
 
-    public RowSender(Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
+    public RowSender(final Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
         downstream = rowReceiver;
         topRowUpstream = new TopRowUpstream(executor, new Runnable() {
             @Override
             public void run() {
                 numResumes++;
+                RowSender.this.run();
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                iterator = rows.iterator();
                 RowSender.this.run();
             }
         });
@@ -82,12 +88,9 @@ public class RowSender implements Runnable, RowUpstream {
         topRowUpstream.resume(async);
     }
 
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
     @Override
     public void repeat() {
-        throw new UnsupportedOperationException();
+        topRowUpstream.repeat();
     }
 
     public int numPauses() {
