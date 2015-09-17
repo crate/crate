@@ -21,15 +21,11 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
-import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.planner.node.dml.ESDeleteNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -39,20 +35,15 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
-public class ESDeleteTask extends JobTask {
-
-    private final List<ListenableFuture<TaskResult>> resultList;
-    private final JobExecutionContext context;
+public class ESDeleteTask extends EsJobContextTask {
 
     public ESDeleteTask(UUID jobId,
                         ESDeleteNode node,
                         TransportDeleteAction transport,
                         JobContextService jobContextService) {
-        super(jobId);
-        resultList = new ArrayList<>(node.docKeys().size());
+        super(jobId, node.executionPhaseId(), node.docKeys().size(), jobContextService);
         List<DeleteRequest> requests = new ArrayList<>(node.docKeys().size());
         List<ActionListener> listeners = new ArrayList<>(node.docKeys().size());
         for (DocKeys.DocKey docKey : node.docKeys()) {
@@ -65,31 +56,11 @@ public class ESDeleteTask extends JobTask {
             }
             requests.add(request);
             SettableFuture<TaskResult> result = SettableFuture.create();
-            resultList.add(result);
+            results.add(result);
             listeners.add(new DeleteResponseListener(result));
         }
 
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        ESJobContext esJobContext = new ESJobContext("delete", requests, listeners, resultList, transport, null);
-        contextBuilder.addSubContext(node.executionPhaseId(), esJobContext);
-        context = jobContextService.createContext(contextBuilder);
-    }
-
-    @Override
-    public void start() {
-        context.start();
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return resultList;
-    }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
+        createContext("delete", requests, listeners, transport, null);
     }
 
     static class DeleteResponseListener implements ActionListener<DeleteResponse> {

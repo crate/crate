@@ -24,19 +24,14 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
-import io.crate.executor.JobTask;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -63,13 +58,10 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
 
-public class ESGetTask extends JobTask implements RowUpstream {
+public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
-
-    private final List<? extends ListenableFuture<TaskResult>> results;
-    private final JobExecutionContext context;
 
     public ESGetTask(UUID jobId,
                      Functions functions,
@@ -78,15 +70,12 @@ public class ESGetTask extends JobTask implements RowUpstream {
                      TransportGetAction getAction,
                      ESGetNode node,
                      JobContextService jobContextService) {
-        super(jobId);
+        super(jobId, node.executionPhaseId(), 1, jobContextService);
 
         assert multiGetAction != null;
         assert getAction != null;
-        assert node != null;
         assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
-
-        int executionNodeId = node.executionPhaseId();
 
         final GetResponseContext ctx = new GetResponseContext(functions, node);
         List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
@@ -127,29 +116,25 @@ public class ESGetTask extends JobTask implements RowUpstream {
         TransportAction transportAction;
 
         FlatProjectorChain projectorChain = null;
+
+        SettableFuture<TaskResult> result = SettableFuture.create();
+        results.add(result);
+
         if (node.docKeys().size() > 1) {
             request = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
-
-            SettableFuture<TaskResult> result = SettableFuture.create();
-            results = Collections.singletonList(result);
             QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(result);
-
             projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
             RowReceiver rowReceiver = projectorChain.firstProjector();
             listener = new MultiGetResponseListener(extractors, rowReceiver);
         } else {
             request = prepareGetRequest(node, fsc);
             transportAction = getAction;
-            SettableFuture<Bucket> settableFuture = SettableFuture.create();
-            listener = new GetResponseListener(settableFuture, extractors);
-            results = ImmutableList.of(Futures.transform(settableFuture, QueryResult.TO_TASK_RESULT));
+            listener = new GetResponseListener(result, extractors);
         }
-        ESJobContext esJobContext = new ESJobContext("lookup by primary key",
-                ImmutableList.of(request), ImmutableList.of(listener), results, transportAction, projectorChain);
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(executionNodeId, esJobContext);
-        context = jobContextService.createContext(contextBuilder);
+
+        createContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
+                transportAction, projectorChain);
     }
 
     public static String indexName(DocTableInfo tableInfo, Optional<List<BytesRef>> values) {
@@ -276,9 +261,9 @@ public class ESGetTask extends JobTask implements RowUpstream {
 
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
-        private final SettableFuture<Bucket> result;
+        private final SettableFuture<TaskResult> result;
 
-        public GetResponseListener(SettableFuture<Bucket> result, List<FieldExtractor<GetResponse>> extractors) {
+        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor<GetResponse>> extractors) {
             this.result = result;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
@@ -287,34 +272,17 @@ public class ESGetTask extends JobTask implements RowUpstream {
         @Override
         public void onResponse(GetResponse response) {
             if (!response.isExists()) {
-                result.set(Bucket.EMPTY);
+                result.set(TaskResult.EMPTY_RESULT);
                 return;
             }
             row.setCurrent(response);
-            result.set(bucket);
+            result.set(new QueryResult(bucket));
         }
 
         @Override
         public void onFailure(Throwable e) {
             result.setException(e);
         }
-    }
-
-    @Override
-    public void start() {
-        context.start();
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
     }
 
     static class GetResponseContext extends SymbolToFieldExtractor.Context {
@@ -353,34 +321,35 @@ public class ESGetTask extends JobTask implements RowUpstream {
             final String field = reference.info().ident().columnIdent().fqn();
 
             if (field.startsWith("_")) {
-                if (field.equals("_version")) {
-                    return new FieldExtractor<GetResponse>() {
-                        @Override
-                        public Object extract(GetResponse response) {
-                            return response.getVersion();
-                        }
-                    };
-                } else if (field.equals("_id")) {
-                    return new FieldExtractor<GetResponse>() {
-                        @Override
-                        public Object extract(GetResponse response) {
-                            return response.getId();
-                        }
-                    };
-                } else if (field.equals("_raw")) {
-                    return new FieldExtractor<GetResponse>() {
-                        @Override
-                        public Object extract(GetResponse response) {
-                            return response.getSourceAsBytesRef().toBytesRef();
-                        }
-                    };
-                } else if (field.equals("_doc")) {
-                    return new FieldExtractor<GetResponse>() {
-                        @Override
-                        public Object extract(GetResponse response) {
-                            return response.getSource();
-                        }
-                    };
+                switch (field) {
+                    case "_version":
+                        return new FieldExtractor<GetResponse>() {
+                            @Override
+                            public Object extract(GetResponse response) {
+                                return response.getVersion();
+                            }
+                        };
+                    case "_id":
+                        return new FieldExtractor<GetResponse>() {
+                            @Override
+                            public Object extract(GetResponse response) {
+                                return response.getId();
+                            }
+                        };
+                    case "_raw":
+                        return new FieldExtractor<GetResponse>() {
+                            @Override
+                            public Object extract(GetResponse response) {
+                                return response.getSourceAsBytesRef().toBytesRef();
+                            }
+                        };
+                    case "_doc":
+                        return new FieldExtractor<GetResponse>() {
+                            @Override
+                            public Object extract(GetResponse response) {
+                                return response.getSource();
+                            }
+                        };
                 }
             } else if (context.node.tableInfo().isPartitioned()
                     && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {

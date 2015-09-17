@@ -21,14 +21,10 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -38,22 +34,17 @@ import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
-public class ESDeleteByQueryTask extends JobTask {
+public class ESDeleteByQueryTask extends EsJobContextTask {
 
     private final static ESQueryBuilder QUERY_BUILDER = new ESQueryBuilder();
-
-    private final List<ListenableFuture<TaskResult>> resultList;
-    private final JobExecutionContext context;
 
     public ESDeleteByQueryTask(UUID jobId,
                                ESDeleteByQueryNode node,
                                TransportDeleteByQueryAction transport,
                                JobContextService jobContextService) {
-        super(jobId);
-        resultList = new ArrayList<>(node.whereClauses().size());
+        super(jobId, node.executionPhaseId(), node.whereClauses().size(), jobContextService);
         List<DeleteByQueryRequest> requests = new ArrayList<>(node.whereClauses().size());
         List<ActionListener> listeners = new ArrayList<>(node.whereClauses().size());
 
@@ -72,32 +63,12 @@ public class ESDeleteByQueryTask extends JobTask {
             } catch (IOException e) {
                 result.setException(e);
             }
-            resultList.add(result);
+            results.add(result);
             requests.add(request);
             listeners.add(new Listener(result));
         }
 
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        ESJobContext esJobContext = new ESJobContext("delete by query", requests, listeners, resultList, transport, null);
-        contextBuilder.addSubContext(node.executionPhaseId(), esJobContext);
-        context = jobContextService.createContext(contextBuilder);
-    }
-
-    @Override
-    public void start() {
-        context.start();
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return resultList;
-    }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
+        createContext("delete by query", requests, listeners, transport, null);
     }
 
     static class Listener implements ActionListener<DeleteByQueryResponse> {

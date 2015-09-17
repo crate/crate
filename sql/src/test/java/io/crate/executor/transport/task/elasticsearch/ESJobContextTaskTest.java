@@ -22,22 +22,20 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.executor.transport.BaseTransportExecutorTest;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.JobTask;
+import io.crate.executor.TaskResult;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.get.TransportMultiGetAction;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -47,23 +45,8 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-public class ESGetTaskTest extends CrateUnitTest {
-
-    private static ESGetNode node;
-
-    static {
-        TableIdent tableIdent = new TableIdent("doc", "dummy");
-        DocTableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.ident()).thenReturn(tableIdent);
-        node = BaseTransportExecutorTest.newGetNode(
-                tableInfo,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.of("1"),
-                1
-        );
-    }
+public class ESJobContextTaskTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = TestingHelpers.newMockedThreadPool();
     private final JobContextService jobContextService = new JobContextService(
@@ -74,20 +57,24 @@ public class ESGetTaskTest extends CrateUnitTest {
         testThreadPool.shutdown();
     }
 
+    private JobTask createTask(UUID jobId) {
+        EsJobContextTask task = new EsJobContextTask(jobId, 1, 1, jobContextService);
+        task.results.add(SettableFuture.<TaskResult>create());
+        task.createContext("test",
+                ImmutableList.of(new DummyRequest()),
+                ImmutableList.of(new DummyListener()),
+                mock(TransportAction.class),
+                null);
+        return task;
+    }
+
     @Test
     public void testContextCreation() throws Exception {
         UUID jobId = UUID.randomUUID();
-        ESGetTask task = new ESGetTask(
-                jobId,
-                mock(Functions.class),
-                mock(ProjectionToProjectorVisitor.class),
-                mock(TransportMultiGetAction.class),
-                mock(TransportGetAction.class),
-                node,
-                jobContextService);
+        createTask(jobId);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionPhaseId());
+        ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);
         assertThat(subContext, notNullValue());
         assertThat(subContext, instanceOf(ESJobContext.class));
     }
@@ -95,21 +82,31 @@ public class ESGetTaskTest extends CrateUnitTest {
     @Test
     public void testContextKill() throws Exception {
         UUID jobId = UUID.randomUUID();
-        ESGetTask task = new ESGetTask(
-                jobId,
-                mock(Functions.class),
-                mock(ProjectionToProjectorVisitor.class),
-                mock(TransportMultiGetAction.class),
-                mock(TransportGetAction.class),
-                node,
-                jobContextService);
+        JobTask task = createTask(jobId);
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        ExecutionSubContext subContext = jobExecutionContext.getSubContext(node.executionPhaseId());
+        ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);
         subContext.kill(null);
 
         assertThat(task.result().size(), is(1));
         assertThat(task.result().get(0).isCancelled(), is(true));
-        assertNull(jobExecutionContext.getSubContextOrNull(node.executionPhaseId()));
+        assertNull(jobExecutionContext.getSubContextOrNull(1));
+    }
+
+    static class DummyRequest extends ActionRequest<DummyRequest> {
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+    }
+
+    static class DummyListener implements ActionListener<Void> {
+        @Override
+        public void onResponse(Void aVoid) {
+        }
+
+        @Override
+        public void onFailure(Throwable throwable) {
+        }
     }
 }
