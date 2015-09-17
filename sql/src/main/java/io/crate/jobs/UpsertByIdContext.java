@@ -34,6 +34,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
@@ -103,7 +104,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
 
     @Override
-    public void innerKill(@Nullable Throwable throwable) {
+    public void innerKill(@Nonnull Throwable throwable) {
         futureResult.cancel(true);
     }
 

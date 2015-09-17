@@ -36,6 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Locale;
@@ -120,7 +121,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void innerKill(@Nullable Throwable throwable) {
+            public void innerKill(@Nonnull Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -147,7 +148,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         ExecutionSubContext dummyContext = new DummySubContext() {
 
             @Override
-            public void innerKill(@Nullable Throwable throwable) {
+            public void innerKill(@Nonnull Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -160,7 +161,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder = jobContextService.newBuilder(UUID.randomUUID());
         builder.addSubContext(new DummySubContext() {
             @Override
-            public void innerKill(@Nullable Throwable throwable) {
+            public void innerKill(@Nonnull Throwable throwable) {
                 kill2Called.set(true);
             }
         });

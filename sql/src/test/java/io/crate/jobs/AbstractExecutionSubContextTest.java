@@ -28,6 +28,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -103,7 +104,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         }
 
         @Override
-        protected void innerKill(@Nullable Throwable t) {
+        protected void innerKill(@Nonnull Throwable t) {
             numKill.incrementAndGet();
         }
 

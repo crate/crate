@@ -129,10 +129,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     }
 
     @Override
-    public void innerKill(@Nullable Throwable throwable) {
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
+    public void innerKill(@Nonnull Throwable throwable) {
         if (collectors != null) {
             for (CrateCollector collector : collectors) {
                 collector.kill(throwable);

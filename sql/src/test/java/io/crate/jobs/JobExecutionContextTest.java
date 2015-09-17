@@ -39,7 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -187,7 +187,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         }
 
         @Override
-        public void innerKill(@Nullable Throwable throwable) {
+        public void innerKill(@Nonnull Throwable throwable) {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {

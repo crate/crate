@@ -28,6 +28,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -71,7 +72,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    protected void innerKill(@Nullable Throwable t) {
+    protected void innerKill(@Nonnull Throwable t) {
         for (Future<?> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }

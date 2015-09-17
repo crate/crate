@@ -85,7 +85,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
     }
 
     @Override
-    public void innerKill(@Nullable Throwable throwable) {
+    public void innerKill(@Nonnull Throwable throwable) {
         if (countFuture != null) {
             countFuture.cancel(true);
         }

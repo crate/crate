@@ -24,6 +24,7 @@ package io.crate.jobs;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class SymbolBasedBulkShardProcessorContext extends AbstractExecutionSubContext {
@@ -41,7 +42,7 @@ public class SymbolBasedBulkShardProcessorContext extends AbstractExecutionSubCo
     }
 
     @Override
-    protected void innerKill(@Nullable Throwable t) {
+    protected void innerKill(@Nonnull Throwable t) {
         bulkShardProcessor.kill(t);
     }
 

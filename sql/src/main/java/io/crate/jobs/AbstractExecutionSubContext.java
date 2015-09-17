@@ -25,6 +25,7 @@ package io.crate.jobs;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
 
@@ -109,7 +110,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         close(null);
     }
 
-    protected void innerKill(@Nullable Throwable t) {
+    protected void innerKill(@Nonnull Throwable t) {
     }
 
     @Override

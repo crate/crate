@@ -33,6 +33,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -180,7 +181,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    protected void innerKill(@Nullable Throwable t) {
+    protected void innerKill(@Nonnull Throwable t) {
         innerClose(t);
     }
 
