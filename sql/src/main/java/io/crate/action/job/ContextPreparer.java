@@ -484,7 +484,6 @@ public class ContextPreparer {
                     phase,
                     flatProjectorChain,
                     nestedLoopOperation,
-                    ramAccountingContext,
                     pageDownstreamContextForNestedLoop(
                             phase.executionPhaseId(),
                             context,
@@ -525,6 +524,7 @@ public class ContextPreparer {
                     Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
             );
             return new PageDownstreamContext(
+                    mergePhase.executionPhaseId(),
                     mergePhase.name(),
                     pageDownstreamWithChain.v1(),
                     StreamerVisitor.streamerFromOutputs(mergePhase),
