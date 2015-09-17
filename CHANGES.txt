@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed calculation of the retry delay in order to prevent exceeding of the
+   AWS API Request limit.
+
  - Updated crate-admin to 0.14.5 which includes following changes:
 
    - display ``NULL`` instead of empty cell in console results table
