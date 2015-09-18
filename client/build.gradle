@@ -24,6 +24,7 @@ dependencies {
         exclude group: 'com.tdunning'
         exclude group: 'commons-cli'
         exclude group: 'org.slf4j'
+        exclude group: 'log4j'
     }
     // needed by ES Version class - keep up to date with es dependencies
     compile 'org.apache.lucene:lucene-core:4.10.4'
