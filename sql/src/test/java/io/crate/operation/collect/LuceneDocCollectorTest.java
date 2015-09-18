@@ -183,7 +183,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         jobCollectContext = new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector);
         builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getDocCollector(
                 node, projectorChain, jobCollectContext, 0, pageSize);
         return collector;
     }
@@ -498,7 +498,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(rowReceiver);
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
-        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getCollector(
+        LuceneDocCollector collector = (LuceneDocCollector)shardCollectService.getDocCollector(
                 node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();
@@ -525,7 +525,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
-        collector = (LuceneDocCollector)shardCollectService.getCollector(
+        collector = (LuceneDocCollector)shardCollectService.getDocCollector(
                 node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();

@@ -35,7 +35,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.*;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.*;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
@@ -99,13 +98,9 @@ public class ExecutionPhasesTask extends JobTask {
                     }
                 });
 
-        Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(
-                clusterService.state().nodes().localNodeId(), nodeOperations);
-
-
+        Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
-
 
         if (nodeOperationTrees.size() > 1) {
             // bulk Operation with rowCountResult
@@ -163,9 +158,6 @@ public class ExecutionPhasesTask extends JobTask {
         int idx = 0;
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationsByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            if (TableInfo.NULL_NODE_ID.equals(serverNodeId)) {
-                continue; // handled by local node
-            }
             Collection<NodeOperation> nodeOperations = entry.getValue();
 
             JobRequest request = new JobRequest(jobId(), nodeOperations);

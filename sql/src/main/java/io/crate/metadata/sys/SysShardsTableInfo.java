@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.planner.RowGranularity;
 import io.crate.types.*;
 import org.elasticsearch.action.NoShardAvailableActionException;
@@ -127,8 +128,10 @@ public class SysShardsTableInfo extends SysTableInfo {
         }
 
         node = shardRouting.currentNodeId();
+        int id = shardRouting.id();
         if (!shardRouting.active()) {
-            node = NULL_NODE_ID;
+            node = clusterService.localNode().id();
+            id = UnassignedShard.markUnassigned(id);
         }
         Map<String, List<Integer>> nodeMap = routing.get(node);
         if (nodeMap == null) {
@@ -141,7 +144,7 @@ public class SysShardsTableInfo extends SysTableInfo {
             shards = new ArrayList<>();
             nodeMap.put(shardRouting.getIndex(), shards);
         }
-        shards.add(shardRouting.id());
+        shards.add(id);
     }
 
 
@@ -156,6 +159,12 @@ public class SysShardsTableInfo extends SysTableInfo {
     }
 
 
+    /**
+     * Retrieves the routing for sys.shards
+     *
+     * This routing contains ALL shards of ALL indices.
+     * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
+     */
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause

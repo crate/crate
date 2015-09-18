@@ -21,10 +21,8 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -93,11 +91,7 @@ public class CountPhase implements UpstreamPhase {
 
     @Override
     public Set<String> executionNodes() {
-        if (routing.isNullRouting()) {
-            return routing.nodes();
-        } else {
-            return Sets.filter(routing.nodes(), TableInfo.IS_NOT_NULL_NODE_ID);
-        }
+        return routing.nodes();
     }
 
     @Override

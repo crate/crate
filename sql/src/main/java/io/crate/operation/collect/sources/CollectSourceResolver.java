@@ -32,7 +32,6 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -117,7 +116,7 @@ public class CollectSourceResolver {
         if (locations == null) {
             throw new IllegalArgumentException("routing of collectPhase must contain locations");
         }
-        if (collectPhase.routing().containsShards(localNodeId) || collectPhase.routing().containsShards(TableInfo.NULL_NODE_ID)) {
+        if (collectPhase.routing().containsShards(localNodeId)) {
             return shardCollectSource;
         }
         if (collectPhase instanceof FileUriCollectPhase) {
@@ -126,7 +125,7 @@ public class CollectSourceResolver {
 
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards == null) {
-            indexShards = locations.get(TableInfo.NULL_NODE_ID);
+            throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
         }
         if (indexShards.size() == 0) {
             // select * from sys.nodes

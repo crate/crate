@@ -102,7 +102,7 @@ public class MapSideDataCollectOperation {
         String localNodeId = clusterService.state().nodes().localNodeId();
         Set<String> routingNodes = collectPhase.routing().nodes();
 
-        if (!routingNodes.contains(localNodeId) && !localNodeId.equals(collectPhase.handlerSideCollect())) {
+        if (!routingNodes.contains(localNodeId)) {
             throw new UnhandledServerException("unsupported routing");
         } else {
             CollectSource service = collectSourceResolver.getService(collectPhase, localNodeId);

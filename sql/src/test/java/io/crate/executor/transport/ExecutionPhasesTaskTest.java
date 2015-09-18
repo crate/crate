@@ -79,8 +79,7 @@ public class ExecutionPhasesTaskTest {
         NodeOperation n2 = NodeOperation.withDownstream(m1, m2, (byte) 0, localNodeId);
         NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class), (byte) 0, localNodeId);
 
-        Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(
-                "node1", ImmutableList.of(n1, n2, n3));
+        Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(ImmutableList.of(n1, n2, n3));
 
         assertThat(groupByServer.containsKey("node1"), is(true));
         assertThat(groupByServer.get("node1"), Matchers.containsInAnyOrder(n1, n3));

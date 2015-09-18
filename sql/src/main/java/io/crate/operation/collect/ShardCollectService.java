@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -115,6 +114,20 @@ public class ShardCollectService {
         );
     }
 
+    public CrateCollector getShardCollector(CollectPhase collectPhase, RowReceiver rowReceiver) {
+        assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
+        collectPhase =  collectPhase.normalize(shardNormalizer);
+        if (collectPhase.whereClause().noMatch()) {
+            return RowsCollector.empty(rowReceiver);
+        }
+        assert !collectPhase.whereClause().hasQuery()
+                : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
+        return RowsCollector.single(
+                shardImplementationSymbolVisitor.extractImplementations(collectPhase).topLevelInputs(),
+                rowReceiver
+        );
+    }
+
     /**
      * get a collector
      *
@@ -123,31 +136,25 @@ public class ShardCollectService {
      * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectPhase collectNode,
-                                       ShardProjectorChain projectorChain,
-                                       JobCollectContext jobCollectContext,
-                                       int jobSearchContextId,
-                                       int pageSize) throws Exception {
+    public CrateCollector getDocCollector(CollectPhase collectNode,
+                                          ShardProjectorChain projectorChain,
+                                          JobCollectContext jobCollectContext,
+                                          int jobSearchContextId,
+                                          int pageSize) throws Exception {
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
         RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return RowsCollector.empty(downstream);
+        }
+
+        assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
+        if (isBlobShard) {
+            return getBlobIndexCollector(normalizedCollectNode, downstream);
         } else {
-            RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
-            if (granularity == RowGranularity.DOC) {
-                if (isBlobShard) {
-                    return getBlobIndexCollector(normalizedCollectNode, downstream);
-                } else {
-                    return getLuceneIndexCollector(
-                            threadPool,
-                            normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
-                }
-            } else if (granularity == RowGranularity.SHARD) {
-                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.extractImplementations(normalizedCollectNode);
-                return RowsCollector.single(shardCtx.topLevelInputs(), downstream);
-            }
-            throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
+            return getLuceneIndexCollector(
+                    threadPool,
+                    normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
         }
     }
 

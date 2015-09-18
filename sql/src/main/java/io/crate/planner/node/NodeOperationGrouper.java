@@ -22,27 +22,21 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ArrayListMultimap;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.NodeOperation;
-import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGrouper.Context,Void> {
+public class NodeOperationGrouper {
 
     public static final NodeOperationGrouper INSTANCE = new NodeOperationGrouper();
 
     public static class Context {
 
-        private final String localNodeId;
         private final ArrayListMultimap<String, NodeOperation> byServer;
         public NodeOperation currentOperation;
 
-        public Context(String localNodeId) {
-            this.localNodeId = localNodeId;
+        public Context() {
             this.byServer = ArrayListMultimap.create();
         }
 
@@ -55,68 +49,14 @@ public class NodeOperationGrouper extends ExecutionPhaseVisitor<NodeOperationGro
         }
     }
 
-    public static Map<String, Collection<NodeOperation>> groupByServer(String localNodeId,
-                                                                       Iterable<NodeOperation> nodeOperations) {
-        Context ctx = new Context(localNodeId);
+    public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
+        Context ctx = new Context();
         for (NodeOperation nodeOperation : nodeOperations) {
             ctx.currentOperation = nodeOperation;
-            INSTANCE.process(nodeOperation.executionPhase(), ctx);
+            for (String server : nodeOperation.executionPhase().executionNodes()) {
+                ctx.add(server);
+            }
         }
         return ctx.grouped();
-    }
-
-    @Override
-    public Void visitCollectPhase(CollectPhase phase, Context context) {
-        /**
-         * routing might contain a NULL_NODE_ID if there is no specific node which contains the indices or shards.
-         * This is the case in information_schema queries (each node has those tables...)
-         * Or sys.shards (for unassigned shards)
-         *
-         * So the routing will be either:
-         *
-         * {
-         *      "": { "information_schema.tables": null }
-         * }
-         *
-         * in this case the query will be executed on the localNodeId
-         *
-         * or for sys.shards:
-         *
-         * {
-         *      "": { "some_table": [0, 1] },
-         *      "n1": { "some_table": [2] },
-         *      "n2": { "some_table": [3] },
-         * }
-         *
-         * In this case, the "unassigned shard collect" will be executed on either n1 or n2
-         * depending on which entry appears first in the executionPhases set.
-         */
-
-        Set<String> executionNodes = phase.executionNodes();
-        if (executionNodes.isEmpty()) {
-            return null;
-        }
-        if (phase.routing().isNullRouting()) {
-            phase.handlerSideCollect(context.localNodeId);
-            context.add(context.localNodeId);
-            return null;
-        }
-
-        for (String server : executionNodes) {
-            context.add(server);
-        }
-        Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
-        if (locations != null && locations.containsKey(TableInfo.NULL_NODE_ID)) {
-            phase.handlerSideCollect(executionNodes.iterator().next());
-        }
-        return null;
-    }
-
-    @Override
-    protected Void visitExecutionPhase(ExecutionPhase node, Context context) {
-        for (String server : node.executionNodes()) {
-            context.add(server);
-        }
-        return null;
     }
 }

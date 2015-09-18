@@ -231,7 +231,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingRowReceiver);
         builder.addSubContext(jobCollectContext);
-        return (LuceneDocCollector)shardCollectService.getCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
+        return (LuceneDocCollector)shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
     }
 
     @Override

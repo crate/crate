@@ -44,7 +44,6 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -61,14 +60,11 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
-    private String localNodeId;
-
 
     @Before
     public void prepare() {
         operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
         functions = internalCluster().getInstance(Functions.class);
-        localNodeId = internalCluster().getDataNodeInstance(ClusterService.class).state().nodes().localNodeId();
     }
 
     private CollectPhase collectNode(Routing routing,
@@ -99,7 +95,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
-        collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
         assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
@@ -130,7 +125,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
                 Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
         CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
-        collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
         System.out.println(TestingHelpers.printedTable(result));
         assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| strict| NULL\n", TestingHelpers.printedTable(result));
@@ -147,7 +141,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect.add(new Reference(info));
         }
         CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
-        collectNode.handlerSideCollect(localNodeId);
         Bucket result = collect(collectNode);
 
 

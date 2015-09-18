@@ -24,7 +24,6 @@ package io.crate.planner.node.dql;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -70,7 +69,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     private boolean isPartitioned = false;
     private boolean keepContextForFetcher = false;
-    private @Nullable String handlerSideCollect = null;
 
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
@@ -113,15 +111,10 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
      */
     @Override
     public Set<String> executionNodes() {
-        if (routing != null) {
-            if (routing.isNullRouting()) {
-                return routing.nodes();
-            } else {
-                return Sets.filter(routing.nodes(), TableInfo.IS_NOT_NULL_NODE_ID);
-            }
-        } else {
+        if (routing == null) {
             return ImmutableSet.of();
         }
+        return routing.nodes();
     }
 
     @Override
@@ -214,7 +207,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
             orderBy = OrderBy.fromStream(in);
         }
         isPartitioned = in.readBoolean();
-        handlerSideCollect = in.readOptionalString();
     }
 
     @Override
@@ -253,7 +245,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
             out.writeBoolean(false);
         }
         out.writeBoolean(isPartitioned);
-        out.writeOptionalString(handlerSideCollect);
     }
 
     /**
@@ -283,7 +274,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                     distributionType
             );
             result.keepContextForFetcher = keepContextForFetcher;
-            result.handlerSideCollect = handlerSideCollect;
         }
         return result;
     }
@@ -294,15 +284,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     public boolean keepContextForFetcher() {
         return keepContextForFetcher;
-    }
-
-    public void handlerSideCollect(String handlerSideCollect) {
-        this.handlerSideCollect = handlerSideCollect;
-    }
-
-    @Nullable
-    public String handlerSideCollect() {
-        return handlerSideCollect;
     }
 
     public static CollectPhase forQueriedTable(Planner.Context plannerContext,
