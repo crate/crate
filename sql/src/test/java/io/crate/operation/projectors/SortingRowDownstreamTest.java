@@ -22,9 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -35,17 +32,15 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.apache.commons.lang3.RandomUtils;
-import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -103,55 +98,68 @@ public class SortingRowDownstreamTest extends CrateUnitTest {
 
     }
 
-    private static class SpareUpstream implements RowUpstream {
+    private static class PausableUpstream implements Runnable, RowUpstream {
 
         private final int numRows;
         private final RowReceiver downstreamHandle;
+        private final AtomicBoolean paused;
 
-        public SpareUpstream(RowDownstream rowDownstream, int numRows) {
+        private int rowsProduced = 0;
+        private int currentValue = RandomUtils.nextInt(0, 10);
+        private int sameValues = RandomUtils.nextInt(1, 5);
+
+        private ReentrantLock runLock = new ReentrantLock();
+
+        public PausableUpstream(RowDownstream rowDownstream, int numRows) {
             this.numRows = numRows;
             downstreamHandle = rowDownstream.newRowReceiver();
             downstreamHandle.setUpstream(this);
+            paused = new AtomicBoolean(false);
         }
 
-        private void doStart() {
-            int currentValue = RandomUtils.nextInt(0, 10);
-            int sameValues = RandomUtils.nextInt(1, 5);
-            int i = 0;
-            Object[] cells = new Object[1];
-            Row rowN = new RowN(cells);
-            downstreamHandle.prepare(mock(ExecutionState.class));
-            while (i < numRows) {
-                for (int j = 0; j < sameValues; j++) {
-                    cells[0] = currentValue;
-                    downstreamHandle.setNextRow(rowN);
-                    if (++i >= numRows) {
-                        break;
+        public void run() {
+            runLock.lock();
+            try {
+                Object[] cells = new Object[1];
+                Row rowN = new RowN(cells);
+                downstreamHandle.prepare(mock(ExecutionState.class));
+                while (rowsProduced < numRows) {
+                    for (int j = 0; j < sameValues; j++) {
+                        cells[0] = currentValue;
+                        downstreamHandle.setNextRow(rowN);
+                        if (++rowsProduced >= numRows) {
+                            break;
+                        }
+                    }
+                    currentValue++;
+                    if (paused.get()) {
+                        return; // don't call finish
                     }
                 }
-                currentValue++;
+                downstreamHandle.finish();
+            } finally {
+                runLock.unlock();
             }
-            downstreamHandle.finish();
+
         }
 
         public void start() {
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    doStart();
-                }
-            });
-            thread.start();
+            new Thread(this).start();
         }
 
         @Override
         public void pause() {
-            throw new UnsupportedOperationException();
+            paused.set(true);
         }
 
         @Override
         public void resume(boolean async) {
-            throw new UnsupportedOperationException();
+            paused.set(false);
+            new Thread(this).start();
+        }
+
+        public boolean isPaused() {
+            return paused.get();
         }
     }
 
@@ -199,11 +207,11 @@ public class SortingRowDownstreamTest extends CrateUnitTest {
                 new Boolean[]{null}
         );
 
-        SpareUpstream upstream1 = new SpareUpstream(projector, 30);
-        SpareUpstream upstream2 = new SpareUpstream(projector, 30);
-        SpareUpstream upstream3 = new SpareUpstream(projector, 7);
-        SpareUpstream upstream4 = new SpareUpstream(projector, 13);
-        SpareUpstream upstream5 = new SpareUpstream(projector, 0);
+        PausableUpstream upstream1 = new PausableUpstream(projector, 30);
+        PausableUpstream upstream2 = new PausableUpstream(projector, 30);
+        PausableUpstream upstream3 = new PausableUpstream(projector, 7);
+        PausableUpstream upstream4 = new PausableUpstream(projector, 13);
+        PausableUpstream upstream5 = new PausableUpstream(projector, 0);
 
         upstream1.start();
         upstream2.start();
@@ -214,6 +222,10 @@ public class SortingRowDownstreamTest extends CrateUnitTest {
         Bucket result = receiver.result();
         assertThat(result.size(), is(80));
         assertThat(result, TestingHelpers.isSorted(0));
+
+        for (PausableUpstream upstream : Arrays.asList(upstream1, upstream2, upstream3, upstream4, upstream5)) {
+            assertThat(upstream.isPaused(), is(false));
+        }
     }
 
 }

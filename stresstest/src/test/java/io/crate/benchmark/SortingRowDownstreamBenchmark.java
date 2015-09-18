@@ -33,6 +33,7 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.*;
 import io.crate.testing.CollectingRowReceiver;
+import org.apache.commons.lang3.RandomUtils;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.AfterClass;
 import org.junit.Rule;
@@ -43,6 +44,8 @@ import org.junit.rules.TestRule;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mockito.Mockito.mock;
 
@@ -59,52 +62,64 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
 
     public static final int OFFSET = 100_000;
 
-    private static class Upstream implements RowUpstream {
+    private PausableUpstream[] upstreams;
+
+    private static class PausableUpstream implements Runnable, RowUpstream {
 
         private final RowReceiver downstreamHandle;
+        private final AtomicBoolean paused;
 
+        private int pauseCount = 0;
+
+        private final int offset;
         private final Object[] cells = new Object[1];
         private final Row row = new RowN(cells);
-        private final int offset;
 
-        public Upstream(RowDownstream rowDownstream, int offset) {
+        private ReentrantLock runLock = new ReentrantLock();
+
+        public PausableUpstream(RowDownstream rowDownstream, int offset) {
             this.offset = offset;
             downstreamHandle = rowDownstream.newRowReceiver();
             downstreamHandle.setUpstream(this);
+            paused = new AtomicBoolean(false);
+        }
+
+        public void run() {
+            runLock.lock();
+            try {
+                downstreamHandle.prepare(mock(ExecutionState.class));
+                int limit = offset + NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES);
+                for (int i = offset; i < limit; i++) {
+                    cells[0] = i;
+                    for ( int j = 0; j < SAME_VALUES; j++) {
+                        downstreamHandle.setNextRow(row);
+                        if (paused.get()) {
+                            return; // don't call finish
+                        }
+                    }
+                }
+                downstreamHandle.finish();
+            } finally {
+                runLock.unlock();
+            }
+
+        }
+
+        public void start() {
+            new Thread(this).start();
         }
 
         @Override
         public void pause() {
-            throw new UnsupportedOperationException();
+            paused.set(true);
+            pauseCount++;
         }
 
         @Override
-        public void resume(boolean threaded) {
-            throw new UnsupportedOperationException();
+        public void resume(boolean async) {
+            paused.set(false);
+            new Thread(this).start();
         }
-
-        private void doStart() {
-            downstreamHandle.prepare(mock(ExecutionState.class));
-            int limit = offset + NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES);
-            for (int i = offset; i < limit; i++) {
-                cells[0] = i;
-                for ( int j = 0; j < SAME_VALUES; j++) {
-                    downstreamHandle.setNextRow(row);
-                }
-            }
-            downstreamHandle.finish();
-        }
-
-        public void start() {
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    doStart();
-                }
-            });
-            thread.start();
-        }
-
     }
 
     private class NonMaterializingCollectingRowReceiver extends CollectingRowReceiver {
@@ -140,10 +155,10 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
 
     private void runPerformanceTest(RowMerger toTest) throws InterruptedException, ExecutionException, TimeoutException {
 
-        Upstream[] upstreams = new Upstream[NUM_UPSTREAMS];
+        upstreams = new PausableUpstream[NUM_UPSTREAMS];
 
         for (int i = 0; i < NUM_UPSTREAMS; i++) {
-            upstreams[i] = new Upstream(toTest, i % 2 == 0 ? OFFSET : 0);
+            upstreams[i] = new PausableUpstream(toTest, i % 2 == 0 ? OFFSET : 0);
         }
         for (int i = 0; i < NUM_UPSTREAMS; i++) {
             upstreams[i].start();

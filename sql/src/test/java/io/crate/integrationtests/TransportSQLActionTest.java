@@ -22,12 +22,14 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.core.collections.ArrayBucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
@@ -38,6 +40,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2001,10 +2004,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @Repeat(iterations=10)
+    @Repeat(iterations = 10)
     @TestLogging("io.crate.operation.projectors.BlockingSortingQueuedRowDownstream:TRACE," +
                  "io.crate.operation.collect.LuceneDocCollector:TRACE")
-    public void testHangOnSortedOffset() throws Exception {
+    public void testNoHangOnSortedOffset() throws Exception {
         execute("CREATE TABLE IF NOT EXISTS \"rankings_cj\" (\n" +
                 "   \"avgDuration\" INTEGER,\n" +
                 "   \"pageRank\" INTEGER,\n" +
@@ -2032,7 +2035,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "   \"warmer.enabled\" = true\n" +
                 ")");
         ensureYellow();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             Object[][] args = new Object[1000][];
             for (int j = 0; j < 1000; j++) {
                 args[j] = new Object[]{randomInt(1000), randomInt(10), randomUnicodeOfLength(10)};
@@ -2040,7 +2043,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             execute("insert into rankings_cj (\"avgDuration\", \"pageRank\", \"pageURL\") values (?,?,?)", args);
         }
         execute("refresh table rankings_cj", TimeValue.timeValueSeconds(20));
-        execute("SELECT * FROM rankings_cj ORDER BY \"pageURL\" LIMIT 1 OFFSET 50000", TimeValue.timeValueSeconds(60));
+        execute("SELECT \"pageURL\", \"pageRank\" FROM rankings_cj ORDER BY \"pageURL\" LIMIT 1 OFFSET 10", TimeValue.timeValueSeconds(60));
+        assertThat(new ArrayBucket(response.rows()), TestingHelpers.isSorted(0));
     }
 }
 
