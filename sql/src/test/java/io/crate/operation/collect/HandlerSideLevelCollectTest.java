@@ -94,7 +94,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Routing routing = SysClusterTableInfo.ROUTING;
+        Schemas schemas =  internalCluster().getInstance(Schemas.class);
+        TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
+        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         collectNode.handlerSideCollect(localNodeId);

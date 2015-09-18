@@ -255,6 +255,7 @@ public class PlannerTest extends CrateUnitTest {
 
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState clusterState = mock(ClusterState.class);
+            when(clusterService.localNode()).thenReturn(new DiscoveryNode("foo", null, Version.CURRENT));
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.nodes()).thenReturn(nodeBuilder.build());
 

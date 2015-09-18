@@ -39,13 +39,6 @@ import java.util.*;
 public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
-    public static final Routing ROUTING = new Routing(
-            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                    NULL_NODE_ID,
-                    TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
-            ).map()
-    );
-    private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -395,7 +388,12 @@ public class SysClusterTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return ROUTING;
+        return new Routing(
+                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                        clusterService.localNode().id(),
+                        TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
+                ).map()
+        );
     }
 
     @Override
