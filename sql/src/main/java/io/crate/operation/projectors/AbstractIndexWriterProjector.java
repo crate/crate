@@ -46,6 +46,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.AssignmentVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -130,6 +131,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
     protected void createBulkShardProcessor(ClusterService clusterService,
                                             Settings settings,
                                             TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                                            TransportClusterHealthAction transportClusterHealthAction,
                                             @Nullable Integer bulkActions,
                                             boolean autoCreateIndices,
                                             boolean overwriteDuplicates,
@@ -156,6 +158,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
                 clusterService,
                 settings,
                 transportBulkCreateIndicesAction,
+                transportClusterHealthAction,
                 rowShardResolver,
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),

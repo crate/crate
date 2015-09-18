@@ -83,6 +83,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 clusterService,
                 settings,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                transportActionProvider.transportClusterHealthAction(),
                 bulkActions,
                 autoCreateIndices,
                 false, // overwriteDuplicates

@@ -37,6 +37,9 @@ import io.crate.exceptions.Exceptions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -94,6 +97,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     private final ClusterService clusterService;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
+    private final TransportClusterHealthAction transportClusterHealthAction;
 
     private final AtomicInteger pendingNewIndexRequests = new AtomicInteger(0);
     private final Map<String, List<PendingRequest>> requestsForNewIndices = new HashMap<>();
@@ -109,6 +113,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                              TransportClusterHealthAction transportClusterHealthAction,
                               RowShardResolver rowShardResolver,
                               final boolean autoCreateIndices,
                               int bulkSize,
@@ -139,6 +144,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
         }
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         this.rowShardResolver = rowShardResolver;
+        this.transportClusterHealthAction = transportClusterHealthAction;
 
         responses = new BitSet();
         result = SettableFuture.create();
@@ -252,6 +258,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
     }
 
     private void setFailure(Throwable e) {
+        LOGGER.warn("setFailure", e);
         failure.compareAndSet(null, e);
         result.setException(e);
     }
@@ -381,7 +388,23 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                     @Override
                     public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesResponse) {
                         indicesCreated.addAll(indices);
-                        indicesCreatedCallback.onSuccess(null);
+                        // wait for indices to become available first
+                        ClusterHealthRequest request = new ClusterHealthRequest(indices.toArray(new String[indices.size()]));
+                        request.timeout(new TimeValue(60 * 1000)); // wait 60 seconds max
+                        request.waitForYellowStatus();
+                        transportClusterHealthAction.execute(request, new ActionListener<ClusterHealthResponse>() {
+                            @Override
+                            public void onResponse(ClusterHealthResponse clusterIndexHealths) {
+                                indicesCreatedCallback.onSuccess(null);
+                            }
+
+                            @Override
+                            public void onFailure(Throwable e) {
+                                LOGGER.error("error waiting for yellow status on new indices", e);
+                                indicesCreatedCallback.onFailure(e);
+                            }
+                        });
+
                     }
 
                     @Override

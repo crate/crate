@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import io.crate.action.job.TransportJobAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -71,6 +72,7 @@ public class TransportActionProvider {
     private final Provider<TransportJobAction> transportJobInitActionProvider;
     private final Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider;
     private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
+    private final Provider<TransportClusterHealthAction> transportClusterHealthActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -93,7 +95,8 @@ public class TransportActionProvider {
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
                                    Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider,
-                                   Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider) {
+                                   Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
+                                   Provider<TransportClusterHealthAction> transportClusterHealthActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -115,6 +118,7 @@ public class TransportActionProvider {
         this.transportJobInitActionProvider = transportJobInitActionProvider;
         this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
         this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
+        this.transportClusterHealthActionProvider = transportClusterHealthActionProvider;
     }
 
     public TransportCreateIndexAction transportCreateIndexAction() {
@@ -201,4 +205,7 @@ public class TransportActionProvider {
         return transportKillJobsNodeActionProvider.get();
     }
 
+    public TransportClusterHealthAction transportClusterHealthAction() {
+        return transportClusterHealthActionProvider.get();
+    }
 }
