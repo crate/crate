@@ -5,8 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed calculation of the retry delay in order to prevent exceeding of the
-   AWS API Request limit.
+2015/09/18 0.51.4
+=================
+
+ - Fixed calculation of the EC2 discovery retry delay in order to prevent
+   exceeding of the AWS API request limit.
 
  - Updated crate-admin to 0.14.5 which includes following changes:
 
