@@ -835,6 +835,163 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+
+Array Functions
+===============
+
+array_cat(first_array, second_array) returns array
+-------------------------------------------------------------------------
+
+The ``array_cat`` function concatenates two arrays into one array
+
+::
+
+    cr> select array_cat([1,2,3],[3,4,5,6]) from sys.cluster;
+    +-------------------------------+
+    | array_cat([1,2,3], [3,4,5,6]) |
+    +-------------------------------+
+    | [1, 2, 3, 3, 4, 5, 6]         |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used to append elements to array fields
+
+::
+
+    cr> create table array_cat_example (list array(integer));
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into array_cat_example (list) values ([1,2,3]);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_cat_example
+
+    cr> refresh table array_cat_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> update array_cat_example set list = array_cat(list, [4, 5, 6]);
+    UPDATE OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_cat_example
+
+    cr> refresh table array_cat_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> select * from array_cat_example;
+    +--------------------+
+    | list               |
+    +--------------------+
+    | [1, 2, 3, 4, 5, 6] |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. note:: Appending to arrays with array_cat in updates is handy, but unfortunately not isolated. We use optimistic concurrency control to ensure that your update operation used the latest state of the row. But only 3 retry attempts are made by fetching the newest version again and if they all fail, the query fails.
+
+
+You can also use the concat operator ``||`` with arrays
+
+::
+
+    cr> select [1,2,3] || [4,5,6] || [7,8,9] from sys.cluster;
+    +-------------------------------------------+
+    | concat(concat([1,2,3], [4,5,6]), [7,8,9]) |
+    +-------------------------------------------+
+    | [1, 2, 3, 4, 5, 6, 7, 8, 9]               |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+array_unique(first_array, [ second_array]) returns array
+-------------------------------------------------------------------
+
+The ``array_unique`` function merges two arrays into one array with unique elements
+
+::
+
+    cr> select array_unique([1,2,3],[3,4,5,6]) from sys.cluster;
+    +----------------------------------+
+    | array_unique([1,2,3], [3,4,5,6]) |
+    +----------------------------------+
+    | [1, 2, 3, 4, 5, 6]               |
+    +----------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used with one argument
+
+::
+
+    cr> select array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) from sys.cluster;
+    +------------------------------------------+
+    | array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) |
+    +------------------------------------------+
+    | [1, 2, 3, 4, 5, 6, 7, 9, 10]             |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+array_difference(first_array, second_array) returns array
+-------------------------------------------------------------------
+
+The ``array_difference`` function removes elements from the first array that are contained in the second array.
+
+::
+
+    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]) from sys.cluster;
+    +--------------------------------------------------------+
+    | array_difference([1,2,3,4,5,6,7,8,9,10], [2,3,6,9,15]) |
+    +--------------------------------------------------------+
+    | [1, 4, 5, 7, 8, 10]                                    |
+    +--------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used to remove elements from array fields.
+
+::
+
+    cr> create table array_difference_example (list array(integer));
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into array_difference_example (list) values ([1,2,3,4,5,6,7,8,9,10]);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_difference_example
+
+    cr> refresh table array_difference_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> update array_difference_example set list = array_difference(list, [6]);
+    UPDATE OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_difference_example
+
+    cr> refresh table array_difference_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> select * from array_difference_example;
+    +------------------------------+
+    | list                         |
+    +------------------------------+
+    | [1, 2, 3, 4, 5, 7, 8, 9, 10] |
+    +------------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. rubric:: Footnotes
 
 .. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format

@@ -14,6 +14,10 @@ Unreleased
 
  - Updated crate/elasticsearch for improved logging on graceful shutdown errors
 
+ - Added ``array_cat``, ``array_unique`` and ``array_difference`` scalar functions.
+   Also modified ``concat`` function to resolve to ``array_cat`` when ``concat``
+   function is called with 2 array args, so the operator ``||`` will work with arrays.
+
 2015/10/13 0.52.0
 =================
 

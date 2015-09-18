@@ -29,9 +29,11 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -148,5 +150,87 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         assertEval("foo3", new BytesRef("foo"), 3);
         assertEval("foo3", new BytesRef("foo"), 3L);
         assertEval("foo3", new BytesRef("foo"), (short)3);
+    }
+
+    @Test
+    public void testTwoArrays() throws Exception{
+        ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType, arrayType);
+        Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
+
+        Input[] inputs = new Input[2];
+        inputs[0] = Literal.newLiteral(new Object[]{1, 2}, arrayType);
+        inputs[1] = Literal.newLiteral(new Object[]{2, 3}, arrayType);
+
+        Object[] evaluate = (Object[]) scalar.evaluate(inputs);
+        assertThat(evaluate, is(new Object[]{1, 2, 2, 3}));
+    }
+
+    @Test
+    public void testArrayWithAUndefinedInnerType() throws Exception{
+        ArrayType arrayType0 = new ArrayType(DataTypes.UNDEFINED);
+        ArrayType arrayType1 = new ArrayType(DataTypes.INTEGER);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType0, arrayType1);
+        Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
+
+        Input[] inputs = new Input[2];
+        inputs[0] = Literal.newLiteral(new Object[]{},     arrayType0);
+        inputs[1] = Literal.newLiteral(new Object[]{1, 2}, arrayType1);
+
+        Object[] evaluate = (Object[]) scalar.evaluate(inputs);
+        assertThat(evaluate, is(new Object[]{1, 2}));
+    }
+
+    @Test
+    public void testArrayAndString() throws Exception{
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Argument 0 of the concat function can't be converted to string");
+        ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType, DataTypes.STRING);
+        functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes));
+    }
+
+    @Test
+    public void testStringAndArray() throws Exception{
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Argument 1 of the concat function can't be converted to string");
+        ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(DataTypes.STRING, arrayType);
+        functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes));
+    }
+
+    @Test
+    public void testThirdArgumentArray() throws Exception{
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Argument 2 of the concat function can't be converted to string");
+        ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING, arrayType);
+        functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes));
+    }
+
+    @Test
+    public void testTwoArraysOfIncompatibleInnerTypes() throws Exception{
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Second argument's inner type (integer_array) of the array_cat function cannot be converted to the first argument's inner type (integer)");
+        ArrayType arrayType0 = new ArrayType(DataTypes.INTEGER);
+        ArrayType arrayType1 = new ArrayType(arrayType0);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType0, arrayType1);
+        functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes));
+    }
+
+    @Test
+    public void testTwoArraysOfUndefinedTypes() throws Exception{
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
+        ArrayType arrayType = new ArrayType(DataTypes.UNDEFINED);
+
+        List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType, arrayType);
+        functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes));
     }
 }

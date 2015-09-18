@@ -21,11 +21,13 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -129,6 +131,22 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
                 throw new IllegalArgumentException("concat function requires at least 2 arguments");
             } else if (dataTypes.size() == 2 && dataTypes.get(0).equals(DataTypes.STRING) && dataTypes.get(1).equals(DataTypes.STRING)) {
                 return new StringConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
+            } else if(dataTypes.size() == 2 && dataTypes.get(0) instanceof ArrayType && dataTypes.get(1) instanceof ArrayType){
+
+                DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
+                DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
+
+                Preconditions.checkArgument(!innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
+                        "When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
+
+                if(!innerType0.equals(DataTypes.UNDEFINED)){
+                    Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
+                            String.format(Locale.ENGLISH,
+                                    "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
+                                    innerType1, innerType0));
+                }
+
+                return new ArrayCatFunction(ArrayCatFunction.createInfo(dataTypes));
             } else {
                 for (int i = 0; i < dataTypes.size(); i++) {
                     if (!dataTypes.get(i).isConvertableTo(DataTypes.STRING)) {

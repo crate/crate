@@ -90,6 +90,10 @@ public class ScalarFunctionModule extends AbstractModule {
 
         ConcatFunction.register(this);
 
+        ArrayCatFunction.register(this);
+        ArrayDifferenceFunction.register(this);
+        ArrayUniqueFunction.register(this);
+
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the
         // register functions in their onModule(...) hooks
