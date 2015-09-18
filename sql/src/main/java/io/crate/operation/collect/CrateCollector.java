@@ -21,11 +21,9 @@
 
 package io.crate.operation.collect;
 
-import io.crate.operation.RowUpstream;
-
 import javax.annotation.Nullable;
 
-public interface CrateCollector extends RowUpstream {
+public interface CrateCollector {
 
     void doCollect();
     void kill(@Nullable Throwable throwable);

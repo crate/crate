@@ -24,6 +24,7 @@ package io.crate.operation.collect.blobs;
 import io.crate.blob.BlobContainer;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowFilter;
@@ -35,7 +36,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
-public class BlobDocCollector implements CrateCollector {
+public class BlobDocCollector implements CrateCollector, RowUpstream {
 
     private final RowFilter<File> rowFilter;
     private BlobContainer blobContainer;
