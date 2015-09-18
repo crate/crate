@@ -29,6 +29,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 
 import java.util.LinkedHashMap;
 
@@ -108,8 +109,9 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationPartitionsTableInfo(InformationSchemaInfo schemaInfo) {
+    protected InformationPartitionsTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
         super(schemaInfo,
+              clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
                 new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{

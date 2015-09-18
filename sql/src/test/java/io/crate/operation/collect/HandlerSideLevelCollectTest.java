@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
@@ -56,7 +55,7 @@ import java.util.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
 
@@ -114,11 +113,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaTables() throws Exception {
-        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.tables", null).map()
-        ).map());
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
+        Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null);
         List<Symbol> toCollect = new ArrayList<>();
         for (ReferenceInfo info : tablesTableInfo.columns()) {
             toCollect.add(new Reference(info));
@@ -139,11 +136,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
-        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                TableInfo.NULL_NODE_ID, TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("information_schema.columns", null).map()
-        ).map());
         InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
+        assert tableInfo != null;
+        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         List<Symbol> toCollect = new ArrayList<>();
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));

@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class TableSettingsTest extends SQLTransportIntegrationTest {
 
@@ -67,14 +68,14 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
 
         execute("select settings from information_schema.tables where table_name = 'settings_table'");
         for (Object[] row : response.rows()) {
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("blocks"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("routing"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("translog"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("recovery"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("warmer"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("gateway"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("refresh_interval"));
-            assertTrue(((HashMap<String, Object>) row[0]).containsKey("unassigned"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("blocks"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("recovery"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("gateway"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
         }
     }
 

@@ -30,19 +30,19 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.RowGranularity;
+import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class InformationTableInfo extends AbstractTableInfo {
 
+    private final ClusterService clusterService;
     protected final TableIdent ident;
     private final ImmutableList<ColumnIdent> primaryKeyIdentList;
-    protected final Routing routing;
 
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private final ImmutableList<ReferenceInfo> columns;
-    private final String[] concreteIndices;
 
     public static class Columns {
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
@@ -111,28 +111,25 @@ public class InformationTableInfo extends AbstractTableInfo {
     }
 
     protected InformationTableInfo(InformationSchemaInfo schemaInfo,
+                                   ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
                                    LinkedHashMap<ColumnIdent, ReferenceInfo> references) {
-        this(schemaInfo, ident, primaryKeyIdentList, references, null);
+        this(schemaInfo, clusterService, ident, primaryKeyIdentList, references, null);
     }
 
     protected InformationTableInfo(InformationSchemaInfo schemaInfo,
+                                   ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
                                    LinkedHashMap<ColumnIdent, ReferenceInfo> references,
                                    @Nullable ImmutableList<ReferenceInfo> columns) {
         super(schemaInfo);
+        this.clusterService = clusterService;
         this.ident = ident;
         this.primaryKeyIdentList = primaryKeyIdentList;
         this.references = ImmutableMap.copyOf(references);
         this.columns = columns != null ? columns : ImmutableList.copyOf(references.values());
-        this.concreteIndices = new String[]{ident.esName()};
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(ident.fqn(), null);
-        locations.put(NULL_NODE_ID, tableLocation);
-        this.routing = new Routing(locations);
     }
 
     @Nullable
@@ -153,7 +150,11 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return routing;
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, List<Integer>> tableLocation = new TreeMap<>();
+        tableLocation.put(ident.fqn(), null);
+        locations.put(clusterService.localNode().id(), tableLocation);
+        return new Routing(locations);
     }
 
     @Override

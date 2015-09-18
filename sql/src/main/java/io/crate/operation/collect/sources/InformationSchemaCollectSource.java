@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -46,11 +47,14 @@ import org.elasticsearch.common.inject.Inject;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class InformationSchemaCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
+    private final ClusterService clusterService;
 
     @Inject
     protected InformationSchemaCollectSource(Functions functions,
@@ -58,6 +62,7 @@ public class InformationSchemaCollectSource implements CollectSource {
                                              InformationReferenceResolver refResolver,
                                              FulltextAnalyzerResolver ftResolver,
                                              ClusterService clusterService) {
+        this.clusterService = clusterService;
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
@@ -156,9 +161,12 @@ public class InformationSchemaCollectSource implements CollectSource {
     @SuppressWarnings("unchecked")
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         Routing routing =  collectPhase.routing();
-        assert routing.locations().containsKey(TableInfo.NULL_NODE_ID);
-        assert routing.locations().get(TableInfo.NULL_NODE_ID).size() == 1;
-        String fqTableName = routing.locations().get(TableInfo.NULL_NODE_ID).keySet().iterator().next();
+        Map<String, Map<String, List<Integer>>> locations = routing.locations();
+        assert locations != null;
+        String localNodeId = clusterService.localNode().id();
+        assert locations.containsKey(localNodeId);
+        assert locations.get(localNodeId).size() == 1;
+        String fqTableName = Iterables.getOnlyElement(locations.get(localNodeId).keySet());
         Iterable<?> iterator = iterables.get(fqTableName);
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 

@@ -24,6 +24,8 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nonnull;
@@ -36,14 +38,15 @@ public class InformationSchemaInfo implements SchemaInfo {
 
     public final ImmutableMap<String, TableInfo> tableInfoMap;
 
-    public InformationSchemaInfo() {
+    @Inject
+    public InformationSchemaInfo(ClusterService clusterService) {
         this.tableInfoMap = ImmutableMap.<String, TableInfo>builder()
-                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this))
-                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this))
-                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this))
-                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(this))
-                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(this))
-                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(this))
+                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this, clusterService))
+                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this, clusterService))
+                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this, clusterService))
+                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(this, clusterService))
+                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(this, clusterService))
+                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(this, clusterService))
         .build();
     }
 
