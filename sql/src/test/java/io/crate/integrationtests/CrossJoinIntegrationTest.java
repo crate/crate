@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 

@@ -30,6 +30,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
@@ -84,7 +85,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(aggregationProjection),
-                        plannedSubQuery.resultNode());
+                        (UpstreamPhase) plannedSubQuery.resultNode());
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
             return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());

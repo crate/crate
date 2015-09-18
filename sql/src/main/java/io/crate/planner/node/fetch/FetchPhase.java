@@ -21,8 +21,10 @@
 
 package io.crate.planner.node.fetch;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -78,6 +80,11 @@ public class FetchPhase implements ExecutionPhase {
     @Override
     public Set<String> executionNodes() {
         return executionNodes;
+    }
+
+    @Override
+    public Collection<DataType> outputTypes() {
+        return ImmutableList.of();
     }
 
     @Override

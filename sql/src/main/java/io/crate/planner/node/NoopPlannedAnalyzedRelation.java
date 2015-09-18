@@ -28,6 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
@@ -75,6 +76,11 @@ public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
     @Override
     public void addProjection(Projection projection) {
         throw new UnsupportedOperationException("addingProjection not supported");
+    }
+
+    @Override
+    public void setDistributionType(DistributionType distributionType) {
+        throw new UnsupportedOperationException("setDistributionType not supported");
     }
 
     @Override

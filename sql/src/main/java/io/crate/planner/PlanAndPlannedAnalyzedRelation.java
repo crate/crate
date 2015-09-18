@@ -25,6 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -56,5 +57,10 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    @Override
+    public void setDistributionType(DistributionType distributionType) {
+        throw new UnsupportedOperationException("setDistributionType is not supported");
     }
 }

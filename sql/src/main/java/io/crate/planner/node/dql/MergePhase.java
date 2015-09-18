@@ -93,12 +93,12 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     public static MergePhase localMerge(UUID jobId,
                                         int executionPhaseId,
                                         List<Projection> projections,
-                                        DQLPlanNode previousPhase) {
+                                        UpstreamPhase previousPhase) {
         return new MergePhase(
                 jobId,
                 executionPhaseId,
                 "localMerge",
-                previousPhase.executionNodes().size(),
+                numUpstreams(previousPhase),
                 previousPhase.outputTypes(),
                 projections,
                 DistributionType.SAME_NODE
@@ -111,7 +111,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                                          List<Symbol> sourceSymbols,
                                          @Nullable List<Symbol> orderBySymbolOverwrite,
                                          List<Projection> projections,
-                                         DQLPlanNode previousPhase) {
+                                         UpstreamPhase previousPhase) {
 
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
                 MoreObjects.firstNonNull(orderBySymbolOverwrite, orderBy.orderBySymbols()),
@@ -124,7 +124,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                 jobId,
                 executionPhaseId,
                 "sortedLocalMerge",
-                previousPhase.executionNodes().size(),
+                numUpstreams(previousPhase),
                 previousPhase.outputTypes(),
                 projections,
                 DistributionType.SAME_NODE
@@ -134,6 +134,14 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
         mergeNode.reverseFlags = orderBy.reverseFlags();
         mergeNode.nullsFirst = orderBy.nullsFirst();
         return mergeNode;
+    }
+
+    private static int numUpstreams(UpstreamPhase previousPhase) {
+        if (previousPhase.distributionType() == DistributionType.SAME_NODE) {
+            return 1;
+        } else {
+            return previousPhase.executionNodes().size();
+        }
     }
 
     @Override

@@ -86,10 +86,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
-        List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
-                request.jobId(), request.nodeOperations(), contextBuilder, sharedShardContexts);
-
+        List<ListenableFuture<Bucket>> directResponseFutures;
         try {
+            directResponseFutures = contextPreparer.prepareOnRemote(
+                    request.jobId(), request.nodeOperations(), contextBuilder, sharedShardContexts);
             JobExecutionContext context = jobContextService.createContext(contextBuilder);
             context.start();
         } catch (Throwable t){
