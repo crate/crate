@@ -5,9 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed calculation of the retry delay in order to prevent exceeding of the
-   AWS API Request limit.
-
  - Updated crate-admin to 0.15.0 which includes following changes:
 
    - display cluster checks on overview page
@@ -34,6 +31,16 @@ Unreleased
    This update changes the default value for delayed allocation of unassigned
    shards (see: `https://crate.io/docs/en/latest/configuration.html#unassigned`_).
    Also updated the upstream of EC2 discovery module
+
+2015/09/18 0.51.4
+=================
+
+ - Fixed calculation of the EC2 discovery retry delay in order to prevent
+   exceeding of the AWS API request limit.
+
+ - Updated crate-admin to 0.14.5 which includes following changes:
+
+   - display ``NULL`` instead of empty cell in console results table
 
 2015/09/15 0.51.3
 =================
