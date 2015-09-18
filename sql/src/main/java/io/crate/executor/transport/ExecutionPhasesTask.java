@@ -43,6 +43,7 @@ import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -103,24 +104,26 @@ public class ExecutionPhasesTask extends JobTask {
 
 
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
+
 
         if (nodeOperationTrees.size() > 1) {
             // bulk Operation with rowCountResult
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
                 SettableFuture<TaskResult> result = results.get(i);
                 RowCountResultRowDownstream rowDownstream = new RowCountResultRowDownstream(result);
-                try {
-                    setupContext(operationByServer, pageDownstreamContexts, rowDownstream, nodeOperationTrees.get(i));
-                } catch (Throwable throwable) {
-                    result.setException(throwable);
-                }
+                handlerPhases.add(new Tuple<ExecutionPhase, RowReceiver>(nodeOperationTrees.get(i).leaf(), rowDownstream));
             }
         } else {
             SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
             QueryResultRowDownstream downstream = new QueryResultRowDownstream(result);
-            try {
-                setupContext(operationByServer, pageDownstreamContexts, downstream, Iterables.getOnlyElement(nodeOperationTrees));
-            } catch (Throwable throwable) {
+            handlerPhases.add(new Tuple<ExecutionPhase, RowReceiver>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), downstream));
+        }
+
+        try {
+            setupContext(operationByServer, pageDownstreamContexts, handlerPhases);
+        } catch (Throwable throwable) {
+            for (SettableFuture<TaskResult> result : results) {
                 result.setException(throwable);
             }
         }
@@ -132,26 +135,26 @@ public class ExecutionPhasesTask extends JobTask {
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
                               List<PageDownstreamContext> pageDownstreamContexts,
-                              RowReceiver rowReceiver,
-                              NodeOperationTree nodeOperationTree) throws Throwable {
+                              List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
         boolean noNodeOperations = false;
         if (operationByServer.isEmpty()) {
             // this should never happen, instead we should use a NOOP plan instead
             // which immediately results in an empty result
             noNodeOperations = true;
         }
-        ExecutionSubContext executionSubContext = createLocalContextAndStartOperation(
-                operationByServer,
-                nodeOperationTree.leaf(),
-                rowReceiver);
-        if (noNodeOperations && executionSubContext != null) {
-            executionSubContext.close();
+        List<ExecutionSubContext> localContextAndStartOperation = createLocalContextAndStartOperation(operationByServer, handlerPhases);
+        if (noNodeOperations) {
+            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
+                executionSubContext.close();
+            }
             return;
         }
         if (hasDirectResponse) {
-            assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
-                    : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs";
-            pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
+            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
+                assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
+                        : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs";
+                pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
+            }
         }
     }
 
@@ -181,10 +184,8 @@ public class ExecutionPhasesTask extends JobTask {
      *
      * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
      */
-    @Nullable
-    private ExecutionSubContext createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
-                                                                    ExecutionPhase handlerFinalMergePhase,
-                                                                    RowReceiver handlerPhaseRowReceiver) throws Throwable {
+    private List<ExecutionSubContext> createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
+                                                                          List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
         String localNodeId = clusterService.localNode().id();
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         Collection<NodeOperation> localNodeOperations = null;
@@ -195,21 +196,23 @@ public class ExecutionPhasesTask extends JobTask {
             localNodeOperations = ImmutableList.of();
         }
 
-        ExecutionSubContext finalLocalMergeContext = contextPreparer.prepareOnHandler(
+        List<ExecutionSubContext> executionSubContexts = contextPreparer.prepareOnHandler(
                 jobId(),
                 localNodeOperations,
                 builder,
-                handlerFinalMergePhase,
-                handlerPhaseRowReceiver);
+                handlerPhases
+        );
 
         if (!hasDirectResponse) {
             JobExecutionContext context = jobContextService.createContext(builder);
             context.start();
-        } else if (finalLocalMergeContext != null) {
-            finalLocalMergeContext.prepare();
-            finalLocalMergeContext.start();
+        } else {
+            for (ExecutionSubContext executionSubContext : executionSubContexts) {
+                executionSubContext.prepare();
+                executionSubContext.start();
+            }
         }
-        return finalLocalMergeContext;
+        return executionSubContexts;
     }
 
     @Override

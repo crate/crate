@@ -117,30 +117,33 @@ public class ContextPreparer {
         return directResponseFutures;
     }
 
-    @Nullable
-    public ExecutionSubContext prepareOnHandler(UUID jobId,
-                                                Iterable<? extends NodeOperation> nodeOperations,
-                                                JobExecutionContext.Builder contextBuilder,
-                                                ExecutionPhase handlerMergePhase,
-                                                RowReceiver handlerPhaseRowReceiver) {
+    public List<ExecutionSubContext> prepareOnHandler(UUID jobId,
+                                                      Iterable<? extends NodeOperation> nodeOperations,
+                                                      JobExecutionContext.Builder contextBuilder,
+                                                      List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory);
         processDownstreamExecutionPhaseIds(nodeOperations, preparerContext);
 
-        // register handler phase row receiver
-        preparerContext.registerRowReceiverForUpstreamPhase(handlerMergePhase, handlerPhaseRowReceiver);
-        // build handler context, must be done first because it's downstream is already known
-        // and it is needed as a row receiver by others
-        ExecutionSubContext finalLocalMergeContext = innerPreparer.process(handlerMergePhase, preparerContext);
-        if (finalLocalMergeContext != null) {
-            contextBuilder.addSubContext(finalLocalMergeContext);
-        }
 
+        // register handler phase row receiver
+        // and build handler context, must be done first because it's downstream is already known
+        // and it is needed as a row receiver by others
+        List<ExecutionSubContext> handlerContexts = new ArrayList<>(handlerPhases.size());
+        for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
+            ExecutionPhase handlerExecutionPhase = handlerPhase.v1();
+            preparerContext.registerRowReceiverForUpstreamPhase(handlerExecutionPhase, handlerPhase.v2());
+            ExecutionSubContext finalLocalMergeContext = innerPreparer.process(handlerExecutionPhase, preparerContext);
+            if (finalLocalMergeContext != null) {
+                contextBuilder.addSubContext(finalLocalMergeContext);
+                handlerContexts.add(finalLocalMergeContext);
+            }
+        }
         List<NodeOperation> reversedNodeOperations = Lists.reverse(Lists.newArrayList(nodeOperations));
         for (NodeOperation nodeOperation : reversedNodeOperations) {
             processExecutionPhase(nodeOperation.executionPhase(), preparerContext, contextBuilder);
         }
         postPrepare(contextBuilder, preparerContext);
-        return finalLocalMergeContext;
+        return handlerContexts;
     }
 
 
@@ -150,7 +153,9 @@ public class ContextPreparer {
     private void postPrepare(JobExecutionContext.Builder contextBuilder,
                              PreparerContext preparerContext) {
 
+
         /**
+         * infinite loop protection
          * if a phase has its upstream on the same node it might need to be processes 2 times
          * (the first time it might be skipped if the upstream hasn't been processed yet)
          */
