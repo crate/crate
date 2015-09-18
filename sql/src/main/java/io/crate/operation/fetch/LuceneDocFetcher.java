@@ -23,12 +23,12 @@ package io.crate.operation.fetch;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -55,7 +55,7 @@ public class LuceneDocFetcher implements RowUpstream {
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
     private final RowReceiver downstream;
     private final NodeFetchOperation.ShardDocIdsBucket shardDocIdsBucket;
-    private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+    private final CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
 
@@ -76,7 +76,7 @@ public class LuceneDocFetcher implements RowUpstream {
         this.downstream = downstream.newRowReceiver();
         this.downstream.setUpstream(this);
         this.shardDocIdsBucket = shardDocIdsBucket;
-        this.fieldsVisitor = new LuceneDocCollector.CollectorFieldsVisitor(collectorExpressions.size());
+        this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
     }
 
     public void setNextReader(AtomicReaderContext context) throws IOException {

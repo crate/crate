@@ -26,27 +26,18 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowUpstream;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import io.crate.operation.collect.collectors.TopRowUpstream;
 
 import java.util.Iterator;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class IterableRowEmitter implements RowUpstream, Runnable {
-
-    private final static ESLogger LOGGER = Loggers.getLogger(IterableRowEmitter.class);
+public class IterableRowEmitter implements Runnable {
 
     private final RowReceiver rowReceiver;
     private final ExecutionState executionState;
-    private final Executor executor;
-    private final AtomicBoolean paused = new AtomicBoolean(false);
+    private final TopRowUpstream topRowUpstream;
 
-    private volatile boolean pendingPause = false;
     private Iterator<? extends Row> rowsIt;
 
     public IterableRowEmitter(RowReceiver rowReceiver,
@@ -55,9 +46,9 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
                               Optional<Executor> executor) {
         this.rowReceiver = rowReceiver;
         this.executionState = executionState;
-        rowReceiver.setUpstream(this);
+        topRowUpstream = new TopRowUpstream(executor.or(MoreExecutors.directExecutor()), this);
+        rowReceiver.setUpstream(topRowUpstream);
         this.rowsIt = rows.iterator();
-        this.executor = executor.or(MoreExecutors.directExecutor());
     }
 
     public IterableRowEmitter(RowReceiver rowReceiver, ExecutionState executionState, Iterable<? extends Row> rows) {
@@ -76,42 +67,14 @@ public class IterableRowEmitter implements RowUpstream, Runnable {
                 if (!wantsMore) {
                     break;
                 }
-                if (processPause()) return;
+                if (topRowUpstream.shouldPause()) {
+                    topRowUpstream.pauseProcessed();
+                    return;
+                }
             }
             rowReceiver.finish();
         } catch (Throwable t) {
             rowReceiver.fail(t);
-        }
-    }
-
-    private boolean processPause() {
-        if (pendingPause) {
-            paused.set(true);
-            pendingPause = false;
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void pause() {
-        pendingPause = true;
-    }
-
-    @Override
-    public void resume(boolean async) {
-        LOGGER.trace("Received resume from: " + rowReceiver);
-        pendingPause = false;
-        if (paused.compareAndSet(true, false)) {
-            if (async) {
-                try {
-                    executor.execute(this);
-                } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                    run();
-                }
-            } else {
-                run();
-            }
         }
     }
 }

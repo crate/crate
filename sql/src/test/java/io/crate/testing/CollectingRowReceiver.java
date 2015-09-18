@@ -83,6 +83,10 @@ public class CollectingRowReceiver implements RowReceiver {
         isFinished = true;
     }
 
+    public void resumeUpstream(boolean async) {
+        upstream.resume(async);
+    }
+
     public Bucket result() throws Exception {
         // always timeout, don't want tests to get stuck
         try {

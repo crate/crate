@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -31,7 +31,7 @@ public class IdCollectorExpression extends
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
 
-    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+    private CollectorFieldsVisitor visitor;
 
     @Override
     public void startCollect(CollectorContext context) {

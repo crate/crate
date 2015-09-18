@@ -189,11 +189,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
-    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> input) throws Exception{
+    private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> input) throws Exception{
         return createDocCollector(orderBy, limit, collectingRowReceiver, input);
     }
 
-    private LuceneDocCollector createDocCollector(OrderBy orderBy, Integer limit, RowReceiver rowReceiver, List<Symbol> input) throws Exception{
+    private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, RowReceiver rowReceiver, List<Symbol> input) throws Exception{
         UUID jobId = UUID.randomUUID();
         CollectPhase node = new CollectPhase(
                 jobId,
@@ -229,7 +229,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
-        return (LuceneDocCollector)shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
+        return shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
     }
 
     @Override
@@ -281,7 +281,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception{
         collectingRowReceiver.rows.clear();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
+        CrateCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -290,11 +290,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithScrollingStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, rowReceiver, orderBy.orderBySymbols());
+        CrateCollector docCollector = createDocCollector(orderBy, null, rowReceiver, orderBy.orderBySymbols());
 
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
-            docCollector.resume(false);
+            rowReceiver.resumeUpstream(false);
         }
         rowReceiver.result();
     }
@@ -303,7 +303,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception{
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
+        CrateCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
         rowReceiver.result(); // call result to make sure there were no errors
     }
@@ -316,7 +316,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         CrateCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
-            docCollector.resume(false);
+            rowReceiver.resumeUpstream(false);
         }
         rowReceiver.result();
     }
@@ -336,7 +336,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         );
         topNProjector.downstream(collectingRowReceiver);
         topNProjector.prepare(jobCollectContext);
-        LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
+        CrateCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -344,7 +344,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
-        LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
+        CrateCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -356,7 +356,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         CrateCollector docCollector = createDocCollector(null, null, rowReceiver, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
-            docCollector.resume(false);
+            rowReceiver.resumeUpstream(false);
         }
         rowReceiver.result();
     }

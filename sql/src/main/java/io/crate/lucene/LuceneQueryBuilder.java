@@ -41,7 +41,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
@@ -82,7 +82,6 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.lucene.search.RegexpFilter;
 import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -1087,7 +1086,7 @@ public class LuceneQueryBuilder {
             final CollectorContext collectorContext = new CollectorContext(
                     context.mapperService,
                     context.fieldDataService,
-                    new LuceneDocCollector.CollectorFieldsVisitor(expressions.size())
+                    new CollectorFieldsVisitor(expressions.size())
             );
 
             for (LuceneCollectorExpression expression : expressions) {
@@ -1121,13 +1120,13 @@ public class LuceneQueryBuilder {
         static class FunctionDocSet extends MatchDocIdSet {
 
             private final AtomicReader reader;
-            private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
+            private final CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
             private final boolean fieldsVisitorEnabled;
 
             protected FunctionDocSet(AtomicReader reader,
-                                     @Nullable LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor,
+                                     @Nullable CollectorFieldsVisitor fieldsVisitor,
                                      Input<Boolean> condition,
                                      List<LuceneCollectorExpression> expressions,
                                      int maxDoc,

@@ -32,6 +32,8 @@ import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.blobs.BlobDocCollector;
+import io.crate.operation.collect.collectors.CrateDocCollector;
+import io.crate.operation.collect.collectors.OrderedCrateDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
@@ -51,6 +53,8 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import java.util.concurrent.Executor;
 
 @Singleton
 public class ShardCollectService {
@@ -191,29 +195,29 @@ public class ShardCollectService {
             );
             jobCollectContext.addSearchContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
+            Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
             if (collectNode.orderBy() != null) {
-                return new OrderedLuceneDocCollector(
-                        threadPool,
+                return new OrderedCrateDocCollector(
                         searchContext,
                         jobCollectContext.keepAliveListener(),
+                        executor,
+                        collectNode,
+                        downstream,
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         docInputSymbolVisitor,
-                        collectNode,
-                        downstream,
-                        jobCollectContext.queryPhaseRamAccountingContext(),
                         pageSize
                 );
             } else {
-                return new LuceneDocCollector(
-                        threadPool,
+                return new CrateDocCollector(
                         searchContext,
+                        executor,
                         jobCollectContext.keepAliveListener(),
-                        docCtx.topLevelInputs(),
-                        docCtx.docLevelExpressions(),
                         collectNode,
+                        jobCollectContext.queryPhaseRamAccountingContext(),
                         downstream,
-                        jobCollectContext.queryPhaseRamAccountingContext()
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions()
                 );
             }
         } catch (Throwable t) {

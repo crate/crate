@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc.lucene;
 import com.google.common.base.Joiner;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -37,7 +37,7 @@ public class DocCollectorExpression extends
 
     public static final String COLUMN_NAME = DocSysColumns.DOC.name();
 
-    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+    private CollectorFieldsVisitor visitor;
 
     @Override
     public void startCollect(CollectorContext context) {
