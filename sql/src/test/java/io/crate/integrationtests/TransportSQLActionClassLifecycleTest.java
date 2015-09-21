@@ -49,7 +49,6 @@ import java.util.TreeMap;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@Repeat(iterations=20)
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
     @Rule

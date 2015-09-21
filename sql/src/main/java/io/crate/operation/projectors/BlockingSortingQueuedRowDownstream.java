@@ -97,7 +97,7 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         if (!emit()) {
             // if downstream is finished, wake every handle up, so it can signal its upstream that it's done
             for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles) {
-                if (!handle.isFinished()) {
+                if (!handle.isFinished() && handle.paused) {
                     handle.resume();
                 }
             }
@@ -164,9 +164,16 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         }
     }
 
-    private boolean anyOtherNotStartedYet(final int butMe) {
+    /**
+     * we need to pause the collector and give away the current thread instead of block it
+     * when:
+     *
+     *  * any other is not started yet
+     *  * the queue of any other handle is empty and it is paused
+     */
+    private boolean needToPauseCollector(final int thatsMe) {
         for (BlockingSortingQueuedRowDownstreamHandle handle : downstreamHandles) {
-            if (!handle.started && handle.index != butMe) {
+            if (handle.index != thatsMe && !handle.started || (handle.paused && handle.cellsQueue.isEmpty())) {
                 return true;
             }
         }
@@ -184,12 +191,13 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         private final Object pauseLock = new Object();
 
         private final AtomicBoolean collectorPaused = new AtomicBoolean(false);
+        private final AtomicBoolean finished = new AtomicBoolean(false);
         private volatile boolean paused = false;
+        private boolean started = false;
 
         private RowUpstream myUpstream;
-        private AtomicBoolean finished = new AtomicBoolean(false);
+
         private Object[] firstCells = null;
-        private boolean started = false;
 
         private final ArrayDeque<Object[]> cellsQueue = new ArrayDeque<>(MAX_QUEUE_SIZE);
         private final ObjectPool<Object[]> pool = new ObjectPool<Object[]>(MAX_QUEUE_SIZE) {
@@ -261,7 +269,7 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
                 }
             }
             if (paused) {
-                if (projector.anyOtherNotStartedYet(index)) {
+                if (needToPauseCollector(index)) {
                     pauseCollector();
                     return !projector.downstreamAborted.get();
                 } else {
@@ -284,6 +292,7 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
 
         @Override
         public void finish() {
+            started = true;
             if (finished.compareAndSet(false, true)) {
                 projector.upstreamFinished();
             }
@@ -311,9 +320,6 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
 
         private void pauseThread() {
             synchronized (pauseLock) {
-                // WE HAVE TO PAUSE THE UPSTREAM
-                // IN CASE WE HAVE TO WAIT FOR SOME
-                // OTHER UPSTREAMS TO PRODUCE ROWS
                 if (pendingPause.compareAndSet(true, false)) {
                     pauseCount++;
                     try {
@@ -332,6 +338,7 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
                 if (pendingPause.compareAndSet(true, false)) {
                     assert myUpstream != null;
                     if (collectorPaused.compareAndSet(false, true)) {
+                        LOGGER.trace("[{}][{}] PAUSING COLLECTOR", projector.hashCode(), index);
                         pauseCount++;
                         runningHandles.decrementAndGet();
                         myUpstream.pause();
@@ -358,6 +365,7 @@ public class BlockingSortingQueuedRowDownstream implements RowMerger {
         }
 
         private void resumeCollector() {
+            LOGGER.trace("[{}][{}] RESUMING COLLECTOR", projector.hashCode(), index);
             myUpstream.resume(true);
             runningHandles.incrementAndGet();
         }

@@ -33,7 +33,6 @@ import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.*;
 import io.crate.testing.CollectingRowReceiver;
-import org.apache.commons.lang3.RandomUtils;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.AfterClass;
 import org.junit.Rule;
