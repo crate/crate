@@ -169,11 +169,6 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         }
     }
 
-    @Override
-    public boolean isKilled() {
-        return future.closed();
-    }
-
     public RamAccountingContext queryPhaseRamAccountingContext() {
         return queryPhaseRamAccountingContext;
     }
