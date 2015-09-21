@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.MoreObjects;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -184,7 +185,8 @@ public class ShardCollectSource implements CollectSource {
                                                         Map<String, List<Integer>> indexShards) {
 
         Integer limit = collectPhase.limit();
-        int batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), collectPhase.routing().numShards());
+        OrderBy orderBy = collectPhase.orderBy();
+        int batchSizeHint = getBatchSizeHint(collectPhase, limit, orderBy);
         LOGGER.trace("setting batchSizeHint for ShardCollector to: {}; limit is: {}; numShards: {}",
                 batchSizeHint, limit, batchSizeHint);
 
@@ -226,6 +228,24 @@ public class ShardCollectSource implements CollectSource {
             }
         }
         return crateCollectors;
+    }
+
+    private int getBatchSizeHint(CollectPhase collectPhase, Integer limit, OrderBy orderBy) {
+        int batchSizeHint;
+        if (orderBy != null && orderBy.isSorted()) {
+            // weighted page size doesn't work well if there is an order by criteria.
+            // e.g. if the data is clustered by and ordered by X and there are two values for X  (a and z)
+            // it would be necessary to consume the shard with "a" values completely.
+            // since internal paging has an overhead this would actually slow things down quite a lot
+            if (limit == null) {
+                batchSizeHint = Paging.PAGE_SIZE;
+            } else {
+                batchSizeHint = Math.min(limit, Paging.PAGE_SIZE);
+            }
+        } else {
+            batchSizeHint = Paging.getShardPageSize(collectPhase.limit(), collectPhase.routing().numShards());
+        }
+        return batchSizeHint;
     }
 
     private Collection<CrateCollector> getShardCollectors(CollectPhase collectPhase,
