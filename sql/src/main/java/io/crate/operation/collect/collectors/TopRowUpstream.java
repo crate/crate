@@ -74,9 +74,11 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
     }
 
     public void pauseProcessed() {
-        assert pendingPause: "Shouldn't call pauseProcessed if shouldPause() was false";
-        paused.set(true);
-        pendingPause = false;
+        // double check pendingPause.. maybe resume was called before pause could be processed
+        if (pendingPause) {
+            paused.set(true);
+            pendingPause = false;
+        }
     }
 
     @Override
