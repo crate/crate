@@ -22,12 +22,15 @@
 package io.crate.testing;
 
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;
+
+import static org.mockito.Mockito.mock;
 
 public class RowSender implements Runnable, RowUpstream {
 
@@ -53,6 +56,7 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void run() {
+        downstream.prepare(mock(ExecutionState.class));
         while (iterator.hasNext()) {
             final boolean wantsMore = downstream.setNextRow(iterator.next());
             if (!wantsMore) {
@@ -74,7 +78,7 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void pause() {
-        topRowUpstream.pause();;
+        topRowUpstream.pause();
     }
 
     @Override
@@ -88,5 +92,9 @@ public class RowSender implements Runnable, RowUpstream {
 
     public int numResumes() {
         return numResumes;
+    }
+
+    public boolean isPaused() {
+        return topRowUpstream.isPaused();
     }
 }

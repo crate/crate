@@ -100,4 +100,8 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
             }
         }
     }
+
+    public boolean isPaused() {
+        return paused.get();
+    }
 }

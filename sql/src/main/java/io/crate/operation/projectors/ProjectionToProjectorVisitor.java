@@ -30,7 +30,6 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.StringType;

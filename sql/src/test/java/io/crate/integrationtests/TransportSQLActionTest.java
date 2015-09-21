@@ -2004,9 +2004,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @Repeat(iterations = 10)
-    @TestLogging("io.crate.operation.projectors.BlockingSortingQueuedRowDownstream:TRACE," +
-                 "io.crate.operation.collect.LuceneDocCollector:TRACE")
     public void testNoHangOnSortedOffset() throws Exception {
         execute("CREATE TABLE IF NOT EXISTS \"rankings_cj\" (\n" +
                 "   \"avgDuration\" INTEGER,\n" +

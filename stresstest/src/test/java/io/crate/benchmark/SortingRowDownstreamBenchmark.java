@@ -27,13 +27,12 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.*;
 import io.crate.testing.CollectingRowReceiver;
-import org.elasticsearch.test.junit.annotations.TestLogging;
+import io.crate.testing.RandomRows;
+import io.crate.testing.RowSender;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,11 +41,8 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mockito.Mockito.mock;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-sortingrowdownstream-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-sortingrowdownstream")
@@ -61,65 +57,8 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
 
     public static final int OFFSET = 100_000;
 
-    private PausableUpstream[] upstreams;
-
-    private static class PausableUpstream implements Runnable, RowUpstream {
-
-        private final RowReceiver downstreamHandle;
-        private final AtomicBoolean paused;
-
-        private int pauseCount = 0;
-
-        private final int offset;
-        private final Object[] cells = new Object[1];
-        private final Row row = new RowN(cells);
-
-        private ReentrantLock runLock = new ReentrantLock();
-
-        public PausableUpstream(RowDownstream rowDownstream, int offset) {
-            this.offset = offset;
-            downstreamHandle = rowDownstream.newRowReceiver();
-            downstreamHandle.setUpstream(this);
-            paused = new AtomicBoolean(false);
-        }
-
-        public void run() {
-            runLock.lock();
-            try {
-                downstreamHandle.prepare(mock(ExecutionState.class));
-                int limit = offset + NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES);
-                for (int i = offset; i < limit; i++) {
-                    cells[0] = i;
-                    for ( int j = 0; j < SAME_VALUES; j++) {
-                        downstreamHandle.setNextRow(row);
-                        if (paused.get()) {
-                            return; // don't call finish
-                        }
-                    }
-                }
-                downstreamHandle.finish();
-            } finally {
-                runLock.unlock();
-            }
-
-        }
-
-        public void start() {
-            new Thread(this).start();
-        }
-
-        @Override
-        public void pause() {
-            paused.set(true);
-            pauseCount++;
-        }
-
-        @Override
-        public void resume(boolean async) {
-            paused.set(false);
-            new Thread(this).start();
-        }
-    }
+    private RowSender[] upstreams;
+    private ThreadPoolExecutor executor;
 
     private class NonMaterializingCollectingRowReceiver extends CollectingRowReceiver {
 
@@ -132,6 +71,7 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
+
     @Override
     public boolean generateData() {
         return false;
@@ -139,8 +79,13 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
 
     @Override
     public void setUp() throws Exception {
+        executor = EsExecutors.newFixed(NUM_UPSTREAMS, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
     }
 
+    @After
+    public void tearDown() throws Exception {
+        executor.shutdownNow();
+    }
 
     @AfterClass
     public static void tearDownClass() throws IOException {
@@ -154,31 +99,18 @@ public class SortingRowDownstreamBenchmark extends BenchmarkBase {
 
     private void runPerformanceTest(RowMerger toTest) throws InterruptedException, ExecutionException, TimeoutException {
 
-        upstreams = new PausableUpstream[NUM_UPSTREAMS];
+        upstreams = new RowSender[NUM_UPSTREAMS];
 
         for (int i = 0; i < NUM_UPSTREAMS; i++) {
-            upstreams[i] = new PausableUpstream(toTest, i % 2 == 0 ? OFFSET : 0);
+            int offset = i % 2 == 0 ? OFFSET : 0;
+            int numRows = NUMBER_OF_DOCUMENTS / ( NUM_UPSTREAMS * SAME_VALUES);
+            upstreams[i] = new RowSender(new RandomRows(numRows, SAME_VALUES, offset), toTest.newRowReceiver(), executor);
         }
         for (int i = 0; i < NUM_UPSTREAMS; i++) {
-            upstreams[i].start();
+            executor.execute(upstreams[i]);
         }
     }
 
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testMergeProjectorPerformance() throws Exception {
-        CollectingRowReceiver downstream = new NonMaterializingCollectingRowReceiver();
-        SortingRowMerger rowMerger = new SortingRowMerger(
-                downstream,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[]{null}
-        );
-        runPerformanceTest(rowMerger);
-        downstream.result();
-    }
-
-    @TestLogging("io.crate.operation.projectors.BlockingSortingQueuedRowDownstream:TRACE")
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testBlockingSortingQueuedRowDownstreamBenchmark() throws Exception {

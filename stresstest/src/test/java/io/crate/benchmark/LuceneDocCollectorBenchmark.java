@@ -210,8 +210,9 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
         RowDownstream rowDownstream;
         if (orderBy != null && orderBy.isSorted()) {
-            rowDownstream = new SortingRowMerger(
+            rowDownstream = new BlockingSortingQueuedRowDownstream(
                     rowReceiver,
+                    Math.max(orderBy.orderBySymbols().size(), input.size()),
                     OrderByPositionVisitor.orderByPositions(node.toCollect(), orderBy.orderBySymbols()),
                     orderBy.reverseFlags(),
                     orderBy.nullsFirst()

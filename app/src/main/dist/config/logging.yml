@@ -40,7 +40,7 @@ appender:
       conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
 
   file:
-    type: rollingFile
+    type: dailyRollingFile
     file: ${path.logs}/${cluster.name}.log
     datePattern: "'.'yyyy-MM-dd"
     layout:
