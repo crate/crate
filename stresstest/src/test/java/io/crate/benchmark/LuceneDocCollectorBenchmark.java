@@ -111,24 +111,16 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
     private JobCollectContext jobCollectContext;
+    private IndicesService indicesService;
 
 
     public class PausingCollectingRowReceiver extends CollectingRowReceiver {
-
-        public boolean finished = false;
 
         @Override
         public boolean setNextRow(Row row) {
             upstream.pause();
             return true;
         }
-
-        @Override
-        public void finish() {
-            super.finish();
-            finished = true;
-        }
-
     }
 
     @Override
@@ -159,11 +151,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
         IndexService indexService;
         try {
-            IndicesService instanceFromNode = CLUSTER.getInstance(IndicesService.class, NODE2);
-            indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
+            indicesService = CLUSTER.getInstance(IndicesService.class, NODE2);
+            indexService = indicesService .indexServiceSafe(INDEX_NAME);
         } catch (IndexMissingException e) {
-            IndicesService instanceFromNode = CLUSTER.getInstance(IndicesService.class, NODE1);
-            indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
+            indicesService  = CLUSTER.getInstance(IndicesService.class, NODE1);
+            indexService = indicesService .indexServiceSafe(INDEX_NAME);
         }
 
         shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
@@ -230,12 +222,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
 
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(
-                CLUSTER.getDataNodeInstance(IndicesService.class));
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         jobCollectContext = new JobCollectContext(node,
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, collectingRowReceiver, sharedShardContexts);
+                RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
         return (LuceneDocCollector)shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
@@ -301,11 +292,11 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, rowReceiver, orderBy.orderBySymbols());
 
-        while (!rowReceiver.finished) {
-            docCollector.doCollect();
+        docCollector.doCollect();
+        while (!rowReceiver.isFinished()) {
             docCollector.resume(false);
         }
-        collectingRowReceiver.result(); // call result to make sure there were no errors
+        rowReceiver.result();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -314,7 +305,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
-        collectingRowReceiver.result(); // call result to make sure there were no errors
+        rowReceiver.result(); // call result to make sure there were no errors
     }
 
 
@@ -322,12 +313,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
-        while (!rowReceiver.finished) {
-            docCollector.doCollect();
+        CrateCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
+        docCollector.doCollect();
+        while (!rowReceiver.isFinished()) {
             docCollector.resume(false);
         }
-        collectingRowReceiver.result(); // call result to make sure there were no errors
+        rowReceiver.result();
     }
 
 
@@ -362,12 +353,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        LuceneDocCollector docCollector = createDocCollector(null, null, rowReceiver, ImmutableList.of((Symbol) reference));
-        while (!rowReceiver.finished) {
-            docCollector.doCollect();
+        CrateCollector docCollector = createDocCollector(null, null, rowReceiver, ImmutableList.of((Symbol) reference));
+        docCollector.doCollect();
+        while (!rowReceiver.isFinished()) {
             docCollector.resume(false);
         }
-        collectingRowReceiver.result(); // call result to make sure there were no errors
+        rowReceiver.result();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
