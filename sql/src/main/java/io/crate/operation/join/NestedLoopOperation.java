@@ -35,36 +35,54 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class NestedLoopOperation implements RowUpstream {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
 
-    private final CombinedRow combinedRow = new CombinedRow();
-    private final LeftRowReceiver leftRowReceiver;
-    private final RightRowReceiver rightRowReceiver;
-    private final Object mutex = new Object();
+    private final LeftRowReceiver left;
+    private final RightRowReceiver right;
 
     private RowReceiver downstream;
-    private volatile boolean leftFinished = false;
-    private volatile boolean rightFinished = false;
     private volatile boolean downstreamWantsMore = true;
 
+    /**
+     * state of the left and right side.
+     *
+     * LEAD_ELECTION is the initial state.
+     *
+     * If any side receives a row the other side can be in one of the following 3 states:
+     *
+     *    lead_election     (hasn't received a row yet, or is just about to receive one)
+     *    paused            (this state can only be changed by the side that is currently receiving a row)
+     *    finished          (this won't change anymore - but the right side can still receive rows if it is repeating)
+     *
+     * the lead_election state is only seen in the beginning until one side has has taken charge and set its next state.
+     * After that one side will always be paused and the other one will receive rows.
+     */
+    private enum State {
+        LEAD_ELECTION,
+        PAUSED,
+        FINISHED
+    }
+
+    private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
     public NestedLoopOperation(RowReceiver rowReceiver) {
         this.downstream = rowReceiver;
         downstream.setUpstream(this);
-        leftRowReceiver = new LeftRowReceiver();
-        rightRowReceiver = new RightRowReceiver();
+        left = new LeftRowReceiver();
+        right = new RightRowReceiver();
     }
 
-
     public ListenableRowReceiver leftRowReceiver() {
-        return leftRowReceiver;
+        return left;
     }
 
     public ListenableRowReceiver rightRowReceiver() {
-        return rightRowReceiver;
+        return right;
     }
 
     @Override
@@ -123,6 +141,8 @@ public class NestedLoopOperation implements RowUpstream {
     private abstract class AbstractRowReceiver implements ListenableRowReceiver {
 
         final SettableFuture<Void> finished = SettableFuture.create();
+        final AtomicReference<State> state = new AtomicReference<>(State.LEAD_ELECTION);
+
         volatile RowUpstream upstream;
 
         @Override
@@ -139,39 +159,82 @@ public class NestedLoopOperation implements RowUpstream {
             assert rowUpstream != null : "rowUpstream must not be null";
             this.upstream = rowUpstream;
         }
+
+        private void finishThisSide() {
+            finished.set(null);
+            state.set(State.FINISHED);
+        }
+
+        protected void finish(AtomicReference<State> otherStateRef, RowUpstream otherUpstream) {
+            State otherState = otherStateRef.get();
+            if (otherState == State.LEAD_ELECTION) {
+                // other side hasn't received any rows
+                if (leadAcquired.compareAndSet(false, true)) {
+                    finishThisSide();
+                    return;
+                } else {
+                    otherState = waitForStateChange(otherStateRef);
+                }
+            }
+            finishThisSide();
+            if (otherState == State.FINISHED) {
+                downstream.finish();
+            } else {
+                otherUpstream.resume(false);
+            }
+        }
     }
 
     private class LeftRowReceiver extends AbstractRowReceiver {
 
-        private volatile Row lastRow = null;
+        private Row lastRow = null;
 
         @Override
         public boolean setNextRow(Row row) {
             LOGGER.trace("LEFT downstream received a row {}", row);
 
-            synchronized (mutex) {
-                if (rightFinished && (!rightRowReceiver.receivedRows || !downstreamWantsMore)) {
-                    return false;
-                }
-                lastRow = row;
-                upstream.pause();
-                rightRowReceiver.leftIsPaused = true;
+            State rightState = right.state.get();
+            switch (rightState) {
+                case LEAD_ELECTION:
+                    if (leadAcquired.compareAndSet(false, true)) {
+                        lastRow = row;
+                        state.set(State.PAUSED);
+                        upstream.pause();
+                        return true;
+                    } else {
+                        rightState = waitForStateChange(right.state);
+                        return handlePauseOrFinished(row, rightState);
+                    }
+                default:
+                    return handlePauseOrFinished(row, rightState);
             }
-            return rightRowReceiver.resume();
+        }
+
+        private boolean handlePauseOrFinished(Row row, State rightState) {
+            switch (rightState) {
+                case PAUSED:
+                    lastRow = row;
+                    state.set(State.PAUSED);
+                    upstream.pause();
+                    return right.resume(rightState);
+                case FINISHED:
+                    //noinspection SimplifiableIfStatement
+                    if (right.receivedRows && downstreamWantsMore) {
+                        lastRow = row;
+                        state.set(State.PAUSED);
+                        upstream.pause();
+                        return right.resume(rightState);
+                    }
+                    return false;
+                default:
+                    throw new AssertionError("lead election state should have been handled already");
+            }
         }
 
         @Override
         public void finish() {
             LOGGER.trace("LEFT downstream finished");
-            synchronized (mutex) {
-                leftFinished = true;
-                finished.set(null);
-                if (rightFinished) {
-                    downstream.finish();
-                } else {
-                    rightRowReceiver.upstream.resume(false);
-                }
-            }
+            finish(right.state, right.upstream);
         }
 
         @Override
@@ -188,11 +251,14 @@ public class NestedLoopOperation implements RowUpstream {
 
     private class RightRowReceiver extends AbstractRowReceiver {
 
+        private final CombinedRow combinedRow = new CombinedRow();
         private final Set<Requirement> requirements;
-        volatile Row lastRow = null;
 
+        Row lastRow = null;
         boolean receivedRows = false;
-        boolean leftIsPaused = false;
+
+          // local non-volatile variable for faster access for the usual case
+        boolean leftIsSuspended = false;
 
         public RightRowReceiver() {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
@@ -201,28 +267,45 @@ public class NestedLoopOperation implements RowUpstream {
         @Override
         public boolean setNextRow(final Row rightRow) {
             LOGGER.trace("RIGHT downstream received a row {}", rightRow);
+
             receivedRows = true;
-
-
-            if (leftIsPaused) {
+            if (leftIsSuspended) {
                 return emitRow(rightRow);
             }
 
-            synchronized (mutex) {
-                if (leftRowReceiver.lastRow == null) {
-                    if (leftFinished) {
+            State leftState = left.state.get();
+            switch (leftState) {
+                case LEAD_ELECTION:
+                    if (leadAcquired.compareAndSet(false, true)) {
+                        state.set(State.PAUSED);
+                        lastRow = rightRow;
+                        upstream.pause();
+                        return true;
+                    } else {
+                        return handlePauseOrFinished(rightRow, waitForStateChange(left.state));
+                    }
+                default:
+                    return handlePauseOrFinished(rightRow, leftState);
+            }
+        }
+
+        private boolean handlePauseOrFinished(Row rightRow, State leftState) {
+            switch (leftState) {
+                case FINISHED:
+                    if (left.lastRow == null) {
+                        // left never received a row
                         return false;
                     }
-                    lastRow = new RowN(rightRow.materialize());
-                    upstream.pause();
-                    return true;
-                }
+                case PAUSED:
+                    leftIsSuspended = true;
+                    return emitRow(rightRow);
+                default:
+                    throw new AssertionError("There are only 3 different states");
             }
-            return emitRow(rightRow);
         }
 
         private boolean emitRow(Row row) {
-            combinedRow.outerRow = leftRowReceiver.lastRow;
+            combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
             boolean wantsMore = downstream.setNextRow(combinedRow);
             downstreamWantsMore = wantsMore;
@@ -232,15 +315,9 @@ public class NestedLoopOperation implements RowUpstream {
         @Override
         public void finish() {
             LOGGER.trace("RIGHT downstream finished");
-            synchronized (mutex) {
-                rightFinished = true;
-                finished.set(null);
-                if (leftFinished) {
-                    downstream.finish();
-                } else {
-                    leftRowReceiver.upstream.resume(false);
-                }
-            }
+
+            leftIsSuspended = false;
+            finish(left.state, left.upstream);
         }
 
         @Override
@@ -254,7 +331,7 @@ public class NestedLoopOperation implements RowUpstream {
             return requirements;
         }
 
-        boolean resume() {
+        boolean resume(State rightState) {
             if (lastRow != null) {
                 boolean wantMore = emitRow(lastRow);
                 if (!wantMore) {
@@ -262,10 +339,10 @@ public class NestedLoopOperation implements RowUpstream {
                 }
                 lastRow = null;
             } else {
-                leftRowReceiver.lastRow = new RowN(leftRowReceiver.lastRow.materialize());
+                left.lastRow = new RowN(left.lastRow.materialize());
             }
 
-            if (rightFinished) {
+            if (rightState == State.FINISHED) {
                 if (receivedRows) {
                     upstream.repeat();
                 } else {
@@ -276,5 +353,14 @@ public class NestedLoopOperation implements RowUpstream {
             }
             return true;
         }
+    }
+
+    private State waitForStateChange(AtomicReference<State> stateRef) {
+        // loop shouldn't take long as other side has just acquired the lead and is about to change the state
+        State state;
+        do {
+            state = stateRef.get();
+        } while (state == State.LEAD_ELECTION);
+        return state;
     }
 }
