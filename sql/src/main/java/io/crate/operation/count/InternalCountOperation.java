@@ -65,7 +65,7 @@ public class InternalCountOperation implements CountOperation {
                                   IndicesService indicesService) {
         this.queryBuilder = queryBuilder;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        corePoolSize = executor.getCorePoolSize();
+        corePoolSize = executor.getMaximumPoolSize();
         this.indicesService = indicesService;
     }
 

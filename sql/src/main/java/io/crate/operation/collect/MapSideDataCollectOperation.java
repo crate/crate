@@ -69,7 +69,7 @@ public class MapSideDataCollectOperation {
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
         this.executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        this.poolSize = executor.getCorePoolSize();
+        this.poolSize = executor.getMaximumPoolSize();
         this.clusterService = clusterService;
         this.collectSourceResolver = collectSourceResolver;
 
