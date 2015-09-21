@@ -33,6 +33,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -81,6 +82,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import static org.mockito.Mockito.mock;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
@@ -223,7 +226,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         } else {
             rowDownstream = new SynchronizingPassThroughRowMerger(rowReceiver);
         }
-        ShardProjectorChain projectorChain = Mockito.mock(ShardProjectorChain.class);
+        ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
         Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
@@ -231,6 +234,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 CLUSTER.getInstance(MapSideDataCollectOperation.class),
                 RAM_ACCOUNTING_CONTEXT, collectingRowReceiver);
         builder.addSubContext(jobCollectContext);
+        jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
         return (LuceneDocCollector)shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
     }
 
@@ -285,6 +289,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         collectingRowReceiver.rows.clear();
         LuceneDocCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
         docCollector.doCollect();
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -297,6 +302,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -305,6 +311,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         LuceneDocCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
         docCollector.doCollect();
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
 
@@ -317,6 +324,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
 
@@ -336,6 +344,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         topNProjector.prepare(jobCollectContext);
         LuceneDocCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -343,6 +352,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
         LuceneDocCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
         docCollector.doCollect();
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
@@ -354,6 +364,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             docCollector.doCollect();
             docCollector.resume(false);
         }
+        collectingRowReceiver.result(); // call result to make sure there were no errors
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
