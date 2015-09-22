@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -158,6 +159,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat (iterations = 1000)
     public void testCrossJoinFromInformationSchemaTable() throws Exception {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
