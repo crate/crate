@@ -23,28 +23,30 @@ package io.crate.testing;
 
 import io.crate.core.collections.Row;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RowSender implements Runnable, RowUpstream {
 
     private final RowReceiver downstream;
-    private final AtomicBoolean paused = new AtomicBoolean(false);
-    private final Executor executor;
-    private volatile boolean pendingPause = false;
+    private final TopRowUpstream topRowUpstream;
 
     private volatile int numPauses = 0;
     private volatile int numResumes = 0;
     private Iterator<Row> iterator;
 
     public RowSender(Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
-        this.executor = executor;
         downstream = rowReceiver;
+        topRowUpstream = new TopRowUpstream(executor, new Runnable() {
+            @Override
+            public void run() {
+                numResumes++;
+                RowSender.this.run();
+            }
+        });
         rowReceiver.setUpstream(this);
         iterator = rows.iterator();
     }
@@ -62,10 +64,9 @@ public class RowSender implements Runnable, RowUpstream {
    }
 
     private boolean processPause() {
-        if (pendingPause) {
+        if (topRowUpstream.shouldPause()) {
             numPauses++;
-            paused.set(true);
-            pendingPause = false;
+            topRowUpstream.pauseProcessed();
             return true;
         }
         return false;
@@ -73,24 +74,12 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void pause() {
-        pendingPause = true;
+        topRowUpstream.pause();;
     }
 
     @Override
     public void resume(boolean async) {
-        pendingPause = false;
-        if (paused.compareAndSet(true, false)) {
-            numResumes++;
-            if (async) {
-                try {
-                    executor.execute(this);
-                } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                    run();
-                }
-            } else {
-                run();
-            }
-        }
+        topRowUpstream.resume(async);
     }
 
     public int numPauses() {
