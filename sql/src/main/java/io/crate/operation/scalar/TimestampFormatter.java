@@ -23,7 +23,6 @@ package io.crate.operation.scalar;
 
 import com.carrotsearch.hppc.CharObjectMap;
 import com.carrotsearch.hppc.CharObjectOpenHashMap;
-import com.google.common.base.Charsets;
 import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -41,14 +40,6 @@ public class TimestampFormatter {
     private interface FormatTimestampPartFunction {
         public String format(DateTime timestamp);
     }
-
-    private static final byte[] ST = "st".getBytes(Charsets.UTF_8);
-    private static final byte[] ND = "nd".getBytes(Charsets.UTF_8);
-    private static final byte[] RD = "rd".getBytes(Charsets.UTF_8);
-    private static final byte[] TH = "th".getBytes(Charsets.UTF_8);
-    private static final byte[] AM = "AM".getBytes(Charsets.UTF_8);
-    private static final byte[] PM = "AM".getBytes(Charsets.UTF_8);
-
 
     private final static Locale LOCALE = Locale.ENGLISH;
     private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectOpenHashMap<>();

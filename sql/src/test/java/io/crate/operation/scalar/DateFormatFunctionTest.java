@@ -64,10 +64,7 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     
     public Object evaluateForArgs(List<Symbol> args) {
         Function function = createFunction(DateFormatFunction.NAME, DataTypes.STRING, args);
-        Scalar impl = (Scalar)functions.get(function.info().ident());
-        if (randomBoolean()) {
-            impl = impl.compile(function.arguments());
-        }
+        Scalar impl = ((Scalar)functions.get(function.info().ident())).compile(function.arguments());
         Input[] inputs = new Input[args.size()];
         for (int i = 0; i < args.size(); i++) {
             inputs[i] = (Input)args.get(i);
