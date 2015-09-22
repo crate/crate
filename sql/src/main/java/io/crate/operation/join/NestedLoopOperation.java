@@ -153,7 +153,7 @@ public class NestedLoopOperation implements RowUpstream {
                 if (rightFinished && (!rightRowReceiver.receivedRows || !downstreamWantsMore)) {
                     return false;
                 }
-                lastRow = row;
+                lastRow = new RowN(row.materialize());
                 upstream.pause();
                 rightRowReceiver.leftIsPaused = true;
             }
@@ -261,8 +261,6 @@ public class NestedLoopOperation implements RowUpstream {
                     return false;
                 }
                 lastRow = null;
-            } else {
-                leftRowReceiver.lastRow = new RowN(leftRowReceiver.lastRow.materialize());
             }
 
             if (rightFinished) {

@@ -27,7 +27,6 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-@Repeat(iterations = 200)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -160,6 +159,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat (iterations = 1000)
     public void testCrossJoinFromInformationSchemaTable() throws Exception {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
