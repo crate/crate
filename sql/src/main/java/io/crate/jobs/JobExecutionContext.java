@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class JobExecutionContext implements KeepAliveListener {
 
@@ -45,6 +46,7 @@ public class JobExecutionContext implements KeepAliveListener {
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
+    private final AtomicInteger numSubContexts = new AtomicInteger();
     private final List<Integer> orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<SubExecutionContextFuture> futures;
@@ -119,11 +121,12 @@ public class JobExecutionContext implements KeepAliveListener {
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
         if (subContexts.put(subContextId, subContext) == null) {
+            int currentSubContextSize = numSubContexts.incrementAndGet();
             subContext.keepAliveListener(this);
             SubExecutionContextFuture future = subContext.future();
             future.addCallback(new RemoveSubContextCallback(subContextId));
             futures.add(future);
-            LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
+            LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, currentSubContextSize);
         } else {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "subContext %d is already present", subContextId));
         }
@@ -185,7 +188,7 @@ public class JobExecutionContext implements KeepAliveListener {
         if (!closed.getAndSet(true)) {
             LOGGER.trace("kill called on JobExecutionContext {}", jobId);
 
-            if (subContexts.size() == 0) {
+            if (numSubContexts.get() == 0) {
                 callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
@@ -198,7 +201,8 @@ public class JobExecutionContext implements KeepAliveListener {
         }
         try {
             chainedFuture.get();
-            assert subContexts.values().size() == 0: "unexpected subcontexts there: " +  subContexts.values().size();
+            int currentNumSubContexts = numSubContexts.get();
+            assert currentNumSubContexts == 0: "unexpected subcontexts there: " +  currentNumSubContexts;
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -208,7 +212,7 @@ public class JobExecutionContext implements KeepAliveListener {
     public void close() {
         if (closed.compareAndSet(false, true)) {
             LOGGER.trace("close called on JobExecutionContext {}", jobId);
-            if (subContexts.size() == 0) {
+            if (numSubContexts.get() == 0) {
                 callCloseCallback();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
@@ -234,7 +238,7 @@ public class JobExecutionContext implements KeepAliveListener {
     public String toString() {
         return "JobExecutionContext{" +
                 "jobId=" + jobId +
-                ", activeSubContexts=" + subContexts.size() +
+                ", activeSubContexts=" + numSubContexts.get() +
                 ", closed=" + closed +
                 '}';
     }
@@ -248,14 +252,9 @@ public class JobExecutionContext implements KeepAliveListener {
         }
 
         private RemoveSubContextPosition remove(){
-            ExecutionSubContext removed;
-            int remaining;
-            synchronized (subContexts){
-                removed = subContexts.remove(id);
-                remaining = subContexts.size();
-            }
+            ExecutionSubContext removed = subContexts.remove(id);
             assert removed != null;
-            if (remaining == 0){
+            if (numSubContexts.decrementAndGet() == 0){
                 callCloseCallback();
                 return RemoveSubContextPosition.LAST;
             }
