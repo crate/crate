@@ -27,15 +27,15 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class RelationAnalysisContext {
 
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private ExpressionAnalyzer expressionAnalyzer;
-    private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
+    // keep order of sources.
+    //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
+    private Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
     private ParameterContext parameterContext;
     private AnalysisMetaData analysisMetaData;
     private FullQualifedNameFieldProvider fieldProvider;
