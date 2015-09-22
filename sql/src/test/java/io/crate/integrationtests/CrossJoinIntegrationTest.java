@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
+@Repeat(iterations = 200)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
