@@ -90,3 +90,14 @@ these, one must defined it at the `SQLRequest` object::
 .. _`https://crate.io/docs/`: https://crate.io/docs/projects/crate-java/stable/
 .. _Bintray: https://bintray.com/crate/crate/crate-client/view
 
+Logging
+=======
+
+Crate client relies on Elastic Search ESLogger facility which itself defaults to `log4j` framework.
+
+Using Slf4j
+-----------
+
+In order to configure the crate client to use Slf4j, you need to configure the ESLoggerFactory to use Slf4j by using the following command (typically in your entry point)::
+
+    ESLoggerFactory.setDefaultFactory(new Slf4jESLoggerFactory());
