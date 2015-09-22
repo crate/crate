@@ -19,8 +19,8 @@ Scalar functions return a single data value (not a table).
 See below for a list of available scalar functions.
 
 
-Generic Functions
-=================
+String Functions
+================
 
 concat('first_arg', second_arg, [ parameter , ... ]) returns string
 -------------------------------------------------------------------
@@ -190,6 +190,81 @@ Example::
     |                        9 |
     +--------------------------+
     SELECT 1 row in set (... sec)
+
+
+lower('string', [ locale ]) returns string
+------------------------------------------
+
+The ``lower`` function transforms any upper case characters into their
+corresponding lower case versions. Since lower case transformations are
+ambiguous with a UTF8 encoding, the ``lower`` function performs the
+transformation using the system wide default locale.
+
+To override this behaviour, the optional argument ``locale`` can be provided
+with a `BCP 47`_ compliant locale string (e.g. ``en-US`` for US English or
+``tr-TR`` for Turkish)::
+
+    cr> select lower('Isparta İsparta', 'en-US') from sys.nodes
+    ... limit 1;
+    +---------------------------------------------------------+
+    | select lower('Isparta İsparta', 'en-US') from sys.nodes |
+    +---------------------------------------------------------+
+    | isparta i̇sparta                                         |
+    +---------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+or for the corresponding proper Turkish transformation::
+
+    cr> select lower('Isparta İsparta', 'tr-TR') from sys.nodes
+    ... limit 1;
+    +---------------------------------------------------------+
+    | select lower('Isparta İsparta', 'tr-TR') from sys.nodes |
+    +---------------------------------------------------------+
+    | ısparta isparta                                         |
+    +---------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+(note that the upper case I with a dot is transformed into an lower
+case i with two dots in the ``en-US`` version, whereas the Turkish
+version has a correct lower case i without the dot for the first I
+and one with a single dot for the second)
+
+.. _`BCP 47`: http://tools.ietf.org/rfc/bcp/bcp47.txt
+
+
+upper('string', [ locale ]) returns string
+------------------------------------------
+
+The ``upper`` function transforms any lower case characters into their
+corresponding upper case versions. Since upper case transformations are
+ambiguous with a UTF8 encoding, the ``upper`` function performs the
+transformation using the system wide default locale.
+
+To override this behaviour, the optional argument ``locale`` can be provided
+with a `BCP 47`_ compliant locale string (e.g. ``en-US`` for US English or
+``tr-TR`` for Turkish)::
+
+    cr> select upper('ısparta isparta', 'en-US') from sys.nodes
+    ... limit 1;
+    +---------------------------------------------------------+
+    | select upper('ısparta isparta', 'en-US') from sys.nodes |
+    +---------------------------------------------------------+
+    | ISPARTA ISPARTA                                         |
+    +---------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+or for the corresponding proper Turkish transformation::
+
+    cr> select upper('ısparta isparta', 'tr-TR') from sys.nodes
+    ... limit 1;
+    +---------------------------------------------------------+
+    | select upper('ısparta isparta', 'tr-TR') from sys.nodes |
+    +---------------------------------------------------------+
+    | ISPARTA İSPARTA                                         |
+    +---------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. _`BCP 47`: http://tools.ietf.org/rfc/bcp/bcp47.txt
 
 
 Date/Time Functions
