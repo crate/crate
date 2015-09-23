@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: support compressed ``_source``
+
 2015/09/18 0.51.4
 =================
 
@@ -26,12 +28,12 @@ Unreleased
 
  - Updated crate-admin to 0.14.4 which includes the following changes:
 
-   - updated Intercom to support new messaging features. The Intercom service is 
+   - updated Intercom to support new messaging features. The Intercom service is
      disabled if UDC is disabled on the Crate server.
 
  - Fixed handling of non-deterministic functions
 
- - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to 
+ - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to
    indicate its configured settings.
 
  - Updated crash to version 0.14.0 which contains the following changes:
