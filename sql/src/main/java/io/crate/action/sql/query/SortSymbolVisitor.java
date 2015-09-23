@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -37,11 +38,9 @@ import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.search.MultiValueMode;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.sort.SortParseElement;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -66,13 +65,9 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         private final CollectorContext context;
         private final Boolean nullFirst;
 
-        public SortSymbolContext(SearchContext searchContext, boolean reverseFlag, Boolean nullFirst) {
+        public SortSymbolContext(CollectorContext collectorContext, boolean reverseFlag, Boolean nullFirst) {
             this.nullFirst = nullFirst;
-            this.context = new CollectorContext(
-                    searchContext.mapperService(),
-                    searchContext.fieldData(),
-                    null
-            );
+            this.context = collectorContext;
             this.reverseFlag = reverseFlag;
         }
     }
@@ -85,13 +80,13 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     }
 
     public SortField[] generateSortFields(List<Symbol> sortSymbols,
-                                          SearchContext searchContext,
+                                          CollectorContext collectorContext,
                                           boolean[] reverseFlags,
                                           Boolean[] nullsFirst) {
         SortField[] sortFields = new SortField[sortSymbols.size()];
         for (int i = 0; i < sortSymbols.size(); i++) {
             Symbol sortSymbol = sortSymbols.get(i);
-            sortFields[i] = generateSortField(sortSymbol, new SortSymbolContext(searchContext, reverseFlags[i], nullsFirst[i]));
+            sortFields[i] = generateSortField(sortSymbol, new SortSymbolContext(collectorContext, reverseFlags[i], nullsFirst[i]));
         }
         return sortFields;
     }
@@ -115,8 +110,14 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // this is why we use a custom comparator source with the same logic as ES
 
         ColumnIdent columnIdent = symbol.info().ident().columnIdent();
-        if (columnIdent.isColumn() && SortParseElement.SCORE_FIELD_NAME.equals(columnIdent.name())) {
-            return !context.reverseFlag ? SortParseElement.SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
+
+        if (columnIdent.isColumn()) {
+            if (SortParseElement.SCORE_FIELD_NAME.equals(columnIdent.name())) {
+                return !context.reverseFlag ? SortParseElement.SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
+            } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
+                return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context,
+                        LUCENE_TYPE_MAP.get(symbol.valueType()), false);
+            }
         }
 
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
@@ -142,28 +143,56 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     @Override
     public SortField visitFunction(final Function function, final SortSymbolContext context) {
-        CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.extractImplementations(function);
-        ArrayList<Input<?>> inputs = inputContext.topLevelInputs();
-        assert inputs.size() == 1;
-        final Input functionInput = inputs.get(0);
-        @SuppressWarnings("unchecked")
-        final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();
         // our boolean functions return booleans, no BytesRefs, handle them differently
         // this is a hack, but that is how it worked before, so who cares :)
-        final SortField.Type type = function.valueType().equals(DataTypes.BOOLEAN) ? null : LUCENE_TYPE_MAP.get(function.valueType());
-        final SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
+        SortField.Type type = function.valueType().equals(DataTypes.BOOLEAN) ? null : LUCENE_TYPE_MAP.get(function.valueType());
+        SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
+        return customSortField(function.toString(), function, context, reducedType, type == null);
+    }
 
-        return new SortField(function.toString(), new IndexFieldData.XFieldComparatorSource() {
+    @Override
+    protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
+        throw new UnsupportedOperationException(
+                SymbolFormatter.format("sorting on %s is not supported", symbol));
+    }
+
+    private SortField customSortField(String name,
+                                      final Symbol symbol,
+                                      final SortSymbolContext context,
+                                      final SortField.Type reducedType,
+                                      final boolean missingNullValue) {
+        CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.extractImplementations(symbol);
+        List<Input<?>> inputs = inputContext.topLevelInputs();
+        assert inputs.size() == 1;
+        final Input input = inputs.get(0);
+        @SuppressWarnings("unchecked")
+        final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();
+
+        return new SortField(name, new IndexFieldData.XFieldComparatorSource() {
             @Override
             public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) throws IOException {
-                return new InputFieldComparator(
-                        numHits,
-                        context.context,
-                        expressions,
-                        functionInput,
-                        function.valueType(),
-                        type == null ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
-                );
+                for (LuceneCollectorExpression collectorExpression : expressions) {
+                    collectorExpression.startCollect(context.context);
+                }
+                if (context.context.visitor().required()) {
+                    return new FieldsVisitorInputFieldComparator(
+                            numHits,
+                            context.context.visitor(),
+                            expressions,
+                            input,
+                            symbol.valueType(),
+                            missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                    );
+
+                } else {
+                    return new InputFieldComparator(
+                            numHits,
+                            expressions,
+                            input,
+                            symbol.valueType(),
+                            missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                    );
+                }
             }
 
             @Override
@@ -171,11 +200,5 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return reducedType;
             }
         }, context.reverseFlag);
-    }
-
-    @Override
-    protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
-        throw new UnsupportedOperationException(
-                SymbolFormatter.format("sorting on %s is not supported", symbol));
     }
 }

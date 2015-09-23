@@ -33,6 +33,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
@@ -47,7 +48,6 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -517,7 +517,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 "2| 1\n" +
                 "2| 3\n" +
                 "2| NULL\n";
-        assertEquals(expected, TestingHelpers.printedTable(rowReceiver.result()));
+        assertEquals(expected, printedTable(rowReceiver.result()));
 
         rowReceiver = new CollectingRowReceiver();
         when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(rowReceiver);
@@ -546,7 +546,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                    "2| NULL\n" +
                    "2| 1\n" +
                    "2| 3\n";
-        assertEquals(expected, TestingHelpers.printedTable(rowReceiver.result()));
+        assertEquals(expected, printedTable(rowReceiver.result()));
     }
 
     @Test
@@ -598,5 +598,22 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("" +
                 "{\"id\":1,\"name\":\"fred\"}\n" +
                 "{\"id\":2,\"name\":\"barney\"}\n"));
+    }
+
+    @Test
+    public void testOrderByFieldVisitorExpressions() throws Exception {
+        // tests that expressions which require the FieldsVisitor works
+        Symbol raw = createReference("countries", DocSysColumns.RAW, DataTypes.STRING);
+        Symbol id = createReference("countries", DocSysColumns.ID, DataTypes.STRING);
+        OrderBy orderBy = new OrderBy(ImmutableList.of(raw, id), new boolean[]{false, false}, new Boolean[]{true, true});
+
+        CrateCollector docCollector = createDocCollector(orderBy, 2, ImmutableList.of(raw, id));
+        docCollector.doCollect();
+
+        Bucket result = rowReceiver.result();
+        assertThat(result.size(), is(2));
+        assertThat(printedTable(result), is(
+                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1000}| 1000\n" +
+                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1001}| 1001\n"));
     }
 }

@@ -5,8 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Order by ``_raw`` and/or ``_id`` did not work.
+
  - Upgraded Elasticsearch to 1.7.2
- 
+
  - Fix: support compressed ``_source``
 
  - Updated crate-admin to 0.15.0 which includes following changes:

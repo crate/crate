@@ -23,7 +23,6 @@ package io.crate.action.sql.query;
 
 import com.google.common.base.MoreObjects;
 import io.crate.operation.Input;
-import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import org.apache.lucene.index.AtomicReaderContext;
@@ -46,17 +45,12 @@ class InputFieldComparator extends FieldComparator {
     private Object top;
 
     public InputFieldComparator(int numHits,
-                                CollectorContext context,
                                 List<LuceneCollectorExpression> collectorExpressions,
                                 Input input,
                                 DataType valueType,
                                 Object missingValue) {
         this.collectorExpressions = collectorExpressions;
         this.missingValue = missingValue;
-        for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
-            LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
-            collectorExpression.startCollect(context);
-        }
         this.valueType = valueType;
         this.values = new Object[numHits];
         this.input = input;
@@ -81,8 +75,7 @@ class InputFieldComparator extends FieldComparator {
     @SuppressWarnings("unchecked")
     @Override
     public int compareBottom(int doc) throws IOException {
-        for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
-            LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
+        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
         }
         return valueType.compareValueTo(bottom, MoreObjects.firstNonNull(input.value(), missingValue));
@@ -91,8 +84,7 @@ class InputFieldComparator extends FieldComparator {
     @SuppressWarnings("unchecked")
     @Override
     public int compareTop(int doc) throws IOException {
-        for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
-            LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
+        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
         }
         return valueType.compareValueTo(top, MoreObjects.firstNonNull(input.value(), missingValue));
@@ -100,8 +92,7 @@ class InputFieldComparator extends FieldComparator {
 
     @Override
     public void copy(int slot, int doc) throws IOException {
-        for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
-            LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
+        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
         }
         Object value = input.value();
@@ -114,8 +105,7 @@ class InputFieldComparator extends FieldComparator {
 
     @Override
     public FieldComparator setNextReader(AtomicReaderContext context) throws IOException {
-        for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
-            LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
+        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextReader(context);
         }
         return this;

@@ -23,16 +23,16 @@ package io.crate.action.sql.query;
 
 import io.crate.analyze.OrderBy;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 
 public class LuceneSortGenerator {
 
     @Nullable
-    public static Sort generateLuceneSort(SearchContext context,
+    public static Sort generateLuceneSort(CollectorContext context,
                                           OrderBy orderBy,
                                           CollectInputSymbolVisitor<?> inputSymbolVisitor) {
         if (orderBy.orderBySymbols().isEmpty()) {

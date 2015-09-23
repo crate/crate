@@ -35,6 +35,11 @@ public class DocSysColumns {
             .put(DOCID, DataTypes.LONG)
             .build();
 
+    private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()
+            .put(RAW, "_source")
+            .put(ID, UID.name())
+            .build();
+
     private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
         return new ReferenceInfo(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
     }
@@ -51,4 +56,11 @@ public class DocSysColumns {
         return newInfo(table, column, COLUMN_IDENTS.get(column));
     }
 
+    public static String nameForLucene(ColumnIdent ident) {
+        String name = LUCENE_COLUMN_NAMES.get(ident);
+        if (name == null) {
+            name = ident.name();
+        }
+        return name;
+    }
 }

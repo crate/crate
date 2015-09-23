@@ -111,7 +111,7 @@ public class OrderedCrateDocCollector implements CrateCollector {
         } else {
             scorer = new ScoreCachingWrappingScorer(dummyScorer);
         }
-        sort = LuceneSortGenerator.generateLuceneSort(searchContext, collectPhase.orderBy(), inputSymbolVisitor);
+        sort = LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), inputSymbolVisitor);
 
         rowReceiver.setUpstream(upstream);
         addOrderByExpressions(expressions);
@@ -137,7 +137,6 @@ public class OrderedCrateDocCollector implements CrateCollector {
             expression.setScorer(scorer);
         }
         searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-        assert !collectorContext.visitor().required() : "Expressions that require FieldsVisitor are not supported";
 
         TopFieldDocs topFieldDocs;
         try {
