@@ -198,8 +198,8 @@ public class NestedLoopOperation implements RowUpstream {
                 case LEAD_ELECTION:
                     if (leadAcquired.compareAndSet(false, true)) {
                         lastRow = row;
-                        state.set(State.PAUSED);
                         upstream.pause();
+                        state.set(State.PAUSED);
                         return true;
                     } else {
                         rightState = waitForStateChange(right.state);
@@ -214,15 +214,15 @@ public class NestedLoopOperation implements RowUpstream {
             switch (rightState) {
                 case PAUSED:
                     lastRow = row;
-                    state.set(State.PAUSED);
                     upstream.pause();
+                    state.set(State.PAUSED);
                     return right.resume(rightState);
                 case FINISHED:
                     //noinspection SimplifiableIfStatement
                     if (right.receivedRows && downstreamWantsMore) {
                         lastRow = row;
-                        state.set(State.PAUSED);
                         upstream.pause();
+                        state.set(State.PAUSED);
                         return right.resume(rightState);
                     }
                     return false;
@@ -277,9 +277,9 @@ public class NestedLoopOperation implements RowUpstream {
             switch (leftState) {
                 case LEAD_ELECTION:
                     if (leadAcquired.compareAndSet(false, true)) {
-                        state.set(State.PAUSED);
                         lastRow = rightRow;
                         upstream.pause();
+                        state.set(State.PAUSED);
                         return true;
                     } else {
                         return handlePauseOrFinished(rightRow, waitForStateChange(left.state));
