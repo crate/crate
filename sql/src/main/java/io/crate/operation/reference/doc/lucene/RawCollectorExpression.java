@@ -25,6 +25,9 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.compress.CompressorFactory;
+
+import java.io.IOException;
 
 public class RawCollectorExpression extends
         LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
@@ -41,6 +44,10 @@ public class RawCollectorExpression extends
 
     @Override
     public BytesRef value() {
-        return visitor.source().toBytesRef();
+        try {
+            return CompressorFactory.uncompressIfNeeded(visitor.source()).toBytesRef();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to uncompress source", e);
+        }
     }
 }

@@ -5,14 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: support compressed ``_source``
+
  - Updated crate-admin to 0.15.0 which includes following changes:
 
    - display cluster checks on overview page
 
-   - display relative Crate process CPU usage as bar chart and show number of 
+   - display relative Crate process CPU usage as bar chart and show number of
      cores per node
 
- - Allow quoted subscript expressions in SQL statement. This will allow 
+ - Allow quoted subscript expressions in SQL statement. This will allow
    supporting various client applications on Windows that use ODBC.
 
  - Added ``try_cast`` scalar function.
@@ -52,13 +54,13 @@ Unreleased
 =================
 
  - Updated crate-admin to 0.14.4 which includes the following changes:
- 
-   - updated Intercom to support new messaging features. The Intercom service is 
+
+   - updated Intercom to support new messaging features. The Intercom service is
      disabled if UDC is disabled on the Crate server.
 
  - Fixed handling of non-deterministic functions
 
- - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to 
+ - Added Usage Data Collector ``udc`` column to ``sys.cluster`` table to
    indicate its configured settings.
 
  - Updated crash to version 0.14.0 which contains the following changes:

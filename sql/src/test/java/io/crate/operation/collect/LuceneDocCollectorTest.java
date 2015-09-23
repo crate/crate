@@ -74,6 +74,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
 import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
@@ -210,7 +211,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(15));
         assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
-        assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany") );
+        assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany"));
         assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
         assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("USA"));
     }
@@ -334,9 +335,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(PAGE_SIZE + 5));
         assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria") );
-        assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA") );
-        assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany"));
+        assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
+        assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("USA"));
     }
 
     @Test
@@ -413,7 +414,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)population), new boolean[]{true}, new Boolean[]{true});
 
-        CrateCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)countries));
+        CrateCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol) countries));
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(rowReceiver.rows.get(0).length, is(1));
@@ -576,5 +577,26 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         docCollector = createDocCollector(null, null, orderBy.orderBySymbols(), whereClause, PAGE_SIZE);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
+    }
+
+    @Test
+    public void testRawExpressionSupportsCompressedSource() throws Exception {
+        prepareCreate("test_compressed_source")
+                .addMapping("default",
+                        "id", "type=integer",
+                        "name", "type=string",
+                        "_source", "compress=true")
+                .execute().actionGet();
+        ensureYellow();
+        execute("insert into test_compressed_source (id, name) values (?, ?)", new Object[][]{
+                {1, "fred"},
+                {2, "barney"}
+        });
+        refresh();
+
+        execute("select _raw from test_compressed_source order by id");
+        assertThat(printedTable(response.rows()), is("" +
+                "{\"id\":1,\"name\":\"fred\"}\n" +
+                "{\"id\":2,\"name\":\"barney\"}\n"));
     }
 }
