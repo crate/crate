@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: support compressed ``_source``
+
  - Fixed handling of non-deterministic functions
 
 2015/09/15 0.50.6
