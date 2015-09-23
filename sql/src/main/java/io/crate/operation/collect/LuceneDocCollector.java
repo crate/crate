@@ -38,8 +38,6 @@ import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
@@ -103,6 +101,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private final OrderBy orderBy;
     private final CrateSearchContext searchContext;
     private final RamAccountingContext ramAccountingContext;
+    private final CollectorContext collectorContext;
 
     private volatile boolean killed = false;
     private boolean visitorEnabled = false;
@@ -134,6 +133,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
         inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneDocLevelReferenceResolver(null));
         this.pageSize = Constants.PAGE_SIZE;
+        collectorContext = new CollectorContext()
+                .searchContext(searchContext)
+                .visitor(fieldsVisitor)
+                .jobSearchContextId((int) searchContext.id());
     }
 
     @Override
@@ -198,10 +201,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     @Override
     public void doCollect() {
         // start collect
-        CollectorContext collectorContext = new CollectorContext()
-                .searchContext(searchContext)
-                .visitor(fieldsVisitor)
-                .jobSearchContextId((int) searchContext.id());
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
@@ -241,7 +240,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
 
     private void searchWithOrderBy(Query query) throws IOException {
         Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
-        Sort sort = LuceneSortGenerator.generateLuceneSort(searchContext, orderBy, inputSymbolVisitor);
+        Sort sort = LuceneSortGenerator.generateLuceneSort(collectorContext, orderBy, inputSymbolVisitor);
         TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
         int collected = topFieldDocs.scoreDocs.length;
 

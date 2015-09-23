@@ -25,9 +25,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.planner.symbol.Symbol;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -35,7 +35,7 @@ import java.util.List;
 public class LuceneSortGenerator {
 
     @Nullable
-    private static Sort generateLuceneSort(SearchContext context,
+    private static Sort generateLuceneSort(CollectorContext context,
                                            List<Symbol> symbols,
                                            boolean[] reverseFlags,
                                            Boolean[] nullsFirst,
@@ -48,9 +48,9 @@ public class LuceneSortGenerator {
     }
 
     @Nullable
-    public static Sort generateLuceneSort(SearchContext context,
-                                     OrderBy orderBy,
-                                     CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
+    public static Sort generateLuceneSort(CollectorContext context,
+                                          OrderBy orderBy,
+                                          CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
         SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
         return generateLuceneSort(context, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst(), sortSymbolVisitor);
     }
