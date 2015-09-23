@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Order by ``_raw`` and/or ``_id`` did not work.
+
  - Fix: support compressed ``_source``
 
 2015/09/18 0.51.4

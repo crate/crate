@@ -26,10 +26,12 @@ import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.scalar.arithmetic.MultiplyFunction;
@@ -64,9 +66,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static io.crate.testing.TestingHelpers.printedTable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -184,8 +186,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(15));
         assertThat(((BytesRef)collectingProjector.rows.get(0)[0]).utf8ToString(), is("Austria") );
-        assertThat(((BytesRef)collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef)collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) collectingProjector.rows.get(1)[0]).utf8ToString(), is("Germany"));
+        assertThat(((BytesRef) collectingProjector.rows.get(2)[0]).utf8ToString(), is("USA"));
         assertThat(((BytesRef)collectingProjector.rows.get(3)[0]).utf8ToString(), is("USA") );
     }
 
@@ -275,7 +277,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)population), new boolean[]{true}, new Boolean[]{true});
 
-        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)countries));
+        LuceneDocCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol) countries));
         docCollector.doCollect();
         assertThat(collectingProjector.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(collectingProjector.rows.get(0).length, is(1));
@@ -446,5 +448,22 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("" +
                 "{\"id\":1,\"name\":\"fred\"}\n" +
                 "{\"id\":2,\"name\":\"barney\"}\n"));
+    }
+
+    @Test
+    public void testOrderByFieldVisitorExpressions() throws Exception {
+        // tests that expressions which require the FieldsVisitor works
+        Symbol raw = createReference("countries", DocSysColumns.RAW, DataTypes.STRING);
+        Symbol id = createReference("countries", DocSysColumns.ID, DataTypes.STRING);
+        OrderBy orderBy = new OrderBy(ImmutableList.of(raw, id), new boolean[]{false, false}, new Boolean[]{true, true});
+
+        CrateCollector docCollector = createDocCollector(orderBy, 2, ImmutableList.of(raw, id));
+        docCollector.doCollect();
+
+        Bucket result = collectingProjector.result().get();
+        assertThat(result.size(), is(2));
+        assertThat(printedTable(result), is(
+                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":10}| 10\n" +
+                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":11}| 11\n"));
     }
 }
