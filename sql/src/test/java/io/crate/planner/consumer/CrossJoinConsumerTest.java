@@ -34,7 +34,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -45,10 +44,7 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -180,11 +176,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
-        NestedLoop plan = plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
-        Projection projection = plan.nestedLoopPhase().projections().get(0);
-        assertThat(projection, instanceOf(FilterProjection.class));
-        Symbol query = ((FilterProjection) projection).query();
-        assertThat(query, isFunction(EqOperator.NAME));
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
+        plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
     }
 
     @Test
