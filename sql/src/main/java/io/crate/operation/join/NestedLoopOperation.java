@@ -245,7 +245,7 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public Set<Requirement> requirements() {
-            return Requirements.add(downstream.requirements(), Requirement.REPEAT);
+            return downstream.requirements();
         }
     }
 
