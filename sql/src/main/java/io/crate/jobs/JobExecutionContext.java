@@ -237,8 +237,8 @@ public class JobExecutionContext implements KeepAliveListener {
     @Override
     public String toString() {
         return "JobExecutionContext{" +
-                "jobId=" + jobId +
-                ", activeSubContexts=" + numSubContexts.get() +
+                "id=" + jobId +
+                ", subContexts=" + subContexts.values() +
                 ", closed=" + closed +
                 '}';
     }

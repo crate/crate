@@ -28,10 +28,10 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.projectors.ListenableRowReceiver;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.AbstractExecutionSubContext;
+import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
+import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
@@ -40,7 +40,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.concurrent.CancellationException;
 
 public class JobCollectContext extends AbstractExecutionSubContext implements ExecutionState {
 
@@ -151,7 +150,6 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         return "JobCollectContext{" +
                 "searchContexts=" + searchContexts +
                 ", closed=" + future.closed() +
-                ", keepAliveListener=" + keepAliveListener +
                 '}';
     }
 
