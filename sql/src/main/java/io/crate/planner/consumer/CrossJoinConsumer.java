@@ -36,7 +36,6 @@ import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -107,9 +106,12 @@ public class CrossJoinConsumer implements Consumer {
 
             WhereClause where = statement.querySpec().where();
             OrderBy orderBy = statement.querySpec().orderBy();
-            boolean hasRemainingQuery = where.hasQuery() && !(where.query() instanceof Literal);
+            if (where.hasQuery() && !(where.query() instanceof Literal)) {
+                throw new UnsupportedOperationException("JOIN condition in the WHERE clause is not supported");
+            }
+
             boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();
-            if (hasRemainingQuery || hasRemainingOrderBy) {
+            if (hasRemainingOrderBy) {
                 for (QueriedTableRelation queriedTable : queriedTables) {
                     queriedTable.querySpec().limit(null);
                     queriedTable.querySpec().offset(TopN.NO_OFFSET);
@@ -122,11 +124,6 @@ public class CrossJoinConsumer implements Consumer {
             NestedLoop nl = toNestedLoop(queriedTables, context);
             List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
 
-            ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
-            if (hasRemainingQuery) {
-                Symbol filter = replaceFieldsWithInputColumns(where.query(), queriedTablesOutputs);
-                projectionBuilder.add(new FilterProjection(filter));
-            }
             /**
              * TopN for:
              *
@@ -174,12 +171,7 @@ public class CrossJoinConsumer implements Consumer {
                 topNProjection = new TopNProjection(rootLimit, statement.querySpec().offset());
             }
             topNProjection.outputs(postOutputs);
-            projectionBuilder.add(topNProjection);
-
-            ImmutableList<Projection> projections = projectionBuilder.build();
-            for (Projection projection : projections) {
-                nl.addProjection(projection);
-            }
+            nl.addProjection(topNProjection);
             return nl;
         }
 
