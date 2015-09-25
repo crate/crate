@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improve performance of LIKE and Regexp queries
+
  - Fix: Order by ``_raw`` and/or ``_id`` did not work.
 
  - Fix: support compressed ``_source``
