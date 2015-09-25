@@ -337,7 +337,6 @@ public class ProjectionToProjectorVisitor
                 context.jobId,
                 projection.executionPhaseId(),
                 ctxDocId.collectExpressions().iterator().next(),
-                projection.inputSymbols(),
                 projection.outputSymbols(),
                 projection.partitionedBy(),
                 projection.readerNodes(),

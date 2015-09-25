@@ -50,7 +50,6 @@ public class FetchProjectionTest extends CrateUnitTest {
                 1,
                 Literal.newLiteral(1L),
                 ImmutableList.<Symbol>of(new InputColumn(1)),
-                ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
                 ImmutableList.of(createReference("bar", DataTypes.STRING).info()),
                 Sets.newHashSet("node1"),
                 readerNodes,

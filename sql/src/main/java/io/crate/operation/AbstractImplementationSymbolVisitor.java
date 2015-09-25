@@ -21,21 +21,16 @@
 
 package io.crate.operation;
 
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImplementationSymbolVisitor.Context>
-        extends SymbolVisitor<C, Input<?>> {
-
-    protected final Functions functions;
+        extends BaseImplementationSymbolVisitor<C> {
 
     public abstract static class Context {
 
@@ -80,43 +75,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
     }
 
     public AbstractImplementationSymbolVisitor(Functions functions) {
-        this.functions = functions;
+        super(functions);
     }
 
-    public Functions functions() {
-        return functions;
-    }
-
-    @Override
-    public Input<?> visitFunction(Function function, C context) {
-        final FunctionImplementation functionImplementation = functions.get(function.info().ident());
-        if (functionImplementation != null && functionImplementation instanceof Scalar<?, ?>) {
-            List<Symbol> arguments = function.arguments();
-            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments);
-            Input[] argumentInputs = new Input[arguments.size()];
-            int i = 0;
-            for (Symbol argument : function.arguments()) {
-                argumentInputs[i++] = process(argument, context);
-            }
-            return new FunctionExpression<>(scalarImpl, argumentInputs);
-        } else {
-            throw new IllegalArgumentException(
-                    SymbolFormatter.format("Cannot find implementation for function %s", function));
-        }
-    }
-
-    @Override
-    public Input<?> visitLiteral(Literal symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitDynamicReference(DynamicReference symbol, C context) {
-        return visitReference(symbol, context);
-    }
-
-    @Override
-    protected Input<?> visitSymbol(Symbol symbol, C context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", symbol));
-    }
 }

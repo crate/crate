@@ -33,7 +33,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.fetch.NodeFetchOperation;
-import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -44,7 +44,8 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Locale;
 
 @Singleton
@@ -158,10 +159,11 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         }
     }
 
-    private static Streamer<?>[] outputStreamers(List<Reference> toFetchReferences) {
+    private static Streamer<?>[] outputStreamers(Collection<? extends Symbol> toFetchReferences) {
         Streamer<?>[] streamers = new Streamer<?>[toFetchReferences.size()];
+        Iterator<? extends Symbol> iter = toFetchReferences.iterator();
         for (int i = 0; i < toFetchReferences.size(); i++) {
-            streamers[i] = toFetchReferences.get(i).valueType().streamer();
+            streamers[i] = iter.next().valueType().streamer();
         }
         return streamers;
     }

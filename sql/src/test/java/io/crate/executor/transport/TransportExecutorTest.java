@@ -46,7 +46,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
@@ -61,7 +60,10 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -151,7 +153,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         );
 
 
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
+        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = MergePhase.localMerge(
                 ctx.jobId(),
@@ -216,7 +218,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode.executionNodes(),
                 ctx.buildReaderAllocations().bases()
         );
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
+        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMergeNode = MergePhase.localMerge(
                 ctx.jobId(),
@@ -234,14 +236,14 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     private FetchProjection getFetchProjection(DocTableInfo characters,
-                                               List<Symbol> collectSymbols,
                                                List<Symbol> outputSymbols,
                                                FetchPhase fetchPhase,
                                                Planner.Context ctx) {
         Planner.Context.ReaderAllocations readerAllocations = ctx.buildReaderAllocations();
         return new FetchProjection(
                 fetchPhase.executionPhaseId(),
-                new InputColumn(0, DataTypes.STRING), collectSymbols, outputSymbols,
+                new InputColumn(0, DataTypes.STRING),
+                outputSymbols,
                 characters.partitionedByColumns(),
                 fetchPhase.executionNodes(),
                 readerAllocations.nodes(),
@@ -280,7 +282,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode.executionNodes(),
                 ctx.buildReaderAllocations().bases()
         );
-        FetchProjection fetchProjection = getFetchProjection(characters, collectSymbols, outputSymbols, fetchPhase, ctx);
+        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMerge = MergePhase.sortedMerge(
                 ctx.jobId(),
@@ -361,7 +363,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode.executionNodes(),
                 ctx.buildReaderAllocations().bases()
         );
-        FetchProjection fetchProjection = getFetchProjection(searchf, collectSymbols, Arrays.asList(id_ref, function), fetchPhase, ctx);
+        FetchProjection fetchProjection = getFetchProjection(searchf, Arrays.asList(id_ref, function), fetchPhase, ctx);
 
         MergePhase localMerge = MergePhase.localMerge(
                 jobId,
@@ -405,7 +407,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 collectNode.executionNodes(),
                 ctx.buildReaderAllocations().bases()
         );
-        FetchProjection fetchProjection = getFetchProjection(parted, collectSymbols, outputSymbols, fetchPhase, ctx);
+        FetchProjection fetchProjection = getFetchProjection(parted, outputSymbols, fetchPhase, ctx);
 
         MergePhase localMerge = MergePhase.localMerge(
                 ctx.jobId(),

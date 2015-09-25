@@ -22,13 +22,16 @@
 package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
@@ -42,6 +45,10 @@ import static org.junit.Assert.assertThat;
 public class FetchPushDownTest {
 
     private static final TableIdent TABLE_IDENT = new TableIdent("s", "t");
+
+    private static final Reference REF_SCORE = new Reference(
+            DocSysColumns.forTable(TABLE_IDENT, DocSysColumns.SCORE));
+
     private static final Reference REF_I = new Reference(
             new ReferenceInfo(
                     new ReferenceIdent(new TableIdent("s", "t"), "i"),
@@ -61,7 +68,7 @@ public class FetchPushDownTest {
     @Test
     public void testLimitIsPushedDown() throws Exception {
         QuerySpec qs = new QuerySpec();
-        qs.outputs(ImmutableList.<Symbol>of(REF_I, REF_A));
+        qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
         qs.limit(10);
         qs.offset(100);
 
@@ -76,7 +83,7 @@ public class FetchPushDownTest {
     @Test
     public void testWhereIsPushedDown() throws Exception {
         QuerySpec qs = new QuerySpec();
-        qs.outputs(ImmutableList.<Symbol>of(REF_I, REF_A));
+        qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
         qs.where(WhereClause.NO_MATCH);
 
         QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
@@ -89,7 +96,7 @@ public class FetchPushDownTest {
     @Test
     public void testPushDownWithoutOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
-        qs.outputs(ImmutableList.<Symbol>of(REF_A, REF_I));
+        qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
         QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
         assertThat(qs.outputs(), hasSize(2));
 
@@ -103,13 +110,13 @@ public class FetchPushDownTest {
     @Test
     public void testPushDownWithOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
-        qs.outputs(ImmutableList.<Symbol>of(REF_A, REF_I));
+        qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
         QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
         assertThat(qs.outputs(), hasSize(2));
 
         assertThat(qs.outputs().get(0), isReference("a"));
-        assertThat(qs.outputs().get(1), isReference("i"));
+        assertThat(qs.outputs().get(1), is((Symbol) new InputColumn(1, DataTypes.STRING)));
 
         assertThat(sub.outputs(), hasSize(2));
         assertThat(sub.outputs().get(0), isReference("_docid"));
@@ -119,10 +126,36 @@ public class FetchPushDownTest {
     @Test
     public void testNoPushDownWithOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
-        qs.outputs(ImmutableList.<Symbol>of(REF_I));
+        qs.outputs(Lists.<Symbol>newArrayList(REF_I));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
 
         assertNull(FetchPushDown.pushDown(qs, TABLE_IDENT));
         assertThat(qs.outputs(), contains(isReference("i")));
     }
+
+    @Test
+    public void testScoreDoesNotRequireFetch() throws Exception {
+        QuerySpec qs = new QuerySpec();
+        qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_SCORE));
+        qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
+        assertNull(FetchPushDown.pushDown(qs, TABLE_IDENT));
+    }
+
+    @Test
+    public void testScoreGetsPushedDown() throws Exception {
+        QuerySpec qs = new QuerySpec();
+        qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I, REF_SCORE));
+        qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
+
+        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
+        assertThat(sub, notNullValue());
+
+        assertThat(sub.outputs(), contains(isReference("_docid"), isReference("i"), isReference("_score")));
+
+        assertThat(qs.outputs(), contains(
+                isReference("a"),
+                is((Symbol) new InputColumn(1, DataTypes.INTEGER)),
+                is((Symbol) new InputColumn(2, DataTypes.INTEGER))));
+    }
+
 }

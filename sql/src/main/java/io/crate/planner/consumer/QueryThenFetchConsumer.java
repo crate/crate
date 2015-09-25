@@ -142,7 +142,6 @@ public class QueryThenFetchConsumer implements Consumer {
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
                     DEFAULT_DOC_ID_INPUT_COLUMN,
-                    collectPhase.toCollect(),
                     outputs,
                     table.tableRelation().tableInfo().partitionedByColumns(),
                     collectPhase.executionNodes(),

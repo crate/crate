@@ -42,7 +42,6 @@ public class FetchProjection extends Projection {
 
     private int executionPhaseId;
     private Symbol docIdSymbol;
-    private List<Symbol> inputSymbols;
     private List<Symbol> outputSymbols;
     private List<ReferenceInfo> partitionBy;
     private Set<String> executionNodes;
@@ -54,7 +53,6 @@ public class FetchProjection extends Projection {
 
     public FetchProjection(int executionPhaseId,
                            Symbol docIdSymbol,
-                           List<Symbol> inputSymbols,
                            List<Symbol> outputSymbols,
                            List<ReferenceInfo> partitionBy,
                            Set<String> executionNodes,
@@ -62,7 +60,6 @@ public class FetchProjection extends Projection {
                            TreeMap<Integer, String> readerIndices) {
         this.executionPhaseId = executionPhaseId;
         this.docIdSymbol = docIdSymbol;
-        this.inputSymbols = inputSymbols;
         this.outputSymbols = outputSymbols;
         this.partitionBy = partitionBy;
         this.executionNodes = executionNodes;
@@ -76,10 +73,6 @@ public class FetchProjection extends Projection {
 
     public Symbol docIdSymbol() {
         return docIdSymbol;
-    }
-
-    public List<Symbol> inputSymbols() {
-        return inputSymbols;
     }
 
     public List<Symbol> outputSymbols() {
@@ -126,7 +119,6 @@ public class FetchProjection extends Projection {
 
         if (executionPhaseId != that.executionPhaseId) return false;
         if (!docIdSymbol.equals(that.docIdSymbol)) return false;
-        if (!inputSymbols.equals(that.inputSymbols)) return false;
         if (!outputSymbols.equals(that.outputSymbols)) return false;
         if (!partitionBy.equals(that.partitionBy)) return false;
         if (!executionNodes.equals(that.executionNodes)) return false;
@@ -140,7 +132,6 @@ public class FetchProjection extends Projection {
         int result = super.hashCode();
         result = 31 * result + executionPhaseId;
         result = 31 * result + docIdSymbol.hashCode();
-        result = 31 * result + inputSymbols.hashCode();
         result = 31 * result + outputSymbols.hashCode();
         result = 31 * result + partitionBy.hashCode();
         result = 31 * result + executionNodes.hashCode();
@@ -151,11 +142,6 @@ public class FetchProjection extends Projection {
     public void readFrom(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
         docIdSymbol = Symbol.fromStream(in);
-        int inputSymbolsSize = in.readVInt();
-        inputSymbols = new ArrayList<>(inputSymbolsSize);
-        for (int i = 0; i < inputSymbolsSize; i++) {
-            inputSymbols.add(Symbol.fromStream(in));
-        }
         int outputSymbolsSize = in.readVInt();
         outputSymbols = new ArrayList<>(outputSymbolsSize);
         for (int i = 0; i < outputSymbolsSize; i++) {
@@ -190,10 +176,6 @@ public class FetchProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(executionPhaseId);
         Symbol.toStream(docIdSymbol, out);
-        out.writeVInt(inputSymbols.size());
-        for (Symbol symbol : inputSymbols) {
-            Symbol.toStream(symbol, out);
-        }
         out.writeVInt(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
             Symbol.toStream(symbol, out);

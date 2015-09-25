@@ -65,7 +65,6 @@ public class FetchProjectorTest extends CrateUnitTest {
                 1,
                 mock(CollectExpression.class),
                 Collections.<Symbol>emptyList(),
-                Collections.<Symbol>emptyList(),
                 Collections.<ReferenceInfo>emptyList(),
                 IntObjectOpenHashMap.<String>newInstance(),
                 new TreeMap<Integer, String>(),

@@ -21,8 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -40,7 +38,6 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;

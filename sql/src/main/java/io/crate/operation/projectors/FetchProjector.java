@@ -63,10 +63,10 @@ public class FetchProjector extends AbstractProjector {
     private final int executionPhaseId;
     private final CollectExpression<Row, ?> collectDocIdExpression;
     private final List<ReferenceInfo> partitionedBy;
-    private final List<Reference> toFetchReferences;
+    private final Collection<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<String> readerNodes;
     private final TreeMap<Integer, String> readerIndices;
-    private final RowDelegate collectRowDelegate = new RowDelegate();
+    private final RowDelegate inputRowDelegate = new RowDelegate();
     private final RowDelegate fetchRowDelegate = new RowDelegate();
     private final RowDelegate partitionRowDelegate = new RowDelegate();
     private final Object rowDelegateLock = new Object();
@@ -94,7 +94,6 @@ public class FetchProjector extends AbstractProjector {
                           UUID jobId,
                           int executionPhaseId,
                           CollectExpression<Row, ?> collectDocIdExpression,
-                          List<Symbol> inputSymbols,
                           List<Symbol> outputSymbols,
                           List<ReferenceInfo> partitionedBy,
                           IntObjectOpenHashMap<String> readerNodes,
@@ -114,34 +113,18 @@ public class FetchProjector extends AbstractProjector {
 
         RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
 
-        RowInputSymbolVisitor.Context collectRowContext = new RowInputSymbolVisitor.Context();
-        collectRowContext.row(collectRowDelegate);
+        RowInputSymbolVisitor.Context collectRowContext = new RowInputSymbolVisitor.Context(
+                inputRowDelegate,
+                fetchRowDelegate,
+                partitionRowDelegate);
         collectRowContext.partitionedBy(partitionedBy);
-        collectRowContext.partitionByRow(partitionRowDelegate);
 
-        RowInputSymbolVisitor.Context fetchRowContext = new RowInputSymbolVisitor.Context();
-        fetchRowContext.row(fetchRowDelegate);
-        fetchRowContext.partitionedBy(partitionedBy);
-        fetchRowContext.partitionByRow(partitionRowDelegate);
-
-        // process input symbols (increase input index for every reference)
-        for (Symbol symbol : inputSymbols) {
-            rowInputSymbolVisitor.process(symbol, collectRowContext);
-        }
-
-        // process output symbols, use different contexts (and so different row delegates)
-        // for collect(inputSymbols) & fetch
         List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (inputSymbols.contains(symbol)) {
-                needInputRow = true;
-                inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
-            } else {
-                inputs.add(rowInputSymbolVisitor.process(symbol, fetchRowContext));
-            }
+            inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
         }
-        toFetchReferences = fetchRowContext.references();
-
+        toFetchReferences = collectRowContext.references();
+        needInputRow = collectRowContext.needInputRow();
         outputRow = new InputRow(inputs);
     }
 
@@ -267,7 +250,7 @@ public class FetchProjector extends AbstractProjector {
                     for (Row row : response.rows()) {
                         fetchRowDelegate.delegate(row);
                         if (needInputRow) {
-                            collectRowDelegate.delegate(nodeBucket.inputRow(idx));
+                            inputRowDelegate.delegate(nodeBucket.inputRow(idx));
                         }
                         Row partitionRow = nodeBucket.partitionRow(idx);
                         if (partitionRow != null) {

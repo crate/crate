@@ -30,7 +30,7 @@ import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 public class NodeFetchRequest extends TransportRequest {
@@ -38,7 +38,7 @@ public class NodeFetchRequest extends TransportRequest {
     private UUID jobId;
     private int executionPhaseId;
     private LongArrayList jobSearchContextDocIds;
-    private List<Reference> toFetchReferences;
+    private Collection<Reference> toFetchReferences;
 
     public NodeFetchRequest() {
     }
@@ -67,11 +67,11 @@ public class NodeFetchRequest extends TransportRequest {
         return jobSearchContextDocIds;
     }
 
-    public void toFetchReferences(List<Reference> toFetchReferences) {
+    public void toFetchReferences(Collection<Reference> toFetchReferences) {
         this.toFetchReferences = toFetchReferences;
     }
 
-    public List<Reference> toFetchReferences() {
+    public Collection<Reference> toFetchReferences() {
         return toFetchReferences;
     }
 

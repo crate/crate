@@ -24,53 +24,60 @@ package io.crate.operation.fetch;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.AbstractImplementationSymbolVisitor;
+import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
-public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<RowInputSymbolVisitor.Context> {
+public class RowInputSymbolVisitor extends BaseImplementationSymbolVisitor<RowInputSymbolVisitor.Context> {
 
-    public static class Context extends AbstractImplementationSymbolVisitor.Context {
+    public static class Context {
 
-        private int inputIndex = 0;
-        private Row row;
-        private List<Reference> references = new ArrayList<>();
+        private boolean needInputRow = false;
+        private final Row inputRow;
+        private final Row partitionByRow;
 
-        private Row partitionByRow;
+        private final Row fetchRow;
+
+        private Map<Reference, RowInput> references = new LinkedHashMap<>();
         private List<ReferenceInfo> partitionedBy;
 
-        public void row(Row row) {
-            this.row = row;
+        public Context(Row inputRow, Row fetchRow, Row partitionByRow) {
+            this.inputRow = inputRow;
+            this.fetchRow = fetchRow;
+            this.partitionByRow = partitionByRow;
+        }
+
+        public boolean needInputRow() {
+            return needInputRow;
         }
 
         public void partitionedBy(List<ReferenceInfo> partitionedBy) {
             this.partitionedBy = partitionedBy;
         }
 
-        public void partitionByRow(Row row) {
-            this.partitionByRow = row;
+        public Collection<Reference> references() {
+            return references.keySet();
         }
 
-        public List<Reference> references() {
-            return references;
+        public Input<?> allocateInput(InputColumn col) {
+            return new RowInput(inputRow, col.index());
         }
 
         public Input<?> allocateInput(Reference reference) {
             if (reference.info().granularity() == RowGranularity.PARTITION) {
                 return allocatePartitionedInput(reference.info());
             }
-            int idx = references.indexOf(reference);
-            if (idx > -1) {
-                return new RowInput(row, idx);
-            } else {
-                references.add(reference);
-                return new RowInput(row, inputIndex++);
+            RowInput input = references.get(reference);
+            if (input != null) {
+                return input;
             }
+            input = new RowInput(fetchRow, references.size());
+            references.put(reference, input);
+            return input;
         }
 
         public Input<?> allocatePartitionedInput(ReferenceInfo referenceInfo) {
@@ -105,12 +112,13 @@ public class RowInputSymbolVisitor extends AbstractImplementationSymbolVisitor<R
     }
 
     @Override
-    protected Context newContext() {
-        return new Context();
+    public Input<?> visitReference(Reference symbol, Context context) {
+        return context.allocateInput(symbol);
     }
 
     @Override
-    public Input<?> visitReference(Reference symbol, Context context) {
-        return context.allocateInput(symbol);
+    public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
+        context.needInputRow = true;
+        return context.allocateInput(inputColumn);
     }
 }

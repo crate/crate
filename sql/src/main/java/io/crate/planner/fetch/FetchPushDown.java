@@ -22,7 +22,7 @@
 package io.crate.planner.fetch;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -42,17 +42,56 @@ public class FetchPushDown {
 
     private static class Context {
 
-        private final LinkedHashMap<Symbol, InputColumn> requiredInSub;
+        private final OrderBy orderBy;
+        private LinkedHashSet<Symbol> querySymbols;
+        private LinkedHashMap<Symbol, InputColumn> inputColumns;
 
-        private Context(LinkedHashMap<Symbol, InputColumn> sub) {
-            requiredInSub = sub;
+        private Context(@Nullable OrderBy orderBy) {
+            this.orderBy = orderBy;
+            if (orderBy != null) {
+                querySymbols = new LinkedHashSet<>(orderBy.orderBySymbols().size() + 1);
+                querySymbols.addAll(orderBy.orderBySymbols());
+            }
         }
 
-        public Set<Symbol> requiredSymbols() {
-            if (requiredInSub != null) {
-                return requiredInSub.keySet();
+        boolean isQuerySymbol(Symbol symbol) {
+            return querySymbols != null && querySymbols.contains(symbol);
+        }
+
+        void allocateQuerySymbol(Symbol symbol) {
+            if (querySymbols == null) {
+                querySymbols = new LinkedHashSet<>(1);
             }
-            return ImmutableSet.of();
+            querySymbols.add(symbol);
+        }
+
+        List<Symbol> orderByInputs() {
+            if (orderBy == null) {
+                return ImmutableList.of();
+            }
+            ArrayList<Symbol> result = new ArrayList<>(orderBy.orderBySymbols().size());
+            int i = 0;
+            Iterator<InputColumn> iter = inputColumns().values().iterator();
+            while (i < orderBy.orderBySymbols().size()) {
+                result.add(iter.next());
+                i++;
+            }
+            return result;
+        }
+
+        LinkedHashMap<Symbol, InputColumn> inputColumns() {
+            if (inputColumns == null) {
+                if (querySymbols == null || querySymbols.isEmpty()) {
+                    inputColumns = EMPTY_INPUTS;
+                } else {
+                    inputColumns = new LinkedHashMap<>(querySymbols.size());
+                    int i = 1;
+                    for (Symbol querySymbol : querySymbols) {
+                        inputColumns.put(querySymbol, new InputColumn(i++, querySymbol.valueType()));
+                    }
+                }
+            }
+            return inputColumns;
         }
     }
 
@@ -60,38 +99,24 @@ public class FetchPushDown {
     public static QuerySpec pushDown(QuerySpec querySpec, TableIdent tableIdent) {
         assert querySpec.groupBy() == null && querySpec.having() == null && !querySpec.hasAggregates();
 
-        LinkedHashMap<Symbol, InputColumn> requiredInQuery;
         OrderBy orderBy = querySpec.orderBy();
 
-        if (orderBy != null) {
-            requiredInQuery = new LinkedHashMap<>(orderBy.orderBySymbols().size());
-            int i = 1;
-            for (Symbol symbol : orderBy.orderBySymbols()) {
-                if (!requiredInQuery.containsKey(symbol)) {
-                    requiredInQuery.put(symbol, new InputColumn(i++, symbol.valueType()));
-                }
-            }
-        } else {
-            requiredInQuery = EMPTY_INPUTS;
-        }
-        Context context = new Context(requiredInQuery);
+        Context context = new Context(orderBy);
 
-        boolean fetchRequired = fetchRequiredVisitor.process(querySpec.outputs(), context.requiredSymbols());
-
+        boolean fetchRequired = fetchRequiredVisitor.process(querySpec.outputs(), context);
         if (!fetchRequired) return null;
 
         // build the subquery
         QuerySpec sub = new QuerySpec();
         Reference docIdReference = new Reference(DocSysColumns.forTable(tableIdent, DocSysColumns.DOCID));
 
+        LinkedHashMap<Symbol, InputColumn> inputColumns = context.inputColumns();
         List<Symbol> outputs = new ArrayList<>();
         if (orderBy != null) {
             sub.orderBy(querySpec.orderBy());
-            querySpec.orderBy(new OrderBy(new ArrayList<Symbol>(context.requiredInSub.values()),
-                    orderBy.reverseFlags(), orderBy.nullsFirst()));
-
+            querySpec.orderBy(new OrderBy(context.orderByInputs(), orderBy.reverseFlags(), orderBy.nullsFirst()));
             outputs.add(docIdReference);
-            outputs.addAll(context.requiredInSub.keySet());
+            outputs.addAll(context.inputColumns().keySet());
         } else {
             outputs.add(docIdReference);
         }
@@ -106,42 +131,56 @@ public class FetchPushDown {
         sub.where(querySpec.where());
         querySpec.where(null);
 
+        // replace the columns with input columns;
+        for (int i = 0; i < querySpec.outputs().size(); i++) {
+            InputColumn col = inputColumns.get(querySpec.outputs().get(i));
+            if (col != null) {
+                querySpec.outputs().set(i, col);
+            }
+        }
         sub.limit(MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset());
         return sub;
     }
 
-    private static class FetchRequiredVisitor extends SymbolVisitor<Collection<Symbol>, Boolean> {
+    private static class FetchRequiredVisitor extends SymbolVisitor<Context, Boolean> {
 
-        public boolean process(List<Symbol> symbols, Collection<Symbol> requiredInQuery) {
+        public boolean process(List<Symbol> symbols, Context context) {
+            boolean result = false;
             for (Symbol symbol : symbols) {
-                if (process(symbol, requiredInQuery)) return true;
+                result = process(symbol, context) || result;
             }
+            return result;
+        }
+
+        @Override
+        public Boolean visitReference(Reference symbol, Context context) {
+            if (context.isQuerySymbol(symbol)) {
+                return false;
+            } else if (symbol.ident().columnIdent().equals(DocSysColumns.SCORE)) {
+                context.allocateQuerySymbol(symbol);
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public Boolean visitDynamicReference(DynamicReference symbol, Context context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        protected Boolean visitSymbol(Symbol symbol, Context context) {
             return false;
         }
 
         @Override
-        public Boolean visitReference(Reference symbol, Collection<Symbol> requiredInQuery) {
-            return !requiredInQuery.contains(symbol);
+        public Boolean visitAggregation(Aggregation symbol, Context context) {
+            return !context.isQuerySymbol(symbol) && process(symbol.inputs(), context);
         }
 
         @Override
-        public Boolean visitDynamicReference(DynamicReference symbol, Collection<Symbol> requiredInQuery) {
-            return visitReference(symbol, requiredInQuery);
-        }
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Collection<Symbol> requiredInQuery) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitAggregation(Aggregation symbol, Collection<Symbol> requiredInQuery) {
-            return !requiredInQuery.contains(symbol) && process(symbol.inputs(), requiredInQuery);
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, Collection<Symbol> requiredInQuery) {
-            return !requiredInQuery.contains(symbol) && process(symbol.arguments(), requiredInQuery);
+        public Boolean visitFunction(Function symbol, Context context) {
+            return !context.isQuerySymbol(symbol) && process(symbol.arguments(), context);
         }
     }
 }

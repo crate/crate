@@ -52,6 +52,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
@@ -61,7 +62,7 @@ public class NodeFetchOperation {
 
     private final UUID jobId;
     private final int executionPhaseId;
-    private final List<Reference> toFetchReferences;
+    private final Collection<Reference> toFetchReferences;
     private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
 
     private final JobContextService jobContextService;
@@ -77,7 +78,7 @@ public class NodeFetchOperation {
     public NodeFetchOperation(UUID jobId,
                               int executionPhaseId,
                               LongArrayList jobSearchContextDocIds,
-                              List<Reference> toFetchReferences,
+                              Collection<Reference> toFetchReferences,
                               JobContextService jobContextService,
                               ThreadPool threadPool,
                               Functions functions,
