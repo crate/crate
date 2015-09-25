@@ -23,8 +23,11 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Throwables;
+import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
@@ -32,12 +35,16 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class TopRowUpstream implements RowUpstream, ExecutionState {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(TopRowUpstream.class);
 
     private final Executor executor;
     private final Runnable resumeRunnable;
     private final AtomicBoolean paused = new AtomicBoolean(false);
+    private final ReentrantLock pauseLock = new ReentrantLock();
 
     private volatile boolean killed = false;
     private volatile boolean pendingPause = false;
@@ -65,14 +72,38 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
         }
     }
 
+
+    /**
+     * this methods checks if the downstream requested a pause.
+     * It must be called after each {@link io.crate.operation.projectors.RowReceiver#setNextRow(Row)} call
+     *
+     * If it returns true it will also have acquired a lock which can only be released by calling {@link #pauseProcessed()}
+     * So anyone who calls shouldPause must call pauseProcessed after it has saved its internal state.
+     */
     public boolean shouldPause() {
-        return pendingPause;
+        if (pendingPause) {
+            try {
+                pauseLock.lockInterruptibly();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return true;
+        }
+        return false;
     }
 
+    /**
+     * must be called after {@link #shouldPause()} if it returned true in order to indicate that state has been
+     * stored (so that the resumeRunnable works) and to release the acquired pauseLock.
+     */
     public void pauseProcessed() {
-        assert pendingPause: "Shouldn't call pauseProcessed if shouldPause() was false";
-        paused.set(true);
-        pendingPause = false;
+        if (pendingPause) {
+            paused.set(true);
+            pendingPause = false;
+        } else {
+            LOGGER.warn("possible pendingPause deadlock");
+        }
+        pauseLock.unlock();
     }
 
     @Override
@@ -87,8 +118,21 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
 
     @Override
     public void resume(boolean async) {
-        pendingPause = false;
-        if (paused.compareAndSet(true, false)) {
+        boolean pendingPauseState;
+        boolean wasPaused;
+        try {
+            pauseLock.lockInterruptibly();
+            pendingPauseState = pendingPause;
+            pendingPause = false;
+            wasPaused = paused.compareAndSet(true, false);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("Interrupted while trying to acquire pauseLock", e);
+            return;
+        } finally {
+            pauseLock.unlock();
+        }
+        if (wasPaused) {
             if (async) {
                 try {
                     executor.execute(resumeRunnable);
@@ -98,6 +142,8 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
             } else {
                 resumeRunnable.run();
             }
+        } else {
+            LOGGER.debug("Received resume but wasn't paused. PendingPause was {} and has been set to false", pendingPauseState);
         }
     }
 
