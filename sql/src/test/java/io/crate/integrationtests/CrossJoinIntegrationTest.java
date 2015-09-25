@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
+@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
