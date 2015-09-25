@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.EvictingQueue;
+import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
@@ -39,6 +39,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,13 +54,13 @@ import java.util.concurrent.atomic.AtomicReference;
 @Singleton
 public class StatsTables {
 
-    private final static Queue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
-    private final static Queue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
+    private final static BlockingQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
+    private final static BlockingQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
     protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     protected final Map<Integer, OperationContext> operationsTable = new ConcurrentHashMap<>();
-    protected final AtomicReference<Queue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
-    protected final AtomicReference<Queue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
+    protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
+    protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
     private final JobsLogIterableGetter jobsLogIterableGetter;
     private final JobsIterableGetter jobsIterableGetter;
@@ -225,7 +226,7 @@ public class StatsTables {
             operationsLog.set(NOOP_OPERATIONS_LOG);
         } else {
             Queue<OperationContextLog> oldQ = operationsLog.get();
-            EvictingQueue<OperationContextLog> newQ = EvictingQueue.create(size);
+            BlockingEvictingQueue<OperationContextLog> newQ = new BlockingEvictingQueue<>(size);
             newQ.addAll(oldQ);
             operationsLog.set(newQ);
         }
@@ -236,7 +237,7 @@ public class StatsTables {
             jobsLog.set(NOOP_JOBS_LOG);
         } else {
             Queue<JobContextLog> oldQ = jobsLog.get();
-            EvictingQueue<JobContextLog> newQ = EvictingQueue.create(size);
+            BlockingEvictingQueue<JobContextLog> newQ = new BlockingEvictingQueue<>(size);
             newQ.addAll(oldQ);
             jobsLog.set(newQ);
         }
