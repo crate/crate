@@ -62,6 +62,10 @@ public class RowMergers {
         private final AtomicBoolean prepared = new AtomicBoolean(false);
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
         private final Object lock = new Object();
+
+        protected final Queue<Object[]> pauseFifo = new LinkedList<>();
+        protected final ArrayRow sharedRow = new ArrayRow();
+
         ExecutionState executionState;
 
         volatile boolean paused = false;
@@ -75,8 +79,34 @@ public class RowMergers {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
+        public final boolean setNextRow(Row row) {
             synchronized (lock) {
+                boolean wantMore = synchronizedSetNextRow(row);
+                if (!wantMore) {
+                    pauseFifo.clear();
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        protected boolean synchronizedSetNextRow(Row row) {
+            if (paused) {
+                pauseFifo.add(row.materialize());
+                return true;
+            } else {
+                Object[] bufferedCells;
+                while ((bufferedCells = pauseFifo.poll()) != null) {
+                    sharedRow.cells(bufferedCells);
+                    boolean wantMore = delegate.setNextRow(sharedRow);
+                    if (!wantMore) {
+                        return false;
+                    }
+                    if (paused) {
+                        pauseFifo.add(row.materialize());
+                        return true;
+                    }
+                }
                 return delegate.setNextRow(row);
             }
         }
@@ -96,6 +126,14 @@ public class RowMergers {
          * triggered if the last remaining upstream finished or failed
          */
         protected void onFinish() {
+            assert !paused : "must not receive a finish call if upstream should be paused";
+            for (Object[] objects : pauseFifo) {
+                sharedRow.cells(objects);
+                boolean wantMore = delegate.setNextRow(sharedRow);
+                if (!wantMore) {
+                    break;
+                }
+            }
             delegate.finish();
         }
 
@@ -158,8 +196,6 @@ public class RowMergers {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final Object lock = new Object();
-        private final Queue<Object[]> pauseFifo = new LinkedList<>();
-        private final ArrayRow sharedRow = new ArrayRow();
 
         public RowCachingMultiUpstreamRowReceiver(RowReceiver delegate) {
             super(delegate);
@@ -171,39 +207,28 @@ public class RowMergers {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
-            boolean wantMore;
-            synchronized (lock) {
-                Object[] materializedRow = row.materialize();
-                if (paused) {
-                    pauseFifo.add(materializedRow);
-                    wantMore = true;
-                } else {
-                    Object[] poll = pauseFifo.poll();
-                    if (poll == null) {
-                        wantMore = delegate.setNextRow(row);
-                    } else {
+        protected boolean synchronizedSetNextRow(Row row) {
+            Object[] materializedRow = row.materialize();
+            rows.add(materializedRow);
+
+            if (paused) {
+                pauseFifo.add(materializedRow);
+                return true;
+            } else {
+                Object[] bufferedCells;
+                while ((bufferedCells = pauseFifo.poll()) != null) {
+                    sharedRow.cells(bufferedCells);
+                    boolean wantMore = delegate.setNextRow(sharedRow);
+                    if (!wantMore) {
+                        return false;
+                    }
+                    if (paused) {
                         pauseFifo.add(materializedRow);
-                        sharedRow.cells(poll);
-                        wantMore = delegate.setNextRow(sharedRow);
+                        return true;
                     }
                 }
-                rows.add(materializedRow);
+                return delegate.setNextRow(row);
             }
-            return wantMore;
-        }
-
-        @Override
-        protected void onFinish() {
-            assert !paused : "must not receive a finish call if upstream should be paused";
-            for (Object[] objects : pauseFifo) {
-                sharedRow.cells(objects);
-                boolean wantMore = delegate.setNextRow(sharedRow);
-                if (!wantMore) {
-                    break;
-                }
-            }
-            super.onFinish();
         }
     }
 
