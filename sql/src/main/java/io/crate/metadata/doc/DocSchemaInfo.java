@@ -33,7 +33,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
@@ -169,12 +168,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     return null;
                 }
                 if (PartitionName.isPartition(input)) {
-                    PartitionName partitionName = PartitionName.fromIndexOrTemplate(input);
-                    if (partitionName.schema().equals(schemaName)) {
-                        return partitionName.tableName();
-                    } else {
-                        return null;
-                    }
+                    return null;
                 }
                 return input;
             }

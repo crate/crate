@@ -1009,7 +1009,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
         assertThat(response.rowCount(), is(1L));
-        assertThat((String)response.rows()[0][0], is("any1"));
+        assertThat((String) response.rows()[0][0], is("any1"));
     }
 
     @Test
@@ -1056,7 +1056,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "where schema_name ~ '[a-z]+o[a-z]' order by schema_name");
         assertThat(response.rowCount(), is(2L));
         assertThat((String)response.rows()[0][0], is("blob"));
-        assertThat((String)response.rows()[1][0], is("doc"));
+        assertThat((String) response.rows()[1][0], is("doc"));
     }
 
     @Test
@@ -1071,5 +1071,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response.rowCount(), is(4L));
         assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "sys")));
+    }
+
+    @Test
+    public void testOrphanedPartition() throws Exception {
+        prepareCreate(".partitioned.foo.04138").execute().get();
+        execute("select table_name from information_schema.tables where schema_name='doc'");
+        assertThat(response.rowCount(), is(0L));
     }
 }
