@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.EvictingQueue;
+import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
@@ -62,7 +62,7 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
         assertThat(stats.lastOperationsLogSize, is(200));
 
-        assertThat(stats.jobsLog.get(), Matchers.instanceOf(EvictingQueue.class));
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(BlockingEvictingQueue.class));
 
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
