@@ -100,7 +100,7 @@ public class PingTask extends TimerTask {
 
     public String getHardwareAddress() {
         final String macAddr = nodeService.info().getNetwork().getPrimaryInterface().getMacAddress();
-        return (macAddr != null && macAddr.equals("")) ? null : macAddr;
+        return (macAddr != null && macAddr.equals("")) ? null : macAddr.toLowerCase(Locale.ENGLISH);
     }
 
     public String getCrateVersion() {
