@@ -21,9 +21,15 @@
 
 package io.crate.integrationtests;
 
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
@@ -104,8 +110,20 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCrossJoinWithoutLimitAndOrderByAndCrossJoinSyntax() throws Exception {
         createColorsAndSizes();
-        execute("select * from colors cross join sizes");
+        execute("select colors.name, sizes.name from colors cross join sizes");
         assertThat(response.rowCount(), is(6L));
+
+        List<Object[]> rows = Arrays.asList(response.rows());
+        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+                new int[] {0, 1}, new boolean[]{false, false}, new Boolean[]{null, null}).reverse());
+        assertThat(printRows(rows), is(
+                "blue| large\n" +
+                        "blue| small\n" +
+                        "green| large\n" +
+                        "green| small\n" +
+                        "red| large\n" +
+                        "red| small\n"
+        ));
     }
 
     @Test
