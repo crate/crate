@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
@@ -570,6 +569,36 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
+
+    @Test
+    public void testSysOperationsLogConcurrentAccess() throws Exception {
+        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
+        waitNoPendingTasksOnAll();
+
+        Thread selectThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i=0; i < 50; i++) {
+                    executor.exec(
+                            "select count(*), race from characters group by race order by count(*) desc limit 2");
+                }
+            }
+        });
+
+        Thread sysOperationThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i=0; i < 50; i++) {
+                    executor.exec("select * from sys.operations_log order by ended");
+                }
+            }
+        });
+        selectThread.start();
+        sysOperationThread.start();
+        selectThread.join(500);
+        sysOperationThread.join(500);
+    }
+
 
     @Test
     public void testEmptyJobsInLog() throws Exception {
