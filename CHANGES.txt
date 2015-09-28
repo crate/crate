@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug that could cause imports from s3 result in an error instead of
+   importing the data if the URI contained wildcards.
+
  - Improve performance of LIKE and Regexp queries
 
  - Fix: Order by ``_raw`` and/or ``_id`` did not work.
