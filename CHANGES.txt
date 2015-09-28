@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug that could cause imports from s3 result in an error instead of
+   importing the data if the URI contained wildcards.
+
  - Fix: Querying the information_schema caused a NPE if there was an orphaned partition
 
  - Fix: Order by ``_raw`` and/or ``_id`` did not work.
