@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare bug that leads to serialization issues when a ShardBulkRequest
+   was serialized more than once
+
  - Fixed a bug that could cause imports from s3 result in an error instead of
    importing the data if the URI contained wildcards.
 
