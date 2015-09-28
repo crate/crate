@@ -101,6 +101,7 @@ public class Rows implements Iterable<Row>, Streamable {
         for (DataType dataType : dataTypes) {
             DataTypes.toStream(dataType, out);
         }
+
         for (Map.Entry<Integer, Integer> entry : columnIndicesMap.entrySet()) {
             out.writeVInt(entry.getKey());
             out.writeVInt(entry.getValue());
@@ -151,9 +152,15 @@ public class Rows implements Iterable<Row>, Streamable {
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            for (int i = 0; i < row.length; i++) {
-                if (columnIndicesMap.get(i) != null) {
-                    dataTypes[columnIndicesMap.get(i)].streamer().writeValueTo(out, row[i]);
+            if (streamed) {
+                for (int i = 0; i < row.length; i++) {
+                    dataTypes[i].streamer().writeValueTo(out, row[i]);
+                }
+            } else {
+                for (int i = 0; i < row.length; i++) {
+                    if (columnIndicesMap.get(i) != null) {
+                        dataTypes[columnIndicesMap.get(i)].streamer().writeValueTo(out, row[i]);
+                    }
                 }
             }
         }
