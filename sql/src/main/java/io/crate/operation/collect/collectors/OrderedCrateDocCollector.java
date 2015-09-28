@@ -32,6 +32,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -76,7 +77,7 @@ public class OrderedCrateDocCollector implements CrateCollector {
     private int rowCount = 0;
 
 
-    public OrderedCrateDocCollector(CrateSearchContext searchContext,
+    public OrderedCrateDocCollector(final CrateSearchContext searchContext,
                                     KeepAliveListener keepAliveListener,
                                     Executor executor,
                                     CollectPhase collectPhase,
@@ -94,7 +95,8 @@ public class OrderedCrateDocCollector implements CrateCollector {
         }, new Runnable() {
             @Override
             public void run() {
-                throw new UnsupportedOperationException("repeat not supported");
+                searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
+                innerCollect(state.initialScoreDocs, 0, null);
             }
         });
         this.searchContext = searchContext;
@@ -147,28 +149,31 @@ public class OrderedCrateDocCollector implements CrateCollector {
         try {
             topFieldDocs = searchContext.searcher().search(searchContext.query(), batchSize(), sort);
         } catch (IOException e) {
-            rowReceiver.fail(e);
+            fail(e);
             return;
+        }
+        if (rowReceiver.requirements().contains(Requirement.REPEAT)) {
+            state.initialScoreDocs = topFieldDocs.scoreDocs;
         }
         innerCollect(topFieldDocs.scoreDocs, 0, null);
     }
 
     private void innerCollect(ScoreDoc[] scoreDocs, int position, @Nullable FieldDoc lastDoc) {
-        boolean paused = false;
         try {
             if (emitRows(scoreDocs, position, lastDoc) == Result.FINISHED) {
-                rowReceiver.finish();
-            } else {
-                paused = true;
-            }
-        } catch (Throwable t) {
-            rowReceiver.fail(t);
-        } finally {
-            if (!paused) {
                 searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
                 searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
+                rowReceiver.finish();
             }
+        } catch (Throwable t) {
+            fail(t);
         }
+    }
+
+    private void fail(Throwable t) {
+        searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
+        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
+        rowReceiver.fail(t);
     }
 
 
@@ -273,6 +278,7 @@ public class OrderedCrateDocCollector implements CrateCollector {
     }
 
     private static class State {
+        ScoreDoc[] initialScoreDocs;
         ScoreDoc[] scoreDocs;
         int scoreDocPos;
         FieldDoc lastDoc;
