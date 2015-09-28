@@ -59,7 +59,6 @@ public class S3FileInput implements FileInput {
         }
         String prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
         List<URI> uris = new ArrayList<>();
-
         ObjectListing list = client.listObjects(bucketName, prefix);
         addKeyUris(uris, list, uri, uriPredicate);
         while (list.isTruncated()) {
@@ -73,11 +72,14 @@ public class S3FileInput implements FileInput {
     private void addKeyUris(List<URI> uris, ObjectListing list, URI uri, Predicate<URI> uriPredicate) {
         List<S3ObjectSummary> summaries = list.getObjectSummaries();
         for (S3ObjectSummary summary : summaries) {
-            URI keyUri = uri.resolve("/" + summary.getKey());
-            if (uriPredicate.apply(keyUri)) {
-                uris.add(keyUri);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("{}", keyUri);
+            String key = summary.getKey();
+            if (!key.endsWith("/")) {
+                URI keyUri = uri.resolve("/" + key);
+                if (uriPredicate.apply(keyUri)) {
+                    uris.add(keyUri);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("{}", keyUri);
+                    }
                 }
             }
         }
