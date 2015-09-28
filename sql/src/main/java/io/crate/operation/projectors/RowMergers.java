@@ -22,10 +22,8 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import io.crate.core.collections.ArrayRow;
-import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
@@ -33,7 +31,9 @@ import io.crate.operation.RowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,16 +43,10 @@ public class RowMergers {
     private RowMergers() {}
 
     public static RowDownstream passThroughRowMerger(RowReceiver delegate) {
-        MultiUpstreamRowReceiver rowReceiver;
-        if (delegate.requirements().contains(Requirement.REPEAT)) {
-            rowReceiver = new RowCachingMultiUpstreamRowReceiver(delegate);
-        } else {
-            rowReceiver = new MultiUpstreamRowReceiver(delegate);
-        }
-        return new MultiUpstreamRowMerger(rowReceiver);
+        return new MultiUpstreamRowReceiver(delegate);
     }
 
-    static class MultiUpstreamRowReceiver implements RowReceiver {
+    static class MultiUpstreamRowReceiver implements RowReceiver, RowMerger {
 
         private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
 
@@ -71,11 +65,8 @@ public class RowMergers {
         volatile boolean paused = false;
 
         public MultiUpstreamRowReceiver(RowReceiver delegate) {
+            delegate.setUpstream(this);
             this.delegate = delegate;
-        }
-
-        public List<Object[]> cachedRows() {
-            throw new UnsupportedOperationException("Doesn't cache rows");
         }
 
         @Override
@@ -154,7 +145,7 @@ public class RowMergers {
 
         @Override
         public Set<Requirement> requirements() {
-            return Requirements.NO_REQUIREMENTS;
+            return delegate.requirements();
         }
 
         @Override
@@ -164,14 +155,16 @@ public class RowMergers {
             }
         }
 
-        protected final void pause() {
+        @Override
+        public void pause() {
             paused = true;
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.pause();
             }
         }
 
-        protected final void resume(boolean async) {
+        @Override
+        public void resume(boolean async) {
             paused = false;
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.resume(async);
@@ -190,85 +183,22 @@ public class RowMergers {
                 }
             }
         }
-    }
 
-    static class RowCachingMultiUpstreamRowReceiver extends MultiUpstreamRowReceiver {
-
-        private final List<Object[]> rows = new ArrayList<>();
-        private final Object lock = new Object();
-
-        public RowCachingMultiUpstreamRowReceiver(RowReceiver delegate) {
-            super(delegate);
-        }
-
-        @Override
-        public List<Object[]> cachedRows() {
-            return rows;
-        }
-
-        @Override
-        protected boolean synchronizedSetNextRow(Row row) {
-            Object[] materializedRow = row.materialize();
-            rows.add(materializedRow);
-
-            if (paused) {
-                pauseFifo.add(materializedRow);
-                return true;
-            } else {
-                Object[] bufferedCells;
-                while ((bufferedCells = pauseFifo.poll()) != null) {
-                    sharedRow.cells(bufferedCells);
-                    boolean wantMore = delegate.setNextRow(sharedRow);
-                    if (!wantMore) {
-                        return false;
-                    }
-                    if (paused) {
-                        pauseFifo.add(materializedRow);
-                        return true;
-                    }
+        public void repeat() {
+            if (activeUpstreams.compareAndSet(0, rowUpstreams.size())) {
+                pauseFifo.clear();
+                for (RowUpstream rowUpstream : rowUpstreams) {
+                    rowUpstream.repeat();
                 }
-                return delegate.setNextRow(row);
+            } else {
+                throw new IllegalStateException("Can't repeat if there are still active upstreams");
             }
-        }
-    }
-
-    private static class MultiUpstreamRowMerger implements RowMerger {
-
-        private final MultiUpstreamRowReceiver rowReceiver;
-        private boolean repeated = false;
-
-        public MultiUpstreamRowMerger(MultiUpstreamRowReceiver rowReceiver) {
-            this.rowReceiver = rowReceiver;
-            rowReceiver.delegate.setUpstream(this);
         }
 
         @Override
         public RowReceiver newRowReceiver() {
-            rowReceiver.activeUpstreams.incrementAndGet();
-            return rowReceiver;
-        }
-
-        @Override
-        public void pause() {
-            rowReceiver.pause();
-        }
-
-        @Override
-        public void resume(boolean async) {
-            rowReceiver.resume(async);
-        }
-
-        @Override
-        public void repeat() {
-            Preconditions.checkState(!repeated,
-                    "Row receiver should have changed it's upstream after the first repeat call");
-            repeated = true;
-            // the rowEmitter becomes the new upstream for rowReceiver.delegate and handles further pause/resume/repeat calls
-            IterableRowEmitter iterableRowEmitter = new IterableRowEmitter(
-                    rowReceiver.delegate,
-                    rowReceiver.executionState,
-                    new CollectionBucket(rowReceiver.cachedRows()));
-            iterableRowEmitter.run();
+            activeUpstreams.incrementAndGet();
+            return this;
         }
     }
 }
