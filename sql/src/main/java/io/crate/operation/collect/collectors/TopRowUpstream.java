@@ -87,7 +87,12 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            return true;
+            // double check after lock has been acquired. Resume could have changed pendingPause before the lock was acquired
+            if (pendingPause) {
+                return true;
+            } else {
+                pauseLock.unlock();
+            }
         }
         return false;
     }
