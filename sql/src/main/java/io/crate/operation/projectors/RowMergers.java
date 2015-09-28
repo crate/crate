@@ -45,28 +45,22 @@ public class RowMergers {
     private RowMergers() {}
 
     public static RowDownstream passThroughRowMerger(RowReceiver delegate) {
-        MultiUpstreamRowReceiver rowReceiver;
-        if (delegate.requirements().contains(Requirement.REPEAT)) {
-            rowReceiver = new RowCachingMultiUpstreamRowReceiver(delegate);
-        } else {
-            rowReceiver = new MultiUpstreamRowReceiver(delegate);
-        }
-        return new MultiUpstreamRowMerger(rowReceiver);
+        return new MultiUpstreamRowReceiver(delegate);
     }
 
-        public static RowDownstream sortingRowMerger(RowReceiver delegate,
-                                                     int rowSize,
-                                                     int[] orderByPositions,
-                                                     boolean[] reverseFlags,
-                                                     Boolean[] nullsFirst) {
+    public static RowDownstream sortingRowMerger(RowReceiver delegate,
+                                                 int rowSize,
+                                                 int[] orderByPositions,
+                                                 boolean[] reverseFlags,
+                                                 Boolean[] nullsFirst) {
         if (delegate.requirements().contains(Requirement.REPEAT)) {
             Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(orderByPositions, reverseFlags, nullsFirst);
-            return new MultiUpstreamRowMerger(new SortingRowCachingMultiUpstreamRowReceiver(delegate, ordering));
+            return new SortingRowCachingMultiUpstreamRowReceiver(delegate, ordering);
         }
         return new BlockingSortingQueuedRowDownstream(delegate, rowSize, orderByPositions, reverseFlags, nullsFirst);
     }
 
-    static class MultiUpstreamRowReceiver implements RowReceiver {
+    static class MultiUpstreamRowReceiver implements RowReceiver, RowMerger {
 
         private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
 
@@ -85,11 +79,8 @@ public class RowMergers {
         volatile boolean paused = false;
 
         public MultiUpstreamRowReceiver(RowReceiver delegate) {
+            delegate.setUpstream(this);
             this.delegate = delegate;
-        }
-
-        public List<Object[]> cachedRows() {
-            throw new UnsupportedOperationException("Doesn't cache rows");
         }
 
         @Override
@@ -168,7 +159,7 @@ public class RowMergers {
 
         @Override
         public Set<Requirement> requirements() {
-            return Requirements.NO_REQUIREMENTS;
+            return delegate.requirements();
         }
 
         @Override
@@ -178,14 +169,16 @@ public class RowMergers {
             }
         }
 
-        protected final void pause() {
+        @Override
+        public void pause() {
             paused = true;
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.pause();
             }
         }
 
-        protected final void resume(boolean async) {
+        @Override
+        public void resume(boolean async) {
             paused = false;
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.resume(async);
@@ -204,50 +197,28 @@ public class RowMergers {
                 }
             }
         }
-    }
 
-    static class RowCachingMultiUpstreamRowReceiver extends MultiUpstreamRowReceiver {
-
-        private final List<Object[]> rows = new ArrayList<>();
-        private final Object lock = new Object();
-
-        public RowCachingMultiUpstreamRowReceiver(RowReceiver delegate) {
-            super(delegate);
-        }
-
-        @Override
-        public List<Object[]> cachedRows() {
-            return rows;
-        }
-
-        @Override
-        protected boolean synchronizedSetNextRow(Row row) {
-            Object[] materializedRow = row.materialize();
-            rows.add(materializedRow);
-
-            if (paused) {
-                pauseFifo.add(materializedRow);
-                return true;
-            } else {
-                Object[] bufferedCells;
-                while ((bufferedCells = pauseFifo.poll()) != null) {
-                    sharedRow.cells(bufferedCells);
-                    boolean wantMore = delegate.setNextRow(sharedRow);
-                    if (!wantMore) {
-                        return false;
-                    }
-                    if (paused) {
-                        pauseFifo.add(materializedRow);
-                        return true;
-                    }
+        public void repeat() {
+            if (activeUpstreams.compareAndSet(0, rowUpstreams.size())) {
+                pauseFifo.clear();
+                for (RowUpstream rowUpstream : rowUpstreams) {
+                    rowUpstream.repeat();
                 }
-                return delegate.setNextRow(row);
+            } else {
+                throw new IllegalStateException("Can't repeat if there are still active upstreams");
             }
+        }
+
+        @Override
+        public RowReceiver newRowReceiver() {
+            activeUpstreams.incrementAndGet();
+            return this;
         }
     }
 
     static class SortingRowCachingMultiUpstreamRowReceiver extends MultiUpstreamRowReceiver {
 
+        private boolean repeated = false;
         private final Ordering<Object[]> ordering;
         private final List<Object[]> rows = new ArrayList<>();
 
@@ -263,6 +234,11 @@ public class RowMergers {
         }
 
         @Override
+        public Set<Requirement> requirements() {
+            return Requirements.remove(delegate.requirements(), Requirement.REPEAT);
+        }
+
+        @Override
         protected void onFinish() {
             Collections.sort(rows, ordering);
             IterableRowEmitter rowEmitter = new IterableRowEmitter(
@@ -270,33 +246,6 @@ public class RowMergers {
                     executionState,
                     new CollectionBucket(rows));
             rowEmitter.run();
-        }
-    }
-
-    private static class MultiUpstreamRowMerger implements RowMerger {
-
-        private final MultiUpstreamRowReceiver rowReceiver;
-        private boolean repeated = false;
-
-        public MultiUpstreamRowMerger(MultiUpstreamRowReceiver rowReceiver) {
-            this.rowReceiver = rowReceiver;
-            rowReceiver.delegate.setUpstream(this);
-        }
-
-        @Override
-        public RowReceiver newRowReceiver() {
-            rowReceiver.activeUpstreams.incrementAndGet();
-            return rowReceiver;
-        }
-
-        @Override
-        public void pause() {
-            rowReceiver.pause();
-        }
-
-        @Override
-        public void resume(boolean async) {
-            rowReceiver.resume(async);
         }
 
         @Override
@@ -306,9 +255,9 @@ public class RowMergers {
             repeated = true;
             // the rowEmitter becomes the new upstream for rowReceiver.delegate and handles further pause/resume/repeat calls
             IterableRowEmitter iterableRowEmitter = new IterableRowEmitter(
-                    rowReceiver.delegate,
-                    rowReceiver.executionState,
-                    new CollectionBucket(rowReceiver.cachedRows()));
+                    delegate,
+                    executionState,
+                    new CollectionBucket(rows));
             iterableRowEmitter.run();
         }
     }
