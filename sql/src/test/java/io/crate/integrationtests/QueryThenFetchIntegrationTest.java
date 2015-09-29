@@ -114,18 +114,20 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (x) values (?)", bulkArgs);
         execute("refresh table t");
 
-        Long limit = new Long(docCount - 1);
+        Long limit = (long) (docCount - 1);
         execute("select * from t limit ?", new Object[]{limit});
         assertThat(response.rowCount(), is(limit));
 
         // test if all is fine if we limit more than we have
         limit += 10;
         execute("select * from t limit ?", new Object[]{limit});
-        assertThat(response.rowCount(), is(new Long(docCount)));
+        assertThat(response.rowCount(), is((long) docCount));
 
         // test with sorting
         execute("select * from t order by x limit ?", new Object[]{limit});
-        assertThat(response.rowCount(), is(new Long(docCount)));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
+        assertThat(response.rowCount(), is((long) docCount));
     }
 
     @Test
