@@ -21,7 +21,9 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -39,6 +41,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -110,7 +113,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         FutureCallback<List<Bucket>> finalCallback = new FutureCallback<List<Bucket>>() {
             @Override
             public void onSuccess(List<Bucket> buckets) {
-                pagingIterator.merge(buckets);
+                pagingIterator.merge(numberedBuckets(buckets));
                 processBuckets(pagingIterator, listener);
             }
 
@@ -135,6 +138,20 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         for (ListenableFuture<Bucket> bucketFuture : page.buckets()) {
             Futures.addCallback(bucketFuture, multiFutureCallback, executor);
         }
+    }
+
+    private Iterable<? extends NumberedIterable<Row>> numberedBuckets(List<Bucket> buckets) {
+        return Iterables.transform(buckets, new Function<Bucket, NumberedIterable<Row>>() {
+
+            int number = -1;
+
+            @Nullable
+            @Override
+            public NumberedIterable<Row> apply(Bucket input) {
+                number++;
+                return new NumberedIterable<>(number, input);
+            }
+        });
     }
 
     @Override

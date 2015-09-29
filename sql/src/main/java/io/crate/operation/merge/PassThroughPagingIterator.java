@@ -41,15 +41,21 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     }
 
     @Override
-    public void merge(Iterable<? extends Iterable<T>> iterables) {
+    public void merge(Iterable<? extends NumberedIterable<T>> iterables) {
+        Iterable<T> concat = Iterables.concat(iterables);
         if (iterator.hasNext()) {
-            iterator = Iterators.concat(iterator, Iterables.concat(iterables).iterator());
+            iterator = Iterators.concat(iterator, concat.iterator());
         } else {
-            iterator = Iterables.concat(iterables).iterator();
+            iterator = concat.iterator();
         }
     }
 
     @Override
     public void finish() {
+    }
+
+    @Override
+    public int exhaustedIterable() {
+        return -1;
     }
 }

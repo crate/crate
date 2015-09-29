@@ -24,5 +24,6 @@ package io.crate.operation.collect.collectors;
 
 enum Result {
     PAUSED,
-    FINISHED
+    FINISHED,
+    EXHAUSTED
 }

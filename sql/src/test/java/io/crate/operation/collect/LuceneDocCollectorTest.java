@@ -24,12 +24,12 @@ package io.crate.operation.collect;
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.Paging;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
+import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -168,11 +168,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         Bucket bucket = rowReceiver.result();
         assertThat(bucket.size(), is(20));
-        int i = 0;
-        for (Row row : bucket) {
-            assertThat((int) row.get(0), is(i));
-            i++;
-        }
+
+        assertThat(TestingHelpers.printedTable(bucket),
+                is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n"));
     }
 
     @SuppressWarnings("unchecked")

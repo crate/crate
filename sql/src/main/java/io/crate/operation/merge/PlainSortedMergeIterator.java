@@ -37,11 +37,13 @@ import static com.google.common.collect.Iterators.peekingIterator;
  */
 class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements SortedMergeIterator<T> {
 
-    final Queue<PeekingIterator<T>> queue;
-    PeekingIterator<T> lastUsedIter = null;
+    final Queue<NumberedPeekingIterator<T>> queue;
+    NumberedPeekingIterator<T> lastUsedIter = null;
     boolean leastExhausted = false;
+    private int exhausted;
 
-    public PlainSortedMergeIterator(Iterable<? extends Iterable<T>> iterables, final Comparator<? super T> itemComparator) {
+    public PlainSortedMergeIterator(Iterable<? extends NumberedIterable<T>> iterables, final Comparator<? super T> itemComparator) {
+
         Comparator<PeekingIterator<T>> heapComparator = new Comparator<PeekingIterator<T>>() {
             @Override
             public int compare(PeekingIterator<T> o1, PeekingIterator<T> o2) {
@@ -52,11 +54,11 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
         addIterators(iterables);
     }
 
-    private void addIterators(Iterable<? extends Iterable<T>> iterables) {
-        for (Iterable<T> rowIterable : iterables) {
-            Iterator<T> rowIterator = rowIterable.iterator();
+    private void addIterators(Iterable<? extends NumberedIterable<T>> iterables) {
+        for (NumberedIterable<T> iterable : iterables) {
+            Iterator<T> rowIterator = iterable.iterator();
             if (rowIterator.hasNext()) {
-                queue.add(peekingIterator(rowIterator));
+                queue.add(new NumberedPeekingIterator<T>(iterable.number(), peekingIterator(rowIterator)));
             }
         }
     }
@@ -73,6 +75,7 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
                 queue.add(lastUsedIter);
             } else {
                 leastExhausted = true;
+                exhausted = lastUsedIter.number;
             }
             lastUsedIter = null;
         }
@@ -87,16 +90,53 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
         return lastUsedIter.next();
     }
 
-    public void merge(Iterable<? extends Iterable<T>> iterables) {
+    @Override
+    public void merge(Iterable<? extends NumberedIterable<T>> numberedIterables) {
         if (lastUsedIter != null && lastUsedIter.hasNext()) {
             queue.add(lastUsedIter);
             lastUsedIter = null;
         }
-        addIterators(iterables);
+        addIterators(numberedIterables);
         leastExhausted = false;
     }
 
     public boolean isLeastExhausted() {
         return leastExhausted;
+    }
+
+    @Override
+    public int exhaustedIterable() {
+        return exhausted;
+    }
+
+    private static class NumberedPeekingIterator<T> implements PeekingIterator<T> {
+
+        private final int number;
+        private final PeekingIterator<T> peekingIterator;
+
+        public NumberedPeekingIterator(int number, PeekingIterator<T> peekingIterator) {
+            this.number = number;
+            this.peekingIterator = peekingIterator;
+        }
+
+        @Override
+        public T peek() {
+            return peekingIterator.peek();
+        }
+
+        @Override
+        public T next() {
+            return peekingIterator.next();
+        }
+
+        @Override
+        public void remove() {
+            peekingIterator.remove();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return peekingIterator.hasNext();
+        }
     }
 }

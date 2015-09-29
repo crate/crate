@@ -23,16 +23,12 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Symbol;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -80,27 +76,6 @@ public class ShardProjectorChain {
 
     private final RowDownstream rowDownstream;
 
-
-    public static ShardProjectorChain sortedMerge(UUID jobId,
-                                                  List<? extends Projection> projections,
-                                                  int maxNumShards,
-                                                  RowReceiver finalDownstream,
-                                                  ProjectorFactory projectorFactory,
-                                                  RamAccountingContext ramAccountingContext,
-                                                  List<? extends Symbol> outputs,
-                                                  OrderBy orderBy) {
-        return new ShardProjectorChain(
-                jobId,
-                projections,
-                maxNumShards,
-                finalDownstream,
-                projectorFactory,
-                ramAccountingContext,
-                outputs,
-                orderBy
-        );
-    }
-
     public static ShardProjectorChain passThroughMerge(UUID jobId,
                                                        int maxNumShards,
                                                        List<? extends Projection> projections,
@@ -113,9 +88,7 @@ public class ShardProjectorChain {
                 maxNumShards,
                 finalDownstream,
                 projectorFactory,
-                ramAccountingContext,
-                null,
-                null
+                ramAccountingContext
         );
     }
 
@@ -125,9 +98,7 @@ public class ShardProjectorChain {
                                 int maxNumShards,
                                 RowReceiver finalDownstream,
                                 ProjectorFactory projectorFactory,
-                                RamAccountingContext ramAccountingContext,
-                                @Nullable List<? extends Symbol>  outputs,
-                                @Nullable OrderBy orderBy) {
+                                RamAccountingContext ramAccountingContext) {
         this.jobId = jobId;
         this.ramAccountingContext = ramAccountingContext;
         this.projections = projections;
@@ -165,19 +136,8 @@ public class ShardProjectorChain {
 
         if (maxNumShards == 1) {
             rowDownstream = new SingleUpstreamRowDownstream(firstNodeProjector);
-        } else if (orderBy == null || !orderBy.isSorted()) {
-            rowDownstream = new SynchronizingPassThroughRowMerger(firstNodeProjector);
         } else {
-            assert outputs != null : "must have outputs if orderBy is present";
-            int[] orderByPositions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), outputs);
-            int maxOrderByIndex = 0;
-            for (int pos : orderByPositions) {
-                if (pos > maxOrderByIndex) {
-                    maxOrderByIndex = pos;
-                }
-            }
-            int rowSize = Math.max(outputs.size(), maxOrderByIndex+1);
-            rowDownstream = new BlockingSortingQueuedRowDownstream(firstNodeProjector, rowSize, orderByPositions, orderBy.reverseFlags(), orderBy.nullsFirst());
+            rowDownstream = new SynchronizingPassThroughRowMerger(firstNodeProjector);
         }
 
         if (shardProjectionsIndex >= 0) {

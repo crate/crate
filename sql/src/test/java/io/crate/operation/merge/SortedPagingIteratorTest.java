@@ -21,6 +21,8 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
@@ -30,6 +32,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -46,7 +49,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
         SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING);
 
-        pagingIterator.merge(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][] {
                         new Object[] {"a"} ,
                         new Object[] {"b"},
@@ -55,7 +58,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
                         new Object[] {"x"},
                         new Object[] {"y"},
                 })
-        ));
+        )));
 
         List<Object[]> rows = new ArrayList<>();
 
@@ -64,7 +67,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
         assertThat(rows.size(), is(3));
         assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\n"));
 
-        pagingIterator.merge(Arrays.<Bucket>asList(
+        pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][] {
                         new Object[] {"d"},
                         new Object[] {"e"},
@@ -73,7 +76,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
                         new Object[] {"y"},
                         new Object[] {"z"},
                 })
-        ));
+        )));
 
         consumeRows(pagingIterator, rows);
         assertThat(rows.size(), is(5));
@@ -89,5 +92,19 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
         while (pagingIterator.hasNext()) {
             rows.add(pagingIterator.next().materialize());
         }
+    }
+
+    private Iterable<? extends NumberedIterable<Row>> numberedBuckets(List<Bucket> buckets) {
+        return Iterables.transform(buckets, new Function<Bucket, NumberedIterable<Row>>() {
+
+            int number = -1;
+
+            @Nullable
+            @Override
+            public NumberedIterable<Row> apply(Bucket input) {
+                number++;
+                return new NumberedIterable<>(number, input);
+            }
+        });
     }
 }

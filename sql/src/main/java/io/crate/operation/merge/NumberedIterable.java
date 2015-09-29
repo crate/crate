@@ -22,18 +22,24 @@
 
 package io.crate.operation.merge;
 
-
 import java.util.Iterator;
 
-/**
- * MergingIterator like it is used in guava Iterators.mergedSort
- * It has (limited) shared object support.
- *
- * And it also has a merge function with which additional backing iterables can be added to enable paging.
- */
-public interface SortedMergeIterator<T> extends Iterator<T> {
-    void merge(Iterable<? extends NumberedIterable<T>> iterables);
-    boolean isLeastExhausted();
+public class NumberedIterable<T> implements Iterable<T> {
 
-    int exhaustedIterable();
+    private final int number;
+    private final Iterable<T> iterable;
+
+    public NumberedIterable(int number, Iterable<T> iterable) {
+        this.number = number;
+        this.iterable = iterable;
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return iterable.iterator();
+    }
+
+    public int number() {
+        return number;
+    }
 }

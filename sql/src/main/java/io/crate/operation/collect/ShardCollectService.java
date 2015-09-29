@@ -23,22 +23,27 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.CrateSearchContext;
+import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.Paging;
 import io.crate.operation.collect.blobs.BlobDocCollector;
+import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
-import io.crate.operation.collect.collectors.OrderedCrateDocCollector;
+import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -48,6 +53,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,6 +73,8 @@ public class ShardCollectService {
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
     private final BlobIndices blobIndices;
+    private final MapperService mapperService;
+    private final IndexFieldDataService indexFieldDataService;
 
     @Inject
     public ShardCollectService(SearchContextFactory searchContextFactory,
@@ -78,12 +87,16 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
+                               MapperService mapperService,
+                               IndexFieldDataService indexFieldDataService,
                                BlobShardReferenceResolver blobShardReferenceResolver,
                                CrateDocIndexService crateDocIndexService) {
         this.searchContextFactory = searchContextFactory;
         this.threadPool = threadPool;
         this.shardId = shardId;
         this.blobIndices = blobIndices;
+        this.mapperService = mapperService;
+        this.indexFieldDataService = indexFieldDataService;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
         NestedReferenceResolver shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
@@ -135,22 +148,21 @@ public class ShardCollectService {
      */
     public CrateCollector getDocCollector(CollectPhase collectNode,
                                           ShardProjectorChain projectorChain,
-                                          JobCollectContext jobCollectContext,
-                                          int pageSize) throws Exception {
+                                          JobCollectContext jobCollectContext) throws Exception {
+        assert collectNode.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return RowsCollector.empty(downstream);
         }
 
         assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
         if (isBlobShard) {
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return getBlobIndexCollector(normalizedCollectNode, downstream);
         } else {
-            return getLuceneIndexCollector(
-                    threadPool,
-                    normalizedCollectNode, downstream, jobCollectContext, pageSize);
+            return getLuceneIndexCollector(threadPool, normalizedCollectNode, projectorChain, jobCollectContext);
         }
     }
 
@@ -173,9 +185,8 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
                                                    final CollectPhase collectNode,
-                                                   final RowReceiver downstream,
-                                                   final JobCollectContext jobCollectContext,
-                                                   int pageSize) throws Exception {
+                                                   final ShardProjectorChain projectorChain,
+                                                   final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
         IndexShard indexShard = sharedShardContext.indexShard();
@@ -190,30 +201,17 @@ public class ShardCollectService {
             jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
-            if (collectNode.orderBy() != null) {
-                return new OrderedCrateDocCollector(
-                        searchContext,
-                        jobCollectContext.keepAliveListener(),
-                        executor,
-                        collectNode,
-                        downstream,
-                        docCtx.topLevelInputs(),
-                        docCtx.docLevelExpressions(),
-                        docInputSymbolVisitor,
-                        pageSize
-                );
-            } else {
-                return new CrateDocCollector(
-                        searchContext,
-                        executor,
-                        jobCollectContext.keepAliveListener(),
-                        collectNode,
-                        jobCollectContext.queryPhaseRamAccountingContext(),
-                        downstream,
-                        docCtx.topLevelInputs(),
-                        docCtx.docLevelExpressions()
-                );
-            }
+
+            return new CrateDocCollector(
+                    searchContext,
+                    executor,
+                    jobCollectContext.keepAliveListener(),
+                    collectNode,
+                    jobCollectContext.queryPhaseRamAccountingContext(),
+                    projectorChain.newShardDownstreamProjector(projectorVisitor),
+                    docCtx.topLevelInputs(),
+                    docCtx.docLevelExpressions()
+            );
         } catch (Throwable t) {
             if (searchContext == null) {
                 searcher.close();
@@ -222,5 +220,54 @@ public class ShardCollectService {
             }
             throw t;
         }
+    }
+
+    public OrderedDocCollector getOrderedCollector(CollectPhase collectPhase,
+                                                SharedShardContext sharedShardContext,
+                                                JobCollectContext jobCollectContext) {
+        collectPhase = collectPhase.normalize(shardNormalizer);
+
+        CrateSearchContext searchContext = null;
+        CollectorContext collectorContext;
+        CollectInputSymbolVisitor.Context ctx;
+        try {
+            searchContext = searchContextFactory.createContext(
+                    sharedShardContext.readerId(),
+                    sharedShardContext.indexShard(),
+                    sharedShardContext.searcher(),
+                    collectPhase.whereClause()
+            );
+            jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
+            ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
+
+            collectorContext = new CollectorContext(
+                    mapperService,
+                    indexFieldDataService,
+                    new CollectorFieldsVisitor(ctx.docLevelExpressions().size()),
+                    sharedShardContext.readerId()
+            );
+        } catch (Throwable t) {
+            if (searchContext != null) {
+                searchContext.close();
+            }
+            throw t;
+        }
+        return new OrderedDocCollector(
+                searchContext,
+                ScoreReferenceDetector.detect(collectPhase.toCollect()),
+                batchSize(collectPhase.limit()),
+                collectorContext,
+                collectPhase.orderBy(),
+                LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputSymbolVisitor),
+                ctx.topLevelInputs(),
+                ctx.docLevelExpressions()
+        );
+    }
+
+    private int batchSize(Integer limit) {
+        if (limit == null) {
+            return Paging.PAGE_SIZE;
+        }
+        return Math.min(limit, Paging.PAGE_SIZE);
     }
 }

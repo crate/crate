@@ -73,11 +73,11 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), PAGE_CONSUME_LISTENER);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
         b1.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
         b2.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends Iterable<Row>>>any());
+        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
     }
 
     @Test

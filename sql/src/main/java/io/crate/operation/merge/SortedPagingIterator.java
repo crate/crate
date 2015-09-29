@@ -40,17 +40,22 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
      * @param ordering determining how the items are sorted
      */
     public SortedPagingIterator(Ordering<T> ordering) {
-        mergingIterator = new PlainSortedMergeIterator<>(Collections.<Iterable<T>>emptyList(), ordering);
+        mergingIterator = new PlainSortedMergeIterator<>(Collections.<NumberedIterable<T>>emptyList(), ordering);
     }
 
     @Override
-    public void merge(Iterable<? extends Iterable<T>> iterables) {
+    public void merge(Iterable<? extends NumberedIterable<T>> iterables) {
         mergingIterator.merge(iterables);
     }
 
     @Override
     public void finish() {
         ignoreLeastExhausted = true;
+    }
+
+    @Override
+    public int exhaustedIterable() {
+        return mergingIterator.exhaustedIterable();
     }
 
     @Override

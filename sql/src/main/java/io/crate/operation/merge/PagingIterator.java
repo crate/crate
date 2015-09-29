@@ -26,9 +26,9 @@ import java.util.Iterator;
 public interface PagingIterator<T> extends Iterator<T> {
 
     /**
-     * Add additional iterators to the PagingIterator. (E.g. due to a new Page that has arrived)
+     * Add additional iterables to the PagingIterator. (E.g. due to a new Page that has arrived)
      */
-    void merge(Iterable<? extends Iterable<T>> iterators);
+    void merge(Iterable<? extends NumberedIterable<T>> iterables);
 
     /**
      * This is called if the last page has been received and merge has been called for the last time.
@@ -36,4 +36,6 @@ public interface PagingIterator<T> extends Iterator<T> {
      * returned on hasNext/next calls.
      */
     void finish();
+
+    int exhaustedIterable();
 }
