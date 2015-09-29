@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Strings;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -51,11 +52,22 @@ public class RelationAnalysisContext {
     }
 
     public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(nameOrAlias), relation);
+        addSourceRelation(new QualifiedName(nameOrAlias), relation);
     }
 
     public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
+        addSourceRelation(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
+    }
+
+    private void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
+        if (sources.put(qualifiedName, relation) != null ) {
+            String tableName = qualifiedName.toString();
+            if (tableName.startsWith(".")) {
+                tableName = tableName.substring(1);
+            }
+            String errorMessage = String.format("\"%s\" specified more than once in the FROM clause", tableName);
+            throw new IllegalArgumentException(errorMessage);
+        }
     }
 
     public Map<QualifiedName, AnalyzedRelation> sources() {

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - If the same table appears more than once in the FROM clause now an error is
+   thrown instead of silently ignoring it.
+
  - Fixed a rare bug that leads to serialization issues when a ShardBulkRequest
    was serialized more than once
 
