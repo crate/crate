@@ -87,12 +87,12 @@ public class NestedLoopOperation implements RowUpstream {
 
     @Override
     public void pause() {
-        throw new UnsupportedOperationException();
+        right.upstream.pause();
     }
 
     @Override
     public void resume(boolean async) {
-        throw new UnsupportedOperationException();
+        right.upstream.resume(async);
     }
 
     @Override
@@ -197,7 +197,7 @@ public class NestedLoopOperation implements RowUpstream {
             switch (rightState) {
                 case LEAD_ELECTION:
                     if (leadAcquired.compareAndSet(false, true)) {
-                        lastRow = row;
+                        lastRow = new RowN(row.materialize());
                         upstream.pause();
                         state.set(State.PAUSED);
                         return true;
@@ -338,8 +338,6 @@ public class NestedLoopOperation implements RowUpstream {
                     return false;
                 }
                 lastRow = null;
-            } else {
-                left.lastRow = new RowN(left.lastRow.materialize());
             }
 
             if (rightState == State.FINISHED) {
