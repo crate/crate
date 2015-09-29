@@ -1610,4 +1610,28 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Symbol whereClauseSleepFn = eqFunction.arguments().get(0);
         assertThat(outputs.get(0), is(equalTo(whereClauseSleepFn)));
     }
+
+    @Test
+    public void testSelectSameTableTwice() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"users\" specified more than once in the FROM clause");
+
+        analyze("select * from users, users");
+    }
+
+    @Test
+    public void testSelectSameTableTwiceWithAndWithoutSchemaName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"users\" specified more than once in the FROM clause");
+
+        analyze("select * from doc.users, users");
+    }
+
+    @Test
+    public void testSelectSameTableTwiceWithSchemaName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"sys.nodes\" specified more than once in the FROM clause");
+
+        analyze("select * from sys.nodes, sys.nodes");
+    }
 }
