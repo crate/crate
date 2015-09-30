@@ -34,7 +34,7 @@ import java.util.List;
 
 /**
  * Visitor to change regular column references into references using the DOC sys column.
- *
+ * <p/>
  * e.g.   s.t.colname -&gt; s.t._DOC['colname']
  */
 public class DocReferenceConverter {
@@ -52,73 +52,80 @@ public class DocReferenceConverter {
             }
 
             String schema = ident.tableIdent().schema();
-            if (schema != null && !ReferenceInfos.isDefaultOrCustomSchema(schema)) {
-                return false;
-            }
-            return true;
+            return ReferenceInfos.isDefaultOrCustomSchema(schema);
         }
     };
 
     /**
      * re-writes any references to source lookup ( n -&gt; _doc['n'] )
-     *
+     * <p/>
      * won't be converted: partition columns or non-doc-schema columns
      */
     public static Symbol convertIfPossible(Symbol symbol, DocTableInfo tableInfo) {
+        if (tableInfo.isPartitioned()) {
+            return convertIf(symbol, getNotPartitionPredicate(tableInfo));
+        } else {
+            return convertIf(symbol);
+        }
+    }
+
+    public static Predicate<Reference> getNotPartitionPredicate(DocTableInfo tableInfo) {
+        if (!tableInfo.isPartitioned()) {
+            return Predicates.alwaysTrue();
+        }
         final List<ReferenceInfo> partitionedByColumns = tableInfo.partitionedByColumns();
-        Predicate<Reference> predicate = new Predicate<Reference>() {
+        return new Predicate<Reference>() {
             @Override
             public boolean apply(@Nullable Reference input) {
                 assert input != null;
                 return !partitionedByColumns.contains(input.info());
             }
         };
-        return convertIf(symbol, predicate);
     }
 
     /**
      * will convert any references that are analyzed or not indexed to doc-references
      */
-    public static Symbol convertIf(Symbol symbol, Predicate<Reference> predicate) {
+    public static Symbol convertIf(Symbol symbol, @Nullable Predicate<Reference> predicate) {
+        if (predicate == null) {
+            return convertIf(symbol);
+        }
         return VISITOR.process(symbol, Predicates.and(DEFAULT_PREDICATE, predicate));
     }
 
-    private static class Visitor extends SymbolVisitor<Predicate<Reference>, Symbol> {
+    /**
+     * will convert any references that are analyzed or not indexed to doc-references
+     */
+    public static Symbol convertIf(Symbol symbol) {
+        return VISITOR.process(symbol, DEFAULT_PREDICATE);
+    }
 
-        private static Reference toSourceLookup(Reference reference) {
-            ReferenceIdent ident = reference.info().ident();
-            if (ident.columnIdent().name().equals(DocSysColumns.DOC.name())) {
-                // already converted
-                // symbols might be shared and visited twice.. prevent rewriting _doc[x] to _doc._doc[x]
-                return reference;
-            }
-            List<String> path = new ArrayList<>(ident.columnIdent().path());
-            if (path.isEmpty()) { // if it's empty it might be an empty immutableList
-                path = Arrays.asList(ident.columnIdent().name());
-            } else {
-                path.add(0, ident.columnIdent().name());
-            }
-            return new Reference(
-                    new ReferenceInfo(
-                            new ReferenceIdent(ident.tableIdent(), DocSysColumns.DOC.name(), path),
-                            reference.info().granularity(),
-                            reference.valueType()
-                    )
-            );
+    public static Reference toSourceLookup(Reference reference) {
+        ReferenceIdent ident = reference.info().ident();
+        if (ident.columnIdent().name().equals(DocSysColumns.DOC.name())) {
+            // already converted
+            // symbols might be shared and visited twice.. prevent rewriting _doc[x] to _doc._doc[x]
+            return reference;
         }
-
-        @Override
-        public Symbol visitFunction(Function symbol, Predicate<Reference> predicate) {
-            List<Symbol> arguments = new ArrayList<>(symbol.arguments().size());
-            for (Symbol argument : symbol.arguments()) {
-                arguments.add(process(argument, predicate));
-            }
-            return new Function(symbol.info(), arguments);
+        List<String> path = new ArrayList<>(ident.columnIdent().path());
+        if (path.isEmpty()) { // if it's empty it might be an empty immutableList
+            path = Arrays.asList(ident.columnIdent().name());
+        } else {
+            path.add(0, ident.columnIdent().name());
         }
+        return new Reference(
+                new ReferenceInfo(
+                        new ReferenceIdent(ident.tableIdent(), DocSysColumns.DOC.name(), path),
+                        reference.info().granularity(),
+                        reference.valueType()
+                )
+        );
+    }
 
-        @Override
-        public Symbol visitDynamicReference(DynamicReference symbol, Predicate<Reference> predicate) {
-            return visitReference(symbol, predicate);
+    private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
+
+        public Visitor() {
+            super(false);
         }
 
         @Override
@@ -128,12 +135,8 @@ public class DocReferenceConverter {
             }
             return symbol;
         }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, Predicate<Reference> predicate) {
-            return symbol;
-        }
     }
 
-    private DocReferenceConverter() {}
+    private DocReferenceConverter() {
+    }
 }

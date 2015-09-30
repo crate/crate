@@ -442,11 +442,10 @@ public class ContextPreparer {
 
             String localNodeId = clusterService.localNode().id();
             return new FetchContext(
-                    phase.executionPhaseId(),
+                    phase,
                     localNodeId,
                     context.sharedShardContexts,
-                    routings,
-                    phase.bases());
+                    routings);
         }
     }
 }

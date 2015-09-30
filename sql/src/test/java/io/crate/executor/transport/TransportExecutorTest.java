@@ -22,10 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
@@ -34,41 +31,35 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
-import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.projectors.TopN;
-import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.management.KillPlan;
-import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 
@@ -126,316 +117,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testQTFTask() throws Exception {
-        // select id, name from characters;
-        setup.setUpCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
-        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
-        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
-
-        Planner.Context ctx = newPlannerContext();
-
-        CollectPhase collectPhase = newCollectPhase(
-                ctx,
-                characters,
-                collectSymbols,
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
-        );
-
-        FetchPhase fetchPhase = new FetchPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableSet.of(collectPhase.executionPhaseId()),
-                collectPhase.executionNodes(),
-                ctx.buildReaderAllocations().bases()
-        );
-
-
-        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
-
-        MergePhase localMergeNode = MergePhase.localMerge(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(fetchProjection),
-                collectPhase
-        );
-        Plan plan = new QueryThenFetch(collectPhase, fetchPhase, localMergeNode, ctx.jobId());
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(1));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
-        assertThat(rows, containsInAnyOrder(
-                isRow(1, "Arthur"),
-                isRow(4, "Arthur"),
-                isRow(2, "Ford"),
-                isRow(3, "Trillian")
-        ));
-    }
-
-    private CollectPhase newCollectPhase(Planner.Context ctx,
-                                         DocTableInfo tableInfo,
-                                         List<Symbol> collectSymbols,
-                                         ImmutableList<Projection> projections,
-                                         WhereClause whereClause) {
-        return new CollectPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                "collect",
-                ctx.allocateRouting(tableInfo, whereClause, null),
-                RowGranularity.DOC,
-                collectSymbols,
-                projections,
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST
-        );
-    }
-
-    @Test
-    public void testQTFTaskWithFilter() throws Exception {
-        // select id, name from characters where name = 'Ford';
-        setup.setUpCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
-        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
-        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
-
-        Function query = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(nameRef, Literal.newLiteral("Ford")));
-
-        Planner.Context ctx = newPlannerContext();
-
-        WhereClause whereClause = new WhereClause(query);
-        CollectPhase collectNode = newCollectPhase(ctx, characters, collectSymbols, ImmutableList.<Projection>of(), whereClause);
-
-        FetchPhase fetchPhase = new FetchPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableSet.of(collectNode.executionPhaseId()),
-                collectNode.executionNodes(),
-                ctx.buildReaderAllocations().bases()
-        );
-        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
-
-        MergePhase localMergeNode = MergePhase.localMerge(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(fetchProjection),
-                collectNode
-        );
-        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMergeNode, ctx.jobId());
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(1));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(2, "Ford")));
-    }
-
-    private FetchProjection getFetchProjection(DocTableInfo characters,
-                                               List<Symbol> outputSymbols,
-                                               FetchPhase fetchPhase,
-                                               Planner.Context ctx) {
-        Planner.Context.ReaderAllocations readerAllocations = ctx.buildReaderAllocations();
-        return new FetchProjection(
-                fetchPhase.executionPhaseId(),
-                new InputColumn(0, DataTypes.STRING),
-                outputSymbols,
-                characters.partitionedByColumns(),
-                fetchPhase.executionNodes(),
-                readerAllocations.nodes(),
-                readerAllocations.indices());
-    }
-
-    @Test
-    public void testQTFTaskOrdered() throws Exception {
-        // select id, name from characters order by name, female;
-        setup.setUpCharacters();
-        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-
-        OrderBy orderBy = new OrderBy(Arrays.<Symbol>asList(nameRef, femaleRef),
-                new boolean[]{false, false},
-                new Boolean[]{false, false});
-
-        ReferenceInfo docIdRefInfo = characters.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
-        // add nameRef and femaleRef to collectSymbols because this are ordered by values
-        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo), nameRef, femaleRef);
-        List<Symbol> outputSymbols = Lists.<Symbol>newArrayList(idRef, nameRef);
-
-        Planner.Context ctx = newPlannerContext();
-        CollectPhase collectNode = newCollectPhase(
-                ctx,
-                characters,
-                collectSymbols,
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
-        );
-        collectNode.orderBy(orderBy);
-
-        FetchPhase fetchPhase = new FetchPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableSet.of(collectNode.executionPhaseId()),
-                collectNode.executionNodes(),
-                ctx.buildReaderAllocations().bases()
-        );
-        FetchProjection fetchProjection = getFetchProjection(characters, outputSymbols, fetchPhase, ctx);
-
-        MergePhase localMerge = MergePhase.sortedMerge(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                orderBy,
-                collectSymbols,
-                null,
-                ImmutableList.<Projection>of(fetchProjection),
-                collectNode
-        );
-        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMerge, ctx.jobId());
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(1));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(
-                isRow(1, "Arthur"),
-                isRow(4, "Arthur"),
-                isRow(2, "Ford"),
-                isRow(3, "Trillian")
-        ));
-    }
-
-    @Test
-    public void testQTFTaskWithFunction() throws Exception {
-        // select id, date_trunc('day', date) from searchf where id = 2;
-        execute("create table searchf (id int primary key, date timestamp) with (number_of_replicas=0)");
-        ensureGreen();
-        execute("insert into searchf (id, date) values (1, '1980-01-01'), (2, '1980-01-02')");
-        refresh();
-
-        Reference id_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(
-                        new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "searchf"),
-                        "id"),
-                RowGranularity.DOC,
-                DataTypes.INTEGER
-        ));
-        Reference date_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(
-                        new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "searchf"),
-                        "date"),
-                RowGranularity.DOC,
-                DataTypes.TIMESTAMP
-        ));
-        Function function = new Function(new FunctionInfo(
-                new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
-                DataTypes.TIMESTAMP
-        ), Arrays.asList(Literal.newLiteral("month"), date_ref));
-        Function query = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.BOOLEAN),
-                Arrays.asList(id_ref, Literal.newLiteral(2))
-        );
-
-        DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
-        ReferenceInfo docIdRefInfo = searchf.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
-
-        Planner.Context ctx = newPlannerContext();
-        List<Symbol> collectSymbols = ImmutableList.<Symbol>of(new Reference(docIdRefInfo));
-        UUID jobId = UUID.randomUUID();
-        WhereClause whereClause = new WhereClause(query);
-        CollectPhase collectNode = newCollectPhase(
-                ctx,
-                searchf,
-                collectSymbols,
-                ImmutableList.<Projection>of(),
-                whereClause
-        );
-
-        TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
-        topN.outputs(Collections.<Symbol>singletonList(new InputColumn(0)));
-
-        FetchPhase fetchPhase = new FetchPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableSet.of(collectNode.executionPhaseId()),
-                collectNode.executionNodes(),
-                ctx.buildReaderAllocations().bases()
-        );
-        FetchProjection fetchProjection = getFetchProjection(searchf, Arrays.asList(id_ref, function), fetchPhase, ctx);
-
-        MergePhase localMerge = MergePhase.localMerge(
-                jobId,
-                ctx.nextExecutionPhaseId(),
-                ImmutableList.of(topN, fetchProjection),
-                collectNode
-        );
-        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMerge, jobId);
-
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().size(), is(1));
-
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(2, 315532800000L)));
-    }
-
-    @Test
-    public void testQTFTaskPartitioned() throws Exception {
-        setup.setUpPartitionedTableWithName();
-        DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        Planner.Context ctx = newPlannerContext();
-
-        ReferenceInfo docIdRefInfo = parted.getReferenceInfo(new ColumnIdent(DocSysColumns.DOCID.name()));
-        List<Symbol> collectSymbols = Lists.<Symbol>newArrayList(new Reference(docIdRefInfo));
-        List<Symbol> outputSymbols =  Arrays.<Symbol>asList(partedIdRef, partedNameRef, partedDateRef);
-
-        CollectPhase collectNode = newCollectPhase(
-                ctx,
-                parted,
-                collectSymbols,
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL
-        );
-
-        FetchPhase fetchPhase = new FetchPhase(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableSet.of(collectNode.executionPhaseId()),
-                collectNode.executionNodes(),
-                ctx.buildReaderAllocations().bases()
-        );
-        FetchProjection fetchProjection = getFetchProjection(parted, outputSymbols, fetchPhase, ctx);
-
-        MergePhase localMerge = MergePhase.localMerge(
-                ctx.jobId(),
-                ctx.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(fetchProjection),
-                collectNode);
-
-        Plan plan = new QueryThenFetch(collectNode, fetchPhase, localMerge, ctx.jobId());
-        Job job = executor.newJob(plan);
-
-        assertThat(job.tasks().size(), is(1));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get(2, TimeUnit.SECONDS).rows();
-        assertThat(rows, containsInAnyOrder(
-                isRow(3, "Ford", 1396388720242L),
-                isRow(1, "Trillian", null),
-                isRow(2, null, 0L)
-        ));
-    }
-
-    @Test
     public void testESDeleteByQueryTask() throws Exception {
         setup.setUpCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                 DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(idRef, Literal.newLiteral(2)));
+                Arrays.asList(idRef, Literal.newLiteral(2)));
 
         ESDeleteByQueryNode node = new ESDeleteByQueryNode(
                 1,

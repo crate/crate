@@ -21,7 +21,8 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -93,6 +94,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private int executionPhaseId = 0;
         private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
         private ReaderAllocations readerAllocations;
+        private HashMultimap<TableIdent, String> tableIndices;
 
         public Context(ClusterService clusterService, UUID jobId, ConsumingPlanner consumingPlanner) {
             this.clusterService = clusterService;
@@ -102,32 +104,45 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public static class ReaderAllocations {
 
-            private final TreeMap<Integer, String> readerIndices;
-            private final IntObjectOpenHashMap<String> readerNodes;
+            private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
+            private final Map<String, IntSet> nodeReaders = new HashMap<>();
             private final TreeMap<String, Integer> bases;
+            private final Multimap<TableIdent, String> tableIndices;
 
-            ReaderAllocations(TreeMap<String, Integer> bases, Map<String, Map<Integer, String>> shardNodes) {
+
+            ReaderAllocations(TreeMap<String, Integer> bases,
+                              Map<String, Map<Integer, String>> shardNodes,
+                              Multimap<TableIdent, String> tableIndices) {
                 this.bases = bases;
-                readerIndices = new TreeMap<>();
+                this.tableIndices = tableIndices;
                 for (Map.Entry<String, Integer> entry : bases.entrySet()) {
                     readerIndices.put(entry.getValue(), entry.getKey());
                 }
-                readerNodes = new IntObjectOpenHashMap<>(shardNodes.size());
                 for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
                     Integer base = bases.get(entry.getKey());
                     assert base != null;
                     for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
-                        readerNodes.put(base + nodeEntries.getKey(), nodeEntries.getValue());
+                        int readerId = base + nodeEntries.getKey();
+                        IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
+                        if (readerIds == null){
+                            readerIds = new IntOpenHashSet();
+                            nodeReaders.put(nodeEntries.getValue(), readerIds);
+                        }
+                        readerIds.add(readerId);
                     }
                 }
+            }
+
+            public Multimap<TableIdent, String> tableIndices() {
+                return tableIndices;
             }
 
             public TreeMap<Integer, String> indices() {
                 return readerIndices;
             }
 
-            public IntObjectOpenHashMap<String> nodes() {
-                return readerNodes;
+            public Map<String, IntSet> nodeReaders() {
+                return nodeReaders;
             }
 
             public TreeMap<String, Integer> bases() {
@@ -136,18 +151,32 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         public ReaderAllocations buildReaderAllocations() {
-            if (readerAllocations != null){
+            if (readerAllocations != null) {
                 return readerAllocations;
             }
+
             IndexBaseVisitor visitor = new IndexBaseVisitor();
-            for (TableRouting tr : tableRoutings.values()) {
-                if (!tr.nodesAllocated) {
-                    allocateRoutingNodes(tr.routing.locations());
-                    tr.nodesAllocated = true;
+
+            // tableIdent -> indexName
+            final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
+            for (final Map.Entry<TableIdent, Collection<TableRouting>> tableRoutingEntry : tableRoutings.asMap().entrySet()) {
+                for (TableRouting tr : tableRoutingEntry.getValue()) {
+                    if (!tr.nodesAllocated) {
+                        allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
+                        tr.nodesAllocated = true;
+                    }
+                    tr.routing.walkLocations(visitor);
+                    tr.routing.walkLocations(new Routing.RoutingLocationVisitor() {
+                        @Override
+                        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
+                            usedTableIndices.putAll(tableRoutingEntry.getKey(), nodeRouting.keySet());
+                            return super.visitNode(nodeId, nodeRouting);
+                        }
+                    });
+
                 }
-                tr.routing.walkLocations(visitor);
             }
-            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes);
+            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes, usedTableIndices);
             return readerAllocations;
         }
 
@@ -168,14 +197,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return executionPhaseId++;
         }
 
-        private boolean allocateRoutingNodes(Map<String, Map<String, List<Integer>>> locations) {
+        private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
             boolean success = true;
-            if (shardNodes == null){
+            if (tableIndices == null){
+                tableIndices = HashMultimap.create();
+            }
+            if (shardNodes == null) {
                 shardNodes = new HashMap<>();
             }
             for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
                 for (Map.Entry<String, List<Integer>> nodeRouting : location.getValue().entrySet()) {
                     Map<Integer, String> shardsOnIndex = shardNodes.get(nodeRouting.getKey());
+                    tableIndices.put(tableIdent, nodeRouting.getKey());
                     if (shardsOnIndex == null) {
                         shardsOnIndex = new HashMap<>(nodeRouting.getValue().size());
                         shardNodes.put(nodeRouting.getKey(), shardsOnIndex);
@@ -200,9 +233,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
-
             Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
-            // allocate routingnodes only if we have more than one table routings
+            // allocate routing nodes only if we have more than one table routings
             Routing routing;
             if (existingRoutings.isEmpty()) {
                 routing = tableInfo.getRouting(where, preference);
@@ -216,12 +248,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 // ensure all routings of this table are allocated
                 for (TableRouting existingRouting : existingRoutings) {
                     if (!existingRouting.nodesAllocated) {
-                        allocateRoutingNodes(existingRouting.routing.locations());
+                        allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
                         existingRouting.nodesAllocated = true;
                     }
                 }
                 routing = tableInfo.getRouting(where, preference);
-                if (!allocateRoutingNodes(routing.locations())) {
+                if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
                     throw new UnsupportedOperationException(
                             "Nodes of existing routing are not allocated, routing rebuild needed");
                 }
@@ -444,7 +476,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
                 null,
-                partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
+                partitionedByNames.size() >
+                0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
                 table.isPartitioned() // autoCreateIndices
         );
         List<Projection> projections = Collections.<Projection>singletonList(sourceIndexWriterProjection);

@@ -21,190 +21,89 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.LongCursor;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.Functions;
-import io.crate.operation.Input;
-import io.crate.operation.RowDownstream;
-import io.crate.operation.ThreadPools;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
-import io.crate.operation.reference.ReferenceResolver;
+import com.google.common.collect.Iterables;
+import io.crate.Streamer;
+import io.crate.executor.transport.StreamBucket;
+import io.crate.metadata.TableIdent;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.symbol.Reference;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import io.crate.planner.symbol.Symbols;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.HashMap;
 
+@Singleton
 public class NodeFetchOperation {
 
-    private final UUID jobId;
-    private final int executionPhaseId;
-    private final Collection<Reference> toFetchReferences;
-    private final IntObjectOpenHashMap<ShardDocIdsBucket> shardBuckets = new IntObjectOpenHashMap<>();
+    private static class TableFetchInfo {
 
-    private final JobContextService jobContextService;
-    private final RamAccountingContext ramAccountingContext;
-    private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
-    private final ThreadPoolExecutor executor;
-    private final int poolSize;
+        private final Streamer<?>[] streamers;
+        private final Collection<Reference> refs;
+        private final FetchContext fetchContext;
 
-    private int inputCursor = 0;
+        public TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
+            this.refs = refs;
+            this.fetchContext = fetchContext;
+            this.streamers = Symbols.streamerArray(refs);
+        }
 
-    private static final ESLogger LOGGER = Loggers.getLogger(NodeFetchOperation.class);
+        public Streamer<?>[] streamers() {
+            return streamers;
+        }
 
-    public NodeFetchOperation(UUID jobId,
-                              int executionPhaseId,
-                              LongArrayList jobSearchContextDocIds,
-                              Collection<Reference> toFetchReferences,
-                              JobContextService jobContextService,
-                              ThreadPool threadPool,
-                              Functions functions,
-                              RamAccountingContext ramAccountingContext) {
-        this.jobId = jobId;
-        this.executionPhaseId = executionPhaseId;
-        this.toFetchReferences = toFetchReferences;
-        this.jobContextService = jobContextService;
-        this.ramAccountingContext = ramAccountingContext;
-        executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        poolSize = executor.getMaximumPoolSize();
-
-        ReferenceResolver<? extends Input<?>> resolver = new LuceneReferenceResolver(null);
-        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
-                functions,
-                resolver
-        );
-
-        createShardBuckets(jobSearchContextDocIds);
-    }
-
-    private void createShardBuckets(LongArrayList jobSearchContextDocIds) {
-        for (LongCursor jobSearchContextDocIdCursor : jobSearchContextDocIds) {
-            // unpack jobSearchContextId and docId integers from jobSearchContextDocId long
-            long jobSearchContextDocId = jobSearchContextDocIdCursor.value;
-            int jobSearchContextId = (int)(jobSearchContextDocId >> 32);
-            int docId = (int)jobSearchContextDocId;
-
-            ShardDocIdsBucket shardDocIdsBucket = shardBuckets.get(jobSearchContextId);
-            if (shardDocIdsBucket == null) {
-                shardDocIdsBucket = new ShardDocIdsBucket();
-                shardBuckets.put(jobSearchContextId, shardDocIdsBucket);
+        public FetchCollector createCollector(int readerId) {
+            IndexService indexService = fetchContext.indexService(readerId);
+            LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService());
+            ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
+            for (Reference reference : refs) {
+                exprs.add(resolver.getImplementation(reference.info()));
             }
-            shardDocIdsBucket.add(inputCursor++, docId);
+            return new FetchCollector(exprs,
+                    indexService.mapperService(),
+                    fetchContext.searcher(readerId),
+                    indexService.fieldData(),
+                    readerId
+            );
         }
     }
 
-    public void fetch(SingleBucketBuilder bucketBuilder) throws Exception {
-        int numShards = shardBuckets.size();
-
-        JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
-        final FetchContext fetchContext = jobExecutionContext.getSubContext(executionPhaseId);
-
-        RowDownstream upstreamsRowMerger = new PositionalRowMerger(bucketBuilder, toFetchReferences.size());
-        Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(@Nullable Bucket result) {
-                fetchContext.close();
+    private HashMap<TableIdent, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
+        HashMap<TableIdent, TableFetchInfo> result = new HashMap<>(fetchContext.fetchRefs().size());
+        for (Collection<Reference> references : fetchContext.fetchRefs()) {
+            Reference ref = Iterables.getFirst(references, null);
+            // if ref is null, there is nothing to fetch for this relation
+            if (ref != null) {
+                TableFetchInfo tableFetchInfo = new TableFetchInfo(references, fetchContext);
+                result.put(ref.ident().tableIdent(), tableFetchInfo);
             }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                fetchContext.close(); // closeDueToFailure(t);
-            }
-        });
-
-        List<LuceneDocFetcher> shardFetchers = new ArrayList<>(numShards);
-        for (IntObjectCursor<ShardDocIdsBucket> entry : shardBuckets) {
-            Engine.Searcher searcher = fetchContext.searcher(entry.key);
-            IndexService indexService = fetchContext.indexService(entry.key);
-            // create new collect expression for every shard (collect expressions are not thread-safe)
-            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(toFetchReferences);
-            shardFetchers.add(
-                    new LuceneDocFetcher(
-                            docCtx.topLevelInputs(),
-                            docCtx.docLevelExpressions(),
-                            upstreamsRowMerger,
-                            entry.value,
-                            indexService.mapperService(),
-                            indexService.fieldData(),
-                            searcher,
-                            fetchContext));
         }
-        try {
-            runFetchThreaded(shardFetchers, ramAccountingContext);
-        } catch (RejectedExecutionException e) {
-            bucketBuilder.fail(e);
-        }
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("started {} shardFetchers", numShards);
-        }
+        assert !result.isEmpty(): "this class should not be used if no fetches will be requested";
+        return result;
     }
 
-    private void runFetchThreaded(final List<LuceneDocFetcher> shardFetchers,
-                                  final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
+    public IntObjectMap<StreamBucket> doFetch(
+            FetchContext fetchContext, IntObjectMap<IntContainer> toFetch) throws Exception {
 
-        ThreadPools.runWithAvailableThreads(
-                executor,
-                poolSize,
-                Lists.transform(shardFetchers, new Function<LuceneDocFetcher, Runnable>() {
+        IntObjectOpenHashMap<StreamBucket> fetched = new IntObjectOpenHashMap<>(toFetch.size());
+        HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
 
-                    @Nullable
-                    public Runnable apply(final LuceneDocFetcher input) {
-                        return new Runnable() {
-                            @Override
-                            public void run() {
-                                input.doFetch(ramAccountingContext);
-                            }
-                        };
-                    }
-                })
-        );
+        for (IntObjectCursor<IntContainer> toFetchCursor : toFetch) {
+            TableIdent ident = fetchContext.tableIdent(toFetchCursor.key);
+            TableFetchInfo tfi = tableFetchInfos.get(ident);
+            assert tfi != null;
+            StreamBucket.Builder builder = new StreamBucket.Builder(tfi.streamers());
+            tfi.createCollector(toFetchCursor.key).collect(toFetchCursor.value, builder);
+            fetched.put(toFetchCursor.key, builder.build());
+        }
+        return fetched;
+
     }
-
-    static class ShardDocIdsBucket {
-
-        private final IntArrayList positions = new IntArrayList();
-        private final IntArrayList docIds = new IntArrayList();
-
-        public void add(int position, int docId) {
-            positions.add(position);
-            docIds.add(docId);
-        }
-
-        public int docId(int index) {
-            return docIds.get(index);
-        }
-
-        public int size() {
-            return docIds.size();
-        }
-
-        public int position(int idx) {
-            return positions.get(idx);
-        }
-    }
-
 }

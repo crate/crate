@@ -28,9 +28,9 @@ import java.util.List;
 
 public class InputRow implements Row {
 
-    private final List<Input<?>> inputs;
+    private final List<? extends Input<?>> inputs;
 
-    public InputRow(List<Input<?>> inputs) {
+    public InputRow(List<? extends Input<?>> inputs) {
         this.inputs = inputs;
     }
 

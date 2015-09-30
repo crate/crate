@@ -21,11 +21,15 @@
 
 package io.crate.operation.fetch;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseVisitor;
+import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
@@ -40,12 +44,20 @@ public class FetchContextTest extends CrateUnitTest {
 
     @Test
     public void testGetIndexServiceForInvalidReaderId() throws Exception {
+
+
         final FetchContext context = new FetchContext(
-                1,
+                new FetchPhase(
+                        null,
+                        1,
+                        null,
+                        null,
+                        new TreeMap<String, Integer>(),
+                        null,
+                        ImmutableList.<Collection<Reference>>of()),
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class)),
-                Collections.<Routing>emptyList(),
-                new TreeMap<String, Integer>());
+                Collections.<Routing>emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
         context.indexService(10);
@@ -60,12 +72,24 @@ public class FetchContextTest extends CrateUnitTest {
 
         IndexBaseVisitor ibv = new IndexBaseVisitor();
         routing.walkLocations(ibv);
+
+        HashMultimap<TableIdent, String> tableIndices = HashMultimap.create();
+
+        tableIndices.put(new TableIdent(null, "i1"), "i1");
+
         final FetchContext context = new FetchContext(
-                1,
+                new FetchPhase(
+                        null,
+                        1,
+                        null,
+                        null,
+                        ibv.build(),
+                        tableIndices,
+                        ImmutableList.<Collection<Reference>>of()),
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
-                ImmutableList.of(routing),
-                ibv.build());
+                ImmutableList.of(routing));
+
         context.prepare();
 
         assertThat(context.searcher(1), Matchers.notNullValue());

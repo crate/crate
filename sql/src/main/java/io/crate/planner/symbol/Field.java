@@ -23,6 +23,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -76,12 +77,12 @@ public class Field extends Symbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("RelationOutput is not streamable");
+        throw new UnsupportedOperationException("Field is not streamable");
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("RelationOutput is not streamable");
+        throw new UnsupportedOperationException("Field is not streamable");
     }
 
     @Override
@@ -113,4 +114,23 @@ public class Field extends Symbol {
         result = 31 * result + valueType.hashCode();
         return result;
     }
+
+
+    /**
+     * @return the position of the field in its relation
+     */
+    public int index(){
+        int idx = -1;
+        assert path != null;
+        assert relation != null;
+        // TODO: consider adding an indexOf method to relations or another way to efficiently get the index
+        if (path instanceof ColumnIndex){
+            idx = ((ColumnIndex) path).index();
+        } else {
+            idx = relation.fields().indexOf(this);
+        }
+        assert idx >= 0;
+        return idx;
+    }
+
 }

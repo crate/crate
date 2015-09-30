@@ -22,9 +22,12 @@
 package io.crate.planner.symbol;
 
 import com.google.common.collect.Lists;
+import io.crate.Streamer;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class Symbols {
@@ -40,5 +43,14 @@ public class Symbols {
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, TYPES_FUNCTION);
+    }
+
+    public static Streamer<?>[] streamerArray(Collection<? extends Symbol> symbols) {
+        Streamer<?>[] streamers = new Streamer<?>[symbols.size()];
+        Iterator<? extends Symbol> iter = symbols.iterator();
+        for (int i = 0; i < symbols.size(); i++) {
+            streamers[i] = iter.next().valueType().streamer();
+        }
+        return streamers;
     }
 }

@@ -29,7 +29,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
@@ -321,7 +322,6 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
-
         execute("select log(d, l) from t where log(d, -1) >= 0");
     }
 

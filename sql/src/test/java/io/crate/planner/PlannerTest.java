@@ -1,5 +1,6 @@
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -544,7 +545,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(lastProjection, instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection) lastProjection;
         assertThat(fetchProjection.outputs().size(), is(1));
-        assertThat(fetchProjection.outputs().get(0), isReference("_doc['name']"));
+        assertThat(fetchProjection.outputs().get(0), isFetchRef(0, "_doc['name']"));
     }
 
     @Test
@@ -678,7 +679,7 @@ public class PlannerTest extends CrateUnitTest {
         FetchProjection fetchProjection = (FetchProjection) lastProjection;
         assertThat(fetchProjection.outputs().size(), is(2));
         assertThat(fetchProjection.outputs().get(0), isFunction("format"));
-        assertThat(fetchProjection.outputs().get(1), isReference("_doc['name']"));
+        assertThat(fetchProjection.outputs().get(1), isFetchRef(0, "_doc['name']"));
 
     }
 
@@ -1838,11 +1839,18 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(readerAllocations.indices().size(), is(1));
         assertThat(readerAllocations.indices().get(0), is("t1"));
-        assertThat(readerAllocations.nodes().size(), is(4));
-        assertThat(readerAllocations.nodes().get(1), is("nodeOne"));
-        assertThat(readerAllocations.nodes().get(2), is("nodeOne"));
-        assertThat(readerAllocations.nodes().get(3), is("nodeTow"));
-        assertThat(readerAllocations.nodes().get(4), is("nodeTow"));
+        assertThat(readerAllocations.nodeReaders().size(), is(2));
+
+        IntSet n1 = readerAllocations.nodeReaders().get("nodeOne");
+        assertThat(n1.size(), is(2));
+        assertTrue(n1.contains(1));
+        assertTrue(n1.contains(2));
+
+        IntSet n2 = readerAllocations.nodeReaders().get("nodeTow");
+        assertThat(n2.size(), is(2));
+        assertTrue(n2.contains(3));
+        assertTrue(n2.contains(4));
+
         assertThat(readerAllocations.bases().get("t1"), is(0));
 
         // allocations must stay same on multiple calls

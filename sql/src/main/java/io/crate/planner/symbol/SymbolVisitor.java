@@ -21,6 +21,8 @@
 
 package io.crate.planner.symbol;
 
+import io.crate.planner.fetch.FetchReference;
+
 import javax.annotation.Nullable;
 
 
@@ -68,6 +70,10 @@ public class SymbolVisitor<C, R> {
 
     public R visitMatchPredicate(MatchPredicate matchPredicate, C context) {
         return visitSymbol(matchPredicate, context);
+    }
+
+    public R visitFetchReference(FetchReference fetchReference, C context) {
+        return visitSymbol(fetchReference, context);
     }
 }
 

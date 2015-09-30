@@ -26,25 +26,35 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.scalar.arithmetic.AbsFunction;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class FetchPushDownTest {
 
     private static final TableIdent TABLE_IDENT = new TableIdent("s", "t");
+    private static final DocTableInfo TABLE_INFO = TestingTableInfo.builder(TABLE_IDENT, mock(Routing.class)).build();
+    private static final DocTableRelation TABLE_REL = new DocTableRelation(TABLE_INFO);
 
     private static final Reference REF_SCORE = new Reference(
             DocSysColumns.forTable(TABLE_IDENT, DocSysColumns.SCORE));
@@ -72,9 +82,10 @@ public class FetchPushDownTest {
         qs.limit(10);
         qs.offset(100);
 
-        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
-        assertThat(sub.limit(), is(110));
-        assertThat(sub.offset(), is(0));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
+        assertThat(sub.querySpec().limit(), is(110));
+        assertThat(sub.querySpec().offset(), is(0));
 
         assertThat(qs.limit(), is(10));
         assertThat(qs.offset(), is(100));
@@ -86,9 +97,10 @@ public class FetchPushDownTest {
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
         qs.where(WhereClause.NO_MATCH);
 
-        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
 
-        assertThat(sub.where(), is(WhereClause.NO_MATCH));
+        assertThat(sub.querySpec().where(), is(WhereClause.NO_MATCH));
         assertThat(qs.where(), is(WhereClause.MATCH_ALL));
     }
 
@@ -97,31 +109,130 @@ public class FetchPushDownTest {
     public void testPushDownWithoutOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
-        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
         assertThat(qs.outputs(), hasSize(2));
 
-        assertThat(qs.outputs().get(0), isReference("a"));
-        assertThat(qs.outputs().get(1), isReference("i"));
+        assertThat(((Field) ((FetchReference) qs.outputs().get(0)).docId()).index(), is(0));
 
-        assertThat(sub.outputs(), hasSize(1));
-        assertThat(sub.outputs().get(0), isReference("_docid"));
+        assertThat(qs.outputs(), contains(
+                isFetchRef(0, "_doc['a']"),
+                isFetchRef(0, "_doc['i']")
+        ));
+
+        assertThat(sub.querySpec().outputs(), hasSize(1));
+        assertThat(sub.querySpec().outputs().get(0), isReference("_docid"));
     }
 
     @Test
     public void testPushDownWithOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
-        qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
+        qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
         assertThat(qs.outputs(), hasSize(2));
 
-        assertThat(qs.outputs().get(0), isReference("a"));
-        assertThat(qs.outputs().get(1), is((Symbol) new InputColumn(1, DataTypes.STRING)));
+        assertThat(qs.outputs(), contains(
+                isFetchRef(0, "_doc['a']"),
+                isField(1)
+        ));
 
-        assertThat(sub.outputs(), hasSize(2));
-        assertThat(sub.outputs().get(0), isReference("_docid"));
-        assertThat(sub.outputs().get(1), isReference("i"));
+        assertThat(sub.querySpec().outputs(), hasSize(2));
+        assertThat(sub.querySpec().outputs(), contains(
+                isReference("_docid"),
+                isReference("i")));
     }
+
+    private Function abs(Symbol symbol){
+        return new Function(new AbsFunction(symbol.valueType()).info(),
+                Lists.newArrayList(symbol));
+    }
+
+    @Test
+    public void testPushDownWithNestedOrder() throws Exception {
+        QuerySpec qs = new QuerySpec();
+
+        qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
+        qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(abs(REF_I)), new boolean[]{true}, new Boolean[]{false}));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
+        assertThat(qs.outputs(), hasSize(2));
+
+        assertThat(qs.outputs(), contains(
+                isFetchRef(0, "_doc['a']"),
+                isFetchRef(0, "_doc['i']")
+        ));
+
+        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+
+        assertThat(sub.querySpec().outputs(), hasSize(2));
+        assertThat(sub.querySpec().outputs(), contains(
+                isReference("_docid"),
+                isFunction("abs")));
+    }
+
+
+    @Test
+    public void testPushDownWithNestedOrderInOutput() throws Exception {
+        QuerySpec qs = new QuerySpec();
+
+        Function funcOfI = abs(REF_I);
+
+        qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
+        qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(funcOfI), new boolean[]{true}, new Boolean[]{false}));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
+        assertThat(qs.outputs(), hasSize(3));
+
+        assertThat(qs.outputs(), contains(
+                isFetchRef(0, "_doc['a']"),
+                isFetchRef(0, "_doc['i']"),
+                isField(1)
+        ));
+
+        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+
+        assertThat(sub.querySpec().outputs(), hasSize(2));
+        assertThat(sub.querySpec().outputs(), contains(
+                isReference("_docid"),
+                isFunction("abs")));
+
+        assertThat(sub.querySpec().orderBy().orderBySymbols(), contains(
+                isFunction("abs", isReference("i"))));
+    }
+
+
+    @Test
+    public void testPushDownOrderRefUsedInFunction() throws Exception {
+        QuerySpec qs = new QuerySpec();
+
+        Function funcOfI = abs(REF_I);
+
+        qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
+        qs.orderBy(new OrderBy(
+                Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
+        assertThat(qs.outputs(), hasSize(3));
+
+        assertThat(qs.outputs(), contains(
+                isFetchRef(0, "_doc['a']"),
+                isField(1),
+                isFunction("abs")
+        ));
+
+        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+
+        assertThat(sub.querySpec().outputs(), hasSize(2));
+        assertThat(sub.querySpec().outputs(), contains(
+                isReference("_docid"),
+                isReference("i")));
+
+        // check that the reference in the abs function is a field
+        assertThat(((Function) qs.outputs().get(2)).arguments().get(0), isField(1));
+    }
+
 
     @Test
     public void testNoPushDownWithOrder() throws Exception {
@@ -129,7 +240,8 @@ public class FetchPushDownTest {
         qs.outputs(Lists.<Symbol>newArrayList(REF_I));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
 
-        assertNull(FetchPushDown.pushDown(qs, TABLE_IDENT));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        assertNull(pd.pushDown());
         assertThat(qs.outputs(), contains(isReference("i")));
     }
 
@@ -138,24 +250,29 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_SCORE));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        assertNull(FetchPushDown.pushDown(qs, TABLE_IDENT));
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        assertNull(pd.pushDown());
     }
 
     @Test
     public void testScoreGetsPushedDown() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I, REF_SCORE));
-        qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
+        qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
 
-        QuerySpec sub = FetchPushDown.pushDown(qs, TABLE_IDENT);
+        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTable sub = pd.pushDown();
         assertThat(sub, notNullValue());
 
-        assertThat(sub.outputs(), contains(isReference("_docid"), isReference("i"), isReference("_score")));
+        assertThat(sub.querySpec().outputs(), contains(
+                isReference("_docid"),
+                isReference("i"),
+                isReference("_score")));
 
         assertThat(qs.outputs(), contains(
-                isReference("a"),
-                is((Symbol) new InputColumn(1, DataTypes.INTEGER)),
-                is((Symbol) new InputColumn(2, DataTypes.INTEGER))));
+                isFetchRef(0, "_doc['a']"),
+                isField(1),
+                isField(2)
+        ));
     }
-
 }

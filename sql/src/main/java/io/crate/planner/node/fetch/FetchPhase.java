@@ -21,8 +21,12 @@
 
 package io.crate.planner.node.fetch;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -39,6 +43,8 @@ public class FetchPhase implements ExecutionPhase {
     };
 
     private TreeMap<String, Integer> bases;
+    private Multimap<TableIdent, String> tableIndices;
+    private Collection<Collection<Reference>> fetchRefs;
 
     private UUID jobId;
     private int executionPhaseId;
@@ -51,13 +57,20 @@ public class FetchPhase implements ExecutionPhase {
                       int executionPhaseId,
                       Collection<Integer> collectPhaseIds,
                       Set<String> executionNodes,
-                      TreeMap<String, Integer> bases
-                      ) {
+                      TreeMap<String, Integer> bases,
+                      Multimap<TableIdent, String> tableIndices,
+                      Collection<Collection<Reference>> fetchRefs) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.collectPhaseIds = collectPhaseIds;
         this.executionNodes = executionNodes;
         this.bases = bases;
+        this.tableIndices = tableIndices;
+        this.fetchRefs = fetchRefs;
+    }
+
+    public Collection<Collection<Reference>> fetchRefs() {
+        return fetchRefs;
     }
 
     @Override
@@ -99,23 +112,44 @@ public class FetchPhase implements ExecutionPhase {
         jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
 
-        int numExecutionNodes = in.readVInt();
-        executionNodes = new HashSet<>(numExecutionNodes);
-        for (int i = 0; i < numExecutionNodes; i++) {
+        int n = in.readVInt();
+        executionNodes = new HashSet<>(n);
+        for (int i = 0; i < n; i++) {
             executionNodes.add(in.readString());
         }
 
-        int numCollectPhaseIds = in.readVInt();
-        collectPhaseIds = new HashSet<>(numCollectPhaseIds);
-        for (int i = 0; i < numCollectPhaseIds; i++) {
+        n = in.readVInt();
+        collectPhaseIds = new HashSet<>(n);
+        for (int i = 0; i < n; i++) {
             collectPhaseIds.add(in.readVInt());
         }
-        int numBases = in.readVInt();
+
+        n = in.readVInt();
         bases = new TreeMap<>();
-        for (int i = 0; i < numBases; i++) {
+        for (int i = 0; i < n; i++) {
             bases.put(in.readString(), in.readVInt());
         }
 
+        n = in.readVInt();
+        fetchRefs = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            int nn = in.readVInt();
+            ArrayList<Reference> refs = new ArrayList<>(n);
+            for (int j = 0; j < nn; j++) {
+                refs.add(Reference.fromStream(in));
+            }
+            fetchRefs.add(refs);
+        }
+
+        n = in.readVInt();
+        tableIndices = HashMultimap.create(n, 1);
+        for (int i = 0; i < n; i++) {
+            TableIdent ti = TableIdent.fromStream(in);
+            int nn = in.readVInt();
+            for (int j = 0; j < nn; j++) {
+                tableIndices.put(ti, in.readString());
+            }
+        }
     }
 
     @Override
@@ -133,11 +167,34 @@ public class FetchPhase implements ExecutionPhase {
         for (Integer collectPhaseId : collectPhaseIds) {
             out.writeVInt(collectPhaseId);
         }
+
         out.writeVInt(bases.size());
         for (Map.Entry<String, Integer> entry : bases.entrySet()) {
             out.writeString(entry.getKey());
             out.writeVInt(entry.getValue());
         }
+
+        out.writeVInt(fetchRefs.size());
+        for (Collection<Reference> refs : fetchRefs) {
+            out.writeVInt(refs.size());
+            for (Reference ref : refs) {
+                ref.writeTo(out);
+            }
+        }
+        Map<TableIdent, Collection<String>> map = tableIndices.asMap();
+        out.writeVInt(map.size());
+        for (Map.Entry<TableIdent, Collection<String>> entry : map.entrySet()) {
+            entry.getKey().writeTo(out);
+            out.writeVInt(entry.getValue().size());
+            for (String s : entry.getValue()) {
+                out.writeString(s);
+            }
+        }
+
+    }
+
+    public Multimap<TableIdent, String> tableIndices() {
+        return tableIndices;
     }
 
     public TreeMap<String, Integer> bases() {

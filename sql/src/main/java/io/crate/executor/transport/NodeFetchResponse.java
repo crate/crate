@@ -21,43 +21,72 @@
 
 package io.crate.executor.transport;
 
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class NodeFetchResponse extends TransportResponse {
 
-    private Bucket rows;
-    private final Streamer<?>[] streamers;
+    static final NodeFetchResponse EMPTY = new NodeFetchResponse(null, null);
 
+    private final IntObjectMap<Streamer[]> streamers;
 
-    public NodeFetchResponse(Streamer<?>[] streamers) {
+    @Nullable
+    private IntObjectMap<StreamBucket> fetched;
+
+    public static NodeFetchResponse forSending(IntObjectMap<StreamBucket> fetched){
+        return new NodeFetchResponse(null, fetched);
+    }
+
+    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers){
+        return new NodeFetchResponse(streamers, null);
+    }
+
+    private NodeFetchResponse(@Nullable IntObjectMap<Streamer[]> streamers,
+                              @Nullable IntObjectMap<StreamBucket> fetched) {
         this.streamers = streamers;
+        this.fetched = fetched;
     }
 
-    public void rows(Bucket rows) {
-        this.rows = rows;
-    }
-
-    public Bucket rows() {
-        return rows;
+    @Nullable
+    public IntObjectMap<StreamBucket> fetched() {
+        return fetched;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        StreamBucket bucket = new StreamBucket(streamers);
-        bucket.readFrom(in);
-        rows = bucket;
+        int numReaders = in.readVInt();
+        if (numReaders > 0) {
+            assert streamers != null;
+            fetched = new IntObjectOpenHashMap<>(numReaders);
+            for (int i = 0; i < numReaders; i++) {
+                int readerId = in.readVInt();
+                StreamBucket bucket = new StreamBucket(streamers.get(readerId));
+                bucket.readFrom(in);
+                fetched.put(readerId, bucket);
+            }
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        StreamBucket.writeBucket(out, streamers, rows);
+        if (fetched == null) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(fetched.size());
+            for (IntObjectCursor<StreamBucket> cursor : fetched) {
+                out.writeVInt(cursor.key);
+                cursor.value.writeTo(out);
+            }
+        }
     }
 }

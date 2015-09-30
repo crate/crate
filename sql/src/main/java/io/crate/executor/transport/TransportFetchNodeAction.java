@@ -21,82 +21,77 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
+import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.JobContextService;
-import io.crate.metadata.Functions;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.fetch.NodeFetchOperation;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Locale;
+import java.util.concurrent.Executor;
 
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
 
     private static final String TRANSPORT_ACTION = "crate/sql/node/fetch";
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
-    private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SUGGEST;
+    private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SAME;
 
     private Transports transports;
     private final StatsTables statsTables;
+    private final NodeFetchOperation nodeFetchOperation;
     private final CircuitBreaker circuitBreaker;
     private final JobContextService jobContextService;
     private final ThreadPool threadPool;
-    private final Functions functions;
 
     @Inject
     public TransportFetchNodeAction(TransportService transportService,
                                     Transports transports,
                                     ThreadPool threadPool,
                                     StatsTables statsTables,
-                                    Functions functions,
                                     CircuitBreakerService breakerService,
-                                    JobContextService jobContextService) {
+                                    JobContextService jobContextService,
+                                    NodeFetchOperation nodeFetchOperation) {
         this.transports = transports;
         this.statsTables = statsTables;
+        this.nodeFetchOperation = nodeFetchOperation;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
-        this.functions = functions;
 
         transportService.registerHandler(TRANSPORT_ACTION,
                 new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {
-            @Override
-            public NodeFetchRequest newInstance() {
-                return new NodeFetchRequest();
-            }
-        });
+                    @Override
+                    public NodeFetchRequest newInstance() {
+                        return new NodeFetchRequest();
+                    }
+                });
     }
 
-    public void execute(
-            String targetNode,
-            final NodeFetchRequest request,
-            ActionListener<NodeFetchResponse> listener) {
+    public void execute(String targetNode,
+                        final IntObjectMap<Streamer[]> streamers,
+                        final NodeFetchRequest request,
+                        ActionListener<NodeFetchResponse> listener) {
         transports.executeLocalOrWithTransport(this, targetNode, request, listener,
                 new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
-            @Override
-            public NodeFetchResponse newInstance() {
-                return new NodeFetchResponse(outputStreamers(request.toFetchReferences()));
-            }
-        });
+                    @Override
+                    public NodeFetchResponse newInstance() {
+                        return NodeFetchResponse.forReceiveing(streamers);
+                    }
+                });
     }
 
     @Override
@@ -111,60 +106,59 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
     @Override
     public void nodeOperation(final NodeFetchRequest request,
-                               final ActionListener<NodeFetchResponse> fetchResponse) {
-        statsTables.operationStarted(request.executionPhaseId(), request.jobId(), "fetch");
-        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.executionPhaseId());
+                              final ActionListener<NodeFetchResponse> fetchResponse) {
+
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d", request.jobId(), request.fetchPhaseId());
         final RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-
-        NodeFetchOperation fetchOperation = new NodeFetchOperation(
-                request.jobId(),
-                request.executionPhaseId(),
-                request.jobSearchContextDocIds(),
-                request.toFetchReferences(),
-                jobContextService,
-                threadPool,
-                functions,
-                ramAccountingContext);
-
-        Streamer<?>[] streamers = outputStreamers(request.toFetchReferences());
-        SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
-        final NodeFetchResponse response = new NodeFetchResponse(streamers);
-        Futures.addCallback(bucketBuilder.result(), new FutureCallback<Bucket>() {
-            @Override
-            public void onSuccess(@Nullable Bucket result) {
-                assert result != null;
-                response.rows(result);
-
-                fetchResponse.onResponse(response);
-                statsTables.operationFinished(request.executionPhaseId(), null, ramAccountingContext.totalBytes());
-                ramAccountingContext.close();
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                fetchResponse.onFailure(t);
-                statsTables.operationFinished(request.executionPhaseId(), Exceptions.messageOf(t),
-                        ramAccountingContext.totalBytes());
-                ramAccountingContext.close();
-            }
-        });
-
         try {
-            fetchOperation.fetch(bucketBuilder);
+            statsTables.operationStarted(request.fetchPhaseId(), request.jobId(), "fetch");
+
+            JobExecutionContext jobExecutionContext = jobContextService.getContext(request.jobId());
+            final FetchContext fetchContext = jobExecutionContext.getSubContext(request.fetchPhaseId());
+
+            // nothing to fetch, just close
+            if (request.toFetch() == null) {
+                fetchContext.close();
+                fetchResponse.onResponse(NodeFetchResponse.EMPTY);
+                fetchContext.close();
+                return;
+            }
+
+
+            Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
+            executor.execute(new AbstractRunnable() {
+                @Override
+                public void onFailure(Throwable t) {
+                    fetchResponse.onFailure(t);
+                    statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
+                            ramAccountingContext.totalBytes());
+                    fetchContext.kill(t);
+                }
+
+                @Override
+                protected void doRun() throws Exception {
+                    IntObjectMap<StreamBucket> fetched = nodeFetchOperation.doFetch(
+                            fetchContext, request.toFetch());
+                    // no streamers needed to serialize, since the buckets are StreamBuckets
+                    NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
+                    fetchResponse.onResponse(response);
+                    statsTables.operationFinished(request.fetchPhaseId(), null,
+                            ramAccountingContext.totalBytes());
+                    fetchContext.close();
+                }
+
+                @Override
+                public void onAfter() {
+                    ramAccountingContext.close();
+                }
+            });
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
-            statsTables.operationFinished(request.executionPhaseId(), Exceptions.messageOf(t),
+            statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }
+
     }
 
-    private static Streamer<?>[] outputStreamers(Collection<? extends Symbol> toFetchReferences) {
-        Streamer<?>[] streamers = new Streamer<?>[toFetchReferences.size()];
-        Iterator<? extends Symbol> iter = toFetchReferences.iterator();
-        for (int i = 0; i < toFetchReferences.size(); i++) {
-            streamers[i] = iter.next().valueType().streamer();
-        }
-        return streamers;
-    }
 }

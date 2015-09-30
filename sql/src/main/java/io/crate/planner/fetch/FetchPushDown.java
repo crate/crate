@@ -21,33 +21,56 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.base.MoreObjects;
+import com.google.common.base.*;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.metadata.ScoreReferenceDetector;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class FetchPushDown {
 
-    private static final LinkedHashMap<Symbol, InputColumn> EMPTY_INPUTS = new LinkedHashMap<>(0);
     private static final FetchRequiredVisitor fetchRequiredVisitor = new FetchRequiredVisitor();
     private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
+    private final QuerySpec querySpec;
+    private final DocTableRelation docTableRelation;
+    private Field docIdField;
+    private LinkedHashMap<ReferenceIdent, FetchReference> fetchReferences;
+
+    public FetchPushDown(QuerySpec querySpec, DocTableRelation docTableRelation) {
+        this.querySpec = querySpec;
+        this.docTableRelation = docTableRelation;
+    }
+
+    public Field docIdField() {
+        return docIdField;
+    }
+
+    public Collection<Reference> fetchRefs() {
+        if (fetchReferences == null || fetchReferences.isEmpty()) {
+            return ImmutableList.of();
+        }
+        return Collections2.transform(fetchReferences.values(), FetchReference.REF_FUNCTION);
+    }
 
     private static class Context {
 
-        private final OrderBy orderBy;
         private LinkedHashSet<Symbol> querySymbols;
-        private LinkedHashMap<Symbol, InputColumn> inputColumns;
 
         private Context(@Nullable OrderBy orderBy) {
-            this.orderBy = orderBy;
             if (orderBy != null) {
                 querySymbols = new LinkedHashSet<>(orderBy.orderBySymbols().size() + 1);
                 querySymbols.addAll(orderBy.orderBySymbols());
@@ -65,38 +88,30 @@ public class FetchPushDown {
             querySymbols.add(symbol);
         }
 
-        List<Symbol> orderByInputs() {
-            if (orderBy == null) {
-                return ImmutableList.of();
-            }
-            ArrayList<Symbol> result = new ArrayList<>(orderBy.orderBySymbols().size());
-            int i = 0;
-            Iterator<InputColumn> iter = inputColumns().values().iterator();
-            while (i < orderBy.orderBySymbols().size()) {
-                result.add(iter.next());
-                i++;
-            }
-            return result;
+        public LinkedHashSet<Symbol> querySymbols() {
+            return querySymbols;
         }
 
-        LinkedHashMap<Symbol, InputColumn> inputColumns() {
-            if (inputColumns == null) {
-                if (querySymbols == null || querySymbols.isEmpty()) {
-                    inputColumns = EMPTY_INPUTS;
-                } else {
-                    inputColumns = new LinkedHashMap<>(querySymbols.size());
-                    int i = 1;
-                    for (Symbol querySymbol : querySymbols) {
-                        inputColumns.put(querySymbol, new InputColumn(i++, querySymbol.valueType()));
-                    }
-                }
-            }
-            return inputColumns;
+    }
+
+    private FetchReference allocateFetchReference(Reference ref) {
+        assert ref.info().granularity() == RowGranularity.DOC;
+        if (!ref.ident().columnIdent().isSystemColumn()) {
+            ref = DocReferenceConverter.toSourceLookup(ref);
         }
+        if (fetchReferences == null) {
+            fetchReferences = new LinkedHashMap<>();
+        }
+        FetchReference fRef = fetchReferences.get(ref.ident());
+        if (fRef == null) {
+            fRef = new FetchReference(docIdField, ref);
+            fetchReferences.put(ref.ident(), fRef);
+        }
+        return fRef;
     }
 
     @Nullable
-    public static QuerySpec pushDown(QuerySpec querySpec, TableIdent tableIdent) {
+    public QueriedDocTable pushDown() {
         assert querySpec.groupBy() == null && querySpec.having() == null && !querySpec.hasAggregates();
 
         OrderBy orderBy = querySpec.orderBy();
@@ -108,15 +123,13 @@ public class FetchPushDown {
 
         // build the subquery
         QuerySpec sub = new QuerySpec();
-        Reference docIdReference = new Reference(DocSysColumns.forTable(tableIdent, DocSysColumns.DOCID));
+        Reference docIdReference = new Reference(DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.DOCID));
 
-        LinkedHashMap<Symbol, InputColumn> inputColumns = context.inputColumns();
         List<Symbol> outputs = new ArrayList<>();
         if (orderBy != null) {
             sub.orderBy(querySpec.orderBy());
-            querySpec.orderBy(new OrderBy(context.orderByInputs(), orderBy.reverseFlags(), orderBy.nullsFirst()));
             outputs.add(docIdReference);
-            outputs.addAll(context.inputColumns().keySet());
+            outputs.addAll(context.querySymbols());
         } else {
             outputs.add(docIdReference);
         }
@@ -126,20 +139,71 @@ public class FetchPushDown {
             }
         }
         sub.outputs(outputs);
+        QueriedDocTable subRelation = new QueriedDocTable(docTableRelation, sub);
+        List<Field> fields = subRelation.fields();
+        HashMap<Symbol, Field> fieldMap = new HashMap<>(sub.outputs().size());
+
+        Iterator<Field> iFields = fields.iterator();
+        for (Symbol symbol : sub.outputs()) {
+            fieldMap.put(symbol, iFields.next());
+        }
 
         // push down the where clause
         sub.where(querySpec.where());
         querySpec.where(null);
 
-        // replace the columns with input columns;
-        for (int i = 0; i < querySpec.outputs().size(); i++) {
-            InputColumn col = inputColumns.get(querySpec.outputs().get(i));
-            if (col != null) {
-                querySpec.outputs().set(i, col);
+        // replace output symbols with fields or fetch references
+        docIdField = fields.get(0);
+
+        ToFetchReferenceVisitor toFetchReferenceVisitor = new ToFetchReferenceVisitor(fieldMap);
+        toFetchReferenceVisitor.processInplace(querySpec.outputs(), null);
+
+        if (orderBy != null) {
+            // replace order by symbols with fields, we need to copy the order by since it was pushed down to the
+            // subquery before
+            ArrayList<Symbol> newOrderBySymbols = new ArrayList<>(orderBy.orderBySymbols().size());
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                Field queryField = fieldMap.get(symbol);
+                assert queryField != null;
+                newOrderBySymbols.add(queryField);
             }
+            querySpec.orderBy(new OrderBy(newOrderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
         }
+
         sub.limit(MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset());
-        return sub;
+        return subRelation;
+    }
+
+    private class ToFetchReferenceVisitor extends ReplacingSymbolVisitor<Void> {
+
+        private final Map<Symbol, Field> fieldMap;
+
+        private ToFetchReferenceVisitor(Map<Symbol, Field> fieldMap) {
+            super(false);
+            this.fieldMap = fieldMap;
+        }
+
+        @Override
+        public Symbol process(Symbol symbol, @Nullable Void context) {
+            Field field = fieldMap.get(symbol);
+            if (field != null) {
+                return field;
+            }
+            return super.process(symbol, context);
+        }
+
+        @Override
+        public Symbol visitReference(Reference ref, Void context) {
+            Field field = fieldMap.get(ref);
+            if (field != null) {
+                return field;
+            }
+            if (ref.info().granularity() == RowGranularity.PARTITION) {
+                return ref;
+            }
+            return allocateFetchReference(ref);
+        }
+
     }
 
     private static class FetchRequiredVisitor extends SymbolVisitor<Context, Boolean> {

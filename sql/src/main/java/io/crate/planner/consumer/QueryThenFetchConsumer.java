@@ -26,11 +26,12 @@ import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Functions;
-import io.crate.metadata.OutputName;
 import io.crate.operation.Paging;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
@@ -40,23 +41,18 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 @Singleton
 public class QueryThenFetchConsumer implements Consumer {
 
-    private static final InputColumn DEFAULT_DOC_ID_INPUT_COLUMN = new InputColumn(0, DataTypes.STRING);
     private final Visitor visitor;
 
     @Inject
@@ -100,30 +96,17 @@ public class QueryThenFetchConsumer implements Consumer {
             if (orderBy != null) {
                 table.tableRelation().validateOrderBy(orderBy);
             }
-
-            QuerySpec pushedDownSpec = FetchPushDown.pushDown(querySpec, table.tableRelation().tableInfo().ident());
-            if (pushedDownSpec == null) {
+            FetchPushDown fetchPushDown = new FetchPushDown(querySpec, table.tableRelation());
+            QueriedDocTable subRelation = fetchPushDown.pushDown();
+            if (subRelation == null) {
                 return null;
             }
-            List<OutputName> outputNames = new ArrayList<>(pushedDownSpec.outputs().size());
-            for (Symbol symbol : pushedDownSpec.outputs()) {
-                outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
-            }
-            QueriedDocTable subRelation = new QueriedDocTable(
-                    new DocTableRelation(table.tableRelation().tableInfo()),
-                    outputNames,
-                    pushedDownSpec
-            );
             PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
             if (plannedSubQuery == null) {
                 return null;
             }
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
-            List<Symbol> outputs = new ArrayList<>();
-            for (Symbol symbol : querySpec.outputs()) {
-                outputs.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
-            }
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             CollectPhase collectPhase = qaf.collectPhase();
             if (collectPhase.limit() == null) {
@@ -137,15 +120,24 @@ public class QueryThenFetchConsumer implements Consumer {
                     context.plannerContext().nextExecutionPhaseId(),
                     ImmutableList.of(collectPhase.executionPhaseId()),
                     collectPhase.executionNodes(),
-                    readerAllocations.bases()
+                    readerAllocations.bases(),
+                    readerAllocations.tableIndices(),
+                    ImmutableList.of(fetchPushDown.fetchRefs())
             );
+
+            Collection<FetchSource> fetchSources = ImmutableList.of(
+                    new FetchSource(
+                            table.tableRelation().tableInfo().partitionedByColumns(),
+                            ImmutableList.of(fetchPushDown.docIdField()),
+                            fetchPushDown.fetchRefs()
+                    )
+            );
+
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
-                    DEFAULT_DOC_ID_INPUT_COLUMN,
-                    outputs,
-                    table.tableRelation().tableInfo().partitionedByColumns(),
-                    collectPhase.executionNodes(),
-                    readerAllocations.nodes(),
+                    fetchSources,
+                    querySpec.outputs(),
+                    readerAllocations.nodeReaders(),
                     readerAllocations.indices());
 
             MergePhase localMergePhase;

@@ -21,7 +21,8 @@
 
 package io.crate.testing;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -32,18 +33,15 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.fetch.FetchReference;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.hamcrest.TypeSafeMatcher;
+import org.hamcrest.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
@@ -55,17 +53,17 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
 public class TestingHelpers {
@@ -100,7 +98,7 @@ public class TestingHelpers {
                 } else if (o instanceof BytesRef) {
                     out.print(((BytesRef) o).utf8ToString());
                 } else if (o.getClass().isArray()) {
-                    out.print(Arrays.deepToString((Object[])o));
+                    out.print(Arrays.deepToString((Object[]) o));
                 } else {
                     out.print(o.toString());
                 }
@@ -121,7 +119,7 @@ public class TestingHelpers {
             if (o instanceof Map) {
                 //noinspection unchecked
                 sortedMap.put(sortedKey, sortMapByKeyRecursive((Map<String, Object>) o));
-            } else if (o instanceof Collection){
+            } else if (o instanceof Collection) {
                 sortedMap.put(sortedKey, sortCollectionRecursive((Collection) o));
             } else {
                 sortedMap.put(sortedKey, o);
@@ -324,7 +322,7 @@ public class TestingHelpers {
             };
 
     public static Matcher<Row> isNullRow() {
-        return isRow((Object)null);
+        return isRow((Object) null);
     }
 
     public static Matcher<Row> isRow(Object... cells) {
@@ -389,6 +387,15 @@ public class TestingHelpers {
         };
     }
 
+    public static Matcher<Symbol> isField(final Integer index) {
+        return both(Matchers.<Symbol>instanceOf(Field.class)).and(
+                new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
+                    @Override
+                    protected Integer featureValueOf(Symbol actual) {
+                        return ((Field) actual).index();
+                    }
+                });
+    }
 
     public static Matcher<Symbol> isField(final String expectedName) {
         return isField(expectedName, null);
@@ -423,6 +430,33 @@ public class TestingHelpers {
                 description.appendText(builder.toString());
             }
         };
+    }
+
+    public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
+        return isFetchRef(isField(docIdIdx), isReference(ref));
+    }
+
+    public static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
+
+        FeatureMatcher<Symbol, Symbol> m1 = new FeatureMatcher<Symbol, Symbol>(
+                docIdMatcher, "docId", "docId"
+        ) {
+            @Override
+            protected Symbol featureValueOf(Symbol actual) {
+                return ((FetchReference) actual).docId();
+            }
+        };
+
+        FeatureMatcher<Symbol, Symbol> m2 = new FeatureMatcher<Symbol, Symbol>(
+                refMatcher, "ref", "ref"
+        ) {
+            @Override
+            protected Symbol featureValueOf(Symbol actual) {
+                return ((FetchReference) actual).ref();
+            }
+        };
+        return allOf(Matchers.<Symbol>instanceOf(FetchReference.class), m1, m2);
+
     }
 
 
@@ -461,8 +495,26 @@ public class TestingHelpers {
         };
     }
 
+    public static Matcher<Symbol> isFunction(final String name, Matcher<Symbol>... argMatchers) {
+        FeatureMatcher<Symbol, Collection<Symbol>> ma = new FeatureMatcher<Symbol, Collection<Symbol>>(
+                contains(argMatchers), "args", "args") {
+            @Override
+            protected Collection<Symbol> featureValueOf(Symbol actual) {
+                return ((Function) actual).arguments();
+            }
+        };
+        return both(isFunction(name)).and(ma);
+    }
+
     public static Matcher<Symbol> isFunction(String name) {
-        return isFunction(name, null);
+        FeatureMatcher<Symbol, String> mn = new FeatureMatcher<Symbol, String>(
+                equalTo(name), "name", "name") {
+            @Override
+            protected String featureValueOf(Symbol actual) {
+                return ((Function) actual).info().ident().name();
+            }
+        };
+        return both(Matchers.<Symbol>instanceOf(Function.class)).and(mn);
     }
 
     public static Matcher<Symbol> isFunction(final String name, @Nullable final List<DataType> argumentTypes) {
@@ -489,7 +541,8 @@ public class TestingHelpers {
                         DataType type = types.get(i);
                         DataType expected = argumentTypes.get(i);
                         if (!expected.equals(type)) {
-                            mismatchDescription.appendText("argument ").appendValue(i + 1).appendText(" has wrong type ").appendValue(type.toString());
+                            mismatchDescription.appendText("argument ").appendValue(
+                                    i + 1).appendText(" has wrong type ").appendValue(type.toString());
                             return false;
                         }
                     }
@@ -572,7 +625,7 @@ public class TestingHelpers {
         return threadPool;
     }
 
-    public static ReferenceInfo refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String ... nested) {
+    public static ReferenceInfo refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
         String[] parts = fqColumnName.split("\\.");
         ReferenceIdent refIdent;
 
@@ -606,7 +659,7 @@ public class TestingHelpers {
         @Override
         protected boolean matchesSafely(Throwable item) {
             return item.getClass().isAssignableFrom(type)
-                    && (null == expectedMessage || item.getMessage().contains(expectedMessage));
+                   && (null == expectedMessage || item.getMessage().contains(expectedMessage));
         }
 
         @Override
@@ -626,7 +679,7 @@ public class TestingHelpers {
         return new CauseMatcher(type, expectedMessage);
     }
 
-    public static BucketPage createPage(List<Object[]> ... buckets) {
+    public static BucketPage createPage(List<Object[]>... buckets) {
         List<ListenableFuture<Bucket>> futures = new ArrayList<>();
         for (List<Object[]> bucket : buckets) {
             Bucket realBucket = new CollectionBucket(bucket);
@@ -636,10 +689,10 @@ public class TestingHelpers {
     }
 
     public static Object[][] range(int from, int to) {
-        int size = to-from;
-        Object[][] result = new Object[to-from][];
+        int size = to - from;
+        Object[][] result = new Object[to - from][];
         for (int i = 0; i < size; i++) {
-            result[i] = new Object[] { i + from };
+            result[i] = new Object[]{i + from};
         }
         return result;
     }

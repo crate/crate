@@ -29,6 +29,9 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.symbol.Reference;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
@@ -36,35 +39,44 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
     private final IntObjectOpenHashMap<Engine.Searcher> searchers = new IntObjectOpenHashMap<>();
     private final IntObjectOpenHashMap<SharedShardContext> shardContexts = new IntObjectOpenHashMap<>();
+    private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
+    private final TreeMap<Integer, TableIdent> tableIdents;
     private final Iterable<? extends Routing> routingIterable;
-    private final TreeMap<String, Integer> bases;
 
-
-    public FetchContext(int id,
+    public FetchContext(FetchPhase phase,
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
-                        Iterable<? extends Routing> routingIterable,
-                        TreeMap<String, Integer> bases) {
-        super(id);
+                        Iterable<? extends Routing> routingIterable) {
+        super(phase.executionPhaseId());
+        this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
+        this.tableIdents = new TreeMap<>();
         this.routingIterable = routingIterable;
-        this.bases = bases;
+
+    }
+
+    public Collection<Collection<Reference>> fetchRefs() {
+        return phase.fetchRefs();
     }
 
     @Override
     public void innerPrepare() {
+        HashMap<String, TableIdent> index2TableIdent = new HashMap<>();
+        for (Map.Entry<TableIdent, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
+            for (String indexName : entry.getValue()) {
+                index2TableIdent.put(indexName, entry.getKey());
+            }
+        }
+
         for (Routing routing : routingIterable) {
             Map<String, Map<String, List<Integer>>> locations = routing.locations();
             if (locations == null) {
@@ -76,7 +88,10 @@ public class FetchContext extends AbstractExecutionSubContext {
                     Map<String, List<Integer>> indexShards = entry.getValue();
                     for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                         String index = indexShardsEntry.getKey();
-                        Integer base = bases.get(index);
+                        Integer base = phase.bases().get(index);
+                        TableIdent ident = index2TableIdent.get(index);
+                        assert ident != null;
+                        tableIdents.put(base, ident);
                         assert base != null;
                         for (Integer shard : indexShardsEntry.getValue()) {
                             ShardId shardId = new ShardId(index, shard);
@@ -97,6 +112,19 @@ public class FetchContext extends AbstractExecutionSubContext {
         }
     }
 
+    @Override
+    protected void innerStart() {
+        int c = 0;
+        for (Collection<Reference> fetchRef : phase.fetchRefs()) {
+            c += fetchRef.size();
+        }
+        if (c == 0) {
+            // no fetch references means there will be no fetch requests
+            // this context is only here to allow the collectors to generate docids with the right bases
+            // the bases are fetched in the prepare phase therefore this context can be closed
+            close();
+        }
+    }
 
     @Override
     protected void innerClose(@Nullable Throwable t) {
@@ -113,6 +141,11 @@ public class FetchContext extends AbstractExecutionSubContext {
     @Override
     public String name() {
         return "fetchContext";
+    }
+
+    @Nonnull
+    public TableIdent tableIdent(int readerId) {
+        return tableIdents.floorEntry(readerId).getValue();
     }
 
     @Nonnull

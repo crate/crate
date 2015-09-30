@@ -23,11 +23,14 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.metadata.OutputName;
+import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public abstract class QueriedTableRelation<TR extends AbstractTableRelation> implements QueriedRelation {
@@ -36,12 +39,22 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     private final QuerySpec querySpec;
     private final ArrayList<Field> fields;
 
-    public QueriedTableRelation(TR tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
+    public QueriedTableRelation(TR tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new ArrayList<>(outputNames.size());
-        for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, outputNames.get(i), querySpec.outputs().get(i).valueType()));
+        this.fields = new ArrayList<>(paths.size());
+        Iterator<Symbol> qsIter = querySpec.outputs().iterator();
+        for (Path path : paths) {
+            fields.add(new Field(this, path, qsIter.next().valueType()));
+        }
+    }
+
+    public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
+        this.tableRelation = tableRelation;
+        this.querySpec = querySpec;
+        this.fields = new ArrayList<>(querySpec.outputs().size());
+        for (int i = 0; i < querySpec.outputs().size(); i++) {
+            fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
         }
     }
 

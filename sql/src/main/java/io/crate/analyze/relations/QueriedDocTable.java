@@ -25,14 +25,18 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.metadata.OutputName;
+import io.crate.metadata.Path;
 
-import java.util.List;
+import java.util.Collection;
 
 public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
 
-    public QueriedDocTable(DocTableRelation tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
-        super(tableRelation, outputNames, querySpec);
+    public QueriedDocTable(DocTableRelation tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
+        super(tableRelation, paths, querySpec);
+    }
+
+    public QueriedDocTable(DocTableRelation tableRelation, QuerySpec querySpec) {
+        super(tableRelation, querySpec);
     }
 
     @Override

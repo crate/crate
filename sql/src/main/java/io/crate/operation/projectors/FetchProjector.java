@@ -21,384 +21,409 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
+import com.carrotsearch.hppc.IntSet;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.Iterables;
+import io.crate.Streamer;
+import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.executor.transport.*;
+import io.crate.executor.transport.NodeFetchRequest;
+import io.crate.executor.transport.NodeFetchResponse;
+import io.crate.executor.transport.StreamBucket;
+import io.crate.executor.transport.TransportFetchNodeAction;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.fetch.PositionalBucketMerger;
-import io.crate.operation.fetch.PositionalRowDelegate;
-import io.crate.operation.fetch.RowInputSymbolVisitor;
-import io.crate.planner.symbol.Reference;
+import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
+import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector extends AbstractProjector {
 
-    private PositionalBucketMerger downstream;
+    enum Stage {
+        INIT,
+        COLLECT,
+        FETCH,
+        FINALIZE
+    }
+
+    private final AtomicReference<Stage> stage = new AtomicReference<>(Stage.INIT);
+    private final Object failureLock = new Object();
+
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final FetchRowInputSymbolVisitor.Context collectRowContext;
     private final TransportFetchNodeAction transportFetchNodeAction;
-    private final TransportCloseContextNodeAction transportCloseContextNodeAction;
 
+    // TODO: add an estimate to the constructor
+    private final ArrayList<Object[]> inputValues = new ArrayList<>();
+
+    private final Map<String, IntSet> nodeReaders;
+
+    private final ThreadPool threadPool;
     private final UUID jobId;
-    private final int executionPhaseId;
-    private final CollectExpression<Row, ?> collectDocIdExpression;
-    private final List<ReferenceInfo> partitionedBy;
-    private final Collection<Reference> toFetchReferences;
-    private final IntObjectOpenHashMap<String> readerNodes;
+    private final int collectPhaseId;
+    private final Collection<FetchSource> fetchSources;
     private final TreeMap<Integer, String> readerIndices;
-    private final RowDelegate inputRowDelegate = new RowDelegate();
-    private final RowDelegate fetchRowDelegate = new RowDelegate();
-    private final RowDelegate partitionRowDelegate = new RowDelegate();
-    private final Object rowDelegateLock = new Object();
     private final Row outputRow;
-    private final Map<String, NodeBucket> nodeBuckets = new HashMap<>();
-    private final AtomicBoolean consumingRows = new AtomicBoolean(true);
-    private final List<String> executionNodes;
-    private final int numNodes;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
-    private final Map<String, Row> partitionRowsCache = new HashMap<>();
-    private final Object partitionRowsCacheLock = new Object();
-    private final List <Throwable> failures = Collections.synchronizedList(new ArrayList<Throwable>());
-    private final Set<String> nodesWithOpenContexts;
-
-    private int inputCursor = 0;
-    private boolean consumedRows = false;
-    private boolean needInputRow = false;
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
-    private ExecutionState executionState;
+    private Fetches fetches;
+
+    /**
+     * An array backed row, which returns the inner array upon materialize
+     */
+    public static class ArrayBackedRow implements Row {
+
+        private Object[] cells;
+
+        @Override
+        public int size() {
+            return cells.length;
+        }
+
+        @Override
+        public Object get(int index) {
+            assert cells != null;
+            return cells[index];
+        }
+
+        @Override
+        public Object[] materialize() {
+            return cells;
+        }
+    }
 
     public FetchProjector(TransportFetchNodeAction transportFetchNodeAction,
-                          TransportCloseContextNodeAction transportCloseContextNodeAction,
+                          ThreadPool threadPool,
                           Functions functions,
                           UUID jobId,
-                          int executionPhaseId,
-                          CollectExpression<Row, ?> collectDocIdExpression,
+                          int collectPhaseId,
+                          Collection<FetchSource> fetchSources,
                           List<Symbol> outputSymbols,
-                          List<ReferenceInfo> partitionedBy,
-                          IntObjectOpenHashMap<String> readerNodes,
-                          TreeMap<Integer, String> readerIndices,
-                          Set<String> executionNodes) {
+                          Map<String, IntSet> nodeReaders,
+                          TreeMap<Integer, String> readerIndices) {
         this.transportFetchNodeAction = transportFetchNodeAction;
-        this.transportCloseContextNodeAction = transportCloseContextNodeAction;
+        this.threadPool = threadPool;
         this.jobId = jobId;
-        this.executionPhaseId = executionPhaseId;
-        this.collectDocIdExpression = collectDocIdExpression;
-        this.partitionedBy = partitionedBy;
-        this.readerNodes = readerNodes;
+        this.collectPhaseId = collectPhaseId;
+        this.fetchSources = fetchSources;
+        this.nodeReaders = nodeReaders;
         this.readerIndices = readerIndices;
-        numNodes = executionNodes.size();
-        this.executionNodes = new ArrayList<>(executionNodes);
-        nodesWithOpenContexts = Sets.newConcurrentHashSet(executionNodes);
 
-        RowInputSymbolVisitor rowInputSymbolVisitor = new RowInputSymbolVisitor(functions);
+        FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(functions);
 
-        RowInputSymbolVisitor.Context collectRowContext = new RowInputSymbolVisitor.Context(
-                inputRowDelegate,
-                fetchRowDelegate,
-                partitionRowDelegate);
-        collectRowContext.partitionedBy(partitionedBy);
+        this.collectRowContext = new FetchRowInputSymbolVisitor.Context(fetchSources);
 
         List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
             inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
         }
-        toFetchReferences = collectRowContext.references();
-        needInputRow = collectRowContext.needInputRow();
+
         outputRow = new InputRow(inputs);
+    }
+
+    private boolean nextStage(Stage from, Stage to) {
+        synchronized (failureLock) {
+            if (failIfNeeded()) return true;
+            Stage was = stage.getAndSet(to);
+            assert was == from : "wrong state switch " + from + "/" + to + " was " + was;
+        }
+        return false;
     }
 
     @Override
     public void prepare(ExecutionState executionState) {
+        assert stage.get() == Stage.INIT;
         this.executionState = executionState;
-        // register once to increment downstream upstreams counter
-        downstream.registerUpstream(this);
+        fetches = new Fetches();
+        nextStage(Stage.INIT, Stage.COLLECT);
     }
 
     @Override
     public boolean setNextRow(Row row) {
-        if (!consumingRows.get()) {
-            return false;
+        Object[] cells = row.materialize();
+        collectRowContext.inputRow().cells = cells;
+        for (int i : collectRowContext.docIdPositions()) {
+            fetches.require((Long) cells[i]);
         }
-        consumedRows = true;
-        collectDocIdExpression.setNextRow(row);
-
-        long docId = (Long)collectDocIdExpression.value();
-        int jobSearchContextId = (int)(docId >> 32);
-
-        String nodeId = readerNodes.get(jobSearchContextId);
-        assert nodeId != null;
-        String index = readerIndices.floorEntry(jobSearchContextId).getValue();
-        assert index != null;
-
-        NodeBucket nodeBucket = nodeBuckets.get(nodeId);
-        if (nodeBucket == null) {
-            nodeBucket = new NodeBucket(nodeId, executionNodes.indexOf(nodeId));
-            nodeBuckets.put(nodeId, nodeBucket);
-        }
-        Row partitionRow = partitionedByRow(index);
-        nodeBucket.add(inputCursor++, docId, partitionRow, row);
-
+        inputValues.add(cells);
         return true;
     }
 
-    @Override
-    public void downstream(RowReceiver downstream) {
-        this.downstream = new PositionalBucketMerger(downstream, numNodes, outputRow.size());
+    private void sendRequests() {
+        synchronized (failureLock) {
+            remainingRequests.set(nodeReaders.size());
+        }
+        boolean anyRequestSent = false;
+        for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
+            //requests.put(entry.getKey(), request);
+            IntObjectOpenHashMap<IntContainer> toFetch = new IntObjectOpenHashMap<>(entry.getValue().size());
+            IntObjectOpenHashMap<Streamer[]> streamers = new IntObjectOpenHashMap<>(entry.getValue().size());
+            boolean requestRequired = false;
+            for (IntCursor intCursor : entry.getValue()) {
+                ReaderBucket readerBucket = fetches.readerBucket(intCursor.value);
+                IndexInfo indexInfo;
+                if (readerBucket == null) {
+                    indexInfo = fetches.indexInfo(intCursor.value);
+                } else {
+                    indexInfo = readerBucket.indexInfo;
+                    if (indexInfo.fetchRequired() && readerBucket.docs.size() > 0) {
+                        toFetch.put(intCursor.value, readerBucket.docs.keys());
+                        streamers.put(intCursor.value, readerBucket.indexInfo.streamers());
+                    }
+                }
+                requestRequired = requestRequired || indexInfo.fetchRequired();
+            }
+            if (!requestRequired) {
+                remainingRequests.decrementAndGet();
+                continue;
+            }
+            NodeFetchRequest request = new NodeFetchRequest(jobId, collectPhaseId, toFetch);
+            final String nodeId = entry.getKey();
+            anyRequestSent = true;
+            transportFetchNodeAction.execute(nodeId, streamers, request, new ActionListener<NodeFetchResponse>() {
+                @Override
+                public void onResponse(NodeFetchResponse nodeFetchResponse) {
+                    IntObjectMap<StreamBucket> fetched = nodeFetchResponse.fetched();
+                    if (fetched != null) {
+                        for (IntObjectCursor<StreamBucket> cursor : fetched) {
+                            ReaderBucket readerBucket = fetches.readerBuckets.get(cursor.key);
+                            readerBucket.fetched(cursor.value);
+                        }
+                    }
+                    if (remainingRequests.decrementAndGet() == 0) {
+                        Executor executor = threadPool.executor(ThreadPool.Names.SUGGEST);
+                        executor.execute(new AbstractRunnable() {
+                            @Override
+                            public void onFailure(Throwable t) {
+                                fail(t);
+                            }
+
+                            @Override
+                            protected void doRun() throws Exception {
+                                fetchFinished();
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    LOGGER.error("NodeFetchRequest failed on node {}", e, nodeId);
+                    remainingRequests.decrementAndGet();
+                    fail(e);
+                }
+            });
+        }
+        if (!anyRequestSent) {
+            fetchFinished();
+        }
+    }
+
+    private void fetchFinished() {
+        if (nextStage(Stage.FETCH, Stage.FINALIZE)) {
+            return;
+        }
+        final ArrayBackedRow inputRow = collectRowContext.inputRow();
+        final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
+        final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
+        final int[] docIdPositions = collectRowContext.docIdPositions();
+
+        for (Object[] cells : inputValues) {
+            inputRow.cells = cells;
+            for (int i = 0; i < docIdPositions.length; i++) {
+                Long doc = (Long) cells[docIdPositions[i]];
+                int readerId = (int) (doc >> 32);
+                int docId = (int) (long) doc;
+                ReaderBucket readerBucket = fetches.readerBuckets.get(readerId);
+                assert readerBucket != null;
+                // TODO: could be improved by handling non partitioned requests differently
+                if (partitionRows != null && partitionRows[i] != null) {
+                    assert readerBucket.indexInfo.partitionValues != null;
+                    partitionRows[i].cells = readerBucket.indexInfo.partitionValues;
+                }
+                fetchRows[i].cells = readerBucket.get(docId);
+                assert !readerBucket.indexInfo.fetchRequired() || fetchRows[i].cells != null;
+            }
+            downstream.setNextRow(outputRow);
+        }
+        finishDownstream();
     }
 
     @Override
     public void finish() {
-        // flush all remaining buckets
-        Iterator<NodeBucket> it = nodeBuckets.values().iterator();
-        remainingRequests.set(nodeBuckets.size());
-        while (it.hasNext()) {
-            flushNodeBucket(it.next());
-            it.remove();
+        if (nextStage(Stage.COLLECT, Stage.FETCH)) {
+            return;
         }
+        sendRequests();
+    }
 
-        // no rows consumed (so no fetch requests made), but collect contexts are open, close them.
-        if (!consumedRows) {
-            closeContextsAndFinish();
-        } else {
-            finishDownstream();
-            // projector registered itself as an upstream to prevent downstream of
-            // flushing rows before all requests finished.
-            // release it now as no new rows are consumed anymore (downstream will flush all remaining rows)
+    private boolean failIfNeeded() {
+        Throwable t = failure.get();
+        if (t != null) {
+            downstream.fail(t);
+            return true;
         }
+        return false;
     }
 
     private void finishDownstream() {
-        if (failures.size() == 0) {
-            downstream.finish();
-        } else {
-            for (Throwable e : failures) {
-                if (e instanceof CancellationException) {
-                    downstream.fail(e);
-                    return;
-                }
-            }
-            downstream.fail(failures.get(failures.size() - 1));
+        if (failIfNeeded()) {
+            return;
         }
+        downstream.finish();
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failures.add(throwable);
-        closeContextsAndFinish();
-    }
-
-    @Nullable
-    private Row partitionedByRow(String index) {
-        synchronized (partitionRowsCacheLock) {
-            if (partitionRowsCache.containsKey(index)) {
-                return partitionRowsCache.get(index);
+        synchronized (failureLock) {
+            boolean first = failure.compareAndSet(null, throwable);
+            switch (stage.get()) {
+                case INIT:
+                case COLLECT:
+                    if (!first) return;
+                case FETCH:
+                    if (remainingRequests.get() > 0) return;
             }
         }
-        Row partitionValuesRow = null;
-        if (!partitionedBy.isEmpty() && PartitionName.isPartition(index)) {
-            Object[] partitionValues;
-            List<BytesRef> partitionRowValues = PartitionName.fromIndexOrTemplate(index).values();
+        downstream.fail(throwable);
+    }
+
+    private static class IndexInfo {
+        final FetchSource fetchSource;
+        Object[] partitionValues;
+        Streamer[] streamers;
+
+        public IndexInfo(String index, FetchSource fetchSource) {
+            this.fetchSource = fetchSource;
+            if (!fetchSource.partitionedByColumns().isEmpty()) {
+                PartitionName pn = PartitionName.fromIndexOrTemplate(index);
+                setPartitionValues(pn);
+            }
+        }
+
+        private void setPartitionValues(PartitionName pn) {
+            List<BytesRef> partitionRowValues = pn.values();
             partitionValues = new Object[partitionRowValues.size()];
             for (int i = 0; i < partitionRowValues.size(); i++) {
-                partitionValues[i] = partitionedBy.get(i).type().value(partitionRowValues.get(i));
+                partitionValues[i] = fetchSource.partitionedByColumns().get(i).type().value(partitionRowValues.get(i));
             }
-            partitionValuesRow = new RowN(partitionValues);
-        }
-        synchronized (partitionRowsCacheLock) {
-            partitionRowsCache.put(index, partitionValuesRow);
-        }
-        return partitionValuesRow;
-    }
-
-    private void flushNodeBucket(final NodeBucket nodeBucket) {
-        // every request must increase downstream upstream counter
-        downstream.registerUpstream(this);
-
-        NodeFetchRequest request = new NodeFetchRequest();
-        request.jobId(jobId);
-        request.executionPhaseId(executionPhaseId);
-        request.toFetchReferences(toFetchReferences);
-        request.jobSearchContextDocIds(nodeBucket.docIds());
-        transportFetchNodeAction.execute(nodeBucket.nodeId, request, new ActionListener<NodeFetchResponse>() {
-            @Override
-            public void onResponse(NodeFetchResponse response) {
-                nodesWithOpenContexts.remove(nodeBucket.nodeId);
-                List<Row> rows = new ArrayList<>(response.rows().size());
-                int idx = 0;
-                synchronized (rowDelegateLock) {
-                    for (Row row : response.rows()) {
-                        fetchRowDelegate.delegate(row);
-                        if (needInputRow) {
-                            inputRowDelegate.delegate(nodeBucket.inputRow(idx));
-                        }
-                        Row partitionRow = nodeBucket.partitionRow(idx);
-                        if (partitionRow != null) {
-                            partitionRowDelegate.delegate(partitionRow);
-                        }
-                        try {
-                            rows.add(new PositionalRowDelegate(outputRow, nodeBucket.cursor(idx)));
-                        } catch (Throwable e) {
-                            onFailure(e);
-                            return;
-                        }
-                        idx++;
-                    }
-                }
-                if (!downstream.setNextBucket(rows, nodeBucket.nodeIdx)) {
-                    consumingRows.set(false);
-                }
-                if (remainingRequests.decrementAndGet() <= 0) {
-                    closeContextsAndFinish();
-                } else {
-                    downstream.finish();
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                nodesWithOpenContexts.remove(nodeBucket.nodeId);
-                consumingRows.set(false);
-                if (executionState.isKilled()) {
-                    downstream.fail(new CancellationException());
-                } else {
-                    downstream.fail(e);
-                }
-            }
-        });
-
-    }
-
-    private void closeContextsAndFinish() {
-        if (nodesWithOpenContexts.isEmpty()) {
-            finishDownstream();
-            return;
         }
 
-        LOGGER.trace("closing job context {} on {} nodes", jobId, nodesWithOpenContexts.size());
-        final SettableFuture<Void> allClosed = SettableFuture.create();
-        allClosed.addListener(new Runnable() {
-            @Override
-            public void run() {
-                finishDownstream();
-            }
-        }, MoreExecutors.directExecutor());
+        public boolean fetchRequired() {
+            return fetchSource.fetchRequired();
+        }
 
-        final AtomicInteger pendingRequests = new AtomicInteger(nodesWithOpenContexts.size());
-        for (final String nodeId : nodesWithOpenContexts) {
-            try {
-                transportCloseContextNodeAction.execute(nodeId,
-                        new NodeCloseContextRequest(jobId, executionPhaseId),
-                        new ActionListener<NodeCloseContextResponse>() {
-                            @Override
-                            public void onResponse(NodeCloseContextResponse nodeCloseContextResponse) {
-                                if (pendingRequests.decrementAndGet() == 0) {
-                                    allClosed.set(null);
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(Throwable e) {
-                                LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                                if (pendingRequests.decrementAndGet() == 0) {
-                                    allClosed.set(null);
-                                }
-                            }
-                        });
-            } catch (IllegalArgumentException e) {
-                // node not found in cluster state
-                LOGGER.warn("Closing job context {} failed on node {} with: {}", e, jobId, nodeId, e.getMessage());
-                if (pendingRequests.decrementAndGet() == 0) {
-                    allClosed.set(null);
-                }
+        public Streamer[] streamers() {
+            if (streamers == null) {
+                streamers = Symbols.streamerArray(fetchSource.references());
             }
+            return streamers;
         }
     }
 
-    private static class NodeBucket {
-
-        private final int nodeIdx;
-        private final String nodeId;
-        private final List<Row> partitionRows = new ArrayList<>();
-        private final List<Row> inputRows = new ArrayList<>();
-        private final IntArrayList cursors = new IntArrayList();
-        private final LongArrayList docIds = new LongArrayList();
-
-        public NodeBucket(String nodeId, int nodeIdx) {
-            this.nodeId = nodeId;
-            this.nodeIdx = nodeIdx;
+    private FetchSource getFetchSource(String index) {
+        if (fetchSources.size() == 1) {
+            return Iterables.getOnlyElement(fetchSources);
         }
-
-        public void add(int cursor, Long docId, @Nullable Row partitionRow, Row row) {
-            cursors.add(cursor);
-            docIds.add(docId);
-            partitionRows.add(partitionRow);
-            inputRows.add(new RowN(row.materialize()));
+        TableIdent ti = TableIdent.fromIndexName(index);
+        FetchSource res = null;
+        for (FetchSource source : fetchSources) {
+            if (source.tableIdent().equals(ti)) {
+                res = source;
+                break;
+            }
         }
-
-        public int size() {
-            return cursors.size();
-        }
-
-        public LongArrayList docIds() {
-            return docIds;
-        }
-
-        public int cursor(int index) {
-            return cursors.get(index);
-        }
-
-        public Row inputRow(int index) {
-            return inputRows.get(index);
-        }
-
-        @Nullable
-        public Row partitionRow(int idx) {
-            return partitionRows.get(idx);
-        }
+        assert res != null;
+        return res;
     }
 
-    private static class RowDelegate implements Row {
-        private Row delegate;
+    private class Fetches {
+        private final IntObjectOpenHashMap<ReaderBucket> readerBuckets = new IntObjectOpenHashMap<>();
+        private final TreeMap<Integer, IndexInfo> indexInfos;
 
-        public void delegate(Row row) {
-            delegate = row;
+        private Fetches() {
+            this.indexInfos = new TreeMap<>();
+            for (Map.Entry<Integer, String> entry : readerIndices.entrySet()) {
+                indexInfos.put(entry.getKey(), new IndexInfo(entry.getValue(), getFetchSource(entry.getValue())));
+            }
         }
 
-        @Override
-        public int size() {
-            return delegate.size();
+        public IndexInfo indexInfo(Integer readerId) {
+            return indexInfos.floorEntry(readerId).getValue();
         }
 
-        @Override
-        public Object get(int index) {
-            return delegate.get(index);
+        public ReaderBucket readerBucket(int readerId) {
+            return readerBuckets.get(readerId);
         }
 
-        @Override
-        public Object[] materialize() {
-            return delegate.materialize();
+        public ReaderBucket require(long doc) {
+            int readerId = (int) (doc >> 32);
+            int docId = (int) doc;
+            ReaderBucket readerBucket = readerBuckets.get(readerId);
+            if (readerBucket == null) {
+                readerBucket = new ReaderBucket(indexInfo(readerId));
+                readerBuckets.put(readerId, readerBucket);
+            }
+            readerBucket.require(docId);
+            return readerBucket;
         }
+
+        public Object[] get(long doc) {
+            return readerBuckets.get((int) (doc >> 32)).get((int) doc);
+        }
+
     }
 
+    public static class ReaderBucket {
+
+        private final IndexInfo indexInfo;
+        private final IntObjectOpenHashMap<Object[]> docs = new IntObjectOpenHashMap<>();
+
+        public ReaderBucket(IndexInfo indexInfo) {
+            this.indexInfo = indexInfo;
+        }
+
+        public void require(int doc) {
+            docs.putIfAbsent(doc, null);
+        }
+
+        public Object[] get(int doc) {
+            return docs.get(doc);
+        }
+
+        public void fetched(Bucket bucket) {
+            assert bucket.size() == docs.size();
+            Iterator<Row> rowIterator = bucket.iterator();
+            final Object[] values = docs.values;
+            final boolean[] states = docs.allocated;
+            for (int i = 0; i < states.length; i++) {
+                if (states[i]) {
+                    assert values[i] == null;
+                    values[i] = rowIterator.next().materialize();
+                }
+            }
+            assert !rowIterator.hasNext();
+        }
+    }
 }

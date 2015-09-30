@@ -124,12 +124,12 @@ public class ProjectionToProjectorVisitor
             }
 
             projector = new SortingTopNProjector(
-                            inputs,
-                            collectExpressions,
-                            numOutputs,
-                            OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
-                            projection.limit(),
-                            projection.offset()
+                    inputs,
+                    collectExpressions,
+                    numOutputs,
+                    OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+                    projection.limit(),
+                    projection.offset()
             );
         } else {
             projector = new SimpleTopNProjector(
@@ -292,7 +292,7 @@ public class ProjectionToProjectorVisitor
 
         Input<Boolean> condition;
         if (projection.query() != null) {
-            condition = (Input)symbolVisitor.process(projection.query(), ctx);
+            condition = (Input) symbolVisitor.process(projection.query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }
@@ -325,23 +325,16 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
-
-        ImplementationSymbolVisitor.Context ctxDocId = new ImplementationSymbolVisitor.Context();
-        symbolVisitor.process(projection.docIdSymbol(), ctxDocId);
-        assert ctxDocId.collectExpressions().size() == 1;
-
         return new FetchProjector(
                 transportActionProvider.transportFetchNodeAction(),
-                transportActionProvider.transportCloseContextNodeAction(),
+                threadPool,
                 symbolVisitor.functions(),
                 context.jobId,
-                projection.executionPhaseId(),
-                ctxDocId.collectExpressions().iterator().next(),
+                projection.collectPhaseId(),
+                projection.fetchSources(),
                 projection.outputSymbols(),
-                projection.partitionedBy(),
-                projection.readerNodes(),
-                projection.readerIndices(),
-                projection.executionNodes());
+                projection.nodeReaders(),
+                projection.readerIndices());
     }
 
     @Override
