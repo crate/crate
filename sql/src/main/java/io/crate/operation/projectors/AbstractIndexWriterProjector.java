@@ -81,7 +81,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
     private final RowShardResolver rowShardResolver;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
-    private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
+    private BulkShardProcessor bulkShardProcessor;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
@@ -152,9 +152,8 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
                 null,
                 jobId
         );
-        bulkShardProcessor = new BulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
-                settings,
                 transportBulkCreateIndicesAction,
                 rowShardResolver,
                 autoCreateIndices,
