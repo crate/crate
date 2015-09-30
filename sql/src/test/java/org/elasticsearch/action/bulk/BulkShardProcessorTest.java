@@ -124,9 +124,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
-                ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
                 shardingProjector,
                 false,
@@ -201,9 +200,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
-                ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
                 shardingProjector,
                 false,

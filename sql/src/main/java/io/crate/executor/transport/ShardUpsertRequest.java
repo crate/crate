@@ -310,7 +310,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
     }
 
-    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
+    public static class Builder {
 
         private final DataType[] dataTypes;
         private final List<Integer> columnIndicesToStream;
@@ -343,7 +343,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             this.overWriteDuplicates = overWriteDuplicates;
         }
 
-        @Override
         public ShardUpsertRequest newRequest(ShardId shardId) {
             return new ShardUpsertRequest(shardId,
                     dataTypes,
@@ -358,7 +357,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         }
 
-        @Override
         public void addItem(ShardUpsertRequest existingRequest, ShardId shardId, int location, String id, Row row, @javax.annotation.Nullable String routing, @javax.annotation.Nullable Long version) {
             existingRequest.add(location, id, row, version, routing);
         }

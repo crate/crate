@@ -32,7 +32,6 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
@@ -88,8 +87,8 @@ public abstract class AbstractIndexWriterProjector implements
     private final ShardingProjector shardingProjector;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
-    private BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
     private RowDownstreamHandle downstream;
+    private BulkShardProcessor bulkShardProcessor;
 
     private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
@@ -161,9 +160,8 @@ public abstract class AbstractIndexWriterProjector implements
                 null,
                 jobId
         );
-        bulkShardProcessor = new BulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
-                settings,
                 transportBulkCreateIndicesAction,
                 shardingProjector,
                 autoCreateIndices,
