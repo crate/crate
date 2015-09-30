@@ -28,6 +28,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.core.collections.Row;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.lucene.QueryBuilderHelper;
+import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -73,6 +74,7 @@ public class OrderedCrateDocCollector implements CrateCollector {
     private final OrderBy orderBy;
     private final KeepAliveListener keepAliveListener;
 
+    private boolean doDocScores;
     private int rowCount = 0;
 
 
@@ -104,6 +106,8 @@ public class OrderedCrateDocCollector implements CrateCollector {
         );
         orderBy = collectPhase.orderBy();
         limit = collectPhase.limit();
+        doDocScores = ScoreReferenceDetector.detect(collectPhase.toCollect());
+
         inputRow = new InputRow(inputs);
         dummyScorer = new DummyScorer();
         if (searchContext.minimumScore() == null) {
@@ -136,11 +140,12 @@ public class OrderedCrateDocCollector implements CrateCollector {
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
+
         searchContext.searcher().inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
 
         TopFieldDocs topFieldDocs;
         try {
-            topFieldDocs = searchContext.searcher().search(searchContext.query(), batchSize(), sort);
+            topFieldDocs = searchContext.searcher().search(searchContext.query(), null, batchSize(), sort, doDocScores, false);
         } catch (IOException e) {
             rowReceiver.fail(e);
             return;

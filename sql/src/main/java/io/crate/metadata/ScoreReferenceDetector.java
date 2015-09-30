@@ -45,8 +45,17 @@ public class ScoreReferenceDetector {
         }
     };
 
-    public Boolean detect(Symbol symbol) {
+    public static Boolean detect(Symbol symbol) {
         return VISITOR.process(symbol, SCORE_PREDICATE);
+    }
+
+    public static boolean detect(Iterable<? extends Symbol> symbols) {
+        for (Symbol symbol : symbols) {
+            if(detect(symbol)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static class Visitor extends SymbolVisitor<Predicate<Reference>, Boolean> {
