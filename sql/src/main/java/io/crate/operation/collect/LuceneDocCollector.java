@@ -30,6 +30,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.operation.*;
 import io.crate.operation.reference.doc.lucene.*;
 import io.crate.planner.node.dql.CollectPhase;
@@ -108,6 +109,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private AtomicReader currentReader;
     private int rowCount = 0;
     private int pageSize;
+    private boolean doDocScores;
 
     public LuceneDocCollector(CrateSearchContext searchContext,
                               KeepAliveListener keepAliveListener,
@@ -122,6 +124,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
         this.ramAccountingContext = ramAccountingContext;
         this.limit = collectNode.limit();
         this.orderBy = collectNode.orderBy();
+        this.doDocScores = ScoreReferenceDetector.detect(collectNode.toCollect());
         this.downstream = downStreamProjector.registerUpstream(this);
         this.inputRow = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -241,7 +244,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
     private void searchWithOrderBy(Query query) throws IOException {
         Integer batchSize = limit == null ? pageSize : Math.min(pageSize, limit);
         Sort sort = LuceneSortGenerator.generateLuceneSort(collectorContext, orderBy, inputSymbolVisitor);
-        TopFieldDocs topFieldDocs = searchContext.searcher().search(query, batchSize, sort);
+        TopFieldDocs topFieldDocs = searchContext.searcher().search(query, null, batchSize, sort, doDocScores, false);
         int collected = topFieldDocs.scoreDocs.length;
 
         Collection<ScoreCollectorExpression> scoreExpressions = getScoreExpressions();
@@ -257,9 +260,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector, Row
                 BooleanQuery searchAfterQuery = new BooleanQuery();
                 searchAfterQuery.add(query, BooleanClause.Occur.MUST);
                 searchAfterQuery.add(alreadyCollectedQuery, BooleanClause.Occur.MUST_NOT);
-                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, searchAfterQuery, batchSize, sort);
+                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, searchAfterQuery, null, batchSize, sort, doDocScores, false);
             } else {
-                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, batchSize, sort);
+                topFieldDocs = (TopFieldDocs)searchContext.searcher().searchAfter(lastCollected, query, null, batchSize, sort, doDocScores, false);
             }
             collected += topFieldDocs.scoreDocs.length;
             lastCollected = collectTopFields(topFieldDocs, scoreExpressions);
