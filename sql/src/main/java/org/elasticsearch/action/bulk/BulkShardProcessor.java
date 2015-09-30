@@ -49,7 +49,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.TimeoutClusterStateListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -70,7 +69,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessor<Request extends ShardUpsertRequest, Response extends ShardUpsertResponse> {
+public class BulkShardProcessor {
 
     public static final TimeValue WAIT_FOR_SHARDS_TIMEOUT = TimeValue.timeValueSeconds(10);
 
@@ -83,7 +82,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
     private final int bulkSize;
     private final int createIndicesBulkSize;
 
-    private final Map<ShardId, Request> requestsByShard = new HashMap<>();
+    private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger counter = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -107,8 +106,8 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
     private final ShardingProjector shardingProjector;
 
 
-    private final BulkRequestBuilder<Request> bulkRequestBuilder;
-    private final BulkRequestExecutor<Request, Response> bulkRequestExecutor;
+    private final ShardUpsertRequest.Builder bulkRequestBuilder;
+    private final BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> bulkRequestExecutor;
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
@@ -117,8 +116,8 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
                               boolean autoCreateIndices,
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                              BulkRequestBuilder<Request> bulkRequestBuilder,
-                              BulkRequestExecutor<Request, Response> bulkRequestExecutor) {
+                              ShardUpsertRequest.Builder bulkRequestBuilder,
+                              BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> bulkRequestExecutor) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
 
@@ -250,7 +249,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
                                          @Nullable Long version) {
         try {
             executeLock.acquire();
-            Request request = requestsByShard.get(shardId);
+            ShardUpsertRequest request = requestsByShard.get(shardId);
             if (request == null) {
                 request = bulkRequestBuilder.newRequest(shardId);
                 requestsByShard.put(shardId, request);
@@ -330,16 +329,16 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
         try {
             executeLock.acquire();
 
-            for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
                 if (failure.get() != null) {
                     return;
                 }
-                Map.Entry<ShardId, Request> entry = it.next();
-                final Request shardRequest = entry.getValue();
+                Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
+                final ShardUpsertRequest shardRequest = entry.getValue();
                 final ShardId shardId = entry.getKey();
-                bulkRequestExecutor.execute(shardRequest, new ActionListener<Response>() {
+                bulkRequestExecutor.execute(shardRequest, new ActionListener<ShardUpsertResponse>() {
                     @Override
-                    public void onResponse(Response response) {
+                    public void onResponse(ShardUpsertResponse response) {
                         processResponse(response);
                     }
 
@@ -442,7 +441,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
 
     }
 
-    private void processResponse(Response response) {
+    private void processResponse(ShardUpsertResponse response) {
         trace("execute response");
 
         for (int i = 0; i < response.itemIndices().size(); i++) {
@@ -460,7 +459,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
         setResultIfDone(response.itemIndices().size());
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final Request request, boolean repeatingRetry) {
+    private void processFailure(Throwable e, final ShardId shardId, final ShardUpsertRequest request, boolean repeatingRetry) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
         BulkRetryCoordinator coordinator;
@@ -472,7 +471,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
         }
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(request, bulkRequestExecutor, repeatingRetry, new ActionListener<Response>() {
+            coordinator.retry(request, bulkRequestExecutor, repeatingRetry, new ActionListener<ShardUpsertResponse>() {
 
                 @Override
                 public void onFailure(Throwable e) {
@@ -480,7 +479,7 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
                 }
 
                 @Override
-                public void onResponse(Response response) {
+                public void onResponse(ShardUpsertResponse response) {
                     processResponse(response);
                 }
             });
@@ -525,17 +524,5 @@ public class BulkShardProcessor<Request extends ShardUpsertRequest, Response ext
             this.routing = routing;
             this.version = version;
         }
-    }
-
-    public interface BulkRequestBuilder<Request extends BulkProcessorRequest> {
-        Request newRequest(ShardId shardId);
-
-        void addItem(Request existingRequest,
-                     ShardId shardId,
-                     int location,
-                     String id,
-                     Row row,
-                     @Nullable String routing,
-                     @Nullable Long version);
     }
 }

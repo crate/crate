@@ -123,7 +123,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 null
         );
 
-        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
@@ -198,7 +198,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 null
         );
 
-        final BulkShardProcessor<ShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
