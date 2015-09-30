@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: in some rare cases tables were not updated on every node after table
+   schema changes
+
  - If the same table appears more than once in the FROM clause now an error is
    thrown instead of silently ignoring it.
 

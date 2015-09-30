@@ -84,7 +84,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     new CacheLoader<String, DocTableInfo>() {
                         @Override
                         public DocTableInfo load(@Nonnull String key) throws Exception {
-                            return innerGetTableInfo(key);
+                            synchronized (DocSchemaInfo.this) {
+                                return innerGetTableInfo(key);
+                            }
                         }
                     }
             );
@@ -262,34 +264,27 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        if (event.metaDataChanged() && cache.size() > 0) {
+    public synchronized void clusterChanged(ClusterChangedEvent event) {
+        if (event.metaDataChanged()) {
             cache.invalidateAll(event.indicesDeleted());
 
             // search for aliases of deleted and created indices, they must be invalidated also
-            if (cache.size() > 0) {
-                for (String index : event.indicesDeleted()) {
-                    invalidateAliases(event.previousState().metaData().index(index).aliases());
-                }
+            for (String index : event.indicesDeleted()) {
+                invalidateAliases(event.previousState().metaData().index(index).aliases());
             }
-            if (cache.size() > 0) {
-                for (String index : event.indicesCreated()) {
-                    invalidateAliases(event.state().metaData().index(index).aliases());
-                }
+            for (String index : event.indicesCreated()) {
+                invalidateAliases(event.state().metaData().index(index).aliases());
             }
 
             // search for templates with changed meta data => invalidate template aliases
-            if (cache.size() > 0
-                    && !event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
+            if (!event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
                 // current state templates
                 for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
                     invalidateAliases(cursor.value.aliases());
                 }
                 // previous state templates
-                if (cache.size() > 0) {
-                    for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
-                        invalidateAliases(cursor.value.aliases());
-                    }
+                for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
+                    invalidateAliases(cursor.value.aliases());
                 }
             }
 
