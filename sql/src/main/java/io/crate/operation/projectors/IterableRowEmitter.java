@@ -42,6 +42,16 @@ public class IterableRowEmitter implements Runnable {
 
     public IterableRowEmitter(RowReceiver rowReceiver,
                               ExecutionState executionState,
+                              Iterator<? extends Row> rows) {
+        this.rowReceiver = rowReceiver;
+        this.executionState = executionState;
+        topRowUpstream = new TopRowUpstream(MoreExecutors.directExecutor(), this);
+        rowReceiver.setUpstream(topRowUpstream);
+        this.rowsIt = rows;
+    }
+
+    public IterableRowEmitter(RowReceiver rowReceiver,
+                              ExecutionState executionState,
                               Iterable<? extends Row> rows,
                               Optional<Executor> executor) {
         this.rowReceiver = rowReceiver;

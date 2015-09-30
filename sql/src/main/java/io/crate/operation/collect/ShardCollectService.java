@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -33,14 +34,16 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.collect.collectors.CrateDocCollector;
-import io.crate.operation.collect.collectors.OrderedCrateDocCollector;
+import io.crate.operation.collect.collectors.ScoreDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -143,19 +146,20 @@ public class ShardCollectService {
                                           int jobSearchContextId,
                                           int pageSize) throws Exception {
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return RowsCollector.empty(downstream);
         }
 
         assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
         if (isBlobShard) {
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return getBlobIndexCollector(normalizedCollectNode, downstream);
         } else {
             return getLuceneIndexCollector(
                     threadPool,
-                    normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
+                    normalizedCollectNode, projectorChain, jobCollectContext, jobSearchContextId, pageSize);
         }
     }
 
@@ -178,7 +182,7 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
                                                    final CollectPhase collectNode,
-                                                   final RowReceiver downstream,
+                                                   final ShardProjectorChain projectorChain,
                                                    final JobCollectContext jobCollectContext,
                                                    final int jobSearchContextId,
                                                    int pageSize) throws Exception {
@@ -196,13 +200,20 @@ public class ShardCollectService {
             jobCollectContext.addSearchContext(jobSearchContextId, searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
-            if (collectNode.orderBy() != null) {
-                return new OrderedCrateDocCollector(
+            OrderBy orderBy = collectNode.orderBy();
+            if (orderBy != null) {
+                return new ScoreDocCollector(
                         searchContext,
                         jobCollectContext.keepAliveListener(),
                         executor,
                         collectNode,
-                        downstream,
+                        projectorChain.scoreDocMerger(
+                                OrderingByPosition.rowOrdering(
+                                        OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectNode.toCollect()),
+                                        orderBy.reverseFlags(),
+                                        orderBy.nullsFirst()
+                                )
+                        ),
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         docInputSymbolVisitor,
@@ -215,7 +226,7 @@ public class ShardCollectService {
                         jobCollectContext.keepAliveListener(),
                         collectNode,
                         jobCollectContext.queryPhaseRamAccountingContext(),
-                        downstream,
+                        projectorChain.newShardDownstreamProjector(projectorVisitor),
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions()
                 );

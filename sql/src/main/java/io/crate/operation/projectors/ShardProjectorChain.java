@@ -23,10 +23,13 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.collectors.ScoreDocMerger;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.projection.Projection;
@@ -79,6 +82,7 @@ public class ShardProjectorChain {
     private int shardProjectionsIndex = -1;
 
     private final RowDownstream rowDownstream;
+    private ScoreDocMerger scoreDocMerger;
 
 
     public static ShardProjectorChain sortedMerge(UUID jobId,
@@ -235,5 +239,12 @@ public class ShardProjectorChain {
         if (firstNodeProjector != null) {
             firstNodeProjector.finish();
         }
+    }
+
+    public ScoreDocMerger scoreDocMerger(Ordering<Row> ordering) {
+        if (scoreDocMerger == null) {
+            scoreDocMerger = new ScoreDocMerger(firstNodeProjector, ordering);
+        }
+        return scoreDocMerger;
     }
 }
