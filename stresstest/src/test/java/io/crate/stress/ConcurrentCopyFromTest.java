@@ -24,28 +24,28 @@ package io.crate.stress;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLResponse;
-import io.crate.concurrent.Threaded;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import java.util.Iterator;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLRequest;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.junit.Before;
+
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 3, numClientNodes = 0, scope = ElasticsearchIntegrationTest.Scope.SUITE)
-public class ConcurrentCopyFromTest extends AbstractIntegrationStressTest {
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE)
+public class ConcurrentCopyFromTest extends SQLTransportIntegrationTest {
 
-    private Iterator<String> tableSources;
-
-    @Override
+    @Before
     public void prepareFirst() throws Exception {
-        tableSources = ImmutableList.of(
-                ConcurrentCopyFromTest.class.getResource("/setup/data/concurrent_copy_from_0.json.gz").getPath(),
-                ConcurrentCopyFromTest.class.getResource("/setup/data/concurrent_copy_from_3.json.gz").getPath()
-        ).iterator();
         execute("DROP TABLE IF EXISTS concurrent_cp");
         execute("CREATE TABLE concurrent_cp\n" +
                 "(\n" +
@@ -65,22 +65,36 @@ public class ConcurrentCopyFromTest extends AbstractIntegrationStressTest {
         ensureGreen();
     }
 
-    @Override
-    public void cleanUpLast() throws Exception {
-        Thread.sleep(2000);
-    }
-
     @Repeat(iterations=10)
-    @Threaded(count=2)
-    @TestLogging("org.elasticsearch.action.bulk:TRACE,org.elasticsearch.action.index:TRACE")
     @Test
     public void testConcurrentCopyFrom() throws Exception {
-        String source;
-        synchronized (this) {
-            source = tableSources.next();
+        ThreadPoolExecutor executor = EsExecutors.newFixed(2, 2, EsExecutors.daemonThreadFactory("COPY FROM"));
+        final Iterator<Client> clientIt = cluster().iterator();
+        try {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    SQLResponse response = clientIt.next().execute(SQLAction.INSTANCE, new SQLRequest("COPY concurrent_cp FROM ? with (shared=true, compression='gzip', bulk_size=100)", new Object[]{
+                            getClass().getResource("/setup/data/concurrent_copy_from_0.json.gz").getPath()
+                    })).actionGet(TimeValue.timeValueMinutes(4));
+                    System.out.println(String.format("ROWS: %s DURATION: %s", response.rowCount(), response.duration()));
+                }
+            });
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    SQLResponse response = clientIt.next().execute(SQLAction.INSTANCE, new SQLRequest("COPY concurrent_cp FROM ? with (shared=true, compression='gzip', bulk_size=100)", new Object[]{
+                            getClass().getResource("/setup/data/concurrent_copy_from_3.json.gz").getPath()
+                    })).actionGet(TimeValue.timeValueMinutes(4));
+                    System.out.println(String.format("ROWS: %s DURATION: %s", response.rowCount(), response.duration()));
+                }
+            });
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            executor.shutdownNow();
         }
-        execute("COPY concurrent_cp FROM ? with (compression='gzip', bulk_size=100)", new Object[]{
-            source
-        }, TimeValue.timeValueMinutes(4));
     }
 }

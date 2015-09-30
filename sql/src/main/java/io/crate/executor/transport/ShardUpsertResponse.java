@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.bulk.BulkProcessorResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -82,6 +83,15 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
             out.writeString(id);
             out.writeString(message);
             out.writeBoolean(versionConflict);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("id", id)
+                    .add("message", message)
+                    .add("versionConflict", versionConflict)
+                    .toString();
         }
     }
      

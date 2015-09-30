@@ -24,24 +24,29 @@ package org.elasticsearch.action.bulk;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.RowShardResolver;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -50,11 +55,11 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.node.NodeClosedException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -65,11 +70,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
+public class BulkShardProcessor<Request extends ShardUpsertRequest, Response extends ShardUpsertResponse> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
     public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
             .put("action.auto_create_index", true).build());
+
+    public static final TimeValue WAIT_FOR_SHARDS_TIMEOUT = TimeValue.timeValueSeconds(10);
 
     private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
@@ -187,10 +194,15 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
     @Nullable
     private ShardId shardId(String indexName, String id, @Nullable String routing) {
+        return shardId(clusterService.state(), indexName, id, routing);
+    }
+
+    @Nullable
+    private ShardId shardId(ClusterState clusterState, String indexName, String id, @Nullable String routing) {
         ShardId shardId = null;
         try {
             shardId = clusterService.operationRouting().indexShards(
-                    clusterService.state(),
+                    clusterState,
                     indexName,
                     Constants.DEFAULT_MAPPING_TYPE,
                     id,
@@ -202,6 +214,41 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
             }
         }
         return shardId;
+    }
+
+    private ListenableFuture<ShardId> getShardIdFuture(final String indexName, final String id, @Nullable final String routing) {
+        final ShardId shardId = shardId(indexName, id, routing);
+        if (shardId == null) {
+            final SettableFuture<ShardId> shardIdFuture = SettableFuture.create();
+            clusterService.add(WAIT_FOR_SHARDS_TIMEOUT, new TimeoutClusterStateListener() {
+                @Override
+                public void postAdded() {
+                    // ignore
+                }
+
+                @Override
+                public void onClose() {
+                    setFailure(new NodeClosedException(clusterService.localNode()));
+                }
+
+                @Override
+                public void onTimeout(TimeValue timeout) {
+                    LOGGER.error("timeout while waiting for shard to get ready");
+                }
+
+                @Override
+                public void clusterChanged(ClusterChangedEvent event) {
+                    ShardId localShardId = shardId(event.state(), indexName, id, routing);
+                    if (localShardId != null) {
+                        shardIdFuture.set(localShardId);
+                        clusterService.remove(this);
+                    }
+                }
+            });
+            return shardIdFuture;
+        } else {
+            return Futures.immediateFuture(shardId);
+        }
     }
 
     private void partitionRequestByShard(ShardId shardId,
@@ -347,13 +394,22 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
                 @Override
                 public void onSuccess(@Nullable Void result) {
                     RowN row = null;
+                    //noinspection ThrowableResultOfMethodCallIgnored
                     if (failure.get() != null) {
                         return;
                     }
-                    for (PendingRequest pendingRequest : pendings) {
+                    for (final PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
-                        ShardId shardId = shardId(pendingRequest.indexName,
-                                pendingRequest.id, pendingRequest.routing);
+                        // block if shard is not available yet
+                        ShardId shardId;
+                        try {
+                            shardId = getShardIdFuture(pendingRequest.indexName,
+                                    pendingRequest.id, pendingRequest.routing).get(WAIT_FOR_SHARDS_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                            LOGGER.error("error while waiting for shardId", e);
+                            onFailure(e);
+                            return;
+                        }
                         if (row == null) {
                             row = new RowN(pendingRequest.row);
                         } else {
@@ -399,8 +455,14 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest, Response e
 
         for (int i = 0; i < response.itemIndices().size(); i++) {
             int location = response.itemIndices().get(i);
+            ShardUpsertResponse.Response innerResp = response.responses().get(i);
+            if (innerResp == null) {
+                ShardUpsertResponse.Failure failure = response.failures().get(i);
+                // TODO: maybe remove later, when we are super-stable
+                LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
+            }
             synchronized (responsesLock) {
-                responses.set(location, response.responses().get(i) != null);
+                responses.set(location, innerResp != null);
             }
         }
         setResultIfDone(response.itemIndices().size());

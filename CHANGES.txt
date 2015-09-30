@@ -4,10 +4,13 @@ Changes for Crate
 
 Unreleased
 ==========
- 
- - Fixed a bug that causes a NaN response on _score system column in select statement 
+
+ - Fix: Prevent NPE in COPY FROM and INSERT FROM SUBQUERY queries
+   when newly created shards are not available yet
+
+ - Fixed a bug that causes a NaN response on _score system column in select statement
    that uses an ORDER BY clause
- 
+
  - Fix: in some rare cases tables were not updated on every node after table
    schema changes
 
