@@ -205,7 +205,6 @@ public class ShardCollectSource implements CollectSource {
             }
 
             for (Integer shardId : entry.getValue()) {
-                SharedShardContext context = sharedShardContexts.getOrCreateContext(new ShardId(indexName, shardId));
                 Injector shardInjector;
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
@@ -214,7 +213,6 @@ public class ShardCollectSource implements CollectSource {
                             collectPhase,
                             projectorChain,
                             jobCollectContext,
-                            context.readerId(),
                             batchSizeHint
                     );
                     crateCollectors.add(collector);

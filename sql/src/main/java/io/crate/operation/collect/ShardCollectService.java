@@ -39,7 +39,6 @@ import io.crate.operation.collect.collectors.OrderedCrateDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
-import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -137,7 +136,6 @@ public class ShardCollectService {
     public CrateCollector getDocCollector(CollectPhase collectNode,
                                           ShardProjectorChain projectorChain,
                                           JobCollectContext jobCollectContext,
-                                          int jobSearchContextId,
                                           int pageSize) throws Exception {
         CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
         RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
@@ -152,7 +150,7 @@ public class ShardCollectService {
         } else {
             return getLuceneIndexCollector(
                     threadPool,
-                    normalizedCollectNode, downstream, jobCollectContext, jobSearchContextId, pageSize);
+                    normalizedCollectNode, downstream, jobCollectContext, pageSize);
         }
     }
 
@@ -177,7 +175,6 @@ public class ShardCollectService {
                                                    final CollectPhase collectNode,
                                                    final RowReceiver downstream,
                                                    final JobCollectContext jobCollectContext,
-                                                   final int jobSearchContextId,
                                                    int pageSize) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
@@ -185,12 +182,12 @@ public class ShardCollectService {
         CrateSearchContext searchContext = null;
         try {
              searchContext = searchContextFactory.createContext(
-                    jobSearchContextId,
+                    sharedShardContext.readerId(),
                     indexShard,
                     searcher,
                     collectNode.whereClause()
             );
-            jobCollectContext.addSearchContext(jobSearchContextId, searchContext);
+            jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
             if (collectNode.orderBy() != null) {

@@ -188,7 +188,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
         return shardCollectService.getDocCollector(
-                node, projectorChain, jobCollectContext, 0, pageSize);
+                node, projectorChain, jobCollectContext, pageSize);
     }
 
     private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
@@ -504,7 +504,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         JobCollectContext jobCollectContext = jobContextService.getContext(node.jobId()).getSubContext(node.executionPhaseId());
         CrateCollector collector = shardCollectService.getDocCollector(
-                node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
+                node, projectorChain, jobCollectContext, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();
         assertThat(rowReceiver.rows.size(), is(8));
@@ -534,7 +534,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         orderBy = new OrderBy(ImmutableList.<Symbol>of(x, y), new boolean[]{false, false}, new Boolean[]{false, true});
         node.orderBy(orderBy);
         collector = shardCollectService.getDocCollector(
-                node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
+                node, projectorChain, jobCollectContext, PAGE_SIZE);
         collector.doCollect();
         jobCollectContext.close();
 

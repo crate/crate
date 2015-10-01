@@ -230,7 +230,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
-        return shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, 0, PAGE_SIZE);
+        return shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, PAGE_SIZE);
     }
 
     @Override
