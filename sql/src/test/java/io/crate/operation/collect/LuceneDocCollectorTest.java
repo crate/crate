@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.analyze.OrderBy;
@@ -90,7 +91,6 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private final static Integer NUMBER_OF_DOCS = 10_000;
     private OrderBy orderBy;
     private JobContextService jobContextService;
-    private ShardCollectService shardCollectService;
 
     private CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
@@ -100,6 +100,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private MapSideDataCollectOperation collectOperation;
+    private Routing routing;
 
     @Before
     public void prepare() throws Exception{
@@ -113,10 +115,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         IndicesService instanceFromNode = internalCluster().getDataNodeInstance(IndicesService.class);
         IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
 
-        shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
+        collectOperation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
         jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
 
-        ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "countryName");
+        TableIdent tableIdent = new TableIdent("doc", "countries");
+
+        routing = internalCluster().getDataNodeInstance(Schemas.class).getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null);
+        ReferenceIdent ident = new ReferenceIdent(tableIdent, "countryName");
         Reference ref = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
         orderBy = new OrderBy(ImmutableList.of((Symbol) ref), new boolean[]{false}, new Boolean[]{false});
     }
@@ -168,7 +173,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 jobId,
                 0,
                 "collect",
-                mock(Routing.class),
+                routing,
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),
@@ -178,17 +183,17 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         node.orderBy(orderBy);
         node.limit(limit);
 
-        ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
-        when(projectorChain.newShardDownstreamProjector(any(ProjectionToProjectorVisitor.class))).thenReturn(projector);
-
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(
-                internalCluster().getDataNodeInstance(IndicesService.class));
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        jobCollectContext = new JobCollectContext(node, mock(MapSideDataCollectOperation.class), RAM_ACCOUNTING_CONTEXT, projector, sharedShardContexts);
+        jobCollectContext = new JobCollectContext(node, collectOperation, RAM_ACCOUNTING_CONTEXT, projector, sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
-        return shardCollectService.getDocCollector(
-                node, projectorChain, jobCollectContext, pageSize);
+
+        return Iterables.getOnlyElement(collectOperation.createCollectors(
+                node,
+                projector,
+                jobCollectContext
+        ));
     }
 
     private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> toCollect, WhereClause whereClause, int pageSize) throws Exception{
@@ -438,7 +443,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         );
 
         OrderBy orderBy = new OrderBy(ImmutableList.of((Symbol)scalarFunction), new boolean[]{false}, new Boolean[]{false});
-        CrateCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol)population));
+        CrateCollector docCollector = createDocCollector(orderBy, null, ImmutableList.of((Symbol) population));
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(((Integer) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]), is(1) );
