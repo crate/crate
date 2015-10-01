@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -37,14 +38,15 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Paging;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.Projector;
+import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.SortingTopNProjector;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
@@ -63,7 +65,6 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -72,8 +73,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -103,7 +102,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
 
     private JobContextService jobContextService;
-    private ShardCollectService shardCollectService;
     private OrderBy orderBy;
     private CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
     private Reference reference;
@@ -112,6 +110,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
     private JobCollectContext jobCollectContext;
     private IndicesService indicesService;
+    private String node;
 
 
     public class PausingCollectingRowReceiver extends CollectingRowReceiver {
@@ -149,17 +148,16 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public void setUp() throws Exception {
         super.setUp();
 
-        IndexService indexService;
         try {
             indicesService = CLUSTER.getInstance(IndicesService.class, NODE2);
-            indexService = indicesService .indexServiceSafe(INDEX_NAME);
+            indicesService.indexServiceSafe(INDEX_NAME);
+            node = NODE2;
         } catch (IndexMissingException e) {
-            indicesService  = CLUSTER.getInstance(IndicesService.class, NODE1);
-            indexService = indicesService .indexServiceSafe(INDEX_NAME);
+            indicesService = CLUSTER.getInstance(IndicesService.class, NODE1);
+            node = NODE1;
         }
 
-        shardCollectService = indexService.shardInjectorSafe(0).getInstance(ShardCollectService.class);
-        jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
+        jobContextService = CLUSTER.getInstance(JobContextService.class, node);
 
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
         reference = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
@@ -195,42 +193,31 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
 
     private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, RowReceiver rowReceiver, List<Symbol> input) throws Exception{
         UUID jobId = UUID.randomUUID();
-        CollectPhase node = new CollectPhase(
+        CollectPhase collectPhase = new CollectPhase(
                 jobId,
                 0,
                 "collect",
-                null,
+                CLUSTER.getInstance(Schemas.class).getTableInfo(new TableIdent(null, INDEX_NAME)).getRouting(WhereClause.MATCH_ALL, null),
                 RowGranularity.DOC,
                 input,
                 ImmutableList.<Projection>of(), WhereClause.MATCH_ALL,
                 DistributionType.BROADCAST
         );
-        node.orderBy(orderBy);
-        node.limit(limit);
-
-        RowDownstream rowDownstream;
-        if (orderBy != null && orderBy.isSorted()) {
-            rowDownstream = new BlockingSortingQueuedRowDownstream(
-                    rowReceiver,
-                    Math.max(orderBy.orderBySymbols().size(), input.size()),
-                    OrderByPositionVisitor.orderByPositions(node.toCollect(), orderBy.orderBySymbols()),
-                    orderBy.reverseFlags(),
-                    orderBy.nullsFirst()
-            );
-        } else {
-            rowDownstream = new SynchronizingPassThroughRowMerger(rowReceiver);
-        }
-        ShardProjectorChain projectorChain = mock(ShardProjectorChain.class);
-        Mockito.when(projectorChain.newShardDownstreamProjector(Matchers.any(ProjectionToProjectorVisitor.class))).thenReturn(rowDownstream.newRowReceiver());
+        collectPhase.orderBy(orderBy);
+        collectPhase.limit(limit);
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
+        MapSideDataCollectOperation collectOperation = CLUSTER.getInstance(MapSideDataCollectOperation.class, node);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-        jobCollectContext = new JobCollectContext(node,
-                CLUSTER.getInstance(MapSideDataCollectOperation.class),
-                RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts);
+
+        jobCollectContext = new JobCollectContext(collectPhase,
+                collectOperation,
+                RAM_ACCOUNTING_CONTEXT,
+                rowReceiver,
+                sharedShardContexts);
         builder.addSubContext(jobCollectContext);
         jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
-        return shardCollectService.getDocCollector(node, projectorChain, jobCollectContext, PAGE_SIZE);
+        return Iterables.getOnlyElement(collectOperation.createCollectors(collectPhase, rowReceiver, jobCollectContext));
     }
 
     @Override
