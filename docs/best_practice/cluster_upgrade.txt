@@ -124,11 +124,9 @@ The ``crate`` process supports multiple signals (see :ref:`cli_signals`) that in
 
   sh$ kill -USR2 `cat /path/to/crate.pid`
 
-Depending on your installation you can make use of the init script.
+.. note::
 
-E.g. ::
-
-  sh$ service crate graceful-stop
+  If your system uses SysVinit (e.g. Debian Wheezy), you can also use ``service crate graceful-stop``.
 
 Depending on the size of your cluster this might take a while.
 You might want to check your server logs to see if the graceful stop
