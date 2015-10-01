@@ -101,11 +101,11 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
 
     @Override
     public boolean isCancelled() {
-        throw new UnsupportedOperationException("Not supported, use closed() instead");
+        return internalFuture.isCancelled();
     }
 
     @Override
     public boolean isDone() {
-        throw new UnsupportedOperationException("Not supported, use closed() instead");
+        return closed();
     }
 }
