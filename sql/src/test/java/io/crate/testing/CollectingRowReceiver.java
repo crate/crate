@@ -33,6 +33,7 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,9 +97,13 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     public Bucket result() throws Exception {
+        return result(TimeValue.timeValueSeconds(10L));
+    }
+
+    public Bucket result(TimeValue timeout) throws Exception {
         // always timeout, don't want tests to get stuck
         try {
-            return resultFuture.get(10, TimeUnit.SECONDS);
+            return resultFuture.get(timeout.millis(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException | UncheckedExecutionException e) {
             Throwable cause = e.getCause();
             if (cause == null) {
