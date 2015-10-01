@@ -26,7 +26,9 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -37,9 +39,7 @@ import io.crate.operation.collect.collectors.OrderedCrateDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
-import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.symbol.Literal;
@@ -49,7 +49,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -81,27 +80,25 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
-                               MapperService mapperService) {
+                               CrateDocIndexService crateDocIndexService) {
         this.searchContextFactory = searchContextFactory;
         this.threadPool = threadPool;
         this.shardId = shardId;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
-        ReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : new LuceneReferenceResolver(mapperService));
-        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
-                functions,
-                resolver
-        );
+        NestedReferenceResolver shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
+        docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
+
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                (isBlobShard ? blobShardReferenceResolver :referenceResolver),
+                shardResolver,
                 functions,
                 RowGranularity.SHARD
         );
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                (isBlobShard ? blobShardReferenceResolver : referenceResolver)
+                shardResolver
         );
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,

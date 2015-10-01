@@ -30,6 +30,8 @@ import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
+import io.crate.lucene.CrateDocIndexService;
+import io.crate.lucene.CrateIndexModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
@@ -143,6 +145,7 @@ public class SQLPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(ArrayMapperIndexModule.class);
+            modules.add(CrateIndexModule.class);
         }
         return modules;
     }
