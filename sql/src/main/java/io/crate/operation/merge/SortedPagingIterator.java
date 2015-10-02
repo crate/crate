@@ -67,7 +67,7 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
     }
 
     @Override
-    public Iterator<T> repeat() {
+    public Iterable<T> repeat() {
         return mergingIterator.repeat();
     }
 
