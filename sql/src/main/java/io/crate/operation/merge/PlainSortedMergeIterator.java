@@ -110,7 +110,7 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
     }
 
     @Override
-    public Iterator<T> repeat() {
+    public Iterable<T> repeat() {
         throw new UnsupportedOperationException("cannot repeat with " + getClass().getSimpleName());
     }
 
