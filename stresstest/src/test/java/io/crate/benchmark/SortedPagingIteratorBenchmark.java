@@ -39,7 +39,6 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Iterator;
 
 import static io.crate.testing.TestingHelpers.range;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -97,12 +96,8 @@ public class SortedPagingIteratorBenchmark {
         assertThat(size1, is(3_000_000));
 
         for (int i = 0; i < NUM_REPEATS; i++) {
-            Iterator<Row> repeatIter = iterator.repeat();
-            int size2 = 0;
-            while (repeatIter.hasNext()) {
-                repeatIter.next();
-                size2++;
-            }
+            Iterable<Row> repeatIter = iterator.repeat();
+            int size2 = Iterables.size(repeatIter);
             assertThat(size2, is(3_000_000));
         }
 

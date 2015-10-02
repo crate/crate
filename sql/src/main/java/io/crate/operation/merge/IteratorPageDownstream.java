@@ -95,7 +95,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
             LOGGER.trace("received repeat: {}", rowReceiver);
 
             paused.set(false);
-            if (processBuckets(pagingIterator.repeat(), PageConsumeListener.NO_OP_LISTENER)) {
+            if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
                 consumeRemaining();
             }
             rowReceiver.finish();
