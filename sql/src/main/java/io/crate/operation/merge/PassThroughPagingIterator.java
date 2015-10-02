@@ -85,12 +85,12 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     }
 
     @Override
-    public Iterator<T> repeat() {
+    public Iterable<T> repeat() {
         Iterable<T> repeatMe = storedForRepeat;
         if (repeatMe == null) {
             repeatMe = Iterables.concat(this.iterables.build());
             this.storedForRepeat = repeatMe;
         }
-        return repeatMe.iterator();
+        return repeatMe;
     }
 }

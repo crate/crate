@@ -35,5 +35,5 @@ public interface SortedMergeIterator<T> extends Iterator<T> {
     void merge(Iterable<? extends NumberedIterable<T>> iterables);
     boolean isLeastExhausted();
     int exhaustedIterable();
-    Iterator<T> repeat();
+    Iterable<T> repeat();
 }

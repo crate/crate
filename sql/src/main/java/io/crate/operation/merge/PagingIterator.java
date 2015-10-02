@@ -40,8 +40,8 @@ public interface PagingIterator<T> extends Iterator<T> {
     int exhaustedIterable();
 
     /**
-     * create an iterator to repeat the previous iteration
-     * @return an iterator that will iterate through the already emitted items and emit them again in the same order as before
+     * create an iterable to repeat the previous iteration
+     * @return an iterable that will iterate through the already emitted items and emit them again in the same order as before
      */
-    Iterator<T> repeat();
+    Iterable<T> repeat();
 }

@@ -135,7 +135,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
         assertThat(rows.toString(), is("[a, b, c, d, e, f, m, n, o, x, y, z]"));
 
         List<Object> replayedRows = new ArrayList<>();
-        consumeSingleColumnRows(pagingIterator.repeat(), replayedRows);
+        consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
         assertThat(rows, is(replayedRows));
     }
 
