@@ -211,6 +211,46 @@ public class RelationSplitterTest {
     }
 
     @Test
+    public void testQuerySpecSplitNoRelationQuery() throws Exception {
+        /**
+         * verify that:
+         *
+         *      t1.y + t2.x = 3 is in "remaining query"
+         *      and both t1.y, t2.x are added to the outputs of t1 / t2
+         */
+        Symbol query = asSymbol("t1.y + t2.x = 3");
+        WhereClause whereClause = new WhereClause(query);
+        Field t1x = new Field(tr1, new ColumnIdent("x"), DataTypes.INTEGER);
+
+        QuerySpec querySpec = new QuerySpec()
+                .outputs(Arrays.<Symbol>asList(t1x))
+                .where(whereClause)
+                .limit(30);
+
+        QueriedTableRelation queriedTable1 = newSubRelation(tr1, querySpec);
+        assertThat(queriedTable1.querySpec().where().query(), is(WhereClause.MATCH_ALL.query()));
+        assertThat(queriedTable1.querySpec().outputs().size(), is(2));
+        assertThat(queriedTable1.querySpec().outputs().get(0), isField("x"));
+        assertThat(queriedTable1.querySpec().outputs().get(1), isField("y"));
+
+        QueriedTableRelation queriedTable2 = newSubRelation(tr2, querySpec);
+        assertThat(queriedTable2.querySpec().where().query(), is(WhereClause.MATCH_ALL.query()));
+        assertThat(queriedTable2.querySpec().outputs().size(), is(1));
+        assertThat(queriedTable2.querySpec().outputs().get(0), isField("x"));
+
+        Function remainingQuery = (Function)normalizer.normalize(querySpec.where().query());
+        assertThat(remainingQuery, isFunction(EqOperator.NAME));
+        assertThat(remainingQuery.arguments().get(0), isFunction(AddFunction.NAME));
+        assertThat(remainingQuery.arguments().get(1), isLiteral(3L));
+
+        Function addFunction = (Function) remainingQuery.arguments().get(0);
+        Symbol firstArg = addFunction.arguments().get(0);
+        assertThat(firstArg, isField("y"));
+        Symbol secondArg = addFunction.arguments().get(1);
+        assertThat(secondArg, isField("x"));
+    }
+
+    @Test
     public void testSplitQuerySpecOutputsOnly() throws Exception {
         TableRelation tr1 = new TableRelation(mock(TableInfo.class));
         TableRelation tr2 = new TableRelation(mock(TableInfo.class));
