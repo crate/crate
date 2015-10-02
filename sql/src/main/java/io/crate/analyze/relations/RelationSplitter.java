@@ -105,13 +105,12 @@ public class RelationSplitter {
         if (splitQueries.relationQuery() != null) {
             splitQuerySpec.where(new WhereClause(splitQueries.relationQuery()));
             querySpec.where(new WhereClause(splitQueries.remainingQuery()));
-
-            SplitContext splitContext = splitForRelation(analyzedRelation, splitQueries.remainingQuery());
-            assert splitContext.directSplit.isEmpty();
-            splitOutputs.addAll(splitContext.mixedSplit);
         } else {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
+        SplitContext splitContext = splitForRelation(analyzedRelation, splitQueries.remainingQuery());
+        assert splitContext.directSplit.isEmpty();
+        splitOutputs.addAll(splitContext.mixedSplit);
     }
 
     private static void splitOrderBy(AnalyzedRelation analyzedRelation,
@@ -125,6 +124,7 @@ public class RelationSplitter {
         if (!splitContext.directSplit.isEmpty()) {
             rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
         }
+        addAllNew(splitOutputs, splitContext.directSplit);
     }
 
     /**
