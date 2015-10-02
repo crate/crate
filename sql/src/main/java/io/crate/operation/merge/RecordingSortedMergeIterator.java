@@ -122,9 +122,14 @@ class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements
         return exhausted;
     }
 
-    public Iterator<T> repeat() {
+    public Iterable<T> repeat() {
         // TODO: make defensive copies?
-        return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, TO_ITERATOR));
+        return new Iterable<T>() {
+            @Override
+            public Iterator<T> iterator() {
+                return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, TO_ITERATOR));
+            }
+        };
     }
 
     static class ReplayingIterator<T> extends AbstractIterator<T> {
