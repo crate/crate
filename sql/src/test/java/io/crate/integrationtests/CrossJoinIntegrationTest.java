@@ -78,6 +78,39 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testFilteredSelfJoin() throws Exception {
+        execute("create table employees (salary float, name string)");
+        ensureYellow();
+        execute("insert into employees (salary, name) values (200, 'Trillian'), (600, 'Ford Perfect'), (800, 'Douglas Adams')");
+        execute("refresh table employees");
+
+        execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less where more.salary > less.salary "+
+                "order by more.salary desc, less.salary desc");
+        assertThat(printedTable(response.rows()), is("" +
+                                                     "Douglas Adams| Ford Perfect| 200.0\n" +
+                                                     "Douglas Adams| Trillian| 600.0\n" +
+                                                     "Ford Perfect| Trillian| 400.0\n"));
+    }
+
+    @Test
+    public void testFilteredJoin() throws Exception {
+        execute("create table employees (size float, name string)");
+        execute("create table offices (height float, name string)");
+        ensureYellow();
+        execute("insert into employees (size, name) values (1.5, 'Trillian'), (1.3, 'Ford Perfect'), (1.96, 'Douglas Adams')");
+        execute("insert into offices (height, name) values (1.5, 'Hobbit House'), (1.6, 'Entresol'), (2.0, 'Chief Office')");
+        execute("refresh table employees, offices");
+
+        // which employee fits in which office?
+        execute("select employees.name, offices.name from employees, offices " +
+                "where size < height order by height - size limit 3");
+        assertThat(printedTable(response.rows()), is("" +
+                                                     "Douglas Adams| Chief Office\n" +
+                                                     "Trillian| Entresol\n" +
+                                                     "Ford Perfect| Hobbit House\n"));
+    }
+
+    @Test
     public void testCrossJoinWithFunction() throws Exception {
         execute("create table t1 (price float)");
         execute("create table t2 (price float)");

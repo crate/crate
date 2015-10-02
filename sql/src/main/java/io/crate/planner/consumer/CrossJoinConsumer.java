@@ -31,11 +31,13 @@ import io.crate.analyze.relations.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -106,10 +108,6 @@ public class CrossJoinConsumer implements Consumer {
 
             WhereClause where = statement.querySpec().where();
             OrderBy orderBy = statement.querySpec().orderBy();
-            if (where.hasQuery() && !(where.query() instanceof Literal)) {
-                throw new UnsupportedOperationException("JOIN condition in the WHERE clause is not supported");
-            }
-
             boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();
             if (hasRemainingOrderBy) {
                 for (QueriedTableRelation queriedTable : queriedTables) {
@@ -121,7 +119,8 @@ public class CrossJoinConsumer implements Consumer {
 
             // TODO: replace references with docIds.. and add fetch projection
 
-            NestedLoop nl = toNestedLoop(queriedTables, context);
+            boolean filteredDistributedNL = where.hasQuery() && !(where.query() instanceof Literal);
+            NestedLoop nl = toNestedLoop(queriedTables, context, filteredDistributedNL);
             List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
 
             /**
@@ -156,6 +155,12 @@ public class CrossJoinConsumer implements Consumer {
              * #3 Apply Limit and remaining Order by
              */
             List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTablesOutputs);
+            if (filteredDistributedNL) {
+                Symbol filter = replaceFieldsWithInputColumns(where.query(), queriedTablesOutputs);
+                FilterProjection filterProjection = new FilterProjection(filter, postOutputs);
+                nl.addProjection(filterProjection);
+            }
+
             TopNProjection topNProjection;
 
             int rootLimit = MoreObjects.firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
@@ -206,6 +211,38 @@ public class CrossJoinConsumer implements Consumer {
             return INPUT_COLUMN_PRODUCER.process(symbol, new InputColumnProducerContext(inputSymbols));
         }
 
+        private MergePhase localHandlerMerge(ConsumerContext context,
+                                             Set<String> localExecutionNodes,
+                                             UUID jobId,
+                                             QueriedTableRelation leftRelation,
+                                             QueriedTableRelation rightRelation,
+                                             List<Symbol> leftOutputs,
+                                             OrderBy leftOrderBy,
+                                             NestedLoopPhase nestedLoopPhase) {
+            MergePhase localMerge;
+            if (OrderBy.isSorted(leftOrderBy) || OrderBy.isSorted(rightRelation.querySpec().orderBy())) {
+                List<Symbol> outputs = new ArrayList<>(leftOutputs);
+                outputs.addAll(rightRelation.querySpec().outputs());
+                localMerge = MergePhase.sortedMerge(
+                        jobId,
+                        context.plannerContext().nextExecutionPhaseId(),
+                        mergedOrderBy(leftRelation, rightRelation),
+                        outputs,
+                        null,
+                        ImmutableList.<Projection>of(),
+                        nestedLoopPhase
+                );
+            } else {
+                localMerge = MergePhase.localMerge(
+                        jobId,
+                        context.plannerContext().nextExecutionPhaseId(),
+                        ImmutableList.<Projection>of(),
+                        nestedLoopPhase);
+            }
+            localMerge.executionNodes(localExecutionNodes);
+            return localMerge;
+        }
+
         /**
          * build a nested loop tree:
          *
@@ -218,7 +255,7 @@ public class CrossJoinConsumer implements Consumer {
          *   \  /
          *    NL
          */
-        private NestedLoop toNestedLoop(List<QueriedTableRelation> queriedTables, ConsumerContext context) {
+        private NestedLoop toNestedLoop(List<QueriedTableRelation> queriedTables, ConsumerContext context, boolean isDistributed) {
             assert queriedTables.size() > 1 : "must have at least 2 tables to create a nestedLoop";
 
             Iterator<QueriedTableRelation> iterator = queriedTables.iterator();
@@ -241,6 +278,9 @@ public class CrossJoinConsumer implements Consumer {
                     leftOutputs = leftRelation.querySpec().outputs();
                     leftOrderBy = leftRelation.querySpec().orderBy();
                     leftPlan = consumingPlanner.plan(leftRelation, context);
+                    if (isDistributed) {
+                        leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                    }
                     assert leftPlan != null;
                 } else {
                     leftOutputs = new ArrayList<>(leftRelation.querySpec().outputs());
@@ -248,35 +288,64 @@ public class CrossJoinConsumer implements Consumer {
                     leftOrderBy = mergedOrderBy(leftRelation, rightRelation);
                     leftPlan = nl;
                 }
-                MergePhase leftMerge = mergePhase(
-                        context,
-                        localExecutionNodes,
-                        leftPlan.resultNode(),
-                        leftOutputs,
-                        leftOrderBy
-                );
+                MergePhase leftMerge = null;
+                if (!isDistributed) {
+                    leftMerge = mergePhase(
+                            context,
+                            localExecutionNodes,
+                            leftPlan.resultNode(),
+                            leftOutputs,
+                            isDistributed,
+                            leftOrderBy
+                    );
+                }
+
                 rightRelation = iterator.next();
                 PlannedAnalyzedRelation rightPlan = consumingPlanner.plan(rightRelation, context);
                 assert rightPlan != null;
-                MergePhase rightMerge = mergePhase(
-                        context,
-                        localExecutionNodes,
-                        rightPlan.resultNode(),
-                        rightRelation.querySpec().outputs(),
-                        rightRelation.querySpec().orderBy()
-                );
+                MergePhase rightMerge;
+                if (isDistributed && rightPlan.resultNode().executionNodes().size() == 1
+                    && leftPlan.resultNode().executionNodes().equals(rightPlan.resultNode().executionNodes())) {
+                    // if the left and the right plan are executed on the same single node the mergePhase
+                    // should be omitted. This is the case if the left and right table have only one shards which
+                    // are on the same node
+                    rightMerge = null;
+                } else {
+                    rightMerge = mergePhase(
+                            context,
+                            localExecutionNodes,
+                            rightPlan.resultNode(),
+                            rightRelation.querySpec().outputs(),
+                            isDistributed,
+                            rightRelation.querySpec().orderBy()
+                    );
+                }
+                if (isDistributed && rightMerge != null) {
+                    rightMerge.executionNodes(rightPlan.resultNode().executionNodes());
+                } else if (isDistributed) {
+                    rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                }
+                Collection<? extends DataType> leftOutputTypes = isDistributed ? Symbols.extractTypes(leftOutputs) : getOutputTypes(leftMerge, leftOutputs);
+                Set<String> executionNodes = isDistributed ? leftPlan.resultNode().executionNodes() : localExecutionNodes;
                 NestedLoopPhase nestedLoopPhase = new NestedLoopPhase(
                         jobId,
                         context.plannerContext().nextExecutionPhaseId(),
                         "nested-loop",
                         ImmutableList.<Projection>of(),
                         leftMerge,
-                        getOutputTypes(leftMerge, leftOutputs),
+                        leftOutputTypes,
                         rightMerge,
                         getOutputTypes(rightMerge, rightRelation.querySpec().outputs()),
-                        localExecutionNodes
+                        executionNodes
                 );
-                nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, true);
+                if (isDistributed) {
+                    nestedLoopPhase.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                    MergePhase localMerge = localHandlerMerge(
+                            context, localExecutionNodes, jobId, leftRelation, rightRelation, leftOutputs, leftOrderBy, nestedLoopPhase);
+                    nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, localMerge, true);
+                } else {
+                    nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, null, true);
+                }
             }
             return nl;
         }
@@ -297,16 +366,12 @@ public class CrossJoinConsumer implements Consumer {
                                       Set<String> localExecutionNodes,
                                       DQLPlanNode previousPhase,
                                       List<Symbol> previousOutputs,
+                                      boolean isDistributed,
                                       @Nullable OrderBy orderBy) {
-            if (previousPhase.executionNodes().isEmpty()
-                || previousPhase.executionNodes().equals(localExecutionNodes)) {
+            if (!isDistributed && (previousPhase.executionNodes().isEmpty() || previousPhase.executionNodes().equals(localExecutionNodes))) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
                 return null;
-            }
-
-            if (previousPhase instanceof MergePhase && previousPhase.executionNodes().isEmpty()) {
-                ((MergePhase) previousPhase).executionNodes(localExecutionNodes);
             }
             MergePhase mergePhase;
             if (OrderBy.isSorted(orderBy)) {

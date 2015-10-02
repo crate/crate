@@ -44,7 +44,9 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -176,9 +178,23 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
-        plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
+        NestedLoop plan = plan("select u1.details, u2.tags from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.floats");
+
+        assertThat(plan.nestedLoopPhase().projections().size(), is(0));
+        assertThat(plan.resultNode(), is(instanceOf(MergePhase.class)));
+        assertThat(plan.resultNode().projections().size(), is(2));
+        FilterProjection fp = ((FilterProjection) plan.resultNode().projections().get(0));
+
+        assertThat(plan.left().resultNode().outputTypes().size(), is(3));
+        assertThat(plan.right().resultNode().outputTypes().size(), is(2));
+
+        assertThat(((Function)fp.query()).arguments().size(), is(2));
+        assertThat(fp.outputs().size(), is(2));
+
+        TopNProjection topN = ((TopNProjection) plan.resultNode().projections().get(1));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertThat(topN.outputs().size(), is(2));
     }
 
     @Test

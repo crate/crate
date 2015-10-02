@@ -197,6 +197,7 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 new CollectAndMerge(innerLeftCollectPhase, null, jobId),
                 new CollectAndMerge(innerRightCollectPhase, null, jobId),
                 innerNestedLoopPhase,
+                null,
                 false);
 
         // outer nested loop node
@@ -231,6 +232,7 @@ public class TransportExecutorJoinTest extends BaseTransportExecutorTest {
                 innerPlan,
                 new CollectAndMerge(outerRightCollectPhase, null, jobId),
                 outerNestedLoopPhase,
+                null,
                 false
         );
 

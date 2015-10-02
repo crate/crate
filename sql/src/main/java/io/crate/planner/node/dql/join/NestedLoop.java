@@ -23,8 +23,12 @@ package io.crate.planner.node.dql.join;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.common.Nullable;
 
 import java.util.UUID;
 
@@ -59,6 +63,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final PlannedAnalyzedRelation right;
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
+    private final MergePhase localMerge;
 
     private boolean leftOuterLoop = true;
 
@@ -93,12 +98,14 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
                       NestedLoopPhase nestedLoopPhase,
+                      @Nullable MergePhase localMerge,
                       boolean leftOuterLoop) {
         this.jobId = jobId;
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
+        this.localMerge = localMerge;
     }
 
     public PlannedAnalyzedRelation left() {
@@ -127,7 +134,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        nestedLoopPhase.addProjection(projection);
+        resultNode().addProjection(projection);
     }
 
     @Override
@@ -137,7 +144,10 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public DQLPlanNode resultNode() {
-        return nestedLoopPhase;
+        if (localMerge == null) {
+            return nestedLoopPhase;
+        }
+        return localMerge;
     }
 
     @Override
@@ -148,5 +158,18 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        if (localMerge == null) {
+            nestedLoopPhase.distributionInfo(distributionInfo);
+        } else {
+            localMerge.distributionInfo(distributionInfo);
+        }
+    }
+
+    public MergePhase localMerge() {
+        return localMerge;
     }
 }
