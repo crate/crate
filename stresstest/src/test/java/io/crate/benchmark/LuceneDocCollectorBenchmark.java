@@ -26,48 +26,24 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.action.job.SharedShardContexts;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.KeepAliveListener;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.operation.Paging;
-import io.crate.operation.collect.*;
-import io.crate.operation.projectors.Projector;
+import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.SortingTopNProjector;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.types.DataTypes;
+import io.crate.testing.LuceneDocCollectorProvider;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.sort.SortBuilders;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -75,15 +51,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.mock;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
@@ -97,21 +69,9 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
 
-    public static final int PAGE_SIZE = 10_000;
-
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
-
-    private JobContextService jobContextService;
-    private OrderBy orderBy;
     private CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
-    private Reference reference;
-
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
-    private JobCollectContext jobCollectContext;
-    private IndicesService indicesService;
-    private String node;
-
+    private LuceneDocCollectorProvider collectorProvider;
 
     public class PausingCollectingRowReceiver extends CollectingRowReceiver {
 
@@ -143,25 +103,17 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         return true;
     }
 
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        collectorProvider = new LuceneDocCollectorProvider(CLUSTER);
+    }
 
-        try {
-            indicesService = CLUSTER.getInstance(IndicesService.class, NODE2);
-            indicesService.indexServiceSafe(INDEX_NAME);
-            node = NODE2;
-        } catch (IndexMissingException e) {
-            indicesService = CLUSTER.getInstance(IndicesService.class, NODE1);
-            node = NODE1;
-        }
-
-        jobContextService = CLUSTER.getInstance(JobContextService.class, node);
-
-        ReferenceIdent ident = new ReferenceIdent(new TableIdent("doc", "countries"), "continent");
-        reference = new Reference(new ReferenceInfo(ident, RowGranularity.DOC, DataTypes.STRING));
-        orderBy = new OrderBy(ImmutableList.of((Symbol) reference), new boolean[]{false}, new Boolean[]{false});
+    @After
+    public void cleanup() throws Exception {
+        collectorProvider.close();
     }
 
     @Override
@@ -185,39 +137,6 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 " population integer" +
                 ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
-    }
-
-    private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, List<Symbol> input) throws Exception{
-        return createDocCollector(orderBy, limit, collectingRowReceiver, input);
-    }
-
-    private CrateCollector createDocCollector(OrderBy orderBy, Integer limit, RowReceiver rowReceiver, List<Symbol> input) throws Exception{
-        UUID jobId = UUID.randomUUID();
-        CollectPhase collectPhase = new CollectPhase(
-                jobId,
-                0,
-                "collect",
-                CLUSTER.getInstance(Schemas.class).getTableInfo(new TableIdent(null, INDEX_NAME)).getRouting(WhereClause.MATCH_ALL, null),
-                RowGranularity.DOC,
-                input,
-                ImmutableList.<Projection>of(), WhereClause.MATCH_ALL,
-                DistributionType.BROADCAST
-        );
-        collectPhase.orderBy(orderBy);
-        collectPhase.limit(limit);
-
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
-        MapSideDataCollectOperation collectOperation = CLUSTER.getInstance(MapSideDataCollectOperation.class, node);
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
-
-        jobCollectContext = new JobCollectContext(collectPhase,
-                collectOperation,
-                RAM_ACCOUNTING_CONTEXT,
-                rowReceiver,
-                sharedShardContexts);
-        builder.addSubContext(jobCollectContext);
-        jobCollectContext.keepAliveListener(mock(KeepAliveListener.class));
-        return Iterables.getOnlyElement(collectOperation.createCollectors(collectPhase, rowReceiver, jobCollectContext));
     }
 
     @Override
@@ -264,12 +183,19 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
 
+    private CrateCollector createCollector(String stmt, RowReceiver downstream, Object ... args) {
+        return Iterables.getOnlyElement(collectorProvider.createCollectors(stmt, downstream, args));
+    }
+
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception{
         collectingRowReceiver.rows.clear();
-        CrateCollector docCollector = createDocCollector(orderBy, null, orderBy.orderBySymbols());
+        CrateCollector docCollector = createCollector(
+                "SELECT continent FROM countries ORDER by continent",
+                collectingRowReceiver
+        );
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -278,8 +204,10 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithScrollingStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        CrateCollector docCollector = createDocCollector(orderBy, null, rowReceiver, orderBy.orderBySymbols());
-
+        CrateCollector docCollector = createCollector(
+                "SELECT continent FROM countries ORDER BY continent",
+                rowReceiver
+        );
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
             rowReceiver.resumeUpstream(false);
@@ -291,7 +219,10 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception{
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        CrateCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
+        CrateCollector docCollector = createCollector(
+                "select continent from countries order by continent limit ?",
+                rowReceiver,
+                NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         rowReceiver.result(); // call result to make sure there were no errors
     }
@@ -301,7 +232,10 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorOrderedWithoutScrollingStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        CrateCollector docCollector = createDocCollector(orderBy, NUMBER_OF_DOCUMENTS, rowReceiver, orderBy.orderBySymbols());
+        CrateCollector docCollector = createCollector(
+                "select continent from countries order by continent limit ?",
+                rowReceiver,
+                NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
             rowReceiver.resumeUpstream(false);
@@ -309,30 +243,10 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         rowReceiver.result();
     }
 
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testLuceneDocCollectorUnorderedWithTopNProjection() throws Exception{
-       InputCollectExpression expr = new InputCollectExpression(0);
-       Projector topNProjector = new SortingTopNProjector(
-               Collections.singletonList(expr),
-               Collections.<CollectExpression<Row, ?>>singletonList(expr),
-               1,
-               OrderingByPosition.arrayOrdering(0, false, false),
-               NUMBER_OF_DOCUMENTS,
-               0
-        );
-        topNProjector.downstream(collectingRowReceiver);
-        topNProjector.prepare(jobCollectContext);
-        CrateCollector docCollector = createDocCollector(null, null, topNProjector, ImmutableList.of((Symbol) reference));
-        docCollector.doCollect();
-        collectingRowReceiver.result(); // call result to make sure there were no errors
-    }
-
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
-        CrateCollector docCollector = createDocCollector(null, null, ImmutableList.of((Symbol) reference));
+        CrateCollector docCollector = createCollector("SELECT continent FROM countries", collectingRowReceiver);
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -341,7 +255,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        CrateCollector docCollector = createDocCollector(null, null, rowReceiver, ImmutableList.of((Symbol) reference));
+        CrateCollector docCollector = createCollector("SELECT continent FROM countries", rowReceiver);
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
             rowReceiver.resumeUpstream(false);

@@ -22,36 +22,19 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.Iterables;
-import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.SQLBulkRequest;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.Paging;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.Planner;
-import io.crate.planner.consumer.ConsumerContext;
-import io.crate.planner.consumer.QueryAndFetchConsumer;
-import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.sql.parser.SqlParser;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.LuceneDocCollectorProvider;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -61,7 +44,6 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -75,19 +57,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private final static String INDEX_NAME = "countries";
     // use higher value here to be sure multiple segment reader exists during collect (not only 1)
     private final static Integer NUMBER_OF_DOCS = 10_000;
-    private JobContextService jobContextService;
 
     private CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
-    private JobCollectContext jobCollectContext;
+    private LuceneDocCollectorProvider collectorProvider;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private MapSideDataCollectOperation collectOperation;
-    private Analyzer analyzer;
-    private QueryAndFetchConsumer qaf;
     private int originalPageSize;
 
     @Before
@@ -101,21 +77,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 ") clustered into 1 shards with (number_of_replicas=0)");
         refresh();
         generateData();
-        IndicesService instanceFromNode = internalCluster().getDataNodeInstance(IndicesService.class);
-        IndexService indexService = instanceFromNode.indexServiceSafe(INDEX_NAME);
-
-        collectOperation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
-        analyzer = internalCluster().getDataNodeInstance(Analyzer.class);
-        qaf = internalCluster().getDataNodeInstance(QueryAndFetchConsumer.class);
-        jobContextService = indexService.shardInjectorSafe(0).getInstance(JobContextService.class);
+        collectorProvider = new LuceneDocCollectorProvider(internalCluster());
     }
 
     @After
     public void closeContext() throws Exception {
         Paging.PAGE_SIZE = originalPageSize;
-        if (jobCollectContext != null) {
-            jobCollectContext.close();
-        }
+        collectorProvider.close();
     }
 
     private byte[] generateRowSource(String continent, String countryName, Integer population) throws IOException {
@@ -149,24 +117,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object ... args) {
-        Analysis analysis = analyzer.analyze(
-                SqlParser.createStatement(statement), new ParameterContext(args, new Object[0][], null));
-        PlannedAnalyzedRelation plannedAnalyzedRelation = qaf.consume(
-                analysis.rootRelation(),
-                new ConsumerContext(analysis.rootRelation(), new Planner.Context(clusterService(), UUID.randomUUID(), null)));
-        CollectPhase collectPhase = ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase();
-
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(collectPhase.jobId());
-        jobCollectContext = new JobCollectContext(collectPhase, collectOperation, RAM_ACCOUNTING_CONTEXT, rowReceiver, sharedShardContexts);
-        builder.addSubContext(jobCollectContext);
-        jobContextService.createContext(builder);
-
-        return Iterables.getOnlyElement(collectOperation.createCollectors(
-                collectPhase,
-                rowReceiver,
-                jobCollectContext
-        ));
+        return Iterables.getOnlyElement(collectorProvider.createCollectors(statement, rowReceiver, args));
     }
 
 
@@ -404,7 +355,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         CrateCollector collector = createDocCollector("select x, y from test order by x, y", rowReceiver);
         collector.doCollect();
-        jobCollectContext.close();
+        collectorProvider.close();
+
         assertThat(rowReceiver.rows.size(), is(8));
 
         String expected = "1| 0\n" +
@@ -422,7 +374,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         // Nulls first
         collector = createDocCollector("select x, y from test order by x asc nulls last, y asc nulls first", rowReceiver);
         collector.doCollect();
-        jobCollectContext.close();
+        collectorProvider.close();
 
         expected = "1| NULL\n" +
                    "1| NULL\n" +
@@ -440,7 +392,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         CrateCollector docCollector = createDocCollector("select _score from countries where _score >= 1.1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(0));
-        jobCollectContext.close();
+        collectorProvider.close();
 
         // where _score = 1.0
         rowReceiver.rows.clear();
