@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
 import io.crate.core.collections.Row;
+import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.NumberedIterable;
@@ -34,6 +35,8 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.IterableRowEmitter;
+import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -45,7 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-public class MultiShardScoreDocCollector implements CrateCollector {
+public class MultiShardScoreDocCollector implements CrateCollector, ExecutionState {
 
     private static final ESLogger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
 
@@ -82,11 +85,9 @@ public class MultiShardScoreDocCollector implements CrateCollector {
         }, new Runnable() {
             @Override
             public void run() {
-                if (singleShard) {
-                    runWithoutThreads(orderedDocCollectors.get(0));
-                } else {
-                    runThreaded();
-                }
+                IterableRowEmitter rowEmitter =
+                        new IterableRowEmitter(rowReceiver, MultiShardScoreDocCollector.this, pagingIterator.repeat());
+                rowEmitter.run();
             }
         });
         rowReceiver = flatProjectorChain.firstProjector();
@@ -94,12 +95,13 @@ public class MultiShardScoreDocCollector implements CrateCollector {
         this.orderedDocCollectors = orderedDocCollectors;
         singleShard = orderedDocCollectors.size() == 1;
 
+        boolean needsRepeat = rowReceiver.requirements().contains(Requirement.REPEAT);
         if (singleShard) {
-            pagingIterator = PassThroughPagingIterator.oneShot();
+            pagingIterator = needsRepeat ? PassThroughPagingIterator.<Row>repeatable() : PassThroughPagingIterator.<Row>oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {
-            pagingIterator = new SortedPagingIterator<>(rowOrdering, false);
+            pagingIterator = new SortedPagingIterator<>(rowOrdering, needsRepeat);
             futureCallback = new FutureCallback<List<NumberedIterable<Row>>>() {
                 @Override
                 public void onSuccess(@Nullable List<NumberedIterable<Row>> result) {
@@ -241,5 +243,10 @@ public class MultiShardScoreDocCollector implements CrateCollector {
     @Override
     public void kill(@Nullable Throwable throwable) {
         topRowUpstream.kill(throwable);
+    }
+
+    @Override
+    public boolean isKilled() {
+        return topRowUpstream.isKilled();
     }
 }
