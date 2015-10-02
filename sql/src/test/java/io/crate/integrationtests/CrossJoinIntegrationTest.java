@@ -108,6 +108,24 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testOrderByNoneSelectedField() throws Exception {
+        execute("create table colors (name string)");
+        execute("create table articles (price float, name string)");
+        ensureYellow();
+        execute("insert into colors (name) values ('black'), ('grey')");
+        execute("insert into articles (price, name) values (28.3, 'towel'), (40.1, 'cheese')");
+        execute("refresh table colors, articles");
+
+        execute("select colors.name, articles.name from colors, articles order by articles.price, colors.name");
+        assertThat(printedTable(response.rows()), is("" +
+                                                     "black| towel\n" +
+                                                     "grey| towel\n" +
+                                                     "black| cheese\n" +
+                                                     "grey| cheese\n"));
+
+    }
+
+    @Test
     public void testCrossJoinWithoutLimitAndOrderByAndCrossJoinSyntax() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors cross join sizes");
