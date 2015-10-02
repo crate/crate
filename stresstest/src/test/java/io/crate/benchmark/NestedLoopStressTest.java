@@ -33,7 +33,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ListenableRowReceiver;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowCountRowReceiver;
 import io.crate.testing.RowSender;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -170,7 +170,7 @@ public class NestedLoopStressTest {
         Iterable<Row> left = new RowIter(leftSize);
         Iterable<Row> right = new RowIter(rightSize);
 
-        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        RowCountRowReceiver receiver = new RowCountRowReceiver();
         NestedLoopOperation operation = new NestedLoopOperation(receiver);
         ListenableRowReceiver leftSide = operation.leftRowReceiver();
         ListenableRowReceiver rightSide = operation.rightRowReceiver();
@@ -181,7 +181,7 @@ public class NestedLoopStressTest {
         executor.execute(leftRowSender);
         executor.execute(rightRowSender);
         Bucket result = receiver.result(TimeValue.timeValueMinutes(10));
-        assertThat(result.size(), is(leftSize * rightSize));
+        assertThat((Integer)result.iterator().next().get(0), is(leftSize * rightSize));
         return result;
     }
 
