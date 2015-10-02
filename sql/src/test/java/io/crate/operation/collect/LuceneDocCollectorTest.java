@@ -31,10 +31,7 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +39,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 
@@ -73,7 +69,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         execute("create table \"" + INDEX_NAME + "\" (" +
                 " continent string, " +
                 " \"countryName\" string," +
-                " population integer" +
+                " population integer primary key" +
                 ") clustered into 1 shards with (number_of_replicas=0)");
         refresh();
         generateData();
@@ -86,33 +82,18 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         collectorProvider.close();
     }
 
-    private byte[] generateRowSource(String continent, String countryName, Integer population) throws IOException {
-        return XContentFactory.jsonBuilder()
-                .startObject()
-                .field("continent", continent)
-                .field("countryName", countryName)
-                .field("population", population)
-                .endObject()
-                .bytes().toBytes();
-    }
-
     public void generateData() throws Exception {
-        BulkRequest bulkRequest = new BulkRequest();
-        for (int i=0; i < NUMBER_OF_DOCS; i++) {
-            IndexRequest indexRequest = new IndexRequest(INDEX_NAME, "default", String.valueOf(i));
-            if (i == 0) {
-                indexRequest.source(generateRowSource("Europe", "Germany", i));
-            } else if (i == 1) {
-                indexRequest.source(generateRowSource("Europe", "Austria", i));
-            } else if (i >= 2 && i <=4) {
-                indexRequest.source(generateRowSource("Europe", null, i));
-            } else {
-                indexRequest.source(generateRowSource("America", "USA", i));
-            }
-            bulkRequest.add(indexRequest);
+        Object[][] args = new Object[NUMBER_OF_DOCS][];
+        args[0] = new Object[] {"Europe", "Germany", 0};
+        args[1] = new Object[] {"Europe", "Austria", 1};
+        for (int i = 2; i <= 4; i++) {
+            args[i] = new Object[] {"Europe", null, i};
         }
-        BulkResponse response = client().bulk(bulkRequest).actionGet();
-        assertFalse(response.hasFailures());
+        for (int i = 5; i < NUMBER_OF_DOCS; i++) {
+            args[i] = new Object[] {"America", "USA", i};
+        }
+        sqlExecutor.execBulk("insert into countries (continent, \"countryName\", population) values (?, ?, ?)", args,
+                TimeValue.timeValueSeconds(30));
         refresh();
     }
 
