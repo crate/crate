@@ -45,8 +45,8 @@ import java.util.concurrent.TimeoutException;
 public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
-    private final SettableFuture<Bucket> resultFuture = SettableFuture.create();
-    private boolean isFinished = false;
+    protected final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    protected boolean isFinished = false;
     protected RowUpstream upstream;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
