@@ -285,51 +285,50 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         }
         BlobShard blobShard = localBlobShard(index, digest);
 
-        try (final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest)) {
-            long start;
-            long end;
-            try {
-                start = Long.parseLong(matcher.group(1));
-                if (start > raf.length()) {
-                    LOGGER.warn("416 Requested Range not satisfiable");
-                    simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, null);
-                    return;
-                }
-                end = raf.length() - 1;
-                if (!matcher.group(2).equals("")) {
-                    end = Long.parseLong(matcher.group(2));
-                }
-            } catch (NumberFormatException ex) {
-                LOGGER.error("Couldn't parse Range Header", ex);
-                start = 0;
-                end = raf.length();
+        final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
+        long start;
+        long end;
+        try {
+            start = Long.parseLong(matcher.group(1));
+            if (start > raf.length()) {
+                LOGGER.warn("416 Requested Range not satisfiable");
+                simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, null);
+                raf.close();
+                return;
             }
-
-            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
-            HttpHeaders.setContentLength(response, end - start + 1);
-            response.headers().set(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
-            setDefaultGetHeaders(response);
-
-            ctx.getChannel().write(response);
-            ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
-            if (!HttpHeaders.isKeepAlive(request)) {
-                writeFuture.addListener(ChannelFutureListener.CLOSE);
+            end = raf.length() - 1;
+            if (!matcher.group(2).equals("")) {
+                end = Long.parseLong(matcher.group(2));
             }
+        } catch (NumberFormatException ex) {
+            LOGGER.error("Couldn't parse Range Header", ex);
+            start = 0;
+            end = raf.length();
+        }
+
+        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
+        HttpHeaders.setContentLength(response, end - start + 1);
+        response.headers().set(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
+        setDefaultGetHeaders(response);
+
+        ctx.getChannel().write(response);
+        ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
+        if (!HttpHeaders.isKeepAlive(request)) {
+            writeFuture.addListener(ChannelFutureListener.CLOSE);
         }
     }
 
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws  IOException {
         BlobShard blobShard = localBlobShard(index, digest);
-        try (final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest)) {
-            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-            HttpHeaders.setContentLength(response, raf.length());
-            setDefaultGetHeaders(response);
-            LOGGER.trace("HttpResponse: {}", response);
-            ctx.getChannel().write(response);
-            ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
-            if (!HttpHeaders.isKeepAlive(request)) {
-                writeFuture.addListener(ChannelFutureListener.CLOSE);
-            }
+        final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
+        HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+        HttpHeaders.setContentLength(response, raf.length());
+        setDefaultGetHeaders(response);
+        LOGGER.trace("HttpResponse: {}", response);
+        ctx.getChannel().write(response);
+        ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
+        if (!HttpHeaders.isKeepAlive(request)) {
+            writeFuture.addListener(ChannelFutureListener.CLOSE);
         }
     }
 
