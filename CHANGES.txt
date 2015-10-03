@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fixed an issue that causes a ClosedChannelException during BLOB download
 
  - Fixed a bug that causes a NaN response on _score system column in select 
    statement that uses an ORDER BY clause
