@@ -2000,47 +2000,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select _id, * from t");
         assertThat(response.rowCount(), is(1L));
     }
-
-    @Test
-    public void testNoHangOnSortedOffset() throws Exception {
-        execute("CREATE TABLE IF NOT EXISTS \"rankings_cj\" (\n" +
-                "   \"avgDuration\" INTEGER,\n" +
-                "   \"pageRank\" INTEGER,\n" +
-                "   \"pageURL\" STRING\n" +
-                ")\n" +
-                "CLUSTERED INTO 16 SHARDS\n" +
-                "WITH (\n" +
-                "   \"blocks.metadata\" = false,\n" +
-                "   \"blocks.read\" = false,\n" +
-                "   \"blocks.read_only\" = false,\n" +
-                "   \"blocks.write\" = false,\n" +
-                "   column_policy = 'dynamic',\n" +
-                "   \"gateway.local.sync\" = 5000,\n" +
-                "   number_of_replicas = '0',\n" +
-                "   \"recovery.initial_shards\" = 'quorum',\n" +
-                "   refresh_interval = 0,\n" +
-                "   \"routing.allocation.enable\" = 'all',\n" +
-                "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
-                "   \"translog.disable_flush\" = false,\n" +
-                "   \"translog.flush_threshold_ops\" = 2147483647,\n" +
-                "   \"translog.flush_threshold_period\" = 1800000,\n" +
-                "   \"translog.flush_threshold_size\" = 209715200,\n" +
-                "   \"translog.interval\" = 5000,\n" +
-                "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
-                "   \"warmer.enabled\" = true\n" +
-                ")");
-        ensureYellow();
-        for (int i = 0; i < 100; i++) {
-            Object[][] args = new Object[1000][];
-            for (int j = 0; j < 1000; j++) {
-                args[j] = new Object[]{randomInt(1000), randomInt(10), randomUnicodeOfLength(10)};
-            }
-            execute("insert into rankings_cj (\"avgDuration\", \"pageRank\", \"pageURL\") values (?,?,?)", args);
-        }
-        execute("refresh table rankings_cj", TimeValue.timeValueSeconds(20));
-        execute("SELECT \"pageURL\", \"pageRank\" FROM rankings_cj ORDER BY \"pageURL\" LIMIT 1 OFFSET 10", TimeValue.timeValueSeconds(60));
-        assertThat(new ArrayBucket(response.rows()), TestingHelpers.isSorted(0));
-    }
 }
 
 
