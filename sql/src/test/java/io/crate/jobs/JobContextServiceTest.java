@@ -35,9 +35,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +49,8 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
@@ -107,10 +109,20 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testAccessContext() throws Exception {
+    public void testAccessTimeOfContext() throws Exception {
+        ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.estimatedTimeInMillis()).thenAnswer(new Answer<Long>() {
+            @Override
+            public Long answer(InvocationOnMock invocation) throws Throwable {
+                return System.currentTimeMillis();
+            }
+        });
+        JobContextService jobContextService = new JobContextService(
+                settings, threadPool, mock(StatsTables.class));
+
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
         long firstAccessTime = ctx1.lastAccessTime();
-        Thread.sleep(205); // sleep for > 200 ms to ensure that the estimatedTime in ThreadPool is updated
+        Thread.sleep(1);
         ctx1.getSubContextOrNull(1);
         assertThat(ctx1.lastAccessTime(), greaterThan(firstAccessTime));
     }
