@@ -32,7 +32,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -63,7 +63,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     private Routing routing;
     private List<Symbol> toCollect;
-    private DistributionType distributionType;
+    private DistributionInfo distributionInfo;
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
 
@@ -84,13 +84,13 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                         List<Symbol> toCollect,
                         List<Projection> projections,
                         WhereClause whereClause,
-                        DistributionType distributionType) {
+                        DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
         this.whereClause = whereClause;
         this.routing = routing;
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
-        this.distributionType = distributionType;
+        this.distributionInfo = distributionInfo;
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
             outputTypes = Symbols.extractTypes(toCollect);
@@ -116,13 +116,13 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
     }
 
     @Override
-    public DistributionType distributionType() {
-        return distributionType;
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
     }
 
     @Override
-    public void distributionType(DistributionType distributionType) {
-        this.distributionType = distributionType;
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
     }
 
     public @Nullable Integer limit() {
@@ -175,7 +175,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
-        distributionType = DistributionType.values()[in.readVInt()];
+        distributionInfo = DistributionInfo.fromStream(in);
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -210,7 +210,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
-        out.writeVInt(distributionType.ordinal());
+        distributionInfo.writeTo(out);
 
         int numCols = toCollect.size();
         out.writeVInt(numCols);
@@ -267,7 +267,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                     newToCollect,
                     projections,
                     newWhereClause,
-                    distributionType
+                    distributionInfo
             );
         }
         return result;
@@ -288,7 +288,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                 toCollect,
                 projections,
                 where,
-                DistributionType.BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST
         );
     }
 }

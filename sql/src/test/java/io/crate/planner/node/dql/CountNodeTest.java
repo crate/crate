@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -46,7 +46,7 @@ public class CountNodeTest extends CrateUnitTest {
                         .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Collections.singletonList(3)).map()).map());
         UUID jobId = UUID.randomUUID();
-        CountPhase countNode = new CountPhase(jobId, 1, routing, WhereClause.MATCH_ALL, DistributionType.BROADCAST);
+        CountPhase countNode = new CountPhase(jobId, 1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countNode.writeTo(out);
@@ -60,5 +60,6 @@ public class CountNodeTest extends CrateUnitTest {
         assertThat(streamedNode.executionPhaseId(), is(1));
         assertThat(streamedNode.executionNodes(), containsInAnyOrder("n1", "n2"));
         assertThat(streamedNode.routing(), equalTo(routing));
+        assertThat(streamedNode.distributionInfo(), equalTo(DistributionInfo.DEFAULT_BROADCAST));
     }
 }

@@ -25,7 +25,7 @@ import io.crate.planner.node.ExecutionPhase;
 
 public interface UpstreamPhase extends ExecutionPhase {
 
-    DistributionType distributionType();
+    DistributionInfo distributionInfo();
 
-    void distributionType(DistributionType distributionType);
+    void distributionInfo(DistributionInfo distributionInfo);
 }

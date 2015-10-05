@@ -22,7 +22,7 @@
 package io.crate.operation;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -74,7 +74,7 @@ public class NodeOperation implements Streamable {
         if (downstreamExecutionPhase.executionNodes().isEmpty()) {
             if (executionPhase instanceof UpstreamPhase && executionPhase.executionNodes().size() == 1
                     && executionPhase.executionNodes().contains(localNodeId)) {
-                ((UpstreamPhase) executionPhase).distributionType(DistributionType.SAME_NODE);
+                ((UpstreamPhase) executionPhase).distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                 LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
                 return new NodeOperation(
                         executionPhase,
@@ -91,7 +91,7 @@ public class NodeOperation implements Streamable {
             if (executionPhase instanceof UpstreamPhase) {
                 if (executionPhase.executionNodes().size() == 1
                         && executionPhase.executionNodes().equals(downstreamExecutionPhase.executionNodes())) {
-                    ((UpstreamPhase) executionPhase).distributionType(DistributionType.SAME_NODE);
+                    ((UpstreamPhase) executionPhase).distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                     LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON DOWNSTRREAM NODE, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
                 }
             }

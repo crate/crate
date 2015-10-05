@@ -22,8 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.operation.NodeOperation;
-import io.crate.operation.RowDownstream;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.common.inject.ImplementedBy;
 
 import java.util.UUID;
@@ -31,5 +30,5 @@ import java.util.UUID;
 @ImplementedBy(InternalRowDownstreamFactory.class)
 public interface RowDownstreamFactory {
 
-    RowReceiver createDownstream(NodeOperation nodeOperation, DistributionType distributionType, UUID jobId, int pageSize);
+    RowReceiver createDownstream(NodeOperation nodeOperation, DistributionInfo distributionInfo, UUID jobId, int pageSize);
 }

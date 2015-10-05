@@ -35,7 +35,7 @@ public class ModuloBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testRowsAreDistributedByModulo() throws Exception {
-        final ModuloBucketBuilder builder = new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 2);
+        final ModuloBucketBuilder builder = new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 2, 0);
 
         builder.add(new Row1(1));
         builder.add(new Row1(2));

@@ -43,7 +43,7 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
@@ -387,7 +387,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 outputs,
                 ImmutableList.<Projection>of(projection),
                 WhereClause.MATCH_ALL,
-                DistributionType.BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergePhase = MergePhase.localMerge(
                 context.jobId(),

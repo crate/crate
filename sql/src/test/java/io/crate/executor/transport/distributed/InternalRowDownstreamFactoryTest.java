@@ -31,7 +31,7 @@ import io.crate.operation.Paging;
 import io.crate.operation.projectors.InternalRowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -74,15 +74,15 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 ImmutableList.<Symbol>of(),
                 ImmutableList.<Projection>of(),
                 WhereClause.MATCH_ALL,
-                DistributionType.MODULO
+                DistributionInfo.DEFAULT_MODULO
         );
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1,
                 ImmutableList.<DataType>of(LongType.INSTANCE),
                 ImmutableList.<Projection>of(),
-                DistributionType.BROADCAST);
+                DistributionInfo.DEFAULT_BROADCAST);
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
-        return rowDownstreamFactory.createDownstream(nodeOperation, collectPhase.distributionType(), jobId, Paging.PAGE_SIZE);
+        return rowDownstreamFactory.createDownstream(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
     }
 
     @Test

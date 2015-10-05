@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -71,7 +71,7 @@ public class MergeNodeTest extends CrateUnitTest {
                 UUID.randomUUID(), 0, "merge", 2,
                 Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
                 projections,
-                DistributionType.BROADCAST);
+                DistributionInfo.DEFAULT_BROADCAST);
         node.executionNodes(Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -87,6 +87,6 @@ public class MergeNodeTest extends CrateUnitTest {
         assertThat(node.jobId(), is(node2.jobId()));
         assertEquals(node.inputTypes(), node2.inputTypes());
         assertThat(node.executionPhaseId(), is(node2.executionPhaseId()));
-        assertThat(node.distributionType(), is(node2.distributionType()));
+        assertThat(node.distributionInfo(), is(node2.distributionInfo()));
     }
 }

@@ -25,8 +25,7 @@ import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.*;
 import io.crate.operation.NodeOperation;
-import io.crate.operation.RowDownstream;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
@@ -51,9 +50,9 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
     }
 
     public RowReceiver createDownstream(NodeOperation nodeOperation,
-                                          DistributionType distributionType,
-                                          UUID jobId,
-                                          int pageSize) {
+                                        DistributionInfo distributionInfo,
+                                        UUID jobId,
+                                        int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes());
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
@@ -64,19 +63,20 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
         int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
 
         MultiBucketBuilder multiBucketBuilder;
-        switch (distributionType) {
+        switch (distributionInfo.distributionType()) {
             case MODULO:
                 if (nodeOperation.downstreamNodes().size() == 1) {
                     multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
                 } else {
-                    multiBucketBuilder = new ModuloBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
+                    multiBucketBuilder = new ModuloBucketBuilder(streamers,
+                            nodeOperation.downstreamNodes().size(), distributionInfo.distributeByColumn());
                 }
                 break;
             case BROADCAST:
                 multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
                 break;
             default:
-                throw new UnsupportedOperationException("Can't handle distributionType: " + distributionType);
+                throw new UnsupportedOperationException("Can't handle distributionInfo: " + distributionInfo);
         }
 
         return new DistributingDownstream(

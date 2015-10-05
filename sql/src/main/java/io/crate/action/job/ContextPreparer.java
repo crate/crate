@@ -205,7 +205,7 @@ public class ContextPreparer {
     }
 
     private boolean isSameNodeUpstreamDistributionType(UpstreamPhase phase) {
-        return phase.distributionType() == DistributionType.SAME_NODE;
+        return phase.distributionInfo().distributionType() == DistributionType.SAME_NODE;
     }
 
     private static class PreparerContext {
@@ -282,7 +282,7 @@ public class ContextPreparer {
 
         @Nullable
         public RowReceiver getRowReceiver(UpstreamPhase upstreamPhase, int pageSize) {
-            if (upstreamPhase.distributionType() == DistributionType.SAME_NODE) {
+            if (upstreamPhase.distributionInfo().distributionType() == DistributionType.SAME_NODE) {
                 LOGGER.trace("Phase uses SAME_NODE downstream: {}", upstreamPhase);
                 return phaseIdToRowReceivers.get(upstreamPhase.executionPhaseId());
             }
@@ -294,7 +294,7 @@ public class ContextPreparer {
             LOGGER.trace("Phase uses DISTRIBUTED downstream: {}", upstreamPhase);
             return rowDownstreamFactory.createDownstream(
                     nodeOperation,
-                    upstreamPhase.distributionType(),
+                    upstreamPhase.distributionInfo(),
                     jobId,
                     pageSize);
 

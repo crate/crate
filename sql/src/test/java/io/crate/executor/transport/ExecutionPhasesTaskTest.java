@@ -28,7 +28,7 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NodeOperationGrouper;
 import io.crate.planner.node.dql.CollectPhase;
@@ -64,13 +64,13 @@ public class ExecutionPhasesTaskTest {
                 ImmutableList.<Symbol>of(),
                 ImmutableList.<Projection>of(),
                 WhereClause.MATCH_ALL,
-                DistributionType.BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST
         );
 
-        MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionType.BROADCAST);
+        MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionInfo.DEFAULT_BROADCAST);
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergePhase m2 = new MergePhase(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionType.BROADCAST);
+        MergePhase m2 = new MergePhase(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionInfo.DEFAULT_BROADCAST);
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
 

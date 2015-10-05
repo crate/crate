@@ -36,7 +36,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
@@ -185,7 +185,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 toCollect,
                 ImmutableList.<Projection>of(),
                 whereClause,
-                DistributionType.BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST
         );
     }
 

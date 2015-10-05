@@ -42,10 +42,12 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
 
     private final int numBuckets;
     private final List<StreamBucket.Builder> bucketBuilders;
+    private final int distributedByColumnIdx;
     private volatile int size = 0;
 
-    public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets) {
+    public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets, int distributedByColumnIdx) {
         this.numBuckets = numBuckets;
+        this.distributedByColumnIdx = distributedByColumnIdx;
         this.bucketBuilders = new ArrayList<>(numBuckets);
         for (int i = 0; i < numBuckets; i++) {
             bucketBuilders.add(new StreamBucket.Builder(streamers));
@@ -86,10 +88,10 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     }
 
     /**
-     * get bucket number by doing modulo hashcode of first row-element
+     * get bucket number by doing modulo hashcode of the defined row-element
      */
     private int getBucket(Row row) {
-        int hash = hashCode(row.get(0));
+        int hash = hashCode(row.get(distributedByColumnIdx));
         if (hash == Integer.MIN_VALUE) {
             hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
         }

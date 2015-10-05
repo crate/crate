@@ -32,7 +32,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
@@ -80,7 +80,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
                 toCollect,
                 ImmutableList.<Projection>of(),
                 whereClause,
-                DistributionType.BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST
         );
     }
 

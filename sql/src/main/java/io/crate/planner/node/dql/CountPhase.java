@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,7 +45,7 @@ public class CountPhase implements UpstreamPhase {
     private int executionPhaseId;
     private Routing routing;
     private WhereClause whereClause;
-    private DistributionType distributionType;
+    private DistributionInfo distributionInfo;
 
     CountPhase() {}
 
@@ -53,12 +53,12 @@ public class CountPhase implements UpstreamPhase {
                       int executionPhaseId,
                       Routing routing,
                       WhereClause whereClause,
-                      DistributionType distributionType) {
+                      DistributionInfo distributionInfo) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.whereClause = whereClause;
-        this.distributionType = distributionType;
+        this.distributionInfo = distributionInfo;
     }
 
     @Override
@@ -95,13 +95,13 @@ public class CountPhase implements UpstreamPhase {
     }
 
     @Override
-    public DistributionType distributionType() {
-        return distributionType;
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
     }
 
     @Override
-    public void distributionType(DistributionType distributionType) {
-        this.distributionType = distributionType;
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
     }
 
     @Override
@@ -116,7 +116,7 @@ public class CountPhase implements UpstreamPhase {
         routing = new Routing();
         routing.readFrom(in);
         whereClause = new WhereClause(in);
-        distributionType = DistributionType.values()[in.readVInt()];
+        distributionInfo = DistributionInfo.fromStream(in);
     }
 
     @Override
@@ -127,6 +127,6 @@ public class CountPhase implements UpstreamPhase {
         out.writeVInt(executionPhaseId);
         routing.writeTo(out);
         whereClause.writeTo(out);
-        out.writeVInt(distributionType.ordinal());
+        distributionInfo.writeTo(out);
     }
 }

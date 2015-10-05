@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
@@ -57,7 +57,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
     private Collection<? extends DataType> inputTypes;
     private int numUpstreams;
-    private DistributionType distributionType;
+    private DistributionInfo distributionInfo;
     private Set<String> executionNodes;
 
     /**
@@ -77,12 +77,12 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                       int numUpstreams,
                       Collection<? extends DataType> inputTypes,
                       List<Projection> projections,
-                      DistributionType distributionType
+                      DistributionInfo distributionInfo
                       ) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
-        this.distributionType = distributionType;
+        this.distributionInfo = distributionInfo;
         if (projections.isEmpty()) {
             outputTypes = Lists.newArrayList(inputTypes);
         } else {
@@ -101,7 +101,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
                 projections,
-                DistributionType.SAME_NODE
+                DistributionInfo.DEFAULT_SAME_NODE
         );
     }
 
@@ -127,7 +127,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
                 previousPhase.executionNodes().size(),
                 previousPhase.outputTypes(),
                 projections,
-                DistributionType.SAME_NODE
+                DistributionInfo.DEFAULT_SAME_NODE
         );
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
@@ -151,13 +151,13 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     }
 
     @Override
-    public DistributionType distributionType() {
-        return distributionType;
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
     }
 
     @Override
-    public void distributionType(DistributionType distributionType) {
-        this.distributionType = distributionType;
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
     }
 
     public void executionNodes(Set<String> executionNodes) {
@@ -204,7 +204,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        distributionType = DistributionType.values()[in.readVInt()];
+        distributionInfo = DistributionInfo.fromStream(in);
         numUpstreams = in.readVInt();
 
         int numCols = in.readVInt();
@@ -241,7 +241,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(distributionType.ordinal());
+        distributionInfo.writeTo(out);
         out.writeVInt(numUpstreams);
 
         int numCols = inputTypes.size();

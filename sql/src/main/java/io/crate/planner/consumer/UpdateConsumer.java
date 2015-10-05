@@ -40,7 +40,7 @@ import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
@@ -162,7 +162,7 @@ public class UpdateConsumer implements Consumer {
                         ImmutableList.<Symbol>of(uidReference),
                         ImmutableList.<Projection>of(updateProjection),
                         whereClause,
-                        DistributionType.BROADCAST
+                        DistributionInfo.DEFAULT_BROADCAST
                 );
                 MergePhase mergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),
