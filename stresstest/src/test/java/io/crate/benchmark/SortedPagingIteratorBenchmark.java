@@ -24,24 +24,23 @@ package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
+import io.crate.operation.merge.NumberedIterable;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.testing.TestingHelpers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.range;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -65,17 +64,30 @@ public class SortedPagingIteratorBenchmark {
         bucket3 = new ArrayBucket(range(1_000_000, 2_000_000));
     }
 
+    @SafeVarargs
+    private final Iterable<? extends NumberedIterable<Row>> numbered(Iterable<Row>... buckets) {
+
+        return Iterables.transform(Arrays.asList(buckets), new Function<Iterable<Row>, NumberedIterable<Row>>() {
+            private int i = 0;
+            @Nullable
+            @Override
+            public NumberedIterable<Row> apply(Iterable<Row> input) {
+                return new NumberedIterable<>(i++, input);
+            }
+        });
+    }
+
     @BenchmarkOptions(benchmarkRounds = 10, warmupRounds = 1)
     @Test
     public void testIterateWithRepeat() throws Exception {
         SortedPagingIterator<Row> iterator = new SortedPagingIterator<>(ORDERING, true);
-        iterator.merge(Arrays.asList(bucket1, bucket2));
+        iterator.merge(numbered(bucket1, bucket2));
         int size1 = 0;
         while (iterator.hasNext()) {
             iterator.next();
             size1++;
         }
-        iterator.merge(ImmutableList.of(bucket3));
+        iterator.merge(numbered(bucket3));
         iterator.finish();
         while (iterator.hasNext()) {
             iterator.next();
@@ -84,13 +96,8 @@ public class SortedPagingIteratorBenchmark {
         assertThat(size1, is(3_000_000));
 
         for (int i = 0; i < NUM_REPEATS; i++) {
-            Iterator<Row> repeatIter = iterator.repeat();
-            int size2 = 0;
-            while (repeatIter.hasNext()) {
-                repeatIter.next();
-                size2++;
-            }
-
+            Iterable<Row> repeatIter = iterator.repeat();
+            int size2 = Iterables.size(repeatIter);
             assertThat(size2, is(3_000_000));
         }
 
