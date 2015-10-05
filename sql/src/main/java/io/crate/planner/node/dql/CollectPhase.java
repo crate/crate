@@ -68,7 +68,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
     private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
 
     private boolean isPartitioned = false;
-    private @Nullable String handlerSideCollect = null;
 
     private @Nullable Integer limit = null;
     private @Nullable OrderBy orderBy = null;
@@ -107,7 +106,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     /**
      * @return a set of node ids where this collect operation is executed,
-     *         excluding the NULL_NODE_ID for special collect purposes
      */
     @Override
     public Set<String> executionNodes() {
@@ -271,18 +269,8 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
                     newWhereClause,
                     distributionType
             );
-            result.handlerSideCollect = handlerSideCollect;
         }
         return result;
-    }
-
-    public void handlerSideCollect(String handlerSideCollect) {
-        this.handlerSideCollect = handlerSideCollect;
-    }
-
-    @Nullable
-    public String handlerSideCollect() {
-        return handlerSideCollect;
     }
 
     public static CollectPhase forQueriedTable(Planner.Context plannerContext,
