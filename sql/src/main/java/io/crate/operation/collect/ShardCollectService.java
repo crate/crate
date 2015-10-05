@@ -51,6 +51,8 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -63,6 +65,8 @@ import java.util.concurrent.Executor;
 
 @Singleton
 public class ShardCollectService {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(ShardCollectService.class);
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
@@ -252,10 +256,14 @@ public class ShardCollectService {
             }
             throw t;
         }
+        int batchSize = batchSize(collectPhase.limit());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("[{}][{}] creating OrderedDocCollector with batch-size {}", sharedShardContext.indexShard().routingEntry().currentNodeId(), sharedShardContext.indexShard().shardId(), batchSize);
+        }
         return new OrderedDocCollector(
                 searchContext,
                 ScoreReferenceDetector.detect(collectPhase.toCollect()),
-                batchSize(collectPhase.limit()),
+                batchSize,
                 collectorContext,
                 collectPhase.orderBy(),
                 LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputSymbolVisitor),

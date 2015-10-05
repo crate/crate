@@ -392,11 +392,12 @@ public class ContextPreparer {
             Routing routing = phase.routing();
             int numTotalShards = routing.numShards();
             int numShardsOnNode = routing.numShards(localNodeId);
+
             final int pageSize = Paging.getWeightedPageSize(
                     MoreObjects.firstNonNull(phase.limit(), Paging.PAGE_SIZE),
-                    1.0 / numTotalShards * numShardsOnNode
+                    (1.0 / numTotalShards) * numShardsOnNode
             );
-            LOGGER.trace("{} setting node page size to: {}, numShards in total: {} shards on node: {}",
+            LOGGER.trace("[{}] setting node page size to: {}, totalShards: {}, localShards: {}",
                     localNodeId, pageSize, numTotalShards, numShardsOnNode);
 
             RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);

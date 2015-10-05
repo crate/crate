@@ -193,7 +193,9 @@ public class QueryAndFetchConsumer implements Consumer {
                         toCollect,
                         collectPhaseProjections
                 );
-                collectPhase.limit(projectionBuilderContext.limit);
+                if (projectionBuilderContext.limit != null) {
+                    collectPhase.limit(projectionBuilderContext.limit + projectionBuilderContext.offset);
+                }
                 collectPhase.orderBy(projectionBuilderContext.orderBy);
 
                 // MERGE
@@ -263,7 +265,7 @@ public class QueryAndFetchConsumer implements Consumer {
             this.allOutputs = allOutputs;
             this.orderBy = querySpec.orderBy();
             this.offset = querySpec.offset();
-            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset();
+            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
         }
     }
 

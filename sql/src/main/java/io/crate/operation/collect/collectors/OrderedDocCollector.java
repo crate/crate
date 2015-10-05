@@ -33,6 +33,8 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.*;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
 
@@ -45,6 +47,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, AutoCloseable {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(OrderedDocCollector.class);
 
     private final SearchContext searchContext;
     private final boolean doDocsScores;
@@ -129,8 +133,10 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
 
     private NumberedIterable<Row> searchMore() throws IOException {
         if (exhausted) {
+            LOGGER.trace("searchMore but EXHAUSTED");
             return empty;
         }
+        LOGGER.trace("searchMore from [{}]", lastDoc);
         TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), null, batchSize, sort, doDocsScores, false);
         return scoreDocToIterable(topDocs.scoreDocs);
     }
