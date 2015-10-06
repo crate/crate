@@ -147,6 +147,6 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         pool.clusterChanged(new ClusterChangedEvent("bla", state, oldState));
 
         BulkRetryCoordinator otherCoordinator = pool.coordinator(shardId);
-        assertThat(coordinator, is(not(otherCoordinator)));
+        assertThat(coordinator, not(sameInstance(otherCoordinator)));
     }
 }
