@@ -30,6 +30,9 @@ allprojects {
         if (project.hasProperty('testForks')) {
             maxParallelForks = project.testForks as int
         }
+        if (project.hasProperty('disableAssertions')) {
+            enableAssertions = false
+        }
     }
 
     jacoco {
