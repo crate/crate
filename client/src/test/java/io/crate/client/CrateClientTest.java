@@ -47,6 +47,10 @@ import static org.hamcrest.Matchers.is;
 
 public class CrateClientTest extends ElasticsearchIntegrationTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

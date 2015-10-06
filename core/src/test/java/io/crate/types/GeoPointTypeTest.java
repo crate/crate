@@ -33,6 +33,10 @@ import static org.hamcrest.Matchers.is;
 
 public class GeoPointTypeTest extends CrateUnitTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Test
     public void testStreaming() throws Throwable {
         Double[] p1 = new Double[] { 41.2, -37.4 };

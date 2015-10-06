@@ -37,6 +37,10 @@ import java.util.Map;
 
 public class DataTypeTest extends CrateUnitTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Test
     public void testStreaming() throws Exception {
         BytesRef b1 = new BytesRef("hello");

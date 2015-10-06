@@ -36,6 +36,10 @@ import static org.hamcrest.Matchers.is;
 
 public class DataTypesTest extends CrateUnitTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Test
     public void testConvertBooleanToString() {
         BytesRef value = DataTypes.STRING.value(true);
