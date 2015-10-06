@@ -28,7 +28,10 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.*;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLBulkAction;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLRequest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.junit.AfterClass;
@@ -57,6 +60,9 @@ public class CrossJoinBenchmark extends BenchmarkBase {
 
     public static final String ARTICLE_INSERT_SQL_STMT = "INSERT INTO articles (id, name, price) Values (?, ?, ?)";
     public static final String COLORS_INSERT_SQL_STMT = "INSERT INTO colors (id, name, coolness) Values (?, ?, ?)";
+
+    public static final String QAF_SQL_STMT = "select articles.name as article, colors.name as color from articles, colors order by article, color limit 20000";
+    public static final String QTF_WITH_OFFSET_SQL_STMT = "select * from articles CROSS JOIN colors limit 1 offset 20000";
 
     public static final int ARTICLE_SIZE = 100000;
     public static final int COLORS_SIZE = 100000;
@@ -144,13 +150,49 @@ public class CrossJoinBenchmark extends BenchmarkBase {
     @Test
     public void testQTFWithOffset() {
         getClient(false).execute(SQLAction.INSTANCE,
-                new SQLRequest("select * from articles CROSS JOIN colors limit 1 offset 20000")).actionGet();
+                new SQLRequest(QTF_WITH_OFFSET_SQL_STMT)).actionGet();
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testQTFWithOffset5Concurrent() throws Exception {
+        executeConcurrently(5,
+                QTF_WITH_OFFSET_SQL_STMT,
+                2, TimeUnit.MINUTES
+        );
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testQTFWithOffset10Concurrent() throws Exception {
+        executeConcurrently(10,
+                QTF_WITH_OFFSET_SQL_STMT,
+                2, TimeUnit.MINUTES
+        );
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQAF() {
-        execute("select articles.name as article, colors.name as color from articles, colors order by article, color limit 20000");
+        execute(QAF_SQL_STMT);
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testQAF5Concurrent() throws Exception {
+        executeConcurrently(5,
+                QAF_SQL_STMT,
+                2, TimeUnit.MINUTES
+        );
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testQAF10Concurrent() throws Exception {
+        executeConcurrently(10,
+                QAF_SQL_STMT,
+                2, TimeUnit.MINUTES
+        );
     }
 
     private void executeConcurrently(int numConcurrent, final String stmt, int timeout, TimeUnit timeoutUnit) throws Exception {
@@ -166,24 +208,6 @@ public class CrossJoinBenchmark extends BenchmarkBase {
         executor.shutdown();
         executor.awaitTermination(timeout, timeoutUnit);
         executor.shutdownNow();
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-         @Test
-         public void testQTF10Concurrent() throws Exception {
-        executeConcurrently(10,
-                "select * from articles, colors limit 1 offset 20000",
-                2, TimeUnit.MINUTES
-        );
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testQAF10Concurrent() throws Exception {
-        executeConcurrently(10,
-                "select articles.name as article, colors.name as color from articles, colors order by article, color limit 20000",
-                2, TimeUnit.MINUTES
-        );
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
