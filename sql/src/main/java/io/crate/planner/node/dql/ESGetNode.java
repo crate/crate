@@ -34,7 +34,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
-import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
@@ -182,8 +182,8 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     }
 
     @Override
-    public void setDistributionInfo(DistributionInfo distributionInfo) {
-        throw new UnsupportedOperationException("setDistributionInfo is not supported");
+    public UpstreamPhase lastUpstreamPhase() {
+        throw new UnsupportedOperationException("lastUpstreamPhase is not supported");
     }
 
     @Override

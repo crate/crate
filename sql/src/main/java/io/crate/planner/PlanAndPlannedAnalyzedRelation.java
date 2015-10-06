@@ -25,7 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
@@ -60,7 +60,7 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
     }
 
     @Override
-    public void setDistributionInfo(DistributionInfo distributionInfo) {
-        throw new UnsupportedOperationException("setDistributionInfo is not supported");
+    public UpstreamPhase lastUpstreamPhase() {
+        throw new UnsupportedOperationException("lastUpstreamPhase is not supported");
     }
 }

@@ -23,8 +23,7 @@ package io.crate.planner.node.dql.join;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -161,12 +160,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     }
 
     @Override
-    public void setDistributionInfo(DistributionInfo distributionInfo) {
-        if (localMerge == null) {
-            nestedLoopPhase.distributionInfo(distributionInfo);
-        } else {
-            localMerge.distributionInfo(distributionInfo);
-        }
+    public UpstreamPhase lastUpstreamPhase() {
+        return localMerge != null ? localMerge : nestedLoopPhase;
     }
 
     public MergePhase localMerge() {

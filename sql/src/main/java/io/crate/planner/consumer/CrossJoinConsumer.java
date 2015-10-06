@@ -279,7 +279,7 @@ public class CrossJoinConsumer implements Consumer {
                     leftOrderBy = leftRelation.querySpec().orderBy();
                     leftPlan = consumingPlanner.plan(leftRelation, context);
                     if (isDistributed) {
-                        leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                        leftPlan.lastUpstreamPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                     }
                     assert leftPlan != null;
                 } else {
@@ -323,7 +323,7 @@ public class CrossJoinConsumer implements Consumer {
                 if (isDistributed && rightMerge != null) {
                     rightMerge.executionNodes(rightPlan.resultNode().executionNodes());
                 } else if (isDistributed) {
-                    rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                    rightPlan.lastUpstreamPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
                 }
                 Collection<? extends DataType> leftOutputTypes = isDistributed ? Symbols.extractTypes(leftOutputs) : getOutputTypes(leftMerge, leftOutputs);
                 Set<String> executionNodes = isDistributed ? leftPlan.resultNode().executionNodes() : localExecutionNodes;
