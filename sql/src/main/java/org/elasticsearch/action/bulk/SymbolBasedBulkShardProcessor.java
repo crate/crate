@@ -292,7 +292,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
 
                     @Override
                     public void onFailure(Throwable e) {
-                        processFailure(e, shardId, request, false);
+                        processFailure(e, shardId, request, com.google.common.base.Optional.<BulkRetryCoordinator>absent());
                     }
                 });
                 it.remove();
@@ -442,19 +442,23 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         trace("response executed.");
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final Request request, boolean repeatingRetry) {
+    private void processFailure(Throwable e, final ShardId shardId, final Request request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
-        BulkRetryCoordinator coordinator;
-        try {
-            coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
-        } catch (Throwable coordinatorException) {
-            setFailure(coordinatorException);
-            return;
+        final BulkRetryCoordinator coordinator;
+        if (retryCoordinator.isPresent()) {
+            coordinator = retryCoordinator.get();
+        } else {
+            try {
+                coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
+            } catch (Throwable coordinatorException) {
+                setFailure(coordinatorException);
+                return;
+            }
         }
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(request, requestExecutor, repeatingRetry, new ActionListener<Response>() {
+            coordinator.retry(request, requestExecutor, retryCoordinator.isPresent(), new ActionListener<Response>() {
                 @Override
                 public void onResponse(Response response) {
                     processResponse(response);
@@ -462,11 +466,11 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
 
                 @Override
                 public void onFailure(Throwable e) {
-                    processFailure(e, shardId, request, true);
+                    processFailure(e, shardId, request, com.google.common.base.Optional.of(coordinator));
                 }
             });
         } else {
-            if (repeatingRetry) {
+            if (retryCoordinator.isPresent()) {
                 // release failed retry
                 coordinator.retryLock().releaseWriteLock();
             }

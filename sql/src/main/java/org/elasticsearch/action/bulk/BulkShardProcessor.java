@@ -22,6 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -352,7 +353,7 @@ public class BulkShardProcessor {
 
                     @Override
                     public void onFailure(Throwable e) {
-                        processFailure(e, shardId, shardRequest, false);
+                        processFailure(e, shardId, shardRequest, Optional.<BulkRetryCoordinator>absent());
                     }
                 });
                 it.remove();
@@ -467,23 +468,32 @@ public class BulkShardProcessor {
         setResultIfDone(response.itemIndices().size());
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final ShardUpsertRequest request, boolean repeatingRetry) {
+    private void processFailure(Throwable e,
+                                final ShardId shardId,
+                                final ShardUpsertRequest request,
+                                Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
-        BulkRetryCoordinator coordinator;
-        try {
-            coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
-        } catch (Throwable t) {
-            setFailure(t);
-            return;
+        final BulkRetryCoordinator coordinator;
+        if (retryCoordinator.isPresent()) {
+            coordinator = retryCoordinator.get();
+        } else {
+            try {
+                coordinator = bulkRetryCoordinatorPool.coordinator(shardId);
+            } catch (Throwable t) {
+                setFailure(t);
+                return;
+            }
         }
+
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(request, bulkRequestExecutor, repeatingRetry, new ActionListener<ShardUpsertResponse>() {
+            coordinator.retry(request, bulkRequestExecutor, retryCoordinator.isPresent(), new ActionListener<ShardUpsertResponse>() {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    processFailure(e, shardId, request, true);
+                    // use the same coordinator once retries started, writelock has been acquired
+                    processFailure(e, shardId, request, Optional.of(coordinator));
                 }
 
                 @Override
@@ -492,7 +502,7 @@ public class BulkShardProcessor {
                 }
             });
         } else {
-            if (repeatingRetry) {
+            if (retryCoordinator.isPresent()) {
                 // release failed retry
                 coordinator.retryLock().releaseWriteLock();
             }
