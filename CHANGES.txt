@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug in SHOW CREATE TABLE statement that leads to a wrong table 
+   schema if the table contains nested objects
+
  - Fix: Prevent NPE in COPY FROM and INSERT FROM SUBQUERY queries
    when newly created shards are not available yet
 

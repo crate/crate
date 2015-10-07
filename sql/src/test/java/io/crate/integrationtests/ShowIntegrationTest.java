@@ -86,7 +86,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_arr_obj_a array(object)," +
                 " col_arr_obj_b array(object(strict) as (id int))," +
                 " col_obj_a object," +
-                " col_obj_b object(dynamic) as (arr array(integer), obj object)" +
+                " col_obj_b object(dynamic) as (arr array(integer), obj object(strict) as (id int, name string))" +
                 ")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
@@ -98,7 +98,10 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "   \"col_obj_a\" OBJECT (DYNAMIC),\n" +
                 "   \"col_obj_b\" OBJECT (DYNAMIC) AS (\n" +
                 "      \"arr\" ARRAY(INTEGER),\n" +
-                "      \"obj\" OBJECT (DYNAMIC)\n" +
+                "      \"obj\" OBJECT (STRICT) AS (\n" +
+                "         \"id\" INTEGER,\n" +
+                "         \"name\" STRING\n" +
+                "      )\n" +
                 "   )\n" +
                 ")\n");
 

@@ -69,6 +69,9 @@ public class MetaDataToASTNodeResolver {
                 if (ident.isSystemColumn()) continue;
                 if (parent != null && !ident.isChildOf(parent)) continue;
                 if (parent == null && !ident.path().isEmpty()) continue;
+                if (parent != null) {
+                    if (ident.getParent().compareTo(parent) > 0) continue;
+                }
 
                 ColumnType columnType = null;
                 if (info.type().equals(DataTypes.OBJECT)) {
