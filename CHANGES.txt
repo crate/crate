@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/10/07 0.50.7
+=================
+
  - Fix: Prevent NPE in COPY FROM and INSERT FROM SUBQUERY queries
    when newly created shards are not available yet
 
