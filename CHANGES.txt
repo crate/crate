@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/10/07 0.51.5
+=================
+
  - Updated crate-admin to 0.14.6 which includes following changes:
 
    - fixed a visual bug that let an item in the node/table list partly disappear
