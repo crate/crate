@@ -141,7 +141,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         if (tableInfo.isPartitioned()) {
             return new PartitionName(tableInfo.ident(), values.get()).asIndexName();
         } else {
-            return tableInfo.ident().esName();
+            return tableInfo.ident().indexName();
         }
     }
 

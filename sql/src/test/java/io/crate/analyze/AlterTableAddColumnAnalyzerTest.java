@@ -103,7 +103,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAddColumnThatExistsAlready() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The table \"users\" already has a column named \"name\"");
+        expectedException.expectMessage("The table \"doc.users\" already has a column named \"name\"");
         analyze("alter table users add column name string");
     }
 

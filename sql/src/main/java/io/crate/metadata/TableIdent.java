@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -40,10 +41,8 @@ public class TableIdent implements Streamable {
 
     private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
-    @Nullable
     private String schema;
     private String name;
-
 
     public static TableIdent of(Table tableNode, @Nullable String fallbackSchema) {
         List<String> parts = tableNode.getName().getParts();
@@ -55,6 +54,18 @@ public class TableIdent implements Streamable {
         return new TableIdent(fallbackSchema, parts.get(0));
     }
 
+    public static TableIdent fromIndexName(String indexName){
+        if (PartitionName.isPartition(indexName)) {
+            PartitionName pn = PartitionName.fromIndexOrTemplate(indexName);
+            return pn.tableIdent();
+        }
+        int dotPos = indexName.indexOf('.');
+        if (dotPos == -1){
+            return new TableIdent(null, indexName);
+        }
+        return new TableIdent(indexName.substring(0, dotPos), indexName.substring(dotPos+1));
+    }
+
     public static TableIdent fromStream(StreamInput in) throws IOException {
         TableIdent tableIdent = new TableIdent();
         tableIdent.readFrom(in);
@@ -63,8 +74,7 @@ public class TableIdent implements Streamable {
 
     public TableIdent(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
-
-        this.schema = schema;
+        this.schema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME) ;
         this.name = name;
     }
 
@@ -72,7 +82,6 @@ public class TableIdent implements Streamable {
 
     }
 
-    @Nullable
     public String schema() {
         return schema;
     }
@@ -82,18 +91,18 @@ public class TableIdent implements Streamable {
     }
 
     public String fqn() {
-        if (schema == null || schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
-            return name;
-        }
         return String.format("%s.%s", schema, name);
     }
 
-    public String esName() {
+    public String indexName() {
+        if (schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
+            return name;
+        }
         return fqn();
     }
 
     public void validate() throws InvalidSchemaNameException, InvalidTableNameException {
-        if (schema != null && !isValidTableOrSchemaName(schema)) {
+        if (!isValidTableOrSchemaName(schema)) {
             throw new InvalidSchemaNameException(schema);
         }
         if (!isValidTableOrSchemaName(name)) {
@@ -125,16 +134,13 @@ public class TableIdent implements Streamable {
 
     @Override
     public int hashCode() {
-        int result = schema != null ? schema.hashCode() : 0;
+        int result = schema.hashCode();
         result = 31 * result + name.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        if (schema == null) {
-            return name;
-        }
         return String.format("%s.%s", schema, name);
     }
 

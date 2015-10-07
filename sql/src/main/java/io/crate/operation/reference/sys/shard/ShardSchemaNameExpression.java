@@ -45,6 +45,7 @@ public class ShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> 
         } else {
             schemaName = DOC_SCHEMA_NAME;
         }
+
     }
 
     @Override

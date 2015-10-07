@@ -95,7 +95,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             TestingBlobTableInfo myBlobsInfo = new TestingBlobTableInfo(
                     schemaInfo,
                     myBlobsIdent,
-                    myBlobsIdent.esName(),
+                    myBlobsIdent.indexName(),
                     null,
                     5,
                     new BytesRef("0"),

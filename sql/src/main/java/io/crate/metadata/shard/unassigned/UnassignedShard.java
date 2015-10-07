@@ -79,8 +79,8 @@ public class UnassignedShard {
             tableName = BlobIndices.STRIP_PREFIX.apply(index);
         } else if (PartitionName.isPartition(index)) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
-            schemaName = partitionName.schema();
-            tableName = partitionName.tableName();
+            schemaName = partitionName.tableIdent().schema();
+            tableName = partitionName.tableIdent().name();
             ident = partitionName.ident();
             if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 orphanedPartition = true;

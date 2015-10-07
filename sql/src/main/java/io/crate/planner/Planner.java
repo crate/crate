@@ -373,8 +373,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (partitionIdent == null) {
             where = WhereClause.MATCH_ALL;
         } else {
-            String partitionName = PartitionName.indexName(
-                    tableInfo.schemaInfo().name(), tableInfo.ident().name(), partitionIdent);
+            String partitionName = PartitionName.indexName(tableInfo.ident(), partitionIdent);
             where = new WhereClause(null, null, ImmutableList.of(partitionName));
         }
         Routing routing = context.allocateRouting(tableInfo, where, null);
@@ -665,7 +664,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertByIdNode.add(
-                        analysis.tableInfo().ident().esName(),
+                        analysis.tableInfo().ident().indexName(),
                         analysis.ids().get(i),
                         analysis.routingValues().get(i),
                         onDuplicateKeyAssignments,
@@ -687,7 +686,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
         } else if (!tableInfo.isPartitioned()) {
             // table name for non-partitioned tables
-            indices = new String[]{tableInfo.ident().esName()};
+            indices = new String[]{tableInfo.ident().indexName()};
         } else if (whereClause.partitions().isEmpty()) {
             if (whereClause.noMatch()) {
                 return new String[0];

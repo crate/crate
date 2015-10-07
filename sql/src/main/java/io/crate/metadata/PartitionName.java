@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -45,9 +44,7 @@ public class PartitionName {
     private static final Joiner DOT_JOINER = Joiner.on(".");
     private static final Splitter SPLITTER = Splitter.on(".").limit(5);
 
-    @Nullable
-    private final String schemaName;
-    private final String tableName;
+    private final TableIdent tableIdent;
 
     private List<BytesRef> values;
     private String indexName;
@@ -56,7 +53,8 @@ public class PartitionName {
     public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
 
     public PartitionName(TableIdent tableIdent, List<BytesRef> values) {
-        this(tableIdent.schema(), tableIdent.name(), values);
+        this.tableIdent = tableIdent;
+        this.values = values;
     }
 
     public PartitionName(String tableName, List<BytesRef> values) {
@@ -64,16 +62,14 @@ public class PartitionName {
     }
 
     public PartitionName(@Nullable String schemaName, String tableName, List<BytesRef> values) {
-        this.schemaName = Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName) ? null : schemaName;
-        this.tableName = tableName;
-        this.values = values;
+        this(new TableIdent(schemaName, tableName), values);
     }
 
-    public static String indexName(@Nullable String schema, String table, String ident) {
-        if (schema == null || schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
-            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, table, ident);
+    public static String indexName(TableIdent tableIdent, String ident) {
+        if (tableIdent.schema().equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
+            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableIdent.name(), ident);
         }
-        return DOT_JOINER.join(schema, PARTITIONED_TABLE_PREFIX, table, ident);
+        return DOT_JOINER.join(tableIdent.schema(), PARTITIONED_TABLE_PREFIX, tableIdent.name(), ident);
     }
 
     /**
@@ -141,7 +137,7 @@ public class PartitionName {
 
     public String asIndexName() {
         if (indexName == null) {
-            indexName = indexName(schemaName, tableName, ident());
+            indexName = indexName(tableIdent, ident());
         }
         return indexName;
     }
@@ -168,22 +164,8 @@ public class PartitionName {
         return values;
     }
 
-    public String tableName() {
-        return tableName;
-    }
-
-    /**
-     * @return the schema name, in case of "doc" the schemaName is returned as null
-     */
-    public @Nullable String schemaOrNull() {
-        return schemaName;
-    }
-
-    /**
-     * same as {@link #schemaOrNull()} but returns "doc" instead of null
-     */
-    public String schema() {
-        return MoreObjects.firstNonNull(schemaName, Schemas.DEFAULT_SCHEMA_NAME);
+    public TableIdent tableIdent(){
+        return tableIdent;
     }
 
     @Nullable
@@ -197,9 +179,7 @@ public class PartitionName {
         if (o == null || getClass() != o.getClass()) return false;
 
         PartitionName that = (PartitionName) o;
-
         if (!asIndexName().equals(that.asIndexName())) return false;
-
         return true;
     }
 

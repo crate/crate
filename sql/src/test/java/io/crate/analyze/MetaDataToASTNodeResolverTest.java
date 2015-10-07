@@ -161,7 +161,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
-        assertEquals("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
+        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"bools\" BOOLEAN,\n" +
                 "   \"bytes\" BYTE,\n" +
                 "   \"strings\" STRING,\n" +

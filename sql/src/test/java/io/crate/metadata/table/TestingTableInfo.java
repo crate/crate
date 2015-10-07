@@ -93,7 +93,7 @@ public class TestingTableInfo extends DocTableInfo {
                     clusteredBy,
                     isAlias,
                     pk.isEmpty(),
-                    new String[]{ident.esName()},
+                    new String[]{ident.indexName()},
                     numberOfShards,
                     numberOfReplicas,
                     null, // tableParameters

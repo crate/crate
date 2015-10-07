@@ -1962,7 +1962,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         try {
             execute("select * from foobar");
         } catch (SQLActionException e) {
-            assertEquals(e.getMessage(), "Table 'foobar' unknown");
+            assertEquals(e.getMessage(), "Table 'doc.foobar' unknown");
             execute("select stmt from sys.jobs");
             assertEquals(response.rowCount(), 1L);
             assertEquals(response.rows()[0][0], "select stmt from sys.jobs");

@@ -107,7 +107,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
 
         TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        if (!(tableInfo instanceof DocTableInfo)){
+        if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(
                     "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
@@ -133,7 +133,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
                     node.table().partitionProperties(),
                     analysis.parameterContext().parameters());
 
-            if (!partitionExists(statement.table(), partitionIdent)){
+            if (!partitionExists(statement.table(), partitionIdent)) {
                 throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionIdent);
             }
             statement.partitionIdent(partitionIdent);
@@ -153,9 +153,8 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     private boolean partitionExists(DocTableInfo table, @Nullable String partitionIdent) {
         if (table.isPartitioned() && partitionIdent != null) {
             for (PartitionName partitionName : table.partitions()) {
-                if (partitionName.schema().equals(table.ident().schema())
-                        && partitionName.tableName().equals(table.ident().name())
-                        && partitionName.ident().equals(partitionIdent)) {
+                if (partitionName.tableIdent().equals(table.ident())
+                    && partitionName.ident().equals(partitionIdent)) {
                     return true;
                 }
             }

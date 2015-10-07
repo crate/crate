@@ -310,7 +310,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
                 indexNames = new String[] { partitionName.asIndexName() };
             }
         } else {
-            indexNames = new String[] { tableInfo.ident().esName() };
+            indexNames = new String[] { tableInfo.ident().indexName() };
         }
         return indexNames;
     }
@@ -381,14 +381,14 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
 
                 if (!analysis.excludePartitions()) {
                     // resolve indices on master node to make sure it doesn't hit partitions that are being deleted
-                    String index = table.ident().esName();
+                    String index = table.ident().indexName();
                     results.add(updateMapping(analysis.tableParameter().mappings(), index));
                     results.add(updateSettings(parameterWithFilteredSettings, index));
                 }
             }
         } else {
-            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().esName()));
-            results.add(updateSettings(analysis.tableParameter(), table.ident().esName()));
+            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().indexName()));
+            results.add(updateSettings(analysis.tableParameter(), table.ident().indexName()));
         }
 
         ListenableFuture<List<Long>> allAsList = Futures.allAsList(Iterables.filter(results, Predicates.notNull()));

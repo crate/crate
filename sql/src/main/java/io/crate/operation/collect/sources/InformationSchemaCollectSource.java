@@ -78,7 +78,7 @@ public class InformationSchemaCollectSource implements CollectSource {
                             @Override
                             public boolean apply(TableInfo input) {
                                 assert input != null;
-                                return !PartitionName.isPartition(input.ident().esName());
+                                return !PartitionName.isPartition(input.ident().indexName());
                             }
                         });
                     }

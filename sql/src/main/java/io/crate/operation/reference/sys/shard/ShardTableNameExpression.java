@@ -39,7 +39,7 @@ public class ShardTableNameExpression extends SimpleObjectExpression<BytesRef> i
     public ShardTableNameExpression(ShardId shardId) {
         String index = shardId.getIndex();
         if (PartitionName.isPartition(index)) {
-            value = new BytesRef(PartitionName.fromIndexOrTemplate(index).tableName());
+            value = new BytesRef(PartitionName.fromIndexOrTemplate(index).tableIdent().name());
         } else {
             Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
             if (matcher.matches()) {

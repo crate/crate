@@ -141,7 +141,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The table 'test' already exists.");
+        expectedException.expectMessage("The table 'doc.test' already exists.");
         execute("create table test (col1 integer primary key, col2 string)");
     }
 
@@ -376,7 +376,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             assertTrue("did not fail for existing column o", false);
         } catch (SQLActionException e) {
             // column o exists already
-            assertThat(e.getMessage(), is("The table \"t\" already has a column named \"o\""));
+            assertThat(e.getMessage(), is("The table \"doc.t\" already has a column named \"o\""));
         }
         execute("select * from information_schema.columns where " +
                 "table_name = 't' and schema_name='doc'" +
@@ -473,7 +473,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropUnknownTable() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table 'test' unknown");
+        expectedException.expectMessage("Table 'doc.test' unknown");
 
         execute("drop table test");
     }

@@ -1483,7 +1483,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
+        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
         execute("refresh table parted partition(date=0)");
     }
 

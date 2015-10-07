@@ -42,14 +42,10 @@ public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boo
         isPartition = PartitionName.isPartition(shardId.getIndex());
         if (isPartition) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex());
-            String schema = partitionName.schemaOrNull();
-            String tableName = partitionName.tableName();
-            if (schema == null) {
-                aliasName = tableName;
-            } else {
-                aliasName = schema + "." + tableName;
-            }
-            templateName = PartitionName.templateName(schema, tableName);
+            aliasName = partitionName.tableIdent().indexName();
+            templateName = PartitionName.templateName(
+                    partitionName.tableIdent().schema(),
+                    partitionName.tableIdent().name());
         } else {
             templateName = null;
             aliasName = null;

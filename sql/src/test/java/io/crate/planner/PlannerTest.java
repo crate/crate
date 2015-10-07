@@ -1248,7 +1248,7 @@ public class PlannerTest extends CrateUnitTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableIdent().fqn(), is("users"));
+        assertThat(projection.tableIdent().fqn(), is("doc.users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
@@ -1279,7 +1279,7 @@ public class PlannerTest extends CrateUnitTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableIdent().fqn(), is("parted"));
+        assertThat(projection.tableIdent().fqn(), is("doc.parted"));
 
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
@@ -1310,7 +1310,7 @@ public class PlannerTest extends CrateUnitTest {
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
-        assertThat(projection.tableIdent().fqn(), is("users"));
+        assertThat(projection.tableIdent().fqn(), is("doc.users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
         assertThat(planNode.handlerMergeNode().isPresent(), is(false));

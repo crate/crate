@@ -37,4 +37,5 @@ public interface Schemas extends Iterable<SchemaInfo> {
     TableInfo getTableInfo(TableIdent ident);
 
     boolean tableExists(TableIdent tableIdent);
+
 }

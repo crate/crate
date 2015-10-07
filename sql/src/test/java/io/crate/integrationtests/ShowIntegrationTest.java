@@ -49,7 +49,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShowCrateTableSimple() throws Exception {
-        String expected = "CREATE TABLE IF NOT EXISTS \"test\" (\n" +
+        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"col_bool\" BOOLEAN,\n" +
                 "   \"col_byte\" BYTE,\n" +
                 "   \"col_double\" DOUBLE,\n" +
@@ -89,7 +89,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_obj_b object(dynamic) as (arr array(integer), obj object)" +
                 ")");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"col_arr_obj_a\" ARRAY(OBJECT (DYNAMIC)),\n" +
                 "   \"col_arr_obj_b\" ARRAY(OBJECT (STRICT) AS (\n" +
                 "      \"id\" INTEGER\n" +
@@ -130,7 +130,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ") " +
                 "clustered into 2 shards");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"col_a\" STRING INDEX OFF,\n" +
                 "   \"col_b\" STRING,\n" +
                 "   \"col_c\" STRING INDEX USING FULLTEXT WITH (\n" +
@@ -157,7 +157,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ") " +
                 "partitioned by (\"date\")");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"date\" TIMESTAMP,\n" +
                 "   \"id\" LONG\n" +
                 ")\n" +
@@ -173,7 +173,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " name string" +
                 ") clustered into 8 shards");
         execute("show create table test_pk_single");
-        assertRow("CREATE TABLE IF NOT EXISTS \"test_pk_single\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_single\" (\n" +
                 "   \"id\" INTEGER,\n" +
                 "   \"name\" STRING,\n" +
                 "   PRIMARY KEY (\"id\")\n" +
@@ -187,7 +187,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_a string primary key" +
                 ") clustered into 8 shards");
         execute("show create table test_pk_multi");
-        assertRow("CREATE TABLE IF NOT EXISTS \"test_pk_multi\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_multi\" (\n" +
                 "   \"col_a\" STRING,\n" +
                 "   \"col_z\" STRING,\n" +
                 "   \"id\" INTEGER,\n" +

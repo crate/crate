@@ -38,7 +38,6 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
@@ -324,7 +323,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
-            return new InvalidTableNameException(new TableIdent(partitionName.schema(), partitionName.tableName()).fqn(), e);
+            return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException) e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {

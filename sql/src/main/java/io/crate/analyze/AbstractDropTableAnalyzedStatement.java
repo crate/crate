@@ -39,7 +39,7 @@ public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> ex
     }
 
     public String index() {
-        return tableIdent().esName();
+        return tableIdent().indexName();
     }
 
     public T table() {

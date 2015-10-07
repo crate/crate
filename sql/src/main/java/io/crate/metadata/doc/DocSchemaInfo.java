@@ -235,10 +235,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             }
             try {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
-                String tableName = partitionName.tableName();
-                String schemaName = partitionName.schema();
-                if (schemaName.equalsIgnoreCase(name())) {
-                    tables.add(tableName);
+                TableIdent ti = partitionName.tableIdent();
+                if (schemaName.equalsIgnoreCase(ti.schema())) {
+                    tables.add(ti.name());
                 }
             } catch (IllegalArgumentException e) {
                 // do nothing

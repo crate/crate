@@ -78,12 +78,12 @@ public class DocTableInfoBuilder {
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
         boolean createdFromTemplate = false;
         if (metaData.getTemplates().containsKey(templateName)) {
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.esName(), templateName);
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexName(), templateName);
             createdFromTemplate = true;
-            concreteIndices = metaData.concreteIndices(IndicesOptions.lenientExpandOpen(), ident.esName());
+            concreteIndices = metaData.concreteIndices(IndicesOptions.lenientExpandOpen(), ident.indexName());
         } else {
             try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.indexName());
                 if (concreteIndices.length == 0) {
                     throw new TableUnknownException(ident);
                 }
@@ -147,11 +147,11 @@ public class DocTableInfoBuilder {
                 if (PartitionName.isPartition(index)) {
                     try {
                         PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
-                        assert partitionName.schema().equals(ident.schema()) && ident.name().equals(partitionName.tableName());
+                        assert partitionName.tableIdent().equals(ident);
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.esName()));
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.indexName()));
                     }
                 }
             }

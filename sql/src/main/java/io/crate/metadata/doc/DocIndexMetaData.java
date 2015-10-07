@@ -44,7 +44,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -109,7 +108,7 @@ public class DocIndexMetaData {
     public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.esName());
+        this.isAlias = !metaData.getIndex().equals(ident.indexName());
         this.numberOfShards = metaData.numberOfShards();
         final Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);

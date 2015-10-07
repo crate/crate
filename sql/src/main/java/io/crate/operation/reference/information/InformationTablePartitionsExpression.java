@@ -22,7 +22,6 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -33,21 +32,15 @@ public abstract class InformationTablePartitionsExpression<T>
     public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
         @Override
         public BytesRef value() {
-            return new BytesRef(row.name().tableName());
+            return new BytesRef(row.name().tableIdent().name());
         }
     }
 
     public static class PartitionsSchemaNameExpression extends InformationTablePartitionsExpression<BytesRef> {
 
-        private final BytesRef DOC_SCHEMA_INFO = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
-
         @Override
         public BytesRef value() {
-            String schemaName = row.name().schemaOrNull();
-            if (schemaName == null) {
-                return DOC_SCHEMA_INFO;
-            }
-            return new BytesRef(schemaName);
+            return new BytesRef(row.name().tableIdent().schema());
         }
     }
 

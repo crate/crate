@@ -163,7 +163,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The table 'mytablealias' already exists.");
+        expectedException.expectMessage("The table 'doc.mytablealias' already exists.");
 
         execute(String.format("create table %s (content string index off)", tableAlias));
     }

@@ -77,7 +77,7 @@ public class CreateTableTask extends AbstractChainedTask {
     }
 
     private CreateIndexRequest createIndexRequest() {
-        return new CreateIndexRequest(planNode.tableIdent().esName(), planNode.settings())
+        return new CreateIndexRequest(planNode.tableIdent().indexName(), planNode.settings())
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, planNode.mapping());
     }
 
@@ -88,7 +88,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 .settings(planNode.settings())
                 .template(planNode.templateIndexMatch().get())
                 .order(100)
-                .alias(new Alias(planNode.tableIdent().esName()));
+                .alias(new Alias(planNode.tableIdent().indexName()));
     }
 
     private void createTable() {

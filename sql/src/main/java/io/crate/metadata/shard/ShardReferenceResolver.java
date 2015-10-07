@@ -58,9 +58,9 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 throw new UnhandledServerException(String.format(Locale.ENGLISH,
                         "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
             }
-            TableIdent tableIdent = new TableIdent(partitionName.schemaOrNull(), partitionName.tableName());
+            TableIdent tableIdent = partitionName.tableIdent();
             // check if alias exists
-            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
+            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.indexName())) {
                 DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
                 assert info.isPartitioned();
                 int i = 0;

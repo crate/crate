@@ -44,7 +44,6 @@ import java.util.Map;
 public class InformationReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
 
     private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
-    private final BytesRef DOC_SCHEMA_INFO = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
 
     @Inject
     public InformationReferenceResolver() {
@@ -234,11 +233,7 @@ public class InformationReferenceResolver implements ReferenceResolver<RowCollec
 
                                     @Override
                                     public BytesRef value() {
-                                        String schema = row.ident().schema();
-                                        if (schema == null) {
-                                            return DOC_SCHEMA_INFO;
-                                        }
-                                        return new BytesRef(schema);
+                                        return new BytesRef(row.ident().schema());
                                     }
                                 };
                             }

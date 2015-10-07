@@ -32,7 +32,6 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
@@ -220,9 +219,9 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
                 throw ExceptionsHelper.convertToRuntime(e);
             }
         } else if (partitionIdent != null) {
-            return PartitionName.indexName(tableIdent.schema(), tableIdent.name(), partitionIdent);
+            return PartitionName.indexName(tableIdent, partitionIdent);
         } else {
-            return tableIdent.esName();
+            return tableIdent.indexName();
         }
     }
 

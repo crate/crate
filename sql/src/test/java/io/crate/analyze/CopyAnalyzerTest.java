@@ -194,14 +194,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToDirectoryWithNotExistingPartitionClause() throws Exception {
         expectedException.expect(PartitionUnknownException.class);
-        expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
+        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
         analyze("copy parted partition (date=0) to directory '/tmp/'");
     }
 
     @Test
     public void testCopyToWithNotExistingPartitionClause() throws Exception {
         expectedException.expect(PartitionUnknownException.class);
-        expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
+        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
         analyze("copy parted partition (date=0) to '/tmp/blah.txt'");
     }
 

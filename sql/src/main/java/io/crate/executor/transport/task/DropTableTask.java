@@ -77,7 +77,7 @@ public class DropTableTask extends AbstractChainedTask {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "dropping table '%s'", tableInfo.ident().fqn()));
                     }
                     if (!tableInfo.partitions().isEmpty()) {
-                        deleteESIndex(tableInfo.ident().esName());
+                        deleteESIndex(tableInfo.ident().indexName());
                     } else {
                         result.set(SUCCESS_RESULT);
                     }
@@ -88,14 +88,14 @@ public class DropTableTask extends AbstractChainedTask {
                     e = ExceptionsHelper.unwrapCause(e);
                     if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
                         logger.warn(e.getMessage());
-                        deleteESIndex(tableInfo.ident().esName());
+                        deleteESIndex(tableInfo.ident().indexName());
                     } else {
                         result.setException(e);
                     }
                 }
             });
         } else {
-            deleteESIndex(tableInfo.ident().esName());
+            deleteESIndex(tableInfo.ident().indexName());
         }
 
     }
