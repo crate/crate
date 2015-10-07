@@ -88,7 +88,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        TransportShardUpsertActionDelegate transportShardBulkActionDelegate = new TransportShardUpsertActionDelegate() {
+        BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse>() {
             @Override
             public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
@@ -133,7 +133,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 1,
                 coordinatorPool,
                 builder,
-                transportShardBulkActionDelegate,
+                transportShardBulkAction,
                 UUID.randomUUID()
         );
         try {
@@ -163,7 +163,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         // listener will be executed 2 times, once for the successfully added row and once for the failure
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        TransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new TransportShardUpsertActionDelegate() {
+
+        BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse>() {
             @Override
             public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
@@ -184,7 +185,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         );
 
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
                 ImmutableSettings.EMPTY
         );
@@ -211,7 +212,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 1,
                 coordinatorPool,
                 builder,
-                transportShardUpsertActionDelegate,
+                transportShardBulkAction,
                 UUID.randomUUID()
         );
         bulkShardProcessor.add("foo", new RowN(new Object[]{1, "bar1"}), null);

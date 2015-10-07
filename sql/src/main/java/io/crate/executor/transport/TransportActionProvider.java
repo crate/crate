@@ -34,10 +34,7 @@ import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettin
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegateImpl;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
+import org.elasticsearch.action.bulk.*;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -161,11 +158,11 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public TransportShardUpsertActionDelegate transportShardUpsertActionDelegate() {
+    public BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate() {
         return new TransportShardUpsertActionDelegateImpl(transportShardUpsertActionProvider.get());
     }
 
-    public SymbolBasedTransportShardUpsertActionDelegate symbolBasedTransportShardUpsertActionDelegate() {
+    public BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> symbolBasedTransportShardUpsertActionDelegate() {
         return new SymbolBasedTransportShardUpsertActionDelegateImpl(symbolBasedTransportShardUpsertActionProvider.get());
     }
 

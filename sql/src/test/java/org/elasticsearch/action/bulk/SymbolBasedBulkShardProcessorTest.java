@@ -74,11 +74,12 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        SymbolBasedTransportShardUpsertActionDelegate transportShardBulkActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
-            @Override
-            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
-                ref.set(listener);
-            }
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+                    @Override
+                    public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                        ref.set(listener);
+                    }
         };
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
@@ -103,7 +104,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardBulkActionDelegate,
+                transportShardBulkAction,
                 UUID.randomUUID()
         );
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
@@ -135,16 +136,18 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         // listener will be executed 2 times, once for the successfully added row and once for the failure
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
-            @Override
-            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
-                ref.set(listener);
-                listenerLatch.countDown();
-            }
-        };
+
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+                    @Override
+                    public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                        ref.set(listener);
+                        listenerLatch.countDown();
+                    }
+                };
 
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
                 ImmutableSettings.EMPTY
@@ -169,7 +172,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardUpsertActionDelegate,
+                transportShardBulkAction,
                 UUID.randomUUID()
         );
         bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
@@ -217,15 +220,16 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate = new SymbolBasedTransportShardUpsertActionDelegate() {
-            @Override
-            public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
-                ref.set(listener);
-            }
-        };
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+                    @Override
+                    public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                        ref.set(listener);
+                    }
+                };
 
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardUpsertActionDelegate);
+        when(transportActionProvider.symbolBasedTransportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
                 ImmutableSettings.EMPTY
@@ -250,7 +254,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 false,
                 1,
                 builder,
-                transportShardUpsertActionDelegate,
+                transportShardBulkAction,
                 UUID.randomUUID()
         );
         assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));

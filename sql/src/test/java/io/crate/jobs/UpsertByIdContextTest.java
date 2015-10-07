@@ -8,10 +8,11 @@ import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
@@ -20,14 +21,15 @@ import static org.mockito.Mockito.*;
 
 public class UpsertByIdContextTest extends CrateUnitTest {
 
-    private SymbolBasedTransportShardUpsertActionDelegate delegate;
+    @Mock
+    public BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> delegate;
+
     private UpsertByIdContext context;
     private SettableFuture<TaskResult> future;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        delegate = mock(SymbolBasedTransportShardUpsertActionDelegate.class);
         SymbolBasedShardUpsertRequest request = mock(SymbolBasedShardUpsertRequest.class);
         SymbolBasedUpsertByIdNode.Item item = mock(SymbolBasedUpsertByIdNode.Item.class);
         future = SettableFuture.create();

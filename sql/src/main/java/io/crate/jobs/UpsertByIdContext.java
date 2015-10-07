@@ -28,7 +28,7 @@ import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -44,13 +44,13 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
     private final SymbolBasedShardUpsertRequest request;
     private final SymbolBasedUpsertByIdNode.Item item;
     private final SettableFuture<TaskResult> futureResult;
-    private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
                              SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
-                             SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate) {
+                             BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate) {
         super(id);
         this.request = request;
         this.item = item;

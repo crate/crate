@@ -27,7 +27,7 @@ import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 
-public class SymbolBasedTransportShardUpsertActionDelegateImpl implements SymbolBasedTransportShardUpsertActionDelegate {
+public class SymbolBasedTransportShardUpsertActionDelegateImpl implements BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> {
 
     private final SymbolBasedTransportShardUpsertAction transportShardUpsertAction;
 

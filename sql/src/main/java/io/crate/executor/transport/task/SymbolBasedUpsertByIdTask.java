@@ -40,9 +40,9 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
-import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegate;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -59,7 +59,7 @@ import java.util.concurrent.CancellationException;
 
 public class SymbolBasedUpsertByIdTask extends JobTask {
 
-    private final SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -76,7 +76,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,
                                      Settings settings,
-                                     SymbolBasedTransportShardUpsertActionDelegate transportShardUpsertActionDelegate,
+                                     BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate,
                                      TransportCreateIndexAction transportCreateIndexAction,
                                      TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                      BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
