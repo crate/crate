@@ -5,7 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed a bug in SHOW CREATE TABLE statement that leads to a wrong table 
+ - Updated crate-admin to 0.14.6 which includes following changes:
+
+   - fixed a visual bug that let an item in the node/table list partly disappear
+     if scrolling gets enabled
+
+   - fixed URL to download in dropdown that notifies about old Crate version
+
+   - fixed a bug that displays a zero value as NULL value
+
+ - Fixed a bug in SHOW CREATE TABLE statement that leads to a wrong table
    schema if the table contains nested objects
 
  - Fix: Prevent NPE in COPY FROM and INSERT FROM SUBQUERY queries
