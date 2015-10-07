@@ -4,7 +4,10 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
+ - Fixed a bug in SHOW CREATE TABLE statement that leads to a wrong table 
+   schema if the table contains nested objects
+
  - Fixed an issue that causes a ClosedChannelException during BLOB download
 
  - Fix: Prevent NPE in COPY FROM and INSERT FROM SUBQUERY queries
