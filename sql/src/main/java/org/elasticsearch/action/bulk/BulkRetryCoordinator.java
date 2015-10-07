@@ -128,11 +128,7 @@ public class BulkRetryCoordinator {
         @Override
         public void onResponse(Response response) {
             currentDelay.set(0);
-            try {
-                retryLock.releaseWriteLock();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
+            retryLock.releaseWriteLock();
             listener.onResponse(response);
         }
 
@@ -167,7 +163,7 @@ public class BulkRetryCoordinator {
             writeLock.acquire();
         }
 
-        public void releaseWriteLock() throws InterruptedException {
+        public void releaseWriteLock() {
             if (activeWriters.decrementAndGet() == 0) {
                 // unlock all readers
                 readLock.release(waitingReaders.getAndSet(0)+1);

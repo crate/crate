@@ -24,7 +24,6 @@ package org.elasticsearch.action.bulk;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -40,17 +39,18 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.RowShardResolver;
-import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
-import org.elasticsearch.cluster.*;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.TimeoutClusterStateListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -494,11 +494,7 @@ public class BulkShardProcessor {
         } else {
             if (repeatingRetry) {
                 // release failed retry
-                try {
-                    coordinator.retryLock().releaseWriteLock();
-                } catch (InterruptedException ex) {
-                    Thread.interrupted();
-                }
+                coordinator.retryLock().releaseWriteLock();
             }
             for (IntCursor intCursor : request.itemIndices()) {
                 synchronized (responsesLock) {

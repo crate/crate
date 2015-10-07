@@ -468,11 +468,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         } else {
             if (repeatingRetry) {
                 // release failed retry
-                try {
-                    coordinator.retryLock().releaseWriteLock();
-                } catch (InterruptedException ex) {
-                    Thread.interrupted();
-                }
+                coordinator.retryLock().releaseWriteLock();
             }
             for (IntCursor intCursor : request.itemIndices()) {
                 synchronized (responsesLock) {
