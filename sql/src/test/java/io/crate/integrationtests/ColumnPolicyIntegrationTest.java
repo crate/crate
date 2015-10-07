@@ -154,6 +154,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
+        refresh();
         waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
