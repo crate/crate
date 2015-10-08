@@ -5,8 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause the re-creation of an already
+   existing table partition and therefore potential dataloss when creating
+   a lot of partitions simultaniously using COPY FROM or bulk inserts.
+
  - Fixed a race condition that could cause COPY FROM operations to get stuck if
-   shards were to be relocated. 
+   shards were to be relocated.
 
  - Throw an exception when someone attempts to change non-runtime changeable
    settings
