@@ -234,4 +234,11 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         analysis = (SetAnalyzedStatement) analyze("RESET GLOBAL stats");
         assertThat(analysis.settingsToRemove(), containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size"));
     }
+
+    @Test
+    public void testSetNonRuntimeSetting() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("setting 'indices.breaker.query.overhead' cannot be set/reset in runtime");
+        analyze("SET GLOBAL TRANSIENT indices.breaker.query.overhead=1.2");
+    }
 }
