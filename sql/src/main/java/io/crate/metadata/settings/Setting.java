@@ -43,6 +43,8 @@ public abstract class Setting<T, E> {
 
     public abstract E extract(Settings settings);
 
+    public abstract boolean isRuntime();
+
     public List<Setting> children() {
         return ImmutableList.of();
     }

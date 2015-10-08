@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Throw an exception when someone attempts to change non-runtime changeable
+   settings
+
  - Upgraded Elasticsearch to 1.7.2
 
  - Updated crate-admin to 0.15.0 which includes following changes:

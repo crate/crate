@@ -38,6 +38,10 @@ public class CrateSettingsTest extends CrateUnitTest {
             @Override
             public String defaultValue() { return "foo"; }
 
+            @Override
+            public boolean isRuntime() {
+                return false;
+            }
         };
 
         String validation = stringSetting.validate("foo");
@@ -56,6 +60,11 @@ public class CrateSettingsTest extends CrateUnitTest {
 
             @Override
             public String defaultValue() { return "foo"; }
+
+            @Override
+            public boolean isRuntime() {
+                return false;
+            }
 
         };
 

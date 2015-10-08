@@ -24,12 +24,14 @@ package io.crate.analyze;
 import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -55,6 +57,7 @@ public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedSta
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
             }
+            checkIfSettingIsRuntime(settingsName);
             settingsApplier.apply(builder, analysis.parameterContext().parameters(), assignment.expression());
         }
         statement.settings(builder.build());
@@ -80,4 +83,19 @@ public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedSta
         statement.settingsToRemove(settingsToRemove);
         return statement;
     }
+
+    private void checkIfSettingIsRuntime(String name) {
+        checkIfSettingIsRuntime(CrateSettings.CRATE_SETTINGS, name);
+    }
+
+    private void checkIfSettingIsRuntime(List<Setting> settings, String name) {
+        for (Setting<?, ?> setting : settings) {
+            if (setting.settingName().equals(name) && !setting.isRuntime()) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                        "setting '%s' cannot be set/reset in runtime", name));
+            }
+            checkIfSettingIsRuntime(setting.children(), name);
+        }
+    }
+
 }

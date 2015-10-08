@@ -41,6 +41,11 @@ public class CrateTableSettings {
         public Boolean defaultValue() {
             return false;
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final BoolSetting BLOCKS_READ = new BoolSetting() {
@@ -52,6 +57,11 @@ public class CrateTableSettings {
         @Override
         public Boolean defaultValue() {
             return false;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 
@@ -65,6 +75,11 @@ public class CrateTableSettings {
         public Boolean defaultValue() {
             return false;
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final BoolSetting BLOCKS_METADATA = new BoolSetting() {
@@ -76,6 +91,11 @@ public class CrateTableSettings {
         @Override
         public Boolean defaultValue() {
             return false;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 
@@ -89,6 +109,11 @@ public class CrateTableSettings {
         public Boolean defaultValue() {
             return false;
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final TimeSetting TRANSLOG_INTERVAL = new TimeSetting() {
@@ -101,6 +126,11 @@ public class CrateTableSettings {
         public TimeValue defaultValue() {
             return TimeValue.timeValueSeconds(5);
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting() {
@@ -112,6 +142,11 @@ public class CrateTableSettings {
         @Override
         public Integer defaultValue() {
             return -1;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 
@@ -131,8 +166,10 @@ public class CrateTableSettings {
         public String defaultValue() {
             return "all";
         }
-
-
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting() {
@@ -145,6 +182,11 @@ public class CrateTableSettings {
         @Override
         public String defaultValue() {
             return "quorum";
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 
@@ -159,6 +201,11 @@ public class CrateTableSettings {
         public ByteSizeValue defaultValue() {
             return new ByteSizeValue(200, ByteSizeUnit.MB);
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
 
@@ -171,6 +218,11 @@ public class CrateTableSettings {
         @Override
         public Integer defaultValue() {
             return Integer.MAX_VALUE;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 
@@ -186,6 +238,10 @@ public class CrateTableSettings {
             return TimeValue.timeValueMinutes(30);
         }
 
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final BoolSetting WARMER_ENABLED = new BoolSetting() {
@@ -196,6 +252,11 @@ public class CrateTableSettings {
 
         @Override
         public Boolean defaultValue() {
+            return true;
+        }
+
+        @Override
+        public boolean isRuntime() {
             return true;
         }
     };
@@ -210,6 +271,11 @@ public class CrateTableSettings {
         public TimeValue defaultValue() {
             return TimeValue.timeValueSeconds(5);
         }
+
+        @Override
+        public boolean isRuntime() {
+            return false;
+        }
     };
 
     public static final TimeSetting REFRESH_INTERVAL = new TimeSetting() {
@@ -222,6 +288,11 @@ public class CrateTableSettings {
         public TimeValue defaultValue() {
             return TimeValue.timeValueMillis(1000);
         }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
     };
 
     public static final TimeSetting UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new TimeSetting() {
@@ -233,6 +304,11 @@ public class CrateTableSettings {
         @Override
         public TimeValue defaultValue() {
             return TimeValue.timeValueMinutes(1);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
     };
 }
