@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause the re-creation of an already
+   existing table partition and therefore potential dataloss when creating
+   a lot of partitions simultaniously using COPY FROM or bulk inserts.
+
  -  Fixed a rare bug which could cause a MapperParsingException if one creates
     a new dynamic array concurrently
 

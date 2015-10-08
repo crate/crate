@@ -24,12 +24,16 @@ package org.elasticsearch.action.admin.indices.create;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.common.collect.ImmutableOpenIntMap;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 
@@ -46,7 +50,9 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
 
     @Before
     public void prepare() {
-        action = cluster().getInstance(TransportBulkCreateIndicesAction.class);
+        MockitoAnnotations.initMocks(this);
+        String masterName = cluster().clusterService().state().nodes().masterNode().name();
+        action = cluster().getInstanceFromNode(masterName ,TransportBulkCreateIndicesAction.class);
     }
 
     @Test
@@ -61,6 +67,24 @@ public class TransportBulkCreateIndicesActionTest extends CrateIntegrationTest {
                 .indices().prepareExists("index1", "index2", "index3", "index4")
                 .execute().actionGet();
         assertThat(indicesExistsResponse.isExists(), is(true));
+    }
+
+    @Test
+    public void testRoutingOfIndicesIsNotOverridden() throws Exception {
+        cluster().client().admin().indices()
+                .prepareCreate("index_0")
+                .setSettings(ImmutableSettings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
+                .execute().actionGet();
+        ensureYellow();
+
+        ClusterState currentState = clusterService().state();
+
+        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(
+                Arrays.asList("index_0", "index_1"));
+        currentState = action.executeCreateIndices(currentState, request, new BulkCreateIndicesResponse());
+
+        ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
+        assertTrue("[index_0][0] must be started already", newRouting.get(0).primaryShard().started());
     }
 
     @Test
