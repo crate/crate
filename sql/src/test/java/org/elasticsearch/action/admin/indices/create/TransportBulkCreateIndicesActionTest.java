@@ -58,7 +58,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class);
+        action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class, internalCluster().getMasterName());
     }
 
     @Test
