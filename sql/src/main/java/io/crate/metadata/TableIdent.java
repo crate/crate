@@ -146,13 +146,13 @@ public class TableIdent implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        schema = in.readOptionalString();
+        schema = in.readString();
         name = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalString(schema);
+        out.writeString(schema);
         out.writeString(name);
     }
 }
