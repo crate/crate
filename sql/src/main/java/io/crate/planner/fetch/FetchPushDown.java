@@ -21,7 +21,7 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.base.*;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -36,7 +36,6 @@ import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -44,7 +43,6 @@ import java.util.*;
 public class FetchPushDown {
 
     private static final FetchRequiredVisitor fetchRequiredVisitor = new FetchRequiredVisitor();
-    private static final ScoreReferenceDetector SCORE_REFERENCE_DETECTOR = new ScoreReferenceDetector();
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
     private Field docIdField;
@@ -134,7 +132,7 @@ public class FetchPushDown {
             outputs.add(docIdReference);
         }
         for (Symbol symbol : querySpec.outputs()) {
-            if (SCORE_REFERENCE_DETECTOR.detect(symbol) && !outputs.contains(symbol)) {
+            if (ScoreReferenceDetector.detect(symbol) && !outputs.contains(symbol)) {
                 outputs.add(symbol);
             }
         }

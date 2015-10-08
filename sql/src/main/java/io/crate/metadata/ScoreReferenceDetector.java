@@ -29,19 +29,16 @@ import javax.annotation.Nullable;
 
 public class ScoreReferenceDetector {
 
+    private ScoreReferenceDetector() {}
+
     private final static Visitor VISITOR = new Visitor();
+
 
     private final static Predicate<Reference> SCORE_PREDICATE = new Predicate<Reference>() {
         @Override
         public boolean apply(@Nullable Reference input) {
             assert input != null;
-
-            ReferenceIdent ident = input.info().ident();
-            if (ident.columnIdent().equals(DocSysColumns.SCORE)) {
-                return true;
-            }
-
-            return false;
+            return input.info().ident().columnIdent().equals(DocSysColumns.SCORE);
         }
     };
 
