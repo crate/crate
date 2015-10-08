@@ -25,6 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.common.collect.ImmutableOpenIntMap;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,7 +57,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class);
+        action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class, internalCluster().getMasterName());
     }
 
     @Test
@@ -103,6 +107,25 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
                 .indices().prepareExists("index1", "index2", "index3", "index4")
                 .execute().actionGet();
         assertThat(indicesExistsResponse.isExists(), is(true));
+    }
+
+    @Test
+    public void testRoutingOfIndicesIsNotOverridden() throws Exception {
+        cluster().client().admin().indices()
+                .prepareCreate("index_0")
+                .setSettings(ImmutableSettings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
+                .execute().actionGet();
+        ensureYellow("index_0");
+
+        ClusterState currentState = internalCluster().clusterService().state();
+
+        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(
+                Arrays.asList("index_0", "index_1"),
+                UUID.randomUUID());
+        currentState = action.executeCreateIndices(currentState, request);
+
+        ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
+        assertTrue("[index_0][0] must be started already", newRouting.get(0).primaryShard().started());
     }
 
     @Test
