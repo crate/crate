@@ -76,7 +76,7 @@ public class RowShardResolver {
     }
 
 
-    public synchronized boolean setNextRow(Row row) {
+    public synchronized void setNextRow(Row row) {
         for (CollectExpression<Row, ?> expression : visitorContext.collectExpressions()) {
             expression.setNextRow(row);
         }
@@ -86,7 +86,6 @@ public class RowShardResolver {
         } else {
             routing = BytesRefs.toString(routingInput.value());
         }
-        return true;
     }
 
     private List<BytesRef> pkValues(List<Input<?>> primaryKeyInputs) {
