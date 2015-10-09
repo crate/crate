@@ -78,6 +78,20 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCrossJoinJoinUnordered() throws Exception {
+        execute("create table employees (size float, name string) clustered by (size) into 1 shards");
+        execute("create table offices (height float, name string) clustered by (height) into 1 shards");
+        ensureYellow();
+        execute("insert into employees (size, name) values (1.5, 'Trillian')");
+        execute("insert into offices (height, name) values (1.5, 'Hobbit House')");
+        execute("refresh table employees, offices");
+
+        // which employee fits in which office?
+        execute("select employees.name, offices.name from employees, offices limit 1");
+        assertThat(response.rows().length, is(1));
+    }
+
+    @Test
     public void testCrossJoinWithFunction() throws Exception {
         execute("create table t1 (price float)");
         execute("create table t2 (price float)");

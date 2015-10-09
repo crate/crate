@@ -286,11 +286,11 @@ public class CrateDocCollector implements CrateCollector {
                 expression.setNextDocId(doc);
             }
             boolean wantMore = rowReceiver.setNextRow(inputRow);
-            if (!wantMore || (limit != null && rowCount >= limit)) {
-                throw CollectionFinishedEarlyException.INSTANCE;
-            }
             if (topRowUpstream.shouldPause()) {
                 throw CollectionPauseException.INSTANCE;
+            }
+            if (!wantMore || (limit != null && rowCount >= limit)) {
+                throw CollectionFinishedEarlyException.INSTANCE;
             }
         }
 
