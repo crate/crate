@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/10/09 0.51.6
+=================
+
  - Fix check if setting is settable/resettable on runtime for nested settings
 
  - Exposed missing cluster gateway settings
