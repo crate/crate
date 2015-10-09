@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
@@ -35,6 +36,7 @@ import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
+import org.elasticsearch.common.StopWatch;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,6 +53,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
 
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
     private final Object subContextLock = new Object();
+    private final ListenableRowReceiver listenableRowReceiver;
 
     private Collection<CrateCollector> collectors;
 
@@ -65,7 +68,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
 
-        ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
+        listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
         Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
             @Override
             public void onSuccess(@Nullable Void result) {
@@ -163,8 +166,23 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         if (collectors.isEmpty()) {
             rowReceiver.finish();
         } else {
+            if (LOGGER.isTraceEnabled()) {
+                measureCollectTime();
+            }
             collectOperation.launchCollectors(collectPhase, collectors);
         }
+    }
+
+    private void measureCollectTime() {
+        final StopWatch stopWatch = new StopWatch(collectPhase.executionPhaseId() + ": " + collectPhase.name());
+        stopWatch.start("starting collectors");
+        listenableRowReceiver.finishFuture().addListener(new Runnable() {
+            @Override
+            public void run() {
+                stopWatch.stop();
+                LOGGER.trace("Collectors finished: {}", stopWatch.shortSummary());
+            }
+        }, MoreExecutors.directExecutor());
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
