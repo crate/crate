@@ -343,6 +343,7 @@ public class NestedLoopOperation implements RowUpstream {
                 boolean wantMore = emitRow(lastRow);
                 if (!wantMore) {
                     LOGGER.trace("LEFT - right resume - downstream doesn't need any more rows, return false");
+                    upstream.resume(false);
                     return false;
                 }
                 lastRow = null;
