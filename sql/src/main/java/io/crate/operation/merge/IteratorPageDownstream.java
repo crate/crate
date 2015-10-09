@@ -91,7 +91,9 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     @Override
     public void repeat() {
         if (finished.compareAndSet(true, false)) {
+            assert downstreamWantsMore : "downstream doesn't want more but still called repeat";
             LOGGER.trace("received repeat: {}", rowReceiver);
+
             paused.set(false);
             if (processBuckets(pagingIterator.repeat(), PageConsumeListener.NO_OP_LISTENER)) {
                 consumeRemaining();
