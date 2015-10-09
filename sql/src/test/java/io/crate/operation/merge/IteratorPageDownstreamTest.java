@@ -108,6 +108,29 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
     }
 
     @Test
+    public void testFinishDoesNotEmitRemainingRow() throws Exception {
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
+        IteratorPageDownstream downstream = new IteratorPageDownstream(
+                rowReceiver,
+                new PassThroughPagingIterator<Row>(),
+                Optional.<Executor>absent()
+        );
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        b1.set(new ArrayBucket(
+                new Object[][]{
+                        new Object[]{"a"},
+                        new Object[]{"b"},
+                        new Object[]{"c"}
+                }
+        ));
+
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        downstream.finish();
+        assertThat(rowReceiver.result().size(), is(1));
+    }
+
+    @Test
     public void testRejectedExecutionDoesNotCauseBucketMergerToGetStuck() throws Exception {
          expectedException.expect(EsRejectedExecutionException.class);
          final CollectingRowReceiver rowReceiver = new CollectingRowReceiver();

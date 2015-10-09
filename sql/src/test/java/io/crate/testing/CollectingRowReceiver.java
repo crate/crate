@@ -49,6 +49,10 @@ public class CollectingRowReceiver implements RowReceiver {
         return new PausingReceiver(pauseAfter);
     }
 
+    public static CollectingRowReceiver withLimit(int limit) {
+        return new LimitingReceiver(limit);
+    }
+
     public CollectingRowReceiver() {
     }
 
@@ -102,6 +106,27 @@ public class CollectingRowReceiver implements RowReceiver {
                     "Didn't receive fail or finish. Upstream was \"" + upstream + "\"");
             timeoutException.initCause(e);
             throw timeoutException;
+        }
+    }
+
+    private static class LimitingReceiver extends CollectingRowReceiver {
+
+        private final int limit;
+        private int numRows = 0;
+
+        public LimitingReceiver(int limit) {
+            this.limit = limit;
+        }
+
+        @Override
+        public boolean setNextRow(Row row) {
+            boolean wantsMore = super.setNextRow(row);
+            numRows++;
+            //noinspection SimplifiableIfStatement
+            if (numRows >= limit) {
+                return false;
+            }
+            return wantsMore;
         }
     }
 

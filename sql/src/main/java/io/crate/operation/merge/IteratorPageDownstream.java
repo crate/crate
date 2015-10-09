@@ -60,6 +60,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private volatile PageConsumeListener pausedListener;
     private volatile Iterator<Row> pausedIterator;
     private volatile boolean pendingPause;
+    private boolean downstreamWantsMore = true;
 
     public IteratorPageDownstream(RowReceiver rowReceiver,
                                   PagingIterator<Row> pagingIterator,
@@ -100,6 +101,7 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
                 return wantMore;
             }
             if (!wantMore) {
+                downstreamWantsMore = false;
                 listener.finish();
                 return false;
             }
@@ -157,7 +159,9 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     @Override
     public void finish() {
         if (finished.compareAndSet(false, true)) {
-            consumeRemaining();
+            if (downstreamWantsMore) {
+                consumeRemaining();
+            }
             rowReceiver.finish();
         }
     }
