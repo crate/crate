@@ -163,6 +163,12 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testSetRuntimeSettingSubscript() {
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL TRANSIENT cluster['routing']['allocation']['include'] = {_host = 'host1.example.com'}");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.allocation.include._host=host1.example.com,"));
+    }
+
+    @Test
     public void testNestedObjectValueInvalid() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Only object values are allowed at 'cluster.routing.allocation.disk'");
@@ -238,7 +244,28 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSetNonRuntimeSetting() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("setting 'indices.breaker.query.overhead' cannot be set/reset in runtime");
-        analyze("SET GLOBAL TRANSIENT indices.breaker.query.overhead=1.2");
+        expectedException.expectMessage("setting 'gateway.recover_after_time' cannot be set/reset at runtime");
+        analyze("SET GLOBAL TRANSIENT gateway.recover_after_time = '5m'");
+    }
+
+    @Test
+    public void testResetNonRuntimeSetting() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        analyze("RESET GLOBAL gateway.recover_after_nodes");
+    }
+
+    @Test
+    public void testSetNonRuntimeSettingObject() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        analyze("SET GLOBAL TRANSIENT gateway = {recover_after_nodes = 3}");
+    }
+
+    @Test
+    public void testResetNonRuntimeSettingObject() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        analyze("RESET GLOBAL gateway");
     }
 }

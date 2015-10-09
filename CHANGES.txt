@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix check if setting is settable/resettable on runtime for nested settings
+
  - Exposed missing cluster gateway settings
 
  - Throw an exception when someone attempts to change non-runtime changeable
