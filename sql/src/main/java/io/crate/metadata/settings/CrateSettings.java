@@ -528,7 +528,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -543,7 +543,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -558,7 +558,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -573,7 +573,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -588,7 +588,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -613,7 +613,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -628,7 +628,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -643,7 +643,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -658,7 +658,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -674,7 +674,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -699,7 +699,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -714,7 +714,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -729,7 +729,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -744,7 +744,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
@@ -759,7 +759,7 @@ public class CrateSettings {
 
         @Override
         public boolean isRuntime() {
-            return false;
+            return true;
         }
     };
 
