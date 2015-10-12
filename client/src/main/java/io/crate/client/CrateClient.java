@@ -30,14 +30,18 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterNameModule;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.breaker.CircuitBreakerModule;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
@@ -46,8 +50,12 @@ import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.elasticsearch.transport.TransportModule;
 import org.elasticsearch.transport.TransportService;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+
 
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 
@@ -57,6 +65,9 @@ public class CrateClient {
     private final InternalCrateClient internalClient;
     private final TransportService transportService;
     private final ThreadPool threadPool;
+
+    private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
+
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
@@ -110,14 +121,27 @@ public class CrateClient {
     public CrateClient(String... servers) {
         this();
         for (String server : servers) {
-            String[] parts = server.split(":");
-            String host = parts[0];
-            Integer port = 4300;
-            if (parts.length == 2) {
-                port = Integer.parseInt(parts[1]);
+            TransportAddress transportAddress = tryCreateTransportFor(server);
+            if(transportAddress != null) {
+                internalClient.addTransportAddress(transportAddress);
             }
-            internalClient.addTransportAddress(new InetSocketTransportAddress(host, port));
         }
+    }
+
+    @Nullable
+    protected TransportAddress tryCreateTransportFor(String server) {
+        URI uri;
+        try {
+            uri = new URI(server.contains("://") ? server : "tcp://" + server);
+        } catch (URISyntaxException e) {
+            logger.warn("Malformed URI syntax: {}", e, server);
+            return null;
+        }
+
+        if (uri != null && uri.getHost() != null) {
+            return new InetSocketTransportAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300);
+        }
+        return null;
     }
 
     public ActionFuture<SQLResponse> sql(String stmt) {
