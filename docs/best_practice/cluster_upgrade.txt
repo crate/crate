@@ -113,7 +113,7 @@ Use the :ref:`ref-set` command to do so:
 
 .. note::
 
-  This step may be omited if you set the ``graceful_stop.min_availability``
+  This step may be omited if you set the ``cluster.graceful_stop.min_availability``
   setting to ``full``.
 
 
@@ -137,7 +137,7 @@ off the node first. This will ensure that no data is lost. However, the cluster
 health will most likely turn yellow, because replicas that lived on that node
 will be missing.
 
-If you want to ensure green health, you need to change the ``graceful_stop.min_availability`` setting to ``full``. This will move
+If you want to ensure green health, you need to change the ``cluster.graceful_stop.min_availability`` setting to ``full``. This will move
 all shards off the node before shutting down.
 
 Keep in mind that reallocating shards might take some time depending
@@ -156,7 +156,7 @@ the timeout, even if the reallocating is not finished, you can set the
 
 .. note::
 
-  When using ``graceful_stop.min_availability=full`` there have to be
+  When using ``cluster.graceful_stop.min_availability=full`` there have to be
   enough nodes in the cluster to move shards or else the graceful shutdown
   procedure will fail!
   For example, if there are 4 nodes and 3 configured replicas, there will not be
