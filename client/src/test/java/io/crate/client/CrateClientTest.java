@@ -43,7 +43,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class CrateClientTest extends ElasticsearchIntegrationTest {
 
@@ -97,6 +99,28 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
 
         assertThat(r.columnTypes(), is(new DataType[0]));
     }
+
+    @Test
+    public void testTryCreateTransportFor() throws Exception {
+
+        // These host/port combination should work
+        assertThat(client.tryCreateTransportFor("localhost:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("1.2.3.4:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("www.example.com:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("www.example.com"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("http://example.com:4321"), instanceOf(InetSocketTransportAddress.class));
+
+
+        // IPV6 - should not throw exceptions
+        assertThat(client.tryCreateTransportFor("[2001:4860:4860::8888]"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("[::1]:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client.tryCreateTransportFor("[1080::8:800:200C:417A]"), instanceOf(InetSocketTransportAddress.class));
+
+        // no brackets = no IPv6 literal
+        assertNull(client.tryCreateTransportFor("1080::8:800:200C:417A"));
+    }
+
 
     @Test
     public void testAsyncRequest() throws Throwable {

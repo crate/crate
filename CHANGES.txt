@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The client will now accept IPv6 literals as server addresses
+
  - Upgraded Elasticsearch to 1.7.2
 
  - Updated crate-admin to 0.15.0 which includes following changes:
