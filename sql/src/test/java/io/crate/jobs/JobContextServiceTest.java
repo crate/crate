@@ -31,9 +31,10 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -46,7 +47,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
-import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -58,14 +58,28 @@ public class JobContextServiceTest extends CrateUnitTest {
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
-    private final Settings settings = ImmutableSettings.EMPTY;
-    private final JobContextService jobContextService = new JobContextService(
-            settings, testThreadPool, mock(StatsTables.class));
+    private JobContextService jobContextService;
+
+    private static final TimeValue TEST_KEEP_ALIVE = TimeValue.timeValueSeconds(30);
+    private static final TimeValue TEST_REAPER_INTERVAL = TimeValue.timeValueSeconds(10);
+
+
+    @Before
+    public void prepare() throws Exception {
+        jobContextService  = new JobContextService(
+                ImmutableSettings.EMPTY,
+                testThreadPool,
+                mock(StatsTables.class),
+                new LocalReaper(testThreadPool),
+                TEST_KEEP_ALIVE,
+                TEST_REAPER_INTERVAL
+        );
+    }
 
     @After
     public void cleanUp() throws Exception {
         jobContextService.close();
-        testThreadPool.shutdown();
+        testThreadPool.shutdownNow();
     }
 
     @Test
@@ -118,7 +132,13 @@ public class JobContextServiceTest extends CrateUnitTest {
             }
         });
         JobContextService jobContextService = new JobContextService(
-                settings, threadPool, mock(StatsTables.class));
+                ImmutableSettings.EMPTY,
+                threadPool,
+                mock(StatsTables.class),
+                new LocalReaper(threadPool),
+                TEST_KEEP_ALIVE,
+                TEST_REAPER_INTERVAL
+        );
 
         JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
         long firstAccessTime = ctx1.lastAccessTime();
@@ -268,9 +288,13 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     @Test
     public void testKeepAliveExpiration() throws Exception {
-        JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMillis(1);
-        JobContextService.KEEP_ALIVE = timeValueMillis(0).millis();
-        JobContextService jobContextService1 = new JobContextService(settings, testThreadPool, mock(StatsTables.class));
+        JobContextService jobContextService1 = new JobContextService(
+                ImmutableSettings.EMPTY,
+                testThreadPool,
+                mock(StatsTables.class),
+                new LocalReaper(testThreadPool),
+                timeValueMillis(0),
+                timeValueMillis(1));
 
         final AbstractExecutionSubContextTest.TestingExecutionSubContext executionSubContext = new AbstractExecutionSubContextTest.TestingExecutionSubContext();
 
@@ -286,10 +310,6 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         // close service, stop reaper thread
         jobContextService1.close();
-
-        // set back original values
-        JobContextService.DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
-        JobContextService.KEEP_ALIVE = timeValueMinutes(5).millis();
     }
 
     protected static class DummySubContext extends AbstractExecutionSubContext {

@@ -30,7 +30,8 @@ import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
-import io.crate.lucene.CrateDocIndexService;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobModule;
 import io.crate.lucene.CrateIndexModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -42,7 +43,6 @@ import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.merge.MergeOperationModule;
@@ -121,6 +121,7 @@ public class SQLPlugin extends AbstractPlugin {
 
         modules.add(CircuitBreakerModule.class);
         modules.add(TransportExecutorModule.class);
+        modules.add(JobModule.class);
         modules.add(CollectOperationModule.class);
         modules.add(MergeOperationModule.class);
         modules.add(MetaDataModule.class);

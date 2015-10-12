@@ -39,6 +39,7 @@ import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.LocalReaper;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -73,11 +74,12 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
@@ -189,21 +191,16 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     }
 
     public void runJobContextReapers() throws Exception {
-        long defaultKeepAlive = JobContextService.KEEP_ALIVE;
-        try {
-            // The estimateTimeThread is updated in a 200ms interval only, so Reaper time and lastAccessTime has the same
-            // value in most test cases. So set KEEP_ALIVE to -1 to bypass the time check.
-            JobContextService.KEEP_ALIVE = -1;
-            Class<?> innerClass = Class.forName("io.crate.jobs.JobContextService$Reaper");
-            Constructor<?> reaperConst = innerClass.getDeclaredConstructor(JobContextService.class);
-            reaperConst.setAccessible(true);
-            for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-                ((Runnable)reaperConst.newInstance(jobContextService)).run();
-            }
-        } finally {
-            JobContextService.KEEP_ALIVE = defaultKeepAlive;
-        }
 
+        LocalReaper reaper = internalCluster().getInstance(LocalReaper.class);
+        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
+        activeContextsField.setAccessible(true);
+
+        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            @SuppressWarnings("unchecked")
+            Collection<JobExecutionContext> activeContexts = ((ConcurrentMap<UUID, JobExecutionContext>)activeContextsField.get(jobContextService)).values();
+            reaper.killHangingJobs(TimeValue.timeValueSeconds(-1), activeContexts);
+        }
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {

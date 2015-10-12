@@ -25,6 +25,7 @@ import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -36,21 +37,29 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
 @Singleton
 public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobContextService.class);
 
-    // TODO: maybe make configurable
-    public static long KEEP_ALIVE = timeValueMinutes(5).millis();
-    protected static TimeValue DEFAULT_KEEP_ALIVE_INTERVAL = timeValueMinutes(1);
+    @BindingAnnotation
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    public static @interface JobKeepAlive {}
+
+    @BindingAnnotation
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    public static @interface ReaperInterval {}
 
 
     private final ThreadPool threadPool;
@@ -63,16 +72,29 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
+    private final TimeValue keepAlive;
+    private final Reaper reaperImpl;
+
     private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<KillAllListener>());
 
     @Inject
     public JobContextService(Settings settings,
                              ThreadPool threadPool,
-                             StatsTables statsTables) {
+                             StatsTables statsTables,
+                             Reaper reaper,
+                             @JobKeepAlive TimeValue keepAlive,
+                             @ReaperInterval TimeValue reaperInterval) {
         super(settings);
         this.threadPool = threadPool;
         this.statsTables = statsTables;
-        this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Reaper(), DEFAULT_KEEP_ALIVE_INTERVAL);
+        this.keepAlive = keepAlive;
+        this.reaperImpl = reaper;
+        this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                reaperImpl.killHangingJobs(JobContextService.this.keepAlive, activeContexts.values());
+            }
+        }, reaperInterval);
     }
 
     @Override
@@ -176,7 +198,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return numKilled;
     }
 
-
     private class JobContextCallback implements Callback<JobExecutionContext> {
         @Override
         public void handle(JobExecutionContext context) {
@@ -185,33 +206,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                 LOGGER.trace("[{}]: JobExecutionContext closed for job {} removed it -" +
                                 " {} executionContexts remaining",
                         System.identityHashCode(activeContexts), context.jobId(), activeContexts.size());
-            }
-        }
-    }
-
-    class Reaper implements Runnable {
-
-        @Override
-        public void run() {
-            final long time = threadPool.estimatedTimeInMillis();
-            for (Map.Entry<UUID, JobExecutionContext> entry : activeContexts.entrySet()) {
-                JobExecutionContext context = entry.getValue();
-                // Use the same value for both checks since lastAccessTime can
-                // be modified by another thread between checks!
-                final long lastAccessTime = context.lastAccessTime();
-                if (lastAccessTime == -1L) { // its being processed or timeout is disabled
-                    continue;
-                }
-                if ((time - lastAccessTime > KEEP_ALIVE)) {
-                    UUID id = entry.getKey();
-                    logger.debug("closing job collect context [{}], time [{}], lastAccessTime [{}]",
-                            id, time, lastAccessTime);
-                    try {
-                        context.kill();
-                    } catch (Throwable t) {
-                        logger.warn("An error occurred while killing context for job {}", t, context.jobId());
-                    }
-                }
             }
         }
     }

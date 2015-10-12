@@ -33,6 +33,7 @@ import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -54,6 +55,7 @@ public class SearchContextFactory {
     private final PageCacheRecycler pageCacheRecycler;
     private final BigArrays bigArrays;
     private final ThreadPool threadPool;
+    private final TimeValue jobKeepAlive;
     private final ImmutableMap<String, Filter> EMPTY_NAMED_FILTERS = ImmutableMap.of();
 
     @Inject
@@ -63,7 +65,8 @@ public class SearchContextFactory {
                                 CacheRecycler cacheRecycler,
                                 PageCacheRecycler pageCacheRecycler,
                                 BigArrays bigArrays,
-                                ThreadPool threadPool) {
+                                ThreadPool threadPool,
+                                @JobContextService.JobKeepAlive TimeValue jobKeepAlive) {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.clusterService = clusterService;
         this.scriptService = scriptService;
@@ -71,6 +74,7 @@ public class SearchContextFactory {
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
+        this.jobKeepAlive = jobKeepAlive;
     }
 
     public CrateSearchContext createContext(
@@ -99,7 +103,7 @@ public class SearchContextFactory {
                 bigArrays,
                 threadPool.estimatedTimeInMillisCounter(),
                 Optional.<Scroll>absent(),
-                JobContextService.KEEP_ALIVE
+                jobKeepAlive.getMillis()
         );
         LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
                 whereClause,  indexService.mapperService(), indexService.fieldData(), indexService.cache());

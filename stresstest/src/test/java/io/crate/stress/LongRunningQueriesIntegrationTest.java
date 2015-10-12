@@ -25,12 +25,10 @@ import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.JobContextService;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.junit.annotations.TestLogging;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,10 +42,8 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private static final long ORIGINAL_KEEP_ALIVE = JobContextService.KEEP_ALIVE;
-    private static final long TEST_KEEP_ALIVE = 1_500_000L; // millis
     private static final int ROWS = 1_500_000;
-    private static final TimeValue TIMEOUT = TimeValue.timeValueMillis(2_500_000);
+    private static final TimeValue TIMEOUT = TimeValue.timeValueSeconds(2_500);
 
     @Override
     public SQLResponse execute(String stmt) {
@@ -66,7 +62,6 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
 
     @Before
     public void prepare() {
-        JobContextService.KEEP_ALIVE = TEST_KEEP_ALIVE;
 
         execute("create table longt (id int, duration long) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
@@ -76,11 +71,6 @@ public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTe
         }
         execute("insert into longt (id, duration) values (?, ?)", args);
         execute("refresh table longt");
-    }
-
-    @After
-    public void cleanup() {
-        JobContextService.KEEP_ALIVE = ORIGINAL_KEEP_ALIVE;
     }
 
     @Test

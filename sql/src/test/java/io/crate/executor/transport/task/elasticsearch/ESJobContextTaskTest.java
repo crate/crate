@@ -25,10 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ESJobContext;
-import io.crate.jobs.ExecutionSubContext;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.*;
 import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
@@ -37,6 +34,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
@@ -50,7 +48,7 @@ public class ESJobContextTaskTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = TestingHelpers.newMockedThreadPool();
     private final JobContextService jobContextService = new JobContextService(
-            ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class));
+            ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class), mock(Reaper.class), TimeValue.timeValueSeconds(2), TimeValue.timeValueSeconds(1));
 
     @After
     public void cleanUp() throws Exception {

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.sources.InformationSchemaCollectSource;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.collect.sources.UnassignedShardsCollectSource;
@@ -35,7 +34,5 @@ public class CollectOperationModule extends AbstractModule {
 
         bind(StatsTables.class).asEagerSingleton();
         bind(SystemCollectSource.class).asEagerSingleton();
-
-        bind(JobContextService.class).asEagerSingleton();
     }
 }
