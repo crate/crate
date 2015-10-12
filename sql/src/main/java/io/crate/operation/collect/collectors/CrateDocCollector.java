@@ -36,7 +36,6 @@ import io.crate.operation.collect.UnexpectedCollectionTerminatedException;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.planner.node.dql.CollectPhase;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.BulkScorer;
 import org.apache.lucene.search.Collector;
@@ -66,7 +65,6 @@ public class CrateDocCollector implements CrateCollector {
     public CrateDocCollector(CrateSearchContext searchContext,
                              Executor executor,
                              KeepAliveListener keepAliveListener,
-                             CollectPhase collectPhase,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
                              List<Input<?>> inputs,
@@ -92,7 +90,6 @@ public class CrateDocCollector implements CrateCollector {
                 keepAliveListener,
                 ramAccountingContext,
                 upstreamState,
-                collectPhase.limit(),
                 rowReceiver,
                 new InputRow(inputs),
                 expressions
@@ -204,7 +201,6 @@ public class CrateDocCollector implements CrateCollector {
         private final TopRowUpstream topRowUpstream;
         private final RowReceiver rowReceiver;
         private final Row inputRow;
-        private final Integer limit;
         private final Collection<? extends LuceneCollectorExpression<?>> expressions;
 
         private int rowCount;
@@ -212,7 +208,6 @@ public class CrateDocCollector implements CrateCollector {
         public LuceneDocCollector(KeepAliveListener keepAliveListener,
                                   RamAccountingContext ramAccountingContext,
                                   TopRowUpstream topRowUpstream,
-                                  Integer limit,
                                   RowReceiver rowReceiver,
                                   Row inputRow,
                                   Collection<? extends LuceneCollectorExpression<?>> expressions) {
@@ -221,7 +216,6 @@ public class CrateDocCollector implements CrateCollector {
             this.topRowUpstream = topRowUpstream;
             this.rowReceiver = rowReceiver;
             this.inputRow = inputRow;
-            this.limit = limit;
             this.expressions = expressions;
         }
 
@@ -245,7 +239,7 @@ public class CrateDocCollector implements CrateCollector {
                 expression.setNextDocId(doc);
             }
             boolean wantMore = rowReceiver.setNextRow(inputRow);
-            if (!wantMore || (limit != null && rowCount >= limit)) {
+            if (!wantMore) {
                 throw CollectionFinishedEarlyException.INSTANCE;
             }
             if (topRowUpstream.shouldPause()) {

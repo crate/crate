@@ -297,13 +297,9 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public List<Projection> visitQueriedDocTable(QueriedDocTable table,
                                                      CollectPhaseOrderedProjectionBuilderContext context) {
-            if (context.orderBy == null) {
-                return ImmutableList.of();
-            } else {
-                TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
-                topNProjection.outputs(context.allOutputs);
-                return ImmutableList.<Projection>of(topNProjection);
-            }
+            TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
+            topNProjection.outputs(context.allOutputs);
+            return ImmutableList.<Projection>of(topNProjection);
         }
 
         @Override

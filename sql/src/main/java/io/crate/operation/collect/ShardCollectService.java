@@ -210,7 +210,6 @@ public class ShardCollectService {
                     searchContext,
                     executor,
                     jobCollectContext.keepAliveListener(),
-                    collectNode,
                     jobCollectContext.queryPhaseRamAccountingContext(),
                     projectorChain.newShardDownstreamProjector(projectorVisitor),
                     docCtx.topLevelInputs(),
