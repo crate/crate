@@ -22,7 +22,6 @@
 
 package io.crate.planner.node.fetch;
 
-import com.google.common.collect.Iterables;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Field;
@@ -39,20 +38,15 @@ public class FetchSource {
     private final TableIdent tableIdent;
     private final boolean fetchRequired;
 
-    public FetchSource(List<ReferenceInfo> partitionedByColumns, Collection<Field> docIdFields, Collection<Reference> references) {
+    public FetchSource(TableIdent tableIdent,
+                       List<ReferenceInfo> partitionedByColumns,
+                       Collection<Field> docIdFields,
+                       Collection<Reference> references) {
         this.partitionedByColumns = partitionedByColumns;
         this.docIdFields = docIdFields;
         this.references = references;
-        if (!references.isEmpty()) {
-            fetchRequired = true;
-            //noinspection ConstantConditions
-            this.tableIdent = Iterables.getFirst(references, null).ident().tableIdent();
-        } else {
-            ReferenceInfo info = Iterables.getFirst(partitionedByColumns, null);
-            assert info != null;
-            fetchRequired = false;
-            this.tableIdent = info.ident().tableIdent();
-        }
+        this.tableIdent = tableIdent;
+        this.fetchRequired = !references.isEmpty();
     }
 
     public boolean fetchRequired() {

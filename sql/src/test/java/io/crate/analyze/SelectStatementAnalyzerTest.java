@@ -1671,4 +1671,40 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         analyze("select * from sys.nodes, sys.nodes");
     }
+
+    @Test
+    public void testSelectHiddenColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column _docid unknown");
+        analyze("select _docid + 1 from users");
+    }
+
+    @Test
+    public void testOrderByHiddenColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column _docid unknown");
+        analyze("select * from users order by _docid");
+
+    }
+
+    @Test
+    public void testWhereHiddenColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column _docid unknown");
+        analyze("select * from users where _docid = 0");
+    }
+
+    @Test
+    public void testGroupByHiddenColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column _docid unknown");
+        analyze("select count(*) from users group by _docid");
+    }
+
+    @Test
+    public void testHavingHiddenColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column _docid unknown");
+        analyze("select count(*) from users group by id having _docid > 0");
+    }
 }

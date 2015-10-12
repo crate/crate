@@ -127,6 +127,7 @@ public class QueryThenFetchConsumer implements Consumer {
 
             Collection<FetchSource> fetchSources = ImmutableList.of(
                     new FetchSource(
+                            table.tableRelation().tableInfo().ident(),
                             table.tableRelation().tableInfo().partitionedByColumns(),
                             ImmutableList.of(fetchPushDown.docIdField()),
                             fetchPushDown.fetchRefs()

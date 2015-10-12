@@ -21,11 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.symbol.*;
 
@@ -33,6 +35,7 @@ import javax.annotation.Nullable;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
+    private static ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.DOCID);
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
@@ -87,6 +90,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     private Field getField(Path path, boolean forWrite) {
         ColumnIdent ci = getColumnIdentSafe(path);
+        if (HIDDEN_COLUMNS.contains(ci)) {
+            return null;
+        }
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);
         if (referenceInfo == null) {
             referenceInfo = tableInfo.indexColumn(ci);
