@@ -33,6 +33,6 @@ public class JobModule extends AbstractModule {
         bind(JobContextService.class).asEagerSingleton();
         bind(TimeValue.class).annotatedWith(JobContextService.JobKeepAlive.class).toInstance(timeValueMinutes(5));
         bind(TimeValue.class).annotatedWith(JobContextService.ReaperInterval.class).toInstance(timeValueMinutes(1));
-        bind(Reaper.class).to(LocalReaper.class).asEagerSingleton();
+        bind(Reaper.class).to(KillJobsReaper.class).asEagerSingleton();
     }
 }
