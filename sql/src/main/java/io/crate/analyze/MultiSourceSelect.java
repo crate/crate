@@ -43,6 +43,7 @@ public class MultiSourceSelect implements QueriedRelation {
             Map<QualifiedName, AnalyzedRelation> sources,
             List<OutputName> outputNames,
             QuerySpec querySpec){
+        assert sources.size() > 1: "MultiSourceSelect requires at least 2 relations";
         this.querySpec = querySpec;
         this.sources = sources;
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";

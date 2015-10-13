@@ -89,12 +89,11 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
      * a | 3
      * b | 3
      */
-    public NestedLoop(UUID jobId,
+    public NestedLoop(NestedLoopPhase nestedLoopPhase,
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
-                      NestedLoopPhase nestedLoopPhase,
                       boolean leftOuterLoop) {
-        this.jobId = jobId;
+        this.jobId = nestedLoopPhase.jobId();
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;

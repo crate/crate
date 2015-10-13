@@ -24,8 +24,6 @@ package io.crate.planner.consumer;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ObjectArrays;
-import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.ValidationException;
@@ -38,9 +36,9 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 
@@ -49,14 +47,11 @@ import java.util.*;
 
 public class CrossJoinConsumer implements Consumer {
 
-    private final static InputColumnProducer INPUT_COLUMN_PRODUCER = new InputColumnProducer();
-
     private final Visitor visitor;
 
     public CrossJoinConsumer(ClusterService clusterService,
-                             AnalysisMetaData analysisMetaData,
-                             ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(clusterService, analysisMetaData, consumingPlanner);
+                             AnalysisMetaData analysisMetaData) {
+        visitor = new Visitor(clusterService, analysisMetaData);
     }
 
     @Override
@@ -68,13 +63,11 @@ public class CrossJoinConsumer implements Consumer {
 
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
-        private final ConsumingPlanner consumingPlanner;
         private final SubRelationConverter subRelationConverter;
 
-        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData, ConsumingPlanner consumingPlanner) {
+        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
             this.clusterService = clusterService;
             this.analysisMetaData = analysisMetaData;
-            this.consumingPlanner = consumingPlanner;
             subRelationConverter = new SubRelationConverter(analysisMetaData);
         }
 
@@ -91,6 +84,9 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             final Map<Object, Integer> relationOrder = getRelationOrder(statement);
+
+            // TODO: replace references with docIds.. and add fetch projection
+
             List<QueriedTableRelation> queriedTables = new ArrayList<>();
             for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
                 AnalyzedRelation analyzedRelation = entry.getValue();
@@ -119,177 +115,64 @@ public class CrossJoinConsumer implements Consumer {
             }
             sortQueriedTables(relationOrder, queriedTables);
 
-            // TODO: replace references with docIds.. and add fetch projection
 
-            NestedLoop nl = toNestedLoop(queriedTables, context);
-            List<Symbol> queriedTablesOutputs = getAllOutputs(queriedTables);
+            QueriedTableRelation left = queriedTables.get(0);
+            QueriedTableRelation right = queriedTables.get(1);
 
-            /**
-             * TopN for:
-             *
-             * #1 Reorder
-             *      need to always use topN to re-order outputs,
-             *
-             *      e.g. select t1.name, t2.name, t1.id
-             *
-             *      left outputs:
-             *          [ t1.name, t1.id ]
-             *
-             *      right outputs:
-             *          [ t2.name ]
-             *
-             *      left + right outputs:
-             *          [ t1.name, t1.id, t2.name]
-             *
-             *      final outputs (topN):
-             *          [ in(0), in(2), in(1)]
-             *
-             * #2 Execute functions that reference more than 1 relations
-             *
-             *      select t1.x + t2.x
-             *
-             *      left: x
-             *      right: x
-             *
-             *      topN:  add(in(0), in(1))
-             *
-             * #3 Apply Limit and remaining Order by
-             */
-            List<Symbol> postOutputs = replaceFieldsWithInputColumns(statement.querySpec().outputs(), queriedTablesOutputs);
-            TopNProjection topNProjection;
-
-            int rootLimit = MoreObjects.firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
-            if (orderBy != null && orderBy.isSorted()) {
-                 topNProjection = new TopNProjection(
-                         rootLimit,
-                         statement.querySpec().offset(),
-                         replaceFieldsWithInputColumns(orderBy.orderBySymbols(), queriedTablesOutputs),
-                         orderBy.reverseFlags(),
-                         orderBy.nullsFirst()
-                 );
-            } else {
-                topNProjection = new TopNProjection(rootLimit, statement.querySpec().offset());
-            }
-            topNProjection.outputs(postOutputs);
-            nl.addProjection(topNProjection);
-            return nl;
-        }
-
-        private List<Symbol> getAllOutputs(Collection<QueriedTableRelation> queriedTables) {
-            ImmutableList.Builder<Symbol> builder = ImmutableList.builder();
-            for (QueriedTableRelation table : queriedTables) {
-                builder.addAll(table.fields());
-            }
-            return builder.build();
-        }
-        /**
-         * generates new symbols that will use InputColumn symbols to point to the output of the given relations
-         *
-         * @param statementOutputs: [ u1.id,  add(u1.id, u2.id) ]
-         * @param inputSymbols:
-         * {
-         *     [ u1.id, u2.id ],
-         * }
-         *
-         * @return [ in(0), add( in(0), in(1) ) ]
-         */
-        private List<Symbol> replaceFieldsWithInputColumns(Collection<? extends Symbol> statementOutputs,
-                                                           List<Symbol> inputSymbols) {
-            List<Symbol> result = new ArrayList<>();
-            for (Symbol statementOutput : statementOutputs) {
-                result.add(replaceFieldsWithInputColumns(statementOutput, inputSymbols));
-            }
-            return result;
-        }
-
-        private Symbol replaceFieldsWithInputColumns(Symbol symbol, List<Symbol> inputSymbols) {
-            return INPUT_COLUMN_PRODUCER.process(symbol, new InputColumnProducerContext(inputSymbols));
-        }
-
-        /**
-         * build a nested loop tree:
-         *
-         * E.g.:
-         *
-         * t1, t2, t3
-         *  \  /   /
-         *  \ /   /
-         *  NL   /
-         *   \  /
-         *    NL
-         */
-        private NestedLoop toNestedLoop(List<QueriedTableRelation> queriedTables, ConsumerContext context) {
-            assert queriedTables.size() > 1 : "must have at least 2 tables to create a nestedLoop";
-
-            Iterator<QueriedTableRelation> iterator = queriedTables.iterator();
-
+            PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
+            PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
 
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
-            UUID jobId = context.plannerContext().jobId();
 
-            NestedLoop nl = null;
-            QueriedTableRelation leftRelation = null;
-            QueriedTableRelation rightRelation = null;
+            MergePhase leftMerge = mergePhase(
+                    context,
+                    localExecutionNodes,
+                    leftPlan.resultNode(),
+                    left.querySpec());
+            MergePhase rightMerge = mergePhase(
+                    context,
+                    localExecutionNodes,
+                    rightPlan.resultNode(),
+                    right.querySpec());
 
-            while (iterator.hasNext()) {
-                PlannedAnalyzedRelation leftPlan;
-                List<Symbol> leftOutputs;
-                OrderBy leftOrderBy;
 
-                if (nl == null) {
-                    leftRelation = iterator.next();
-                    leftOutputs = leftRelation.querySpec().outputs();
-                    leftOrderBy = leftRelation.querySpec().orderBy();
-                    leftPlan = consumingPlanner.plan(leftRelation, context);
-                    assert leftPlan != null;
-                } else {
-                    leftOutputs = new ArrayList<>(leftRelation.querySpec().outputs());
-                    leftOutputs.addAll(rightRelation.querySpec().outputs());
-                    leftOrderBy = mergedOrderBy(leftRelation, rightRelation);
-                    leftPlan = nl;
-                }
-                MergePhase leftMerge = mergePhase(
-                        context,
-                        localExecutionNodes,
-                        leftPlan.resultNode(),
-                        leftOutputs,
-                        leftOrderBy
-                );
-                rightRelation = iterator.next();
-                PlannedAnalyzedRelation rightPlan = consumingPlanner.plan(rightRelation, context);
-                assert rightPlan != null;
-                MergePhase rightMerge = mergePhase(
-                        context,
-                        localExecutionNodes,
-                        rightPlan.resultNode(),
-                        rightRelation.querySpec().outputs(),
-                        rightRelation.querySpec().orderBy()
-                );
-                NestedLoopPhase nestedLoopPhase = new NestedLoopPhase(
-                        jobId,
-                        context.plannerContext().nextExecutionPhaseId(),
-                        "nested-loop",
-                        ImmutableList.<Projection>of(),
-                        leftMerge,
-                        getOutputTypes(leftMerge, leftOutputs),
-                        rightMerge,
-                        getOutputTypes(rightMerge, rightRelation.querySpec().outputs()),
-                        localExecutionNodes
-                );
-                nl = new NestedLoop(jobId, leftPlan, rightPlan, nestedLoopPhase, true);
-            }
-            return nl;
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
+
+            List<Field> inputs = new ArrayList<>(
+                    left.querySpec().outputs().size() + right.querySpec().outputs().size());
+
+
+            inputs.addAll(left.fields());
+            inputs.addAll(right.fields());
+
+            TopNProjection topN = projectionBuilder.topNProjection(
+                    inputs,
+                    statement.querySpec().orderBy(),
+                    statement.querySpec().offset(),
+                    statement.querySpec().limit(),
+                    statement.querySpec().outputs()
+            );
+
+            NestedLoopPhase nl = new NestedLoopPhase(
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    "nested-loop",
+                    ImmutableList.<Projection>of(topN),
+                    leftMerge,
+                    rightMerge,
+                    localExecutionNodes
+            );
+
+            return new NestedLoop(nl, leftPlan, rightPlan, true);
         }
 
-        /**
-         * get the output types from either the mergePhase if not-null or from the symbols
-         */
-        private List<DataType> getOutputTypes(@Nullable MergePhase mergePhase, List<Symbol> symbols) {
-            if (mergePhase == null) {
-                return Symbols.extractTypes(symbols);
-            } else {
-                return mergePhase.outputTypes();
-            }
+
+        @Nullable
+        private MergePhase mergePhase(ConsumerContext context,
+                                      Set<String> localExecutionNodes,
+                                      DQLPlanNode previousPhase,
+                                      QuerySpec querySpec) {
+            return mergePhase(context, localExecutionNodes, previousPhase, querySpec.outputs(), querySpec.orderBy());
         }
 
         @Nullable
@@ -344,12 +227,12 @@ public class CrossJoinConsumer implements Consumer {
 
         /**
          * returns a map with the relation as keys and the values are their order in occurrence in the order by clause.
-         *
+         * <p/>
          * e.g. select * from t1, t2, t3 order by t2.x, t3.y
-         *
+         * <p/>
          * returns: {
-         *     t2: 0                 (first)
-         *     t3: 1                 (second)
+         * t2: 0                 (first)
+         * t3: 1                 (second)
          * }
          */
         private Map<Object, Integer> getRelationOrder(MultiSourceSelect statement) {
@@ -363,7 +246,8 @@ public class CrossJoinConsumer implements Consumer {
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
                 for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                     QuerySplitter.RelationCount relationCount = QuerySplitter.getRelationCount(analyzedRelation, orderBySymbol);
-                    if (relationCount != null && relationCount.numOther == 0 && relationCount.numThis > 0 && !orderByOrder.containsKey(analyzedRelation)) {
+                    if (relationCount != null && relationCount.numOther == 0 && relationCount.numThis > 0 &&
+                        !orderByOrder.containsKey(analyzedRelation)) {
                         orderByOrder.put(analyzedRelation, idx);
                     }
                 }
@@ -373,8 +257,8 @@ public class CrossJoinConsumer implements Consumer {
         }
 
         private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
-            if (statement.sources().size() < 2) {
-                context.validationException(new ValidationException("At least 2 relations are required for a CROSS JOIN"));
+            if (statement.sources().size() != 2) {
+                context.validationException(new ValidationException("Joining more than 2 relations is not supported"));
                 return true;
             }
 
@@ -390,77 +274,6 @@ public class CrossJoinConsumer implements Consumer {
             return false;
         }
 
-        @Nullable
-        private OrderBy mergedOrderBy(QueriedTableRelation left, QueriedTableRelation right) {
-            OrderBy leftOrderBy = left.querySpec().orderBy();
-            OrderBy rightOrderBy = right.querySpec().orderBy();
-
-            if (leftOrderBy == null && rightOrderBy == null) {
-                return null;
-            } else if (leftOrderBy == null) {
-                return rightOrderBy;
-            } else if (rightOrderBy == null) {
-                return leftOrderBy;
-            }
-
-            int orderBySize = leftOrderBy.orderBySymbols().size() + rightOrderBy.orderBySymbols().size();
-            List<Symbol> orderBySymbols = new ArrayList<>(orderBySize);
-            orderBySymbols.addAll(leftOrderBy.orderBySymbols());
-            orderBySymbols.addAll(rightOrderBy.orderBySymbols());
-
-            boolean[] reverseFlags = new boolean[orderBySize];
-            System.arraycopy(leftOrderBy.reverseFlags(), 0, reverseFlags, 0, leftOrderBy.reverseFlags().length);
-            System.arraycopy(rightOrderBy.reverseFlags(), 0, reverseFlags, leftOrderBy.reverseFlags().length, rightOrderBy.reverseFlags().length);
-            Boolean[] nullsFirst = ObjectArrays.concat(leftOrderBy.nullsFirst(), rightOrderBy.nullsFirst(), Boolean.class);
-
-            return new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
-        }
-
-    }
-
-    private static class InputColumnProducerContext {
-
-        private List<Symbol> inputs;
-
-        public InputColumnProducerContext(List<Symbol> inputs) {
-            this.inputs = inputs;
-        }
-    }
-
-    private static class InputColumnProducer extends SymbolVisitor<InputColumnProducerContext, Symbol> {
-
-        @Override
-        public Symbol visitFunction(Function function, InputColumnProducerContext context) {
-            int idx = 0;
-            for (Symbol input : context.inputs) {
-                if (input.equals(function)) {
-                    return new InputColumn(idx, input.valueType());
-                }
-                idx++;
-            }
-            List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
-            for (Symbol argument : function.arguments()) {
-                newArgs.add(process(argument, context));
-            }
-            return new Function(function.info(), newArgs);
-        }
-
-        @Override
-        public Symbol visitField(Field field, InputColumnProducerContext context) {
-            int idx = 0;
-            for (Symbol input : context.inputs) {
-                if (input.equals(field)) {
-                    return new InputColumn(idx, input.valueType());
-                }
-                idx++;
-            }
-            return field;
-        }
-
-        @Override
-        public Symbol visitLiteral(Literal literal, InputColumnProducerContext context) {
-            return literal;
-        }
     }
 
     private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect, QueriedTableRelation> {
@@ -508,7 +321,7 @@ public class CrossJoinConsumer implements Consumer {
         /**
          * Create a new concrete QueriedTableRelation implementation for the given
          * AbstractTableRelation implementation
-         *
+         * <p/>
          * It will walk through all symbols from QuerySpec and pull-down any symbols that the
          * new QueriedTable can handle. The symbols that are pulled down from the original
          * querySpec will be replaced with symbols that point to a output/field of the
@@ -525,7 +338,7 @@ public class CrossJoinConsumer implements Consumer {
         }
 
         private interface QueriedTableFactory<QT extends QueriedTableRelation, TR extends AbstractTableRelation> {
-            public QT create(TR tableRelation, List<OutputName> outputNames, QuerySpec querySpec);
+            QT create(TR tableRelation, List<OutputName> outputNames, QuerySpec querySpec);
         }
 
     }
