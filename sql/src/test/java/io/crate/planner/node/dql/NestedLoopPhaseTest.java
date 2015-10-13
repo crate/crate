@@ -55,9 +55,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
                 DistributionInfo.DEFAULT_BROADCAST);
         NestedLoopPhase node = new NestedLoopPhase(jobId, 1, "nestedLoop", ImmutableList.<Projection>of(topNProjection),
                 mp1,
-                mp1.outputTypes(),
                 mp2,
-                mp2.outputTypes(),
                 Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();

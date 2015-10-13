@@ -234,37 +234,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 "sys| sys\n"));
     }
 
-    @Test
-    public void testCrossJoinMultipleTables() throws Exception {
-        createColorsAndSizes();
-        createGenders();
-
-        execute("select colors.name, sizes.name, genders.name " +
-                "from colors, sizes, genders");
-        assertThat(response.rowCount(), is(12L));
-
-
-        List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(
-                new int[] {0, 1, 2}, new boolean[]{false, false, false}, new Boolean[]{null, null, null}).reverse());
-
-        assertThat(printedTable(response.rows())
-                ,
-                is("" +
-                   "blue| large| female\n" +
-                   "blue| large| male\n" +
-                   "blue| small| female\n" +
-                   "blue| small| male\n" +
-                   "green| large| female\n" +
-                   "green| large| male\n" +
-                   "green| small| female\n" +
-                   "green| small| male\n" +
-                   "red| large| female\n" +
-                   "red| large| male\n" +
-                   "red| small| female\n" +
-                   "red| small| male\n"));
-    }
-
     private void createGenders() {
         execute("create table genders (name string) ");
         execute("insert into genders (name) values (?)", new Object[][]{
