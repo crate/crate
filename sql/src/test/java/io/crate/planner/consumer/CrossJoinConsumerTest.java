@@ -21,15 +21,15 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.*;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -46,7 +46,6 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Binder;
@@ -79,7 +78,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
     private final CrossJoinConsumer consumer =
-            new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), mock(ConsumingPlanner.class));
+            new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class));
     private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
 
     @Before
@@ -153,21 +152,6 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testInvalidMultiSourceSelect() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("At least 2 relations are required for a CROSS JOIN");
-
-        MultiSourceSelect statement = new MultiSourceSelect(
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("foo"), mock(QueriedTable.class)),
-                ImmutableList.<OutputName>of(),
-                mock(QuerySpec.class)
-        );
-        ConsumerContext context = new ConsumerContext(statement, plannerContext);
-        consumer.consume(statement, context);
-        throw context.validationException();
-    }
-
-    @Test
     public void testFunctionWithJoinCondition() throws Exception {
         NestedLoop plan = plan("select u1.name || u2.name from users u1, users u2");
         TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
@@ -232,13 +216,4 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         plan("select min(u1.name) from users u1, users u2");
     }
 
-    @Test
-    public void testCrossJoinWithMoreThanTwoTables() throws Exception {
-        NestedLoop plan = plan("select * from users u1, users u2, users u3");
-        assertThat(plan.left().plan(), instanceOf(NestedLoop.class));
-        assertThat(plan.right().plan(), instanceOf(CollectAndMerge.class));
-        NestedLoop innerPlan = (NestedLoop) plan.left().plan();
-        assertThat(innerPlan.left().plan(), instanceOf(CollectAndMerge.class));
-        assertThat(innerPlan.right().plan(), instanceOf(CollectAndMerge.class));
-    }
 }

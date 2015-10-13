@@ -23,6 +23,7 @@ package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -30,13 +31,16 @@ import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
-import io.crate.types.DataType;
+import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
@@ -58,18 +62,16 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
                            int executionNodeId,
                            String name,
                            List<Projection> projections,
-                           MergePhase leftMergePhase,
-                           Collection<? extends DataType> leftOutputTypes,
-                           MergePhase rightMergePhase,
-                           Collection<? extends DataType> rightOutputTypes,
+                           @Nullable MergePhase leftMergePhase,
+                           @Nullable MergePhase rightMergePhase,
                            Set<String> executionNodes) {
         super(jobId, executionNodeId, name, projections);
+        Projection lastProjection = Iterables.getLast(projections, null);
+        assert lastProjection != null;
+        outputTypes = Symbols.extractTypes(lastProjection.outputs());
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;
         this.executionNodes = executionNodes;
-        outputTypes = new ArrayList<>(leftOutputTypes.size() + rightOutputTypes.size());
-        outputTypes.addAll(leftOutputTypes);
-        outputTypes.addAll(rightOutputTypes);
     }
 
     @Override
