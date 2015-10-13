@@ -44,7 +44,9 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
@@ -160,9 +162,21 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
-        plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
+        NestedLoop plan = plan("select u1.details, u2.tags from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.floats");
+
+        assertThat(plan.resultNode().projections().size(), is(2));
+        FilterProjection fp = ((FilterProjection) plan.resultNode().projections().get(0));
+
+        assertThat(plan.left().resultNode().outputTypes().size(), is(3));
+        assertThat(plan.right().resultNode().outputTypes().size(), is(2));
+
+        assertThat(((Function)fp.query()).arguments().size(), is(2));
+        assertThat(fp.outputs().size(), is(5));
+
+        TopNProjection topN = ((TopNProjection) plan.resultNode().projections().get(1));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertThat(topN.outputs().size(), is(2));
     }
 
     @Test
@@ -183,7 +197,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
          assertThat(plan.right().resultNode().projections().size(), is(0));
          MergePhase rightMerge = plan.nestedLoopPhase().rightMergePhase();
-         assertThat(rightMerge.projections().size(), is(0));
+        assertThat(rightMerge.projections().size(), is(0));
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -196,7 +210,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(0);
+        TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.isOrdered(), is(false));
         assertThat(topNProjection.offset(), is(0));
         assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
