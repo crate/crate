@@ -136,7 +136,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
             LOGGER.trace("searchMore but EXHAUSTED");
             return empty;
         }
-        LOGGER.trace("searchMore from [{}]", lastDoc);
+        LOGGER.debug("searchMore from [{}]", lastDoc);
         TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), null, batchSize, sort, doDocsScores, false);
         return scoreDocToIterable(topDocs.scoreDocs);
     }

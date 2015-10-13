@@ -23,8 +23,10 @@ package io.crate.action.job;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.base.*;
+import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -388,24 +390,12 @@ public class ContextPreparer {
         public ExecutionSubContext visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            String localNodeId = clusterService.localNode().id();
-            Routing routing = phase.routing();
-            int numTotalShards = routing.numShards();
-            int numShardsOnNode = routing.numShards(localNodeId);
-
-            final int pageSize = Paging.getWeightedPageSize(
-                    MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
-                    (1.0 / numTotalShards) * numShardsOnNode
-            );
-            LOGGER.trace("[{}] setting node page size to: {}, totalShards: {}, localShards: {}",
-                    localNodeId, pageSize, numTotalShards, numShardsOnNode);
-
-            RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);
+            RowReceiver rowReceiver = context.getRowReceiver(phase,
+                    MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
             if (rowReceiver == null) {
                 context.executionPhasesToProcess.add(phase);
                 return null;
             }
-
             return new JobCollectContext(
                     phase,
                     collectOperation,

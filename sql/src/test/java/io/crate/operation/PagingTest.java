@@ -29,28 +29,10 @@ import static org.junit.Assert.assertThat;
 public class PagingTest {
 
     @Test
-    public void testGetShardPageSize() throws Exception {
-        int shardPageSize = Paging.getShardPageSize(10_000, 16);
-        assertThat(shardPageSize, is(1406));
-    }
-
-    @Test
     public void testGetNodePageSize() throws Exception {
         double weight = 1.0d / 8.0d;
         int pageSize = Paging.getWeightedPageSize(10_000, weight);
         assertThat(pageSize, is(1875));
-    }
-
-    @Test
-    public void testNumShardsGreaterLimit() throws Exception {
-        int shardPageSize = Paging.getShardPageSize(10, 16);
-        assertThat(shardPageSize, is(10));
-    }
-
-    @Test
-    public void testZeroShards() throws Exception {
-        int shardPageSize = Paging.getShardPageSize(10, 0);
-        assertThat(shardPageSize, is(10));
     }
 
     @Test

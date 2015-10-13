@@ -35,14 +35,6 @@ public class Paging {
         return getWeightedPageSize(limit, weight, OVERHEAD_FACTOR);
     }
 
-    public static int getShardPageSize(@Nullable Integer limit, int numTotalShards) {
-        return getWeightedPageSize(
-                limit,
-                1.0d/ Math.max(1, numTotalShards),
-                Math.pow(OVERHEAD_FACTOR, 2)
-        );
-    }
-
     private static int getWeightedPageSize(@Nullable Integer limit, double weight, double overheadFactor) {
         Integer limitOrPageSize = firstNonNull(limit, PAGE_SIZE);
         if (1.0 / weight > limitOrPageSize) {

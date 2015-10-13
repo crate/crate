@@ -35,7 +35,6 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.Paging;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
@@ -71,6 +70,7 @@ public class ShardCollectService {
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final SearchContextFactory searchContextFactory;
     private final ThreadPool threadPool;
+    private final ClusterService clusterService;
     private final ShardId shardId;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
@@ -97,6 +97,7 @@ public class ShardCollectService {
                                CrateDocIndexService crateDocIndexService) {
         this.searchContextFactory = searchContextFactory;
         this.threadPool = threadPool;
+        this.clusterService = clusterService;
         this.shardId = shardId;
         this.blobIndices = blobIndices;
         this.mapperService = mapperService;
@@ -255,9 +256,12 @@ public class ShardCollectService {
             }
             throw t;
         }
-        int batchSize = batchSize(collectPhase.nodePageSizeHint());
+        int batchSize = collectPhase.shardQueueSize(clusterService.localNode().id());
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[{}][{}] creating OrderedDocCollector with batch-size {}", sharedShardContext.indexShard().routingEntry().currentNodeId(), sharedShardContext.indexShard().shardId(), batchSize);
+            LOGGER.trace("[{}][{}] creating OrderedDocCollector. Expected number of rows to be collected: {}",
+                    sharedShardContext.indexShard().routingEntry().currentNodeId(),
+                    sharedShardContext.indexShard().shardId(),
+                    batchSize);
         }
         return new OrderedDocCollector(
                 searchContext,
@@ -269,12 +273,5 @@ public class ShardCollectService {
                 ctx.topLevelInputs(),
                 ctx.docLevelExpressions()
         );
-    }
-
-    private int batchSize(Integer limit) {
-        if (limit == null) {
-            return Paging.PAGE_SIZE;
-        }
-        return Math.min(limit, Paging.PAGE_SIZE);
     }
 }

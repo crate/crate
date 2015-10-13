@@ -30,6 +30,7 @@ import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.Paging;
 import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
@@ -125,12 +126,46 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         this.distributionInfo = distributionInfo;
     }
 
+    /**
+     * This is the amount of rows a node *probably* has to provide in order to have enough rows to satisfy the query limit.
+     * </p>
+     * <p>
+     * E.g. in a query like <pre>select * from t limit 1000</pre> in a 2 node cluster each node probably only has to return 500 rows.
+     * </p>
+     */
     public @Nullable Integer nodePageSizeHint() {
         return nodePageSizeHint;
     }
 
+    /**
+     * <p><
+     * set the nodePageSizeHint
+     *
+     * See {@link #nodePageSizeHint()}
+     *
+     * NOTE: if the collectPhase provides a directResult (instead of push result) the nodePageSizeHint has to be set
+     * to the query hard-limit because there is no way to fetch more rows.
+     */
     public void nodePageSizeHint(Integer nodePageSize) {
         this.nodePageSizeHint = nodePageSize;
+    }
+
+    /**
+     * returns the shardQueueSize for a given node. <br />
+     * This depends on the {@link #nodePageSizeHint()} and the number of shards that are on the given node.
+     *
+     * <p>
+     * E.g. Given 10 shards in total in an uneven distribution (8 and 2) and a nodePageSize of 10000 <br />
+     * The shardQueueSize on the node with 2 shards is ~5000 (+ overhead). <br />
+     * On the oder node (8 shards) the shardQueueSize will be ~1250 (+ overhead)
+     * </p>
+     * <p>
+     * This is because numShardsOnNode * shardQueueSize should be >= nodePageSizeHint
+     * </p>
+     * @param nodeId the node for which to get the shardQueueSize
+     */
+    public int shardQueueSize(String nodeId) {
+        return Paging.getWeightedPageSize(nodePageSizeHint, 1.0d / Math.max(1, routing.numShards(nodeId)));
     }
 
     public @Nullable OrderBy orderBy() {

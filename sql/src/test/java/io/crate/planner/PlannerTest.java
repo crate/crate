@@ -268,14 +268,10 @@ public class PlannerTest extends CrateUnitTest {
         }
     }
 
-    private Plan plan(String statement) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+    private <T extends Plan> T plan(String statement) {
+        //noinspection unchecked: for testing this is fine
+        return (T)planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
                 new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
-    }
-
-    private Plan plan(String statement, Object[] args) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(args, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     private Plan plan(String statement, Object[][] bulkArgs) {
@@ -1914,5 +1910,12 @@ public class PlannerTest extends CrateUnitTest {
         KillPlan killJobsPlan = (KillPlan) plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
         assertThat(killJobsPlan.jobId(), notNullValue());
         assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
+    }
+
+    @Test
+    public void testShardQueueSizeCalculation() throws Exception {
+        CollectAndMerge plan = plan("select name from users order by name limit 100");
+        int shardQueueSize = plan.collectPhase().shardQueueSize(plan.collectPhase().executionNodes().iterator().next());
+        assertThat(shardQueueSize, is(75));
     }
 }

@@ -181,7 +181,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> allOutputs = toInputColumns(toCollect);
                 List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
-                int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
 
                 CollectPhaseOrderedProjectionBuilderContext projectionBuilderContext =
                         new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
@@ -200,6 +199,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.rootRelation() == table) {
+                    int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
                     TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (orderBy == null) {
