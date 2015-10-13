@@ -239,6 +239,10 @@ public class QueryAndFetchConsumer implements Consumer {
                             collectPhase);
                 }
             }
+
+            if (context.requiredPageSize() != null) {
+                collectPhase.pageSizeHint(context.requiredPageSize());
+            }
             SimpleSelect.enablePagingIfApplicable(
                     collectPhase, mergeNode, querySpec.limit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());

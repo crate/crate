@@ -168,6 +168,9 @@ public class QueryThenFetchConsumer implements Consumer {
                 );
             }
 
+            if (context.requiredPageSize() != null) {
+                collectPhase.pageSizeHint(context.requiredPageSize());
+            }
             SimpleSelect.enablePagingIfApplicable(
                     collectPhase, localMergePhase, querySpec.limit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new QueryThenFetch(collectPhase, fetchPhase, localMergePhase, context.plannerContext().jobId());

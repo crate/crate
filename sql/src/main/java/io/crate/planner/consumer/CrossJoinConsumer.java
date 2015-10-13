@@ -38,7 +38,9 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -117,11 +119,16 @@ public class CrossJoinConsumer implements Consumer {
             sortQueriedTables(relationOrder, queriedTables);
 
 
-            QueriedTableRelation left = queriedTables.get(0);
-            QueriedTableRelation right = queriedTables.get(1);
+            QueriedTableRelation<?> left = queriedTables.get(0);
+            QueriedTableRelation<?> right = queriedTables.get(1);
 
+            Integer limit = statement.querySpec().limit();
+            if (limit != null) {
+                context.requiredPageSize(limit + statement.querySpec().offset());
+            }
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
+            context.requiredPageSize(null);
 
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
 
@@ -166,7 +173,6 @@ public class CrossJoinConsumer implements Consumer {
 
             return new NestedLoop(nl, leftPlan, rightPlan, true);
         }
-
 
         @Nullable
         private MergePhase mergePhase(ConsumerContext context,
