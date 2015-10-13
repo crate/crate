@@ -255,7 +255,7 @@ public class ShardCollectService {
             }
             throw t;
         }
-        int batchSize = batchSize(collectPhase.limit());
+        int batchSize = batchSize(collectPhase.nodePageSizeHint());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating OrderedDocCollector with batch-size {}", sharedShardContext.indexShard().routingEntry().currentNodeId(), sharedShardContext.indexShard().shardId(), batchSize);
         }

@@ -109,8 +109,8 @@ public class QueryThenFetchConsumer implements Consumer {
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             CollectPhase collectPhase = qaf.collectPhase();
-            if (collectPhase.limit() == null) {
-                collectPhase.limit(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
+            if (collectPhase.nodePageSizeHint() == null) {
+                collectPhase.nodePageSizeHint(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
             }
 
             Planner.Context.ReaderAllocations readerAllocations = context.plannerContext().buildReaderAllocations();

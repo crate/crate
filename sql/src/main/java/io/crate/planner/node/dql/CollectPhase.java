@@ -69,7 +69,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     private boolean isPartitioned = false;
 
-    private @Nullable Integer limit = null;
+    private @Nullable Integer nodePageSizeHint = null;
     private @Nullable OrderBy orderBy = null;
 
     protected CollectPhase() {
@@ -125,12 +125,12 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         this.distributionInfo = distributionInfo;
     }
 
-    public @Nullable Integer limit() {
-        return limit;
+    public @Nullable Integer nodePageSizeHint() {
+        return nodePageSizeHint;
     }
 
-    public void limit(Integer limit) {
-        this.limit = limit;
+    public void nodePageSizeHint(Integer nodePageSize) {
+        this.nodePageSizeHint = nodePageSize;
     }
 
     public @Nullable OrderBy orderBy() {
@@ -197,7 +197,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         whereClause = new WhereClause(in);
 
         if( in.readBoolean()) {
-            limit = in.readVInt();
+            nodePageSizeHint = in.readVInt();
         }
 
         if (in.readBoolean()) {
@@ -228,9 +228,9 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         }
         whereClause.writeTo(out);
 
-        if (limit != null ) {
+        if (nodePageSizeHint != null ) {
             out.writeBoolean(true);
-            out.writeVInt(limit);
+            out.writeVInt(nodePageSizeHint);
         } else {
             out.writeBoolean(false);
         }

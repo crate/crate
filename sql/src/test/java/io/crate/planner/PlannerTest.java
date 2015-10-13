@@ -506,7 +506,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.SHARD));
 
         assertThat(collectPhase.orderBy(), nullValue());
-        assertThat(collectPhase.limit(), nullValue());
+        assertThat(collectPhase.nodePageSizeHint(), nullValue());
 
         List<Projection> projections = collectPhase.projections();
         assertThat(projections.size(), is(1));
@@ -575,7 +575,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testCollectAndMergePlanDefaultLimit() throws Exception {
         CollectAndMerge plan = (CollectAndMerge)plan("select name from users");
         CollectPhase collectPhase = plan.collectPhase();
-        assertThat(collectPhase.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         MergePhase mergeNode = plan.localMerge();
         assertThat(mergeNode.projections().size(), is(2));
@@ -590,7 +590,7 @@ public class PlannerTest extends CrateUnitTest {
         // with offset
         plan = (CollectAndMerge)plan("select name from users offset 20");
         collectPhase = plan.collectPhase();
-        assertThat(collectPhase.limit(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
+        assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
 
         mergeNode = plan.localMerge();
         assertThat(mergeNode.projections().size(), is(2));
@@ -607,7 +607,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testCollectAndMergePlanHighLimit() throws Exception {
         CollectAndMerge plan = (CollectAndMerge)plan("select name from users limit 100000");
         CollectPhase collectPhase = plan.collectPhase();
-        assertThat(collectPhase.limit(), is(100_000));
+        assertThat(collectPhase.nodePageSizeHint(), is(100_000));
 
         MergePhase mergeNode = plan.localMerge();
         assertThat(mergeNode.projections().size(), is(2));
@@ -622,7 +622,7 @@ public class PlannerTest extends CrateUnitTest {
         // with offset
         plan = (CollectAndMerge)plan("select name from users limit 100000 offset 20");
         collectPhase = plan.collectPhase();
-        assertThat(collectPhase.limit(), is(100_000 + 20));
+        assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
         mergeNode = plan.localMerge();
         assertThat(mergeNode.projections().size(), is(2));

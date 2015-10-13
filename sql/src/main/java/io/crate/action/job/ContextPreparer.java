@@ -394,7 +394,7 @@ public class ContextPreparer {
             int numShardsOnNode = routing.numShards(localNodeId);
 
             final int pageSize = Paging.getWeightedPageSize(
-                    MoreObjects.firstNonNull(phase.limit(), Paging.PAGE_SIZE),
+                    MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
                     (1.0 / numTotalShards) * numShardsOnNode
             );
             LOGGER.trace("[{}] setting node page size to: {}, totalShards: {}, localShards: {}",

@@ -194,7 +194,7 @@ public class QueryAndFetchConsumer implements Consumer {
                         collectPhaseProjections
                 );
                 if (projectionBuilderContext.limit != null) {
-                    collectPhase.limit(projectionBuilderContext.limit + projectionBuilderContext.offset);
+                    collectPhase.nodePageSizeHint(projectionBuilderContext.limit + projectionBuilderContext.offset);
                 }
                 collectPhase.orderBy(projectionBuilderContext.orderBy);
 
