@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class JobExecutionContext {
+public class JobExecutionContext implements KeepAliveListener {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
 
@@ -54,6 +54,11 @@ public class JobExecutionContext {
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
 
     private volatile long lastAccessTime;
+
+    @Override
+    public void keepAlive() {
+        lastAccessTime = threadPool.estimatedTimeInMillis();
+    }
 
     public static class Builder {
 
@@ -251,7 +256,7 @@ public class JobExecutionContext {
         @Override
         public void keepAlive() {
             LOGGER.trace("trigger keepAlive on context for execution phase {}", executionPhaseId);
-            lastAccessTime = threadPool.estimatedTimeInMillis();
+            JobExecutionContext.this.keepAlive();
         }
     }
 }

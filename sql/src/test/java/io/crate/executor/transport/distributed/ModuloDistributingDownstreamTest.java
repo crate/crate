@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -37,6 +38,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
@@ -121,6 +123,7 @@ public class ModuloDistributingDownstreamTest extends CrateUnitTest {
                 downstreamNodes,
                 useFailingTransport ? failingDistributedResultAction : distributedResultAction,
                 streamers,
+                mock(KeepAliveTimers.class, Answers.RETURNS_MOCKS.get()),
                 ImmutableSettings.EMPTY
         );
         downstream.registerUpstream(null);

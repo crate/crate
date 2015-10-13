@@ -23,6 +23,7 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.core.collections.Row1;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -31,6 +32,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
@@ -67,6 +69,7 @@ public class BroadcastDistributingDownstreamTest extends CrateUnitTest {
                 downstreamNodes,
                 distributedResultAction,
                 streamers,
+                mock(KeepAliveTimers.class, Answers.RETURNS_MOCKS.get()),
                 ImmutableSettings.EMPTY
         );
         downstream.registerUpstream(null);

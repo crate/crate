@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.KeepAliveTimers;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
@@ -34,5 +35,6 @@ public class CollectOperationModule extends AbstractModule {
         bind(SystemCollectService.class).asEagerSingleton();
 
         bind(JobContextService.class).asEagerSingleton();
+        bind(KeepAliveTimers.class).asEagerSingleton();
     }
 }

@@ -26,6 +26,8 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.jobs.ExecutionState;
+import io.crate.jobs.KeepAliveTimers;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
@@ -45,6 +47,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     public static final int DEFAULT_PAGES_BUFFER_SIZE = 1;
 
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final KeepAliveTimers keepAliveTimers;
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
     private final AtomicInteger currentPageProcessed = new AtomicInteger(0);
     private final AtomicBoolean requestsPending = new AtomicBoolean(false);
@@ -59,9 +62,11 @@ public abstract class DistributingDownstream extends ResultProviderBase {
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
+                                  KeepAliveTimers keepAliveTimers,
                                   Streamer<?>[] streamers,
                                   Settings settings) {
         this.transportDistributedResultAction = transportDistributedResultAction;
+        this.keepAliveTimers = keepAliveTimers;
 
         downstreams = new Downstream[downstreamNodeIds.size()];
 
@@ -74,6 +79,14 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
         int pagesBufferSize = settings.getAsInt(PAGES_BUFFER_SIZE, DEFAULT_PAGES_BUFFER_SIZE);
         rowQueue = new ArrayBlockingQueue<>(Constants.PAGE_SIZE * pagesBufferSize);
+    }
+
+    @Override
+    public void startProjection(ExecutionState executionState) {
+        super.startProjection(executionState);
+        for (Downstream downstream : downstreams) {
+            downstream.keepAliveTimer.start();
+        }
     }
 
     @Override
@@ -144,6 +157,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
     @Override
     public Bucket doFinish() {
         onAllUpstreamsFinished();
+        closeDownstreams();
         return null;
     }
 
@@ -155,14 +169,21 @@ public abstract class DistributingDownstream extends ResultProviderBase {
         } else {
             forwardFailures(t);
         }
+        closeDownstreams();
         return t;
+    }
+
+    private void closeDownstreams() {
+        for (Downstream downstream : downstreams) {
+            downstream.close();
+        }
     }
 
     private void onDownstreamResponse(boolean needMore) {
         if (!needMore) {
             if (finishedDownstreams.incrementAndGet() == downstreams.length) {
                 drainPageFromQueue();
-            };
+            }
         }
         synchronized (requestsPending) {
             if (currentPageProcessed.incrementAndGet() == downstreams.length) {
@@ -180,7 +201,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
 
     protected abstract ESLogger logger();
 
-    protected class Downstream implements ActionListener<DistributedResultResponse> {
+    protected class Downstream implements ActionListener<DistributedResultResponse>, AutoCloseable {
 
         final AtomicBoolean wantMore = new AtomicBoolean(true);
         final String node;
@@ -189,6 +210,9 @@ public abstract class DistributingDownstream extends ResultProviderBase {
         final int targetExecutionNodeId;
         final int bucketIdx;
         final Streamer<?>[] streamers;
+
+        final KeepAliveTimers.ResettableTimer keepAliveTimer;
+
 
         public Downstream(String node,
                           UUID jobId,
@@ -200,6 +224,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             this.targetExecutionNodeId = targetExecutionNodeId;
             this.bucketIdx = bucketIdx;
             this.streamers = streamers;
+            this.keepAliveTimer = keepAliveTimers.forJobOnNode(jobId, node);
         }
 
         public void sendRequest(Throwable t) {
@@ -219,6 +244,7 @@ public abstract class DistributingDownstream extends ResultProviderBase {
                         jobId.toString(),
                         node, request.isLast(), request.rows().size());
             }
+            keepAliveTimer.reset();
             try {
                 transportDistributedResultAction.pushResult(
                         node,
@@ -241,15 +267,20 @@ public abstract class DistributingDownstream extends ResultProviderBase {
             }
 
             wantMore.set(response.needMore());
-
             onDownstreamResponse(response.needMore());
         }
 
         @Override
         public void onFailure(Throwable exp) {
             logger().error("[{}] Exception sending distributing collect results to {}", exp, jobId, node);
+            keepAliveTimer.cancel();
             wantMore.set(false);
             onDownstreamResponse(false);
+        }
+
+        @Override
+        public void close() {
+            keepAliveTimer.cancel();
         }
     }
 }

@@ -298,7 +298,9 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         Reference uidReference = new Reference(
                 new ReferenceInfo(
                         new ReferenceIdent(tableInfo.ident(), "_uid"),
-                        RowGranularity.DOC, DataTypes.STRING));
+                        RowGranularity.DOC,
+                        DataTypes.STRING)
+        );
 
         // 1st collect and merge nodes
         Function whereClause1 = new Function(new FunctionInfo(

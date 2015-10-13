@@ -27,6 +27,7 @@ import io.crate.executor.transport.distributed.BroadcastDistributingDownstream;
 import io.crate.executor.transport.distributed.ModuloDistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -46,14 +47,17 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final Settings settings;
+    private final KeepAliveTimers keepAliveTimers;
 
     @Inject
     public InternalResultProviderFactory(ClusterService clusterService,
                                          TransportDistributedResultAction transportDistributedResultAction,
+                                         KeepAliveTimers keepAliveTimers,
                                          Settings settings) {
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
         this.settings = settings;
+        this.keepAliveTimers = keepAliveTimers;
     }
 
     public ResultProvider createDownstream(NodeOperation nodeOperation, UUID jobId) {
@@ -80,6 +84,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                         nodeOperation.downstreamNodes(),
                         transportDistributedResultAction,
                         streamers,
+                        keepAliveTimers,
                         settings
                 );
             }
@@ -91,6 +96,7 @@ public class InternalResultProviderFactory implements ResultProviderFactory {
                     nodeOperation.downstreamNodes(),
                     transportDistributedResultAction,
                     streamers,
+                    keepAliveTimers,
                     settings
             );
         }

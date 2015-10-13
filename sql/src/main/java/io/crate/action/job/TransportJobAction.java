@@ -31,10 +31,17 @@ import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.operation.NodeOperation;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -45,21 +52,30 @@ import java.util.List;
 @Singleton
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportJobAction.class);
+
     public static final String ACTION_NAME = "crate/sql/job";
     private static final String EXECUTOR = ThreadPool.Names.SAME;
 
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
+    private final KeepAliveTimers keepAliveTimers;
+    private final ClusterService clusterService;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               Transports transports,
+                              ClusterService clusterService,
                               JobContextService jobContextService,
-                              ContextPreparer contextPreparer) {
+                              ContextPreparer contextPreparer,
+                              KeepAliveTimers keepAliveTimers) {
+        this.clusterService = clusterService;
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
+        this.keepAliveTimers = keepAliveTimers;
+
 
         transportService.registerHandler(ACTION_NAME, new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
             @Override
@@ -97,14 +113,30 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());
         } else {
+            String nodeId = nodeId(request.remoteAddress());
+            final KeepAliveTimers.ResettableTimer keepAliveTimer;
+            if (nodeId != null) {
+                keepAliveTimer = keepAliveTimers.forJobOnNode(request.jobId(), nodeId);
+                keepAliveTimer.start();
+            } else {
+                LOGGER.warn("could not determine direct response node for address {}. not starting keepalive timer.", request.remoteAddress());
+                keepAliveTimer = null;
+            }
+
             Futures.addCallback(Futures.allAsList(directResponseFutures), new FutureCallback<List<Bucket>>() {
                 @Override
                 public void onSuccess(List<Bucket> buckets) {
+                    if (keepAliveTimer != null) {
+                        keepAliveTimer.cancel();
+                    }
                     actionListener.onResponse(new JobResponse(buckets));
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
+                    if (keepAliveTimer != null) {
+                        keepAliveTimer.cancel();
+                    }
                     actionListener.onFailure(t);
                 }
             });
@@ -119,5 +151,15 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     @Override
     public String executorName() {
         return EXECUTOR;
+    }
+
+    @Nullable
+    private String nodeId(TransportAddress transportAddress) {
+        String nodeId = null;
+        DiscoveryNode discoveryNode = clusterService.state().nodes().findByAddress(transportAddress);
+        if (discoveryNode != null) {
+            nodeId = discoveryNode.id();
+        }
+        return nodeId;
     }
 }

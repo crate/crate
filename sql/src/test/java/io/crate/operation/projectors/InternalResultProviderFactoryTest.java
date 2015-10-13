@@ -28,6 +28,7 @@ import io.crate.executor.transport.distributed.BroadcastDistributingDownstream;
 import io.crate.executor.transport.distributed.ModuloDistributingDownstream;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -56,6 +57,7 @@ public class InternalResultProviderFactoryTest extends CrateUnitTest {
         resultProviderFactory = new InternalResultProviderFactory(
                 new NoopClusterService(),
                 mock(TransportDistributedResultAction.class),
+                mock(KeepAliveTimers.class),
                 ImmutableSettings.EMPTY);
     }
 

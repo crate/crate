@@ -24,6 +24,7 @@ package io.crate.executor.transport.distributed;
 import com.google.common.base.Throwables;
 import io.crate.Streamer;
 import io.crate.core.collections.Row;
+import io.crate.jobs.KeepAliveTimers;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -43,9 +44,10 @@ public class ModuloDistributingDownstream extends DistributingDownstream {
                                         Collection<String> downstreamNodeIds,
                                         TransportDistributedResultAction transportDistributedResultAction,
                                         Streamer<?>[] streamers,
+                                        KeepAliveTimers keepAliveTimers,
                                         Settings settings) {
         super(jobId, targetExecutionNodeId, bucketIdx, downstreamNodeIds,
-                transportDistributedResultAction, streamers, settings);
+                transportDistributedResultAction, keepAliveTimers, streamers, settings);
 
         bucketBuilder = new MultiBucketBuilder(streamers, downstreams.length);
     }
