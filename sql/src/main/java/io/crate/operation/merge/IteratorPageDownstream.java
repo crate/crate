@@ -85,6 +85,26 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
         }
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        if (finished.compareAndSet(true, false)) {
+            assert downstreamWantsMore : "downstream doesn't want more but still called repeat";
+            LOGGER.trace("received repeat: {}", rowReceiver);
+
+            paused.set(false);
+            if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
+                consumeRemaining();
+            }
+            rowReceiver.finish();
+            finished.set(true);
+        } else {
+            LOGGER.trace("received repeat, but wasn't finished {}", rowReceiver);
+         }
+    }
+
     private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
         while (iterator.hasNext()) {
             if (finished.get()) {

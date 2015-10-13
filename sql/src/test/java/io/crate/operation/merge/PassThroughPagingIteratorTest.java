@@ -34,7 +34,7 @@ import static org.hamcrest.core.Is.is;
 public class PassThroughPagingIteratorTest extends CrateUnitTest {
 
     private static <T> PassThroughPagingIterator<T> iter() {
-        return new PassThroughPagingIterator<>();
+        return randomBoolean() ? PassThroughPagingIterator.<T>repeatable() : PassThroughPagingIterator.<T>oneShot();
     }
 
     @Test

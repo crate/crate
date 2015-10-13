@@ -35,14 +35,15 @@ import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class FetchPushDown {
 
-    private static final FetchRequiredVisitor fetchRequiredVisitor = new FetchRequiredVisitor();
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
     private Field docIdField;
@@ -62,34 +63,6 @@ public class FetchPushDown {
             return ImmutableList.of();
         }
         return Collections2.transform(fetchReferences.values(), FetchReference.REF_FUNCTION);
-    }
-
-    private static class Context {
-
-        private LinkedHashSet<Symbol> querySymbols;
-
-        private Context(@Nullable OrderBy orderBy) {
-            if (orderBy != null) {
-                querySymbols = new LinkedHashSet<>(orderBy.orderBySymbols().size() + 1);
-                querySymbols.addAll(orderBy.orderBySymbols());
-            }
-        }
-
-        boolean isQuerySymbol(Symbol symbol) {
-            return querySymbols != null && querySymbols.contains(symbol);
-        }
-
-        void allocateQuerySymbol(Symbol symbol) {
-            if (querySymbols == null) {
-                querySymbols = new LinkedHashSet<>(1);
-            }
-            querySymbols.add(symbol);
-        }
-
-        public LinkedHashSet<Symbol> querySymbols() {
-            return querySymbols;
-        }
-
     }
 
     private FetchReference allocateFetchReference(Reference ref) {
@@ -114,9 +87,9 @@ public class FetchPushDown {
 
         OrderBy orderBy = querySpec.orderBy();
 
-        Context context = new Context(orderBy);
+        FetchRequiredVisitor.Context context = new FetchRequiredVisitor.Context(orderBy);
 
-        boolean fetchRequired = fetchRequiredVisitor.process(querySpec.outputs(), context);
+        boolean fetchRequired = FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), context);
         if (!fetchRequired) return null;
 
         // build the subquery
@@ -204,45 +177,4 @@ public class FetchPushDown {
 
     }
 
-    private static class FetchRequiredVisitor extends SymbolVisitor<Context, Boolean> {
-
-        public boolean process(List<Symbol> symbols, Context context) {
-            boolean result = false;
-            for (Symbol symbol : symbols) {
-                result = process(symbol, context) || result;
-            }
-            return result;
-        }
-
-        @Override
-        public Boolean visitReference(Reference symbol, Context context) {
-            if (context.isQuerySymbol(symbol)) {
-                return false;
-            } else if (symbol.ident().columnIdent().equals(DocSysColumns.SCORE)) {
-                context.allocateQuerySymbol(symbol);
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public Boolean visitDynamicReference(DynamicReference symbol, Context context) {
-            return visitReference(symbol, context);
-        }
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Context context) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitAggregation(Aggregation symbol, Context context) {
-            return !context.isQuerySymbol(symbol) && process(symbol.inputs(), context);
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, Context context) {
-            return !context.isQuerySymbol(symbol) && process(symbol.arguments(), context);
-        }
-    }
 }

@@ -146,8 +146,18 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
      * NOTE: if the collectPhase provides a directResult (instead of push result) the nodePageSizeHint has to be set
      * to the query hard-limit because there is no way to fetch more rows.
      */
-    public void nodePageSizeHint(Integer nodePageSize) {
-        this.nodePageSizeHint = nodePageSize;
+    public void nodePageSizeHint(Integer nodePageSizeHint) {
+        this.nodePageSizeHint = nodePageSizeHint;
+    }
+
+
+    /**
+     * Similar to {@link #nodePageSizeHint(Integer)} in that it sets the nodePageSizeHint, but the given
+     * pageSize is the total pageSize.
+     *
+     */
+    public void pageSizeHint(Integer pageSize) {
+        nodePageSizeHint(Paging.getWeightedPageSize(pageSize, 1.0d / Math.max(1, executionNodes().size())));
     }
 
     /**

@@ -28,6 +28,8 @@ import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +68,8 @@ import java.util.UUID;
  */
 public class ShardProjectorChain {
 
+    private final static ESLogger LOGGER = Loggers.getLogger(ShardProjectorChain.class);
+
     private final UUID jobId;
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
@@ -75,6 +79,7 @@ public class ShardProjectorChain {
     private int shardProjectionsIndex = -1;
 
     private final RowDownstream rowDownstream;
+
 
     public static ShardProjectorChain passThroughMerge(UUID jobId,
                                                        int maxNumShards,
@@ -134,17 +139,28 @@ public class ShardProjectorChain {
             nodeProjectors.get(nodeProjectors.size()-1).downstream(finalDownstream);
         }
 
-        if (maxNumShards == 1) {
-            rowDownstream = new SingleUpstreamRowDownstream(firstNodeProjector);
-        } else {
-            rowDownstream = new SynchronizingPassThroughRowMerger(firstNodeProjector);
-        }
+        rowDownstream = getRowDownstream(maxNumShards);
 
         if (shardProjectionsIndex >= 0) {
             // shardProjector will be created later
             shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * maxNumShards);
         } else {
             shardProjectors = ImmutableList.of();
+        }
+    }
+
+    private RowDownstream getRowDownstream(int maxNumShards) {
+        if (maxNumShards == 1) {
+            LOGGER.debug("Getting RowDownstream for 1 upstream, repeat support: " + firstNodeProjector.requirements());
+            if (firstNodeProjector.requirements().contains(Requirement.REPEAT)) {
+                return RowMergers.passThroughRowMerger(firstNodeProjector);
+            } else {
+                return new SingleUpstreamRowDownstream(firstNodeProjector);
+            }
+        } else {
+            LOGGER.debug("Getting RowDownstream for multiple upstreams; unsorted; repeat support: "
+                    + firstNodeProjector.requirements());
+            return RowMergers.passThroughRowMerger(firstNodeProjector);
         }
     }
 

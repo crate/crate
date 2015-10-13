@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -42,10 +43,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GroupingProjector extends AbstractProjector {
 
@@ -54,6 +52,7 @@ public class GroupingProjector extends AbstractProjector {
     private final RamAccountingContext ramAccountingContext;
 
     private final Grouper grouper;
+    private EnumSet<Requirement> requirements;
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
@@ -356,5 +355,14 @@ public class GroupingProjector extends AbstractProjector {
         public void close() throws Exception {
             result.clear();
         }
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        if (requirements == null) {
+            requirements = Sets.newEnumSet(downstream.requirements(), Requirement.class);
+            requirements.remove(Requirement.REPEAT);
+        }
+        return requirements;
     }
 }

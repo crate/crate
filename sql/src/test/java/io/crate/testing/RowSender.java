@@ -22,15 +22,12 @@
 package io.crate.testing;
 
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;
-
-import static org.mockito.Mockito.mock;
 
 public class RowSender implements Runnable, RowUpstream {
 
@@ -39,14 +36,21 @@ public class RowSender implements Runnable, RowUpstream {
 
     private volatile int numPauses = 0;
     private volatile int numResumes = 0;
+    private volatile boolean isPaused;
     private Iterator<Row> iterator;
 
-    public RowSender(Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
+    public RowSender(final Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
         downstream = rowReceiver;
         topRowUpstream = new TopRowUpstream(executor, new Runnable() {
             @Override
             public void run() {
                 numResumes++;
+                RowSender.this.run();
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                iterator = rows.iterator();
                 RowSender.this.run();
             }
         });
@@ -56,7 +60,6 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void run() {
-        downstream.prepare(mock(ExecutionState.class));
         while (iterator.hasNext()) {
             final boolean wantsMore = downstream.setNextRow(iterator.next());
             if (!wantsMore) {
@@ -69,6 +72,7 @@ public class RowSender implements Runnable, RowUpstream {
 
     private boolean processPause() {
         if (topRowUpstream.shouldPause()) {
+            isPaused = true;
             numPauses++;
             topRowUpstream.pauseProcessed();
             return true;
@@ -78,12 +82,18 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void pause() {
-        topRowUpstream.pause();
+        topRowUpstream.pause();;
     }
 
     @Override
     public void resume(boolean async) {
+        isPaused = false;
         topRowUpstream.resume(async);
+    }
+
+    @Override
+    public void repeat() {
+        topRowUpstream.repeat();
     }
 
     public int numPauses() {
@@ -95,6 +105,6 @@ public class RowSender implements Runnable, RowUpstream {
     }
 
     public boolean isPaused() {
-        return topRowUpstream.isPaused();
+        return isPaused;
     }
 }

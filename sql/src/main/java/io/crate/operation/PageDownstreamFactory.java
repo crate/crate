@@ -82,6 +82,7 @@ public class PageDownstreamFactory {
 
     public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,
                                                                                    RowReceiver rowReceiver,
+                                                                                   boolean requiresRepeatSupport,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
         FlatProjectorChain projectorChain = null;
@@ -103,10 +104,12 @@ public class PageDownstreamFactory {
                             mergeNode.orderByIndices(),
                             mergeNode.reverseFlags(),
                             mergeNode.nullsFirst()
-                    )
+                    ),
+                    requiresRepeatSupport
             );
         } else {
-            pagingIterator = new PassThroughPagingIterator<>();
+            pagingIterator = requiresRepeatSupport ?
+                    PassThroughPagingIterator.<Row>repeatable() : PassThroughPagingIterator.<Row>oneShot();
         }
         PageDownstream pageDownstream = new IteratorPageDownstream(rowReceiver, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
