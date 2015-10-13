@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;
@@ -61,6 +62,7 @@ public class DistributingDownstream implements RowReceiver {
     private final byte inputId;
     private final int bucketIdx;
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final KeepAliveTimers keepAliveTimers;
     private final Streamer<?>[] streamers;
     private final int pageSize;
     private RowUpstream upstream;
@@ -81,6 +83,7 @@ public class DistributingDownstream implements RowReceiver {
                                   int bucketIdx,
                                   Collection<String> downstreamNodeIds,
                                   TransportDistributedResultAction transportDistributedResultAction,
+                                  KeepAliveTimers keepAliveTimers,
                                   Streamer<?>[] streamers,
                                   int pageSize) {
         this.jobId = jobId;
@@ -89,6 +92,7 @@ public class DistributingDownstream implements RowReceiver {
         this.inputId = inputId;
         this.bucketIdx = bucketIdx;
         this.transportDistributedResultAction = transportDistributedResultAction;
+        this.keepAliveTimers = keepAliveTimers;
         this.streamers = streamers;
         this.pageSize = pageSize;
 
@@ -167,11 +171,18 @@ public class DistributingDownstream implements RowReceiver {
                 downstream.forwardFailure(throwable);
             }
         }
+        // finally close downstreams
+        for (Downstream downstream : downstreams) {
+            downstream.close();
+        }
     }
 
     @Override
     public void prepare(ExecutionState executionState) {
-
+        // start timer for each downstream
+        for (Downstream downstream : downstreams) {
+            downstream.prepare();
+        }
     }
 
     @Override
@@ -179,17 +190,25 @@ public class DistributingDownstream implements RowReceiver {
         upstream = rowUpstream;
     }
 
-    private class Downstream implements ActionListener<DistributedResultResponse> {
+    private class Downstream implements ActionListener<DistributedResultResponse>, AutoCloseable {
 
         private final String node;
+        private final KeepAliveTimers.ResettableTimer keepAliveTimer;
         private boolean finished = false;
+
 
         public Downstream(String node) {
             this.node = node;
+            keepAliveTimer = keepAliveTimers.forJobOnNode(jobId, node);
+        }
+
+        public void prepare() {
+            keepAliveTimer.start();
         }
 
         public void forwardFailure(Throwable throwable) {
             LOGGER.trace("Sending failure to {}", node);
+            keepAliveTimer.cancel();
             transportDistributedResultAction.pushResult(
                     node,
                     new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
@@ -201,6 +220,7 @@ public class DistributingDownstream implements RowReceiver {
             if (finished) {
                 return;
             }
+            keepAliveTimer.reset();
             LOGGER.trace("Sending request to {}", node);
             transportDistributedResultAction.pushResult(
                     node,
@@ -253,6 +273,11 @@ public class DistributingDownstream implements RowReceiver {
                 }
                 resume();
             }
+        }
+
+        @Override
+        public void close() {
+            keepAliveTimer.cancel();
         }
     }
 }

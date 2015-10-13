@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.metadata.Routing;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
@@ -56,7 +57,9 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
     public void before() {
         rowDownstreamFactory = new InternalRowDownstreamFactory(
                 new NoopClusterService(),
-                mock(TransportDistributedResultAction.class));
+                mock(TransportDistributedResultAction.class),
+                mock(KeepAliveTimers.class)
+        );
     }
 
     private RowReceiver createDownstream(Set<String> downstreamExecutionNodes) {

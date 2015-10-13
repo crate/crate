@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
+import io.crate.action.job.TransportKeepAliveAction;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
@@ -35,6 +36,7 @@ public class TransportExecutorModule extends AbstractModule {
         bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
 
         bind(TransportJobAction.class).asEagerSingleton();
+        bind(TransportKeepAliveAction.class).asEagerSingleton();
         bind(TransportDistributedResultAction.class).asEagerSingleton();
         bind(SymbolBasedTransportShardUpsertAction.class).asEagerSingleton();
         bind(TransportShardUpsertAction.class).asEagerSingleton();

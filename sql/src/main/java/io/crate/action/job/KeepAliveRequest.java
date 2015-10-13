@@ -20,21 +20,40 @@
  * agreement.
  */
 
-package io.crate.jobs;
+package io.crate.action.job;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
-import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
+import java.io.IOException;
+import java.util.UUID;
 
-public class JobModule extends AbstractModule {
+public class KeepAliveRequest extends TransportRequest {
+
+    private UUID jobId;
+
+    public KeepAliveRequest(UUID jobId) {
+        this.jobId = jobId;
+    }
+
+    protected KeepAliveRequest() {
+    }
+
+    public UUID jobId() {
+        return jobId;
+    }
+
     @Override
-    protected void configure() {
-        bind(JobContextService.class).asEagerSingleton();
-        bind(TimeValue.class).annotatedWith(JobContextService.JobKeepAlive.class).toInstance(timeValueMinutes(5));
-        bind(TimeValue.class).annotatedWith(JobContextService.ReaperInterval.class).toInstance(timeValueMinutes(1));
-        bind(Reaper.class).to(LocalReaper.class).asEagerSingleton();
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        jobId = new UUID(in.readLong(), in.readLong());
+    }
 
-        bind(KeepAliveTimers.class).asEagerSingleton();
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
     }
 }
