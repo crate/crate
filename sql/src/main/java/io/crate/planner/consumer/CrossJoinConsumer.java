@@ -29,6 +29,7 @@ import io.crate.analyze.relations.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.fetch.FetchRequiredVisitor;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergePhase;
@@ -271,8 +272,19 @@ public class CrossJoinConsumer implements Consumer {
                 context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
                 return true;
             }
+
+            if (hasOutputsToFetch(statement.querySpec())) {
+                context.validationException(new ValidationException("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
+                return true;
+            }
             return false;
         }
+
+        private boolean hasOutputsToFetch(QuerySpec querySpec) {
+            FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(querySpec.orderBy());
+            return FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), ctx);
+        }
+
 
     }
 
@@ -342,4 +354,5 @@ public class CrossJoinConsumer implements Consumer {
         }
 
     }
+
 }
