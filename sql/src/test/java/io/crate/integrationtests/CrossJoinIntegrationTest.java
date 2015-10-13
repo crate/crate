@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,10 +34,14 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testCrossJoinOrderByOnBothTables() throws Exception {
@@ -66,6 +73,9 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("create table target (color string, size string)");
         ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         execute("insert into target (color, size) (select colors.name, sizes.name from colors cross join sizes)");
         execute("refresh table target");
 
@@ -86,6 +96,8 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into offices (height, name) values (1.5, 'Hobbit House')");
         execute("refresh table employees, offices");
 
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         // which employee fits in which office?
         execute("select employees.name, offices.name from employees, offices limit 1");
         assertThat(response.rows().length, is(1));
@@ -130,7 +142,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into articles (price, name) values (28.3, 'towel'), (40.1, 'cheese')");
         execute("refresh table colors, articles");
 
-        execute("select colors.name, articles.name from colors, articles order by articles.price, colors.name");
+        execute("select colors.name, articles.name from colors, articles order by articles.price, colors.name, articles.name");
         assertThat(printedTable(response.rows()), is("" +
                                                      "black| towel\n" +
                                                      "grey| towel\n" +
@@ -142,6 +154,8 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCrossJoinWithoutLimitAndOrderByAndCrossJoinSyntax() throws Exception {
         createColorsAndSizes();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         execute("select colors.name, sizes.name from colors cross join sizes");
         assertThat(response.rowCount(), is(6L));
 
@@ -232,15 +246,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 "sys| doc\n" +
                 "sys| information_schema\n" +
                 "sys| sys\n"));
-    }
-
-    private void createGenders() {
-        execute("create table genders (name string) ");
-        execute("insert into genders (name) values (?)", new Object[][]{
-                new Object[]{"female"},
-                new Object[]{"male"},
-        });
-        execute("refresh table genders");
     }
 
     private void createColorsAndSizes() {

@@ -42,7 +42,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
@@ -138,7 +137,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testWhereWithNoMatchShouldReturnNoopPlan() throws Exception {
-        Plan plan = plan("select * from users u1, users u2 where 1 = 2");
+        // TODO: once fetch is supported for cross joins, reset query to:
+        // select u1.name, u2.name from users u1, users u2 where 1 = 2
+        Plan plan = plan("select u1.name, u2.name from users u1, users u2 where 1 = 2 order by u1.name, u2.name");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 
@@ -153,43 +154,51 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testFunctionWithJoinCondition() throws Exception {
-        NestedLoop plan = plan("select u1.name || u2.name from users u1, users u2");
+        // TODO: once fetch is supported for cross joins, reset query to:
+        // select u1.name || u2.name from users u1, users u2
+        NestedLoop plan = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u2.name");
         TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
         assertThat(topN.outputs().get(0), isFunction("concat"));
     }
 
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
+        // TODO: once fetch is supported for cross joins, reset query to:
+        // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
-        plan("select * from users u1, users u2 where u1.name || u2.name = 'foobar'");
+        plan("select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.name, u2.name");
     }
 
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
-         NestedLoop plan = plan("select u1.name, u2.name from users u1 cross join users u2");
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
+        NestedLoop plan = plan("select u1.name, u2.name from users u1 cross join users u2");
+        /*
+        assertThat(plan.nestedLoopPhase().projections().size(), is(1));
+        TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(0));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertThat(topN.outputs().size(), is(2));
 
-         assertThat(plan.nestedLoopPhase().projections().size(), is(1));
-         TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(0));
 
-         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
-         assertThat(topN.offset(), is(0));
-         assertThat(topN.outputs().size(), is(2));
+        assertThat(plan.left().resultNode().projections().size(), is(0));
+        MergePhase leftMerge = plan.nestedLoopPhase().leftMergePhase();
+        assertThat(leftMerge.projections().size(), is(0));
 
-
-         assertThat(plan.left().resultNode().projections().size(), is(0));
-         MergePhase leftMerge = plan.nestedLoopPhase().leftMergePhase();
-         assertThat(leftMerge.projections().size(), is(0));
-
-         assertThat(plan.right().resultNode().projections().size(), is(0));
-         MergePhase rightMerge = plan.nestedLoopPhase().rightMergePhase();
-         assertThat(rightMerge.projections().size(), is(0));
+        assertThat(plan.right().resultNode().projections().size(), is(0));
+        MergePhase rightMerge = plan.nestedLoopPhase().rightMergePhase();
+        assertThat(rightMerge.projections().size(), is(0));*/
     }
 
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testOrderByPushDown() throws Exception {
-        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name");
+        // TODO: once fetch is supported for cross joins, reset query to:
+        // select u1.name, u2.name from users u1, users u2 order by u1.name
+
+        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
         assertThat(plan.left().resultNode().projections().size(), is(1));
 
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
@@ -213,7 +222,24 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public void testAggregationOnCrossJoin() throws Exception {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("AGGREGATIONS on CROSS JOIN is not supported");
+        // TODO: once fetch is supported for cross joins, reset query to:
+        // select min(u1.name) from users u1, users u2
+
         plan("select min(u1.name) from users u1, users u2");
     }
 
+    @Test
+    public void testCrossJoinWithFetchField() throws Exception {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
+        plan("select u1.id, u2.name from users u1, users u2 order by u1.id");
+    }
+
+    @Test
+    public void testCrossJoinWithSelectAllFetch() throws Exception {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
+        plan("select * from users u1, users u2 order by u1.id, u2.name");
+
+    }
 }
