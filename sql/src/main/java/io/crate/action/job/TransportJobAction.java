@@ -31,7 +31,9 @@ import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.KeepAliveTimers;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
@@ -51,17 +53,24 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
+    private final KeepAliveTimers keepAliveTimers;
+    private final ClusterService clusterService;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               IndicesService indicesService,
+                              ClusterService clusterService,
                               Transports transports,
                               JobContextService jobContextService,
-                              ContextPreparer contextPreparer) {
+                              ContextPreparer contextPreparer,
+                              KeepAliveTimers keepAliveTimers) {
         this.indicesService = indicesService;
+        this.clusterService = clusterService;
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
+        this.keepAliveTimers = keepAliveTimers;
+
 
         transportService.registerHandler(ACTION_NAME, new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
             @Override
@@ -100,14 +109,19 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());
         } else {
+            // assuming direct response is only used when executed on same node
+            final KeepAliveTimers.ResettableTimer keepAliveTimer = keepAliveTimers.forJobOnNode(request.jobId(), clusterService.localNode().id());
+            keepAliveTimer.start();
             Futures.addCallback(Futures.allAsList(directResponseFutures), new FutureCallback<List<Bucket>>() {
                 @Override
                 public void onSuccess(List<Bucket> buckets) {
+                    keepAliveTimer.cancel();
                     actionListener.onResponse(new JobResponse(buckets));
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
+                    keepAliveTimer.cancel();
                     actionListener.onFailure(t);
                 }
             });
