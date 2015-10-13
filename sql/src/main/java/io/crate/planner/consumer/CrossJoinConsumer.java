@@ -35,6 +35,7 @@ import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -106,9 +107,6 @@ public class CrossJoinConsumer implements Consumer {
 
             WhereClause where = statement.querySpec().where();
             OrderBy orderBy = statement.querySpec().orderBy();
-            if (where.hasQuery() && !(where.query() instanceof Literal)) {
-                throw new UnsupportedOperationException("JOIN condition in the WHERE clause is not supported");
-            }
 
             boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();
             if (hasRemainingOrderBy) {
@@ -118,7 +116,6 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
             sortQueriedTables(relationOrder, queriedTables);
-
 
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
@@ -144,15 +141,21 @@ public class CrossJoinConsumer implements Consumer {
                     rightPlan.resultPhase(),
                     right.querySpec());
 
-
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
 
             List<Field> inputs = new ArrayList<>(
                     left.querySpec().outputs().size() + right.querySpec().outputs().size());
 
-
             inputs.addAll(left.fields());
             inputs.addAll(right.fields());
+
+            List<Projection> projections = new ArrayList<>();
+
+            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
+            if (filterNeeded) {
+                FilterProjection filterProjection = projectionBuilder.filterProjection(inputs, where.query());
+                projections.add(filterProjection);
+            }
 
             TopNProjection topN = projectionBuilder.topNProjection(
                     inputs,
@@ -161,12 +164,13 @@ public class CrossJoinConsumer implements Consumer {
                     statement.querySpec().limit(),
                     statement.querySpec().outputs()
             );
+            projections.add(topN);
 
             NestedLoopPhase nl = new NestedLoopPhase(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     "nested-loop",
-                    ImmutableList.<Projection>of(topN),
+                    projections,
                     leftMerge,
                     rightMerge,
                     localExecutionNodes
