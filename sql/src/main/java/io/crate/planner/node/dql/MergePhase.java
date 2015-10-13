@@ -58,7 +58,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     private Collection<? extends DataType> inputTypes;
     private int numUpstreams;
     private DistributionInfo distributionInfo;
-    private Set<String> executionNodes;
+    private Collection<String> executionNodes;
 
     /**
      * expects sorted input and produces sorted output
@@ -142,7 +142,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     }
 
     @Override
-    public Set<String> executionNodes() {
+    public Collection<String> executionNodes() {
         if (executionNodes == null) {
             return ImmutableSet.of();
         } else {
@@ -160,7 +160,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
         this.distributionInfo = distributionInfo;
     }
 
-    public void executionNodes(Set<String> executionNodes) {
+    public void executionNodes(Collection<String> executionNodes) {
         this.executionNodes = executionNodes;
     }
 

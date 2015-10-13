@@ -28,7 +28,7 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
-import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 
 public interface ExecutionPhase extends Streamable {
@@ -65,7 +65,7 @@ public interface ExecutionPhase extends Streamable {
 
     int executionPhaseId();
 
-    Set<String> executionNodes();
+    Collection<String> executionNodes();
 
     UUID jobId();
 
