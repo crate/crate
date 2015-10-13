@@ -1918,4 +1918,25 @@ public class PlannerTest extends CrateUnitTest {
         int shardQueueSize = plan.collectPhase().shardQueueSize(plan.collectPhase().executionNodes().iterator().next());
         assertThat(shardQueueSize, is(75));
     }
+
+    @Test
+    public void testQAFPagingIsEnabledOnHighLimit() throws Exception {
+        CollectAndMerge plan = plan("select name from users order by name limit 1000000");
+        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.collectPhase().nodePageSizeHint(), is(750000));
+    }
+
+    @Test
+    public void testQAFPagingIsEnabledOnHighOffset() throws Exception {
+        CollectAndMerge plan = plan("select name from users order by name limit 10 offset 1000000");
+        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.collectPhase().nodePageSizeHint(), is(750007));
+    }
+
+    @Test
+    public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
+        CollectAndMerge plan = plan("select name, date from users order by name limit 1000000");
+        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.collectPhase().nodePageSizeHint(), is(750000));
+    }
 }

@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -32,7 +31,6 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
-import io.crate.operation.Paging;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -170,10 +168,8 @@ public class QueryThenFetchConsumer implements Consumer {
                 );
             }
 
-            Integer limit = querySpec.limit();
-            if (limit != null && limit + querySpec.offset() > Paging.PAGE_SIZE) {
-                localMergePhase.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
-            }
+            SimpleSelect.enablePagingIfApplicable(
+                    collectPhase, localMergePhase, querySpec.limit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new QueryThenFetch(collectPhase, fetchPhase, localMergePhase, context.plannerContext().jobId());
         }
 
