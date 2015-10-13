@@ -212,6 +212,16 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNodePageSizePushDown() throws Exception {
+        NestedLoop plan = plan("select u1.name from users u1, users u2 order by 1 limit 1000");
+        CollectPhase cpL = ((CollectAndMerge) plan.left().plan()).collectPhase();
+        assertThat(cpL.nodePageSizeHint(), is(750));
+
+        CollectPhase cpR = ((CollectAndMerge) plan.right().plan()).collectPhase();
+        assertThat(cpR.nodePageSizeHint(), is(750));
+    }
+
+    @Test
     public void testCrossJoinWithGroupBy() throws Exception {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("GROUP BY on CROSS JOIN is not supported");
