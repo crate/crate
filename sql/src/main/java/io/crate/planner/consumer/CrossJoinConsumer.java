@@ -161,10 +161,6 @@ public class CrossJoinConsumer implements Consumer {
             List<Projection> projections = new ArrayList<>();
             List<Field> inputs = concatFields(left, right);
             if (filterNeeded) {
-                if (hasDocTables) {
-                    throw new UnsupportedOperationException(
-                            "JOIN condition in the WHERE clause is not supported if the statement contains user tables");
-                }
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(inputs, where.query());
                 projections.add(filterProjection);
             }

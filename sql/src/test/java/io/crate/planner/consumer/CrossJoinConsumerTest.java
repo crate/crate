@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
@@ -148,9 +149,21 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public void testJoinConditionInWhereClause() throws Exception {
         // TODO: once fetch is supported for cross joins, reset query to:
         // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
-        plan("select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.name, u2.name");
+        NestedLoop plan = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.floats, u2.name");
+
+        assertThat(plan.nestedLoopPhase().projections().size(), is(2));
+        FilterProjection fp = ((FilterProjection) plan.nestedLoopPhase().projections().get(0));
+
+        assertThat(((CollectPhase) plan.left().resultPhase()).outputTypes().size(), is(2));
+        assertThat(((CollectPhase) plan.right().resultPhase()).outputTypes().size(), is(2));
+
+        assertThat(((Function)fp.query()).arguments().size(), is(2));
+        assertThat(fp.outputs().size(), is(4));
+
+        TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(1));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        assertThat(topN.outputs().size(), is(2));
     }
 
     @Test
@@ -215,7 +228,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(0);
+        TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.isOrdered(), is(false));
         assertThat(topNProjection.offset(), is(0));
         assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
