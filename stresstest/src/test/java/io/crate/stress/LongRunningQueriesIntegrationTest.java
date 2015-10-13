@@ -35,14 +35,14 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 @TimeoutSuite(millis = 30 * 20 * TimeUnits.MINUTE)
-@TestLogging("io.crate.jobs.JobExecutionContext:TRACE")
+@TestLogging("io.crate.jobs.JobExecutionContext:TRACE,io.crate.jobs.KeepAliveTimers:TRACE")
 @ElasticsearchIntegrationTest.ClusterScope (numDataNodes = 2)
 public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private static final int ROWS = 1_500_000;
+    private static final int ROWS = 500_000;
     private static final TimeValue TIMEOUT = TimeValue.timeValueSeconds(2_500);
 
     @Override

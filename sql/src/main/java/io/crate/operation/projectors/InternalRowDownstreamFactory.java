@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.*;
+import io.crate.jobs.KeepAliveTimers;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
@@ -41,12 +42,15 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final KeepAliveTimers keepAliveTimers;
 
     @Inject
     public InternalRowDownstreamFactory(ClusterService clusterService,
-                                        TransportDistributedResultAction transportDistributedResultAction) {
+                                        TransportDistributedResultAction transportDistributedResultAction,
+                                        KeepAliveTimers keepAliveTimers) {
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
+        this.keepAliveTimers = keepAliveTimers;
     }
 
     public RowReceiver createDownstream(NodeOperation nodeOperation,
@@ -87,6 +91,7 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
                 bucketIdx,
                 nodeOperation.downstreamNodes(),
                 transportDistributedResultAction,
+                keepAliveTimers,
                 streamers,
                 pageSize
         );
