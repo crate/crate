@@ -30,10 +30,14 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -41,8 +45,8 @@ import java.util.concurrent.TimeoutException;
 public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
-    private final SettableFuture<Bucket> resultFuture = SettableFuture.create();
-    private boolean isFinished = false;
+    protected final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    protected boolean isFinished = false;
     protected RowUpstream upstream;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
@@ -58,6 +62,11 @@ public class CollectingRowReceiver implements RowReceiver {
 
     @Override
     public void prepare(ExecutionState executionState) {
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
     }
 
     @Override
@@ -92,9 +101,13 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     public Bucket result() throws Exception {
+        return result(TimeValue.timeValueSeconds(10L));
+    }
+
+    public Bucket result(TimeValue timeout) throws Exception {
         // always timeout, don't want tests to get stuck
         try {
-            return resultFuture.get(10, TimeUnit.SECONDS);
+            return resultFuture.get(timeout.millis(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException | UncheckedExecutionException e) {
             Throwable cause = e.getCause();
             if (cause == null) {

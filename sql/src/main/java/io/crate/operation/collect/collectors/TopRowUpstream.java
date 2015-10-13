@@ -43,6 +43,7 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
 
     private final Executor executor;
     private final Runnable resumeRunnable;
+    private final Runnable repeatRunnable;
     private final AtomicBoolean paused = new AtomicBoolean(false);
     private final ReentrantLock pauseLock = new ReentrantLock();
 
@@ -50,9 +51,12 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
     private volatile boolean pendingPause = false;
     private volatile Throwable killedThrowable = null;
 
-    public TopRowUpstream(Executor executor, Runnable resumeRunnable)  {
+    public TopRowUpstream(Executor executor,
+                          Runnable resumeRunnable,
+                          Runnable repeatRunnable)  {
         this.executor = executor;
         this.resumeRunnable = resumeRunnable;
+        this.repeatRunnable = repeatRunnable;
     }
 
     public void kill(@Nullable Throwable throwable) {
@@ -152,7 +156,8 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
         }
     }
 
-    public boolean isPaused() {
-        return paused.get();
+    @Override
+    public void repeat() {
+        repeatRunnable.run();
     }
 }

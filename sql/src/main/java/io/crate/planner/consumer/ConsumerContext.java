@@ -34,6 +34,8 @@ public class ConsumerContext {
 
     private ValidationException validationException;
 
+    private Integer requiredPageSize;
+
     public ConsumerContext(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         this.rootRelation = rootRelation;
         this.plannerContext = plannerContext;
@@ -54,5 +56,17 @@ public class ConsumerContext {
 
     public Planner.Context plannerContext() {
         return plannerContext;
+    }
+
+
+    public void requiredPageSize(Integer requiredPageSize) {
+        this.requiredPageSize = requiredPageSize;
+    }
+
+    /**
+     * required pageSize that a parent relation might have specified.
+     */
+    public Integer requiredPageSize() {
+        return requiredPageSize;
     }
 }

@@ -5,8 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Updated crate/elasticsearch for improved logging on graceful shutdown errors
+ - Added initial limited cross-join support
 
+ - Updated crate/elasticsearch for improved logging on graceful shutdown errors
 
 2015/10/13 0.52.0
 =================

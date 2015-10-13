@@ -26,6 +26,8 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
+import java.util.Set;
+
 public abstract class AbstractProjector implements Projector {
 
     // these stateCheck classes are used to avoid having to do null-state checks in concrete implementations
@@ -60,11 +62,20 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
+    public void repeat() {
+        upstream.repeat();
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        return downstream.requirements();
+    }
+
+    @Override
     public void setUpstream(RowUpstream upstream) {
         assert upstream != null : "upstream must not be null";
         this.upstream = upstream;
     }
-
 
     private static class StateCheckRowUpstream implements RowUpstream {
 
@@ -77,6 +88,11 @@ public abstract class AbstractProjector implements Projector {
 
         @Override
         public void resume(boolean async) {
+            throw new IllegalStateException(STATE_ERROR);
+        }
+
+        @Override
+        public void repeat() {
             throw new IllegalStateException(STATE_ERROR);
         }
     }
@@ -107,6 +123,11 @@ public abstract class AbstractProjector implements Projector {
 
         @Override
         public void setUpstream(RowUpstream upstream) {
+            throw new IllegalStateException(STATE_ERROR);
+        }
+
+        @Override
+        public Set<Requirement> requirements() {
             throw new IllegalStateException(STATE_ERROR);
         }
     }

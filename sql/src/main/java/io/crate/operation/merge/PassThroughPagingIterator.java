@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -31,8 +32,27 @@ import java.util.Iterator;
 public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implements PagingIterator<T> {
 
     private Iterator<T> iterator = Collections.emptyIterator();
+    private final ImmutableList.Builder<NumberedIterable<T>> iterables = ImmutableList.builder();
+    private final boolean repeatable;
+    private Iterable<T> storedForRepeat = null;
 
-    public PassThroughPagingIterator() {
+    private PassThroughPagingIterator(boolean repeatable) {
+        this.repeatable = repeatable;
+    }
+
+    /**
+     * Create an iterator that is able to repeat over what has previously been iterated
+     */
+    public static <T> PassThroughPagingIterator<T> repeatable() {
+        return new PassThroughPagingIterator<>(true);
+    }
+
+    /**
+     * Create an iterator that is not able to repeat.
+     * Calling {@link #repeat()} with instances created by this method is discouraged.
+     */
+    public static <T> PassThroughPagingIterator<T> oneShot() {
+        return new PassThroughPagingIterator<>(false);
     }
 
     @Override
@@ -43,6 +63,11 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     @Override
     public void merge(Iterable<? extends NumberedIterable<T>> iterables) {
         Iterable<T> concat = Iterables.concat(iterables);
+
+        if (repeatable) {
+            this.iterables.addAll(iterables);
+            this.storedForRepeat = null;
+        }
         if (iterator.hasNext()) {
             iterator = Iterators.concat(iterator, concat.iterator());
         } else {
@@ -57,5 +82,15 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     @Override
     public int exhaustedIterable() {
         return -1;
+    }
+
+    @Override
+    public Iterable<T> repeat() {
+        Iterable<T> repeatMe = storedForRepeat;
+        if (repeatMe == null) {
+            repeatMe = Iterables.concat(this.iterables.build());
+            this.storedForRepeat = repeatMe;
+        }
+        return repeatMe;
     }
 }

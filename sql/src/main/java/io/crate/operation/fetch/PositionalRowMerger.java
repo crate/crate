@@ -25,12 +25,11 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -132,6 +131,14 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     static class UpstreamBuffer implements RowReceiver {
 
         private final LinkedList<Row> rows = new LinkedList<>();
@@ -190,6 +197,11 @@ public class PositionalRowMerger implements RowDownstream, RowUpstream {
         @Override
         public void prepare(ExecutionState executionState) {
 
+        }
+
+        @Override
+        public Set<Requirement> requirements() {
+            return Requirements.NO_REQUIREMENTS;
         }
 
         @Override

@@ -26,6 +26,8 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
+import java.util.Set;
+
 public abstract class ForwardingRowReceiver implements RowReceiver {
 
     final RowReceiver rowReceiver;
@@ -37,6 +39,11 @@ public abstract class ForwardingRowReceiver implements RowReceiver {
     @Override
     public void prepare(ExecutionState executionState) {
         rowReceiver.prepare(executionState);
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        return rowReceiver.requirements();
     }
 
     @Override

@@ -109,6 +109,11 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
         return exhausted;
     }
 
+    @Override
+    public Iterable<T> repeat() {
+        throw new UnsupportedOperationException("cannot repeat with " + getClass().getSimpleName());
+    }
+
     private static class NumberedPeekingIterator<T> implements PeekingIterator<T> {
 
         private final int number;

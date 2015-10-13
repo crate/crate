@@ -48,4 +48,11 @@ public class InputRow implements Row {
     public Object[] materialize() {
         return Buckets.materialize(this);
     }
+
+    @Override
+    public String toString() {
+        return "InputRow{" +
+                "inputs=" + inputs +
+                '}';
+    }
 }

@@ -426,4 +426,9 @@ public class FetchProjector extends AbstractProjector {
             assert !rowIterator.hasNext();
         }
     }
+
+    @Override
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
+    }
 }

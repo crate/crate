@@ -45,7 +45,7 @@ public class SimpleSelect {
         if (collectPhase.nodePageSizeHint() != null) {
             // in the directResponse case nodePageSizeHint has probably be set to limit
             // since it is now push based we can reduce the nodePageSizeHint
-            collectPhase.nodePageSizeHint(Paging.getWeightedPageSize(limit + offset, 1.0d / collectPhase.executionNodes().size()));
+            collectPhase.pageSizeHint(limit + offset);
         }
     }
 }

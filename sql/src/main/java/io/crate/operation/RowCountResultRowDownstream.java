@@ -27,10 +27,13 @@ import io.crate.core.collections.Row;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.ExecutionState;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
@@ -63,6 +66,11 @@ public class RowCountResultRowDownstream implements RowReceiver {
 
     @Override
     public void prepare(ExecutionState executionState) {
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        return Requirements.NO_REQUIREMENTS;
     }
 
     @Override

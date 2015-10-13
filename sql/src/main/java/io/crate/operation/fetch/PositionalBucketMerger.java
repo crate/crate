@@ -173,6 +173,14 @@ public class PositionalBucketMerger implements RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
 
     private static class UpstreamBucket implements Bucket {
         private LinkedList<Row> rows;

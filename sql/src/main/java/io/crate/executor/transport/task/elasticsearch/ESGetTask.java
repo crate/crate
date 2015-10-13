@@ -219,6 +219,14 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * tells the RowUpstream that it should push all rows again
+     */
+    @Override
+    public void repeat() {
+        throw new UnsupportedOperationException();
+    }
+
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<FieldExtractor<GetResponse>> fieldExtractors;

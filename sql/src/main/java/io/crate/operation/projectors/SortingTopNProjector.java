@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
@@ -31,6 +32,8 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Set;
 
 public class SortingTopNProjector extends AbstractProjector {
 
@@ -41,6 +44,7 @@ public class SortingTopNProjector extends AbstractProjector {
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private Object[] spare;
+    private Set<Requirement> requirements;
 
     /**
      * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
@@ -94,17 +98,36 @@ public class SortingTopNProjector extends AbstractProjector {
             downstream.finish();
             return;
         }
+        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter.run();
+    }
+
+    private IterableRowEmitter createRowEmitter(int resultSize) {
         Object[][] rows = new Object[resultSize][];
         for (int i = resultSize - 1; i >= 0; i--) {
             rows[i] = pq.pop();
         }
-        pq.clear();
-        IterableRowEmitter rowEmitter = new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
-        rowEmitter.run();
+        return new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
     }
 
     @Override
     public void fail(Throwable t) {
         downstream.fail(t);
+    }
+
+    @Override
+    public void repeat() {
+        final int resultSize = Math.max(pq.size() - offset, 0);
+        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter.run();
+    }
+
+    @Override
+    public Set<Requirement> requirements() {
+        if (requirements == null) {
+            requirements = Sets.newEnumSet(downstream.requirements(), Requirement.class);
+            requirements.remove(Requirement.REPEAT);
+        }
+        return requirements;
     }
 }
