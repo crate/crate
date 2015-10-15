@@ -24,8 +24,10 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 /**
@@ -59,6 +61,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final PlannedAnalyzedRelation right;
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
+    @Nullable
+    private final MergePhase localMerge;
 
     private boolean leftOuterLoop = true;
 
@@ -92,12 +96,14 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     public NestedLoop(NestedLoopPhase nestedLoopPhase,
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
-                      boolean leftOuterLoop) {
+                      boolean leftOuterLoop,
+                      @Nullable MergePhase localMerge) {
         this.jobId = nestedLoopPhase.jobId();
         this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
+        this.localMerge = localMerge;
     }
 
     public PlannedAnalyzedRelation left() {
@@ -128,7 +134,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public UpstreamPhase resultPhase() {
-        return nestedLoopPhase;
+        return localMerge == null ? nestedLoopPhase : localMerge;
     }
 
     @Override
@@ -139,5 +145,10 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    @Nullable
+    public MergePhase localMerge() {
+        return localMerge;
     }
 }

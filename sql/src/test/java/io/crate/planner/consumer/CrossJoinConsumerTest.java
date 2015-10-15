@@ -40,6 +40,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -154,7 +155,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(plan.nestedLoopPhase().projections().size(), is(2));
         FilterProjection fp = ((FilterProjection) plan.nestedLoopPhase().projections().get(0));
 
+        assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
         assertThat(((CollectPhase) plan.left().resultPhase()).outputTypes().size(), is(2));
+        assertThat(plan.right().resultPhase(), instanceOf(CollectPhase.class));
         assertThat(((CollectPhase) plan.right().resultPhase()).outputTypes().size(), is(2));
 
         assertThat(((Function)fp.query()).arguments().size(), is(2));
@@ -163,7 +166,17 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(1));
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(0));
+        // TODO: once fetch is supported and query is changed, output size will be 4 here
         assertThat(topN.outputs().size(), is(2));
+
+        assertThat(plan.resultPhase(), instanceOf(MergePhase.class));
+        MergePhase localMergePhase = (MergePhase) plan.resultPhase();
+        assertThat(localMergePhase.projections().size(), is(1));
+
+        TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
+        assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(finalTopN.offset(), is(0));
+        assertThat(finalTopN.outputs().size(), is(2));
     }
 
     @Test
