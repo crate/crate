@@ -30,6 +30,7 @@ import io.crate.metadata.OutputName;
 import io.crate.planner.consumer.QuerySplitter;
 import io.crate.planner.symbol.*;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class RelationSplitter {
@@ -38,7 +39,8 @@ public class RelationSplitter {
     private final static FieldReplacingVisitor FIELD_REPLACING_VISITOR = new FieldReplacingVisitor();
 
     public static SplitQuerySpecContext splitQuerySpec(AnalyzedRelation analyzedRelation,
-                                                       QuerySpec querySpec) {
+                                                       QuerySpec querySpec,
+                                                       @Nullable OrderBy orderBy) {
         QuerySpec splitQuerySpec = new QuerySpec();
         List<Symbol> outputs = querySpec.outputs();
         if (outputs == null || outputs.isEmpty()) {
@@ -46,9 +48,9 @@ public class RelationSplitter {
         }
         List<Symbol> splitOutputs = Lists.newArrayList(RelationSplitter.splitForRelation(analyzedRelation, outputs).splitSymbols());
 
-        OrderBy orderBy = querySpec.orderBy();
-        if (orderBy != null) {
-            RelationSplitter.splitOrderBy(analyzedRelation, querySpec, splitQuerySpec, splitOutputs, orderBy);
+        OrderBy remainingOrderBy = orderBy;
+        if (remainingOrderBy != null) {
+            remainingOrderBy = RelationSplitter.splitOrderBy(analyzedRelation, splitQuerySpec, splitOutputs, remainingOrderBy);
         }
 
         WhereClause where = querySpec.where();
@@ -71,7 +73,7 @@ public class RelationSplitter {
             outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
         }
 
-        return new SplitQuerySpecContext(splitQuerySpec, outputNames);
+        return new SplitQuerySpecContext(splitQuerySpec, outputNames, remainingOrderBy);
     }
 
     public static void replaceFields(AnalyzedRelation analyzedRelation,
@@ -113,18 +115,19 @@ public class RelationSplitter {
         splitOutputs.addAll(splitContext.mixedSplit);
     }
 
-    private static void splitOrderBy(AnalyzedRelation analyzedRelation,
-                                     QuerySpec querySpec,
-                                     QuerySpec splitQuerySpec,
-                                     List<Symbol> splitOutputs,
-                                     OrderBy orderBy) {
+    private static OrderBy splitOrderBy(AnalyzedRelation analyzedRelation,
+                                        QuerySpec splitQuerySpec,
+                                        List<Symbol> splitOutputs,
+                                        OrderBy orderBy) {
         SplitContext splitContext = splitForRelation(analyzedRelation, orderBy.orderBySymbols());
         addAllNew(splitOutputs, splitContext.mixedSplit);
 
+        OrderBy remainingOrderBy = orderBy;
         if (!splitContext.directSplit.isEmpty()) {
-            rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
+            remainingOrderBy = rewriteOrderBy(remainingOrderBy, splitQuerySpec, splitContext);
         }
         addAllNew(splitOutputs, splitContext.directSplit);
+        return remainingOrderBy;
     }
 
     /**
@@ -148,11 +151,12 @@ public class RelationSplitter {
      *  [t1.x]
      *  [false]
      *  [null]
+     *
+     *  Note: resulting Symbols of the returning OrderBy are NOT (deep-)copied!
      */
-    private static void rewriteOrderBy(QuerySpec querySpec,
-                                       QuerySpec splitQuerySpec,
-                                       SplitContext splitContext) {
-        OrderBy orderBy = querySpec.orderBy();
+    private static OrderBy rewriteOrderBy(OrderBy orderBy,
+                                          QuerySpec splitQuerySpec,
+                                          SplitContext splitContext) {
         assert orderBy != null;
 
         boolean[] reverseFlags = new boolean[splitContext.directSplit.size()];
@@ -177,7 +181,7 @@ public class RelationSplitter {
             idx++;
         }
         splitQuerySpec.orderBy(new OrderBy(splitContext.directSplit, reverseFlags, nullsFirst));
-        querySpec.orderBy(new OrderBy(remainingOrderBySymbols, remainingReverseFlags, remainingNullsFirst));
+        return new OrderBy(remainingOrderBySymbols, remainingReverseFlags, remainingNullsFirst);
     }
 
     private static void addAllNew(List<Symbol> list, Collection<? extends Symbol> collectionToAdd) {
@@ -330,10 +334,20 @@ public class RelationSplitter {
     public static class SplitQuerySpecContext {
         private QuerySpec querySpec;
         private List<OutputName> outputNames;
+        @Nullable
+        private OrderBy remainingOrderBy;
 
-        public SplitQuerySpecContext(QuerySpec querySpec, List<OutputName> outputNames) {
+        public SplitQuerySpecContext(QuerySpec querySpec,
+                                     List<OutputName> outputNames,
+                                     @Nullable OrderBy remainingOrderBy) {
             this.querySpec = querySpec;
             this.outputNames = outputNames;
+
+            if (remainingOrderBy == null || !remainingOrderBy.isSorted()) {
+                this.remainingOrderBy = null;
+            } else {
+                this.remainingOrderBy = remainingOrderBy;
+            }
         }
 
         public QuerySpec querySpec() {
@@ -342,6 +356,11 @@ public class RelationSplitter {
 
         public List<OutputName> outputNames() {
             return outputNames;
+        }
+
+        @Nullable
+        public OrderBy remainingOrderBy() {
+            return remainingOrderBy;
         }
     }
 }

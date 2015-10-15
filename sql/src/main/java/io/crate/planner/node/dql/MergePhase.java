@@ -109,7 +109,7 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
     public static MergePhase sortedMerge(UUID jobId,
                                          int executionPhaseId,
                                          OrderBy orderBy,
-                                         List<Symbol> sourceSymbols,
+                                         List<? extends Symbol> sourceSymbols,
                                          @Nullable List<Symbol> orderBySymbolOverwrite,
                                          List<Projection> projections,
                                          int numUpstreams,
