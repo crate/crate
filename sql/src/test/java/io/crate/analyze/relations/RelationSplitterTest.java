@@ -56,6 +56,7 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+
 public class RelationSplitterTest {
 
     @Rule
@@ -100,6 +101,16 @@ public class RelationSplitterTest {
         );
     }
 
+    private static class SubRelationContext {
+        final QuerySpec querySpec;
+        OrderBy remainingOrderBy;
+
+        public SubRelationContext(QuerySpec querySpec) {
+            this.querySpec = querySpec;
+            remainingOrderBy = querySpec.orderBy();
+        }
+    }
+
     private TableInfo tableInfoWith(String tableName, String ... columns) {
         TableInfo tableInfo = mock(TableInfo.class);
         for (String column : columns) {
@@ -114,9 +125,15 @@ public class RelationSplitterTest {
     }
 
     private QueriedTableRelation newSubRelation(TableRelation tr, QuerySpec querySpec) {
-        RelationSplitter.SplitQuerySpecContext splitQuerySpecContext = RelationSplitter.splitQuerySpec(tr, querySpec);
+        return newSubRelation(tr, new SubRelationContext(querySpec));
+    }
+
+    private QueriedTableRelation newSubRelation(TableRelation tr, SubRelationContext context) {
+        RelationSplitter.SplitQuerySpecContext splitQuerySpecContext = RelationSplitter.splitQuerySpec(tr,
+                context.querySpec, context.remainingOrderBy);
+        context.remainingOrderBy = splitQuerySpecContext.remainingOrderBy();
         QueriedTableRelation queriedTable = new QueriedTable(tr, splitQuerySpecContext.outputNames(), splitQuerySpecContext.querySpec());
-        RelationSplitter.replaceFields(queriedTable, querySpec, splitQuerySpecContext.querySpec());
+        RelationSplitter.replaceFields(queriedTable, context.querySpec, splitQuerySpecContext.querySpec());
         return queriedTable;
     }
 
@@ -130,7 +147,7 @@ public class RelationSplitterTest {
         QuerySpec querySpec = new QuerySpec()
                 .outputs(Arrays.<Symbol>asList(t1x))
                 .where(new WhereClause(symbol));
-        QuerySpec splitQuerySpec = RelationSplitter.splitQuerySpec(tr1, querySpec).querySpec();
+        QuerySpec splitQuerySpec = RelationSplitter.splitQuerySpec(tr1, querySpec, querySpec.orderBy()).querySpec();
 
         assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.analyze.symbol.MatchPredicate.class));
         assertThat(querySpec.where().hasQuery(), is(false));
@@ -152,7 +169,7 @@ public class RelationSplitterTest {
                 .outputs(Arrays.<Symbol>asList(t1x))
                 .where(new WhereClause(symbol));
 
-        RelationSplitter.splitQuerySpec(tr1, querySpec);
+        RelationSplitter.splitQuerySpec(tr1, querySpec, querySpec.orderBy());
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -349,9 +366,10 @@ public class RelationSplitterTest {
         QuerySpec querySpec = new QuerySpec()
                 .outputs(Arrays.<Symbol>asList(t1x))
                 .orderBy(orderBy);
+        SubRelationContext subRelationContext = new SubRelationContext(querySpec);
 
-        QueriedTableRelation qt1 = newSubRelation(tr1, querySpec);
-        QueriedTableRelation qt2 = newSubRelation(tr2, querySpec);
+        QueriedTableRelation qt1 = newSubRelation(tr1, subRelationContext);
+        QueriedTableRelation qt2 = newSubRelation(tr2, subRelationContext);
 
         assertThat(qt1.querySpec().outputs().size(), is(2));
         assertThat(qt1.querySpec().outputs().get(0), isField("x"));
@@ -361,7 +379,7 @@ public class RelationSplitterTest {
         assertThat(qt1.querySpec().orderBy().orderBySymbols().get(0), isField("x"));
         assertThat(qt1.querySpec().orderBy().reverseFlags()[0], is(true));
 
-        assertThat(querySpec.orderBy().orderBySymbols().size(), is(1));
+        assertThat(subRelationContext.remainingOrderBy.orderBySymbols().size(), is(1));
 
         assertThat(qt2.querySpec().outputs().size(), is(1));
         assertThat(qt2.querySpec().outputs().get(0), isField("y"));
@@ -387,10 +405,11 @@ public class RelationSplitterTest {
                 .outputs(Arrays.<Symbol>asList(t1x, t2y))
                 .orderBy(orderBy)
                 .limit(20);
+        SubRelationContext subRelationContext = new SubRelationContext(querySpec);
 
-        QueriedTableRelation qt1 = newSubRelation(tr1, querySpec);
-        QueriedTableRelation qt2 = newSubRelation(tr2, querySpec);
-        QueriedTableRelation qt3 = newSubRelation(tr3, querySpec);
+        QueriedTableRelation qt1 = newSubRelation(tr1, subRelationContext);
+        QueriedTableRelation qt2 = newSubRelation(tr2, subRelationContext);
+        QueriedTableRelation qt3 = newSubRelation(tr3, subRelationContext);
 
         // no join condition in order by.. limit can be pushed down
         assertThat(qt1.querySpec().limit(), is(20));
@@ -406,6 +425,6 @@ public class RelationSplitterTest {
         assertThat(qt3.querySpec().orderBy().orderBySymbols().size(), is(1));
         assertThat(qt3.querySpec().orderBy().orderBySymbols().get(0), isField("x", DataTypes.SHORT));
 
-        assertThat(querySpec.orderBy(), nullValue());
+        assertThat(subRelationContext.remainingOrderBy, nullValue());
     }
 }
