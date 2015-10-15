@@ -70,8 +70,8 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    public void innerStart() {
-        projectorChain.startProjections(this);
+    public void innerPrepare() {
+        projectorChain.prepare(this);
     }
 
     @Override

@@ -62,7 +62,7 @@ import java.util.UUID;
  *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(ProjectorFactory)}
  *       from a shard context. do this for every shard you have
  *  </li>
- *  <li> call {@linkplain #startProjections(ExecutionState)}</li>
+ *  <li> call {@linkplain #prepare(ExecutionState)}</li>
  *  <li> feed data to the shard projectors</li>
  * </ul>
  */
@@ -74,6 +74,7 @@ public class ShardProjectorChain {
     private final RamAccountingContext ramAccountingContext;
     protected final List<Projector> shardProjectors;
     protected final List<Projector> nodeProjectors;
+    private final RowReceiver finalDownstream;
     private final List<? extends Projection> projections;
     private RowReceiver firstNodeProjector;
     private int shardProjectionsIndex = -1;
@@ -133,6 +134,7 @@ public class ShardProjectorChain {
         }
 
         // register final downstream
+        this.finalDownstream = finalDownstream;
         if (nodeProjectors.isEmpty()) {
             firstNodeProjector = finalDownstream;
         } else {
@@ -189,7 +191,8 @@ public class ShardProjectorChain {
         return projector;
     }
 
-    public void startProjections(ExecutionState executionState) {
+    public void prepare(ExecutionState executionState) {
+        this.finalDownstream.prepare(executionState);
         for (Projector projector : Lists.reverse(nodeProjectors)) {
             projector.prepare(executionState);
         }

@@ -159,6 +159,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     @Override
     protected void innerPrepare() {
         collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
+
     }
 
     @Override

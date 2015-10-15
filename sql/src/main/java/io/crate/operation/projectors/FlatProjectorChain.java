@@ -41,7 +41,7 @@ import java.util.UUID;
  * Usage:
  * <ul>
  * <li> construct it,
- * <li> call {@linkplain #startProjections(ExecutionState)},
+ * <li> call {@linkplain #prepare(ExecutionState)},
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
  * <li> wait for the result of  your custom downstream
@@ -56,7 +56,7 @@ public class FlatProjectorChain {
         this.rowReceivers = rowReceivers;
     }
 
-    public void startProjections(ExecutionState executionState) {
+    public void prepare(ExecutionState executionState) {
         for (RowReceiver rowReceiver : Lists.reverse(rowReceivers)) {
             rowReceiver.prepare(executionState);
         }
@@ -66,30 +66,26 @@ public class FlatProjectorChain {
         return rowReceivers.get(0);
     }
 
-    /**
-     * No ResultProvider will be added.
-     * if <code>downstream</code> is a Projector, {@linkplain Projector#prepare(ExecutionState)} will not be called
-     * by this FlatProjectorChain.
-     */
     public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
                                                             final RamAccountingContext ramAccountingContext,
                                                             Collection<? extends Projection> projections,
                                                             RowReceiver downstream,
                                                             UUID jobId) {
-        List<Projector> localProjectors = new ArrayList<>();
+        List<RowReceiver> rowReceivers = new ArrayList<>();
         Projector previousProjector = null;
         for (Projection projection : projections) {
             Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
-            localProjectors.add(projector);
+            rowReceivers.add(projector);
             if (previousProjector != null) {
                 previousProjector.downstream(projector);
             }
             previousProjector = projector;
         }
         if (previousProjector != null) {
+            rowReceivers.add(downstream);
             previousProjector.downstream(downstream);
         }
-        return new FlatProjectorChain(localProjectors);
+        return new FlatProjectorChain(rowReceivers);
     }
 
 

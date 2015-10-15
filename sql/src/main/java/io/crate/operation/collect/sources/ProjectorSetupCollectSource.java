@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -53,7 +52,7 @@ public class ProjectorSetupCollectSource implements CollectSource {
                 downstream,
                 collectPhase.jobId()
         );
-        projectorChain.startProjections(jobCollectContext);
+        projectorChain.prepare(jobCollectContext);
         return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);
     }
 }

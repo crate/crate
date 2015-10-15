@@ -126,7 +126,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     @Override
     public void doCollect() {
-        flatProjectorChain.startProjections(topRowUpstream);
+        flatProjectorChain.prepare(topRowUpstream);
         if (singleShard) {
             runWithoutThreads(orderedDocCollectors.get(0));
         } else {

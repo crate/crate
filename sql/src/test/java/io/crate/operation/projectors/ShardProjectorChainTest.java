@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.NestedReferenceResolver;
@@ -72,8 +73,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ShardProjectorChainTest extends CrateUnitTest {
 
@@ -287,5 +287,25 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         assertRowReceiver(shardDownstream1, GroupingProjector.class);
         assertRowReceiver(shardDownstream2, GroupingProjector.class);
         assertThat(chain.shardProjectors.size(), is(2));
+    }
+
+    @Test
+    public void testEnsurePrepareIsCalledOnDownstream() throws Exception {
+        TopNProjection topN = new TopNProjection(0, 1);
+        GroupProjection groupProjection = new GroupProjection(
+                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.asList(countAggregation()));
+        groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+        RowReceiver finalDownstream = mock(RowReceiver.class);
+        ShardProjectorChain chain = ShardProjectorChain.passThroughMerge(
+                UUID.randomUUID(),
+                2,
+                ImmutableList.of(groupProjection, topN),
+                finalDownstream,
+                projectionToProjectorVisitor,
+                RAM_ACCOUNTING_CONTEXT);
+        ExecutionState executionState = mock(ExecutionState.class);
+        chain.prepare(executionState);
+        verify(finalDownstream, times(1)).prepare(executionState);
     }
 }

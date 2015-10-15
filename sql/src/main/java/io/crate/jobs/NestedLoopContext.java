@@ -93,7 +93,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerPrepare() {
-        flatProjectorChain.startProjections(this);
+        flatProjectorChain.prepare(this);
     }
 
     @Override
