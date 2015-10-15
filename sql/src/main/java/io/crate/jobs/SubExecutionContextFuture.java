@@ -96,7 +96,7 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        throw new UnsupportedOperationException("Not supported, use close() instead");
+        return internalFuture.cancel(mayInterruptIfRunning);
     }
 
     @Override
