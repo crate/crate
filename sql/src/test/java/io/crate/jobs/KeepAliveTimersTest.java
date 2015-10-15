@@ -22,6 +22,7 @@
 
 package io.crate.jobs;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.TransportKeepAliveAction;
 import io.crate.test.integration.CrateUnitTest;
@@ -38,6 +39,7 @@ import java.util.concurrent.*;
 
 import static org.mockito.Mockito.*;
 
+@Repeat(iterations=100)
 public class KeepAliveTimersTest extends CrateUnitTest {
 
     static {
@@ -89,7 +91,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
 
     @Test
     public void testKeepAliveRunnableWithHighDelayNotCalled() throws Exception {
-        Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> futureAndTimer = getTimer(TimeValue.timeValueMillis(100));
+        Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> futureAndTimer = getTimer(TimeValue.timeValueMillis(500));
         KeepAliveTimers.ResettableTimer timer = futureAndTimer.v2();
         SettableFuture<Void> future = futureAndTimer.v1();
         timer.start();
