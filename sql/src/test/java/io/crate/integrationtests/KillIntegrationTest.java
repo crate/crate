@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,10 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -111,6 +109,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             }
         } finally {
             executor.shutdownNow();
+            waitUntilThreadPoolTasksFinished(ThreadPool.Names.SEARCH);
         }
     }
 

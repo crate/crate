@@ -70,6 +70,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 
@@ -80,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
@@ -221,6 +223,20 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 }
             }
         }, 5, TimeUnit.SECONDS);
+    }
+
+    public void waitUntilThreadPoolTasksFinished(final String name) throws Exception{
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                Iterable<ThreadPool> threadPools = internalCluster().getInstances(ThreadPool.class);
+                for (ThreadPool threadPool : threadPools) {
+                    ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
+                    assertThat(executor.getActiveCount(), is(0));
+                }
+            }
+        }, 5, TimeUnit.SECONDS);
+
     }
 
     /**
