@@ -157,7 +157,7 @@ The optional WITH clause can specify parameters for tables.
 
 :table_parameter: specifies an optional parameter for the table.
 
-Available paramters are:
+Available parameters are:
 
 
 .. _number_of_replicas:
