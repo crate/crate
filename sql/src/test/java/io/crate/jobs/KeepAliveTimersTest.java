@@ -22,7 +22,6 @@
 
 package io.crate.jobs;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.TransportKeepAliveAction;
 import io.crate.test.integration.CrateUnitTest;
@@ -39,7 +38,6 @@ import java.util.concurrent.*;
 
 import static org.mockito.Mockito.*;
 
-@Repeat(iterations=100)
 public class KeepAliveTimersTest extends CrateUnitTest {
 
     static {
@@ -54,7 +52,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        scheduledExecutorService = Executors.newScheduledThreadPool(2);
+        scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
         // need to mock here, as we cannot set estimated_time_interval via settings due to ES ThreadPool bug
         threadPool = mock(ThreadPool.class);
@@ -86,7 +84,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
         KeepAliveTimers.ResettableTimer timer = futureAndTimer.v2();
         SettableFuture<Void> future = futureAndTimer.v1();
         timer.start();
-        future.get(50, TimeUnit.MILLISECONDS);
+        future.get(100, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -111,9 +109,9 @@ public class KeepAliveTimersTest extends CrateUnitTest {
             public void run() {
                 timer.reset();
             }
-        }, 10, 10, TimeUnit.MILLISECONDS);
+        }, 0, 10, TimeUnit.MILLISECONDS);
         expectedException.expect(TimeoutException.class);
-        future.get(100, TimeUnit.MILLISECONDS);
+        future.get(200, TimeUnit.MILLISECONDS);
     }
 
     private Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> getTimer(TimeValue timerDelay) {
@@ -138,6 +136,5 @@ public class KeepAliveTimersTest extends CrateUnitTest {
         timer.cancel();
         expectedException.expect(TimeoutException.class);
         future.get(100, TimeUnit.MILLISECONDS);
-
     }
 }
