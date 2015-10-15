@@ -130,17 +130,12 @@ public class KeepAliveTimersTest extends CrateUnitTest {
 
     @Test
     public void testCanceledBeforeExecution() throws Exception {
-        Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> futureAndTimer = getTimer(TimeValue.timeValueMillis(50));
+        Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> futureAndTimer = getTimer(TimeValue.timeValueSeconds(1));
         final KeepAliveTimers.ResettableTimer timer = futureAndTimer.v2();
         SettableFuture<Void> future = futureAndTimer.v1();
         timer.start();
-
-        scheduledExecutorService.schedule(new Runnable() {
-            @Override
-            public void run() {
-                timer.cancel();
-            }
-        }, 10, TimeUnit.MILLISECONDS);
+        Thread.sleep(10);
+        timer.cancel();
         expectedException.expect(TimeoutException.class);
         future.get(100, TimeUnit.MILLISECONDS);
 
