@@ -5,7 +5,7 @@ from crate.testing.layer import CrateLayer
 import os
 import shutil
 import re
-import process_test
+from . import process_test
 from .paths import crate_path, project_path
 from .ports import GLOBAL_PORT_POOL
 from crate.crash.command import CrateCmd
