@@ -78,6 +78,7 @@ statement returns [Statement value]
     | showFunctions             { $value = $showFunctions.value; }
     | showCreateTable           { $value = $showCreateTable.value; }
     | createTable               { $value = $createTable.value; }
+    | createRepository          { $value = $createRepository.value; }
     | alterTable                { $value = $alterTable.value; }
     | alterBlobTable            { $value = $alterBlobTable.value; }
     | createBlobTable           { $value = $createBlobTable.value; }
@@ -87,6 +88,7 @@ statement returns [Statement value]
     | dropAlias                 { $value = $dropAlias.value; }
     | dropTable                 { $value = $dropTable.value; }
     | dropBlobTable             { $value = $dropBlobTable.value; }
+    | dropRepository            { $value = $dropRepository.value; }
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
@@ -289,6 +291,10 @@ relationType returns [Relation value]
 namedTable returns [Table value]
     : ^(TABLE qname ONLY) { $value = new Table($qname.value, true); }
     | ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
+    ;
+
+repository returns [String value]
+    : ident { $value = $ident.value; }
     ;
 
 joinedTable returns [Relation value]
@@ -675,6 +681,10 @@ dropTable returns [Statement value]
     | ^(DROP_TABLE EXISTS namedTable) { $value = new DropTable($namedTable.value, true ); }
     ;
 
+dropRepository returns [Statement value]
+    : ^(DROP_REPOSITORY repository) { $value = new DropRepository($repository.value); }
+    ;
+
 insert returns [Statement value]
     : ^(INSERT values=insertValues namedTable cols=columnIdentList? onDuplicateKey?)
         {
@@ -803,6 +813,15 @@ createTable returns [Statement value]
                                      $crateTableOptionList.value,
                                      $genericProperties.value,
                                      true);
+        }
+    ;
+
+createRepository returns [Statement value]
+    : ^(CREATE_REPOSITORY repository ident genericProperties?)
+        {
+            $value = new CreateRepository($repository.value,
+                                          $ident.value,
+                                          $genericProperties.value);
         }
     ;
 
