@@ -27,12 +27,14 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.exceptions.ContextMissingException;
+import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.Callback;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -270,12 +272,9 @@ public class JobExecutionContext implements KeepAliveListener {
         }
 
         @Override
-        public void onFailure(Throwable t) {
-            keepAlive();
-            if (t != null){
-                failure = t;
-            }
-            statsTables.operationFinished(id, null, -1);
+        public void onFailure(@Nonnull Throwable t) {
+            failure = t;
+            statsTables.operationFinished(id, Exceptions.messageOf(t), -1);
             if (remove() == RemoveSubContextPosition.LAST){
                 return;
             }

@@ -41,6 +41,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -97,6 +98,23 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
         assertThat(ctx1.numKill.get(), is(1));
         assertThat(ctx2.numKill.get(), is(1));
+    }
+
+    @Test
+    public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
+        StatsTables statsTables = mock(StatsTables.class);
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, statsTables);
+
+        SubExecutionContextFuture future = new SubExecutionContextFuture();
+        ExecutionSubContext executionSubContext = mock(ExecutionSubContext.class);
+        when(executionSubContext.future()).thenReturn(future);
+        builder.addSubContext(executionSubContext);
+        builder.build();
+
+        future.close(new IllegalStateException("dummy"));
+
+        verify(statsTables).operationFinished(anyInt(), eq("dummy"), anyLong());
     }
 
     @Test
