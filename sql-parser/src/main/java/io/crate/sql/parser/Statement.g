@@ -46,6 +46,7 @@ tokens {
     EXPLAIN_FORMAT;
     EXPLAIN_TYPE;
     TABLE;
+    REPOSITORY;
     JOINED_TABLE;
     QUALIFIED_JOIN;
     CROSS_JOIN;
@@ -80,12 +81,14 @@ tokens {
     CREATE_TABLE;
     CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
+    CREATE_REPOSITORY;
     REFRESH_MATERIALIZED_VIEW;
     VIEW_REFRESH;
     CREATE_ALIAS;
     DROP_ALIAS;
     DROP_TABLE;
     DROP_BLOB_TABLE;
+    DROP_REPOSITORY;
     TABLE_ELEMENT_LIST;
     TABLE_PARTITION_LIST;
     ADD_COLUMN;
@@ -365,6 +368,10 @@ tableWithPartition
 
 table
     : qname -> ^(TABLE qname)
+    ;
+
+repository
+    : ident -> ^(ident)
     ;
 
 tableOnly
@@ -810,6 +817,7 @@ createStatement
     | BLOB TABLE createBlobTableStmt -> createBlobTableStmt
     | ALIAS createAliasStmt -> createAliasStmt
     | ANALYZER createAnalyzerStmt -> createAnalyzerStmt
+    | REPOSITORY createRepositoryStmt -> createRepositoryStmt
     ;
 
 createTableStmt
@@ -830,6 +838,12 @@ createAliasStmt
 
 createAnalyzerStmt
     : ident extendsAnalyzer? analyzerElementList -> ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
+    ;
+
+createRepositoryStmt
+    : repository
+      TYPE ident
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_REPOSITORY repository ident genericProperties?)
     ;
 
 // END CREATE STATEMENTS
@@ -864,6 +878,7 @@ dropStatement
 	: TABLE ( IF EXISTS )? table -> ^(DROP_TABLE EXISTS? table)
 	| BLOB TABLE ( IF EXISTS )? table -> ^(DROP_BLOB_TABLE EXISTS? table)
 	| ALIAS qname -> ^(DROP_ALIAS qname)
+	| REPOSITORY repository -> ^(DROP_REPOSITORY repository)
 	;
 // END DROP STATEMENTS
 
@@ -1122,6 +1137,7 @@ RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
+REPOSITORY: 'REPOSITORY';
 ALTER: 'ALTER';
 KILL: 'KILL';
 ONLY: 'ONLY';
