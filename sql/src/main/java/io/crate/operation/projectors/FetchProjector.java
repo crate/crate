@@ -300,8 +300,12 @@ public class FetchProjector extends AbstractProjector {
             boolean first = failure.compareAndSet(null, throwable);
             switch (stage.get()) {
                 case INIT:
+                    throw new IllegalStateException("Shouldn't call fail on projection if projection hasn't been prepared");
                 case COLLECT:
-                    if (!first) return;
+                    if (first) {
+                        sendRequests();
+                        return;
+                    }
                 case FETCH:
                     if (remainingRequests.get() > 0) return;
             }

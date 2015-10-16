@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
+import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
@@ -113,26 +114,29 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         try {
             statsTables.operationStarted(request.fetchPhaseId(), request.jobId(), "fetch");
 
-            JobExecutionContext jobExecutionContext = jobContextService.getContext(request.jobId());
-            final FetchContext fetchContext = jobExecutionContext.getSubContext(request.fetchPhaseId());
-
             // nothing to fetch, just close
             if (request.toFetch() == null) {
-                fetchContext.close();
+                JobExecutionContext ctx = jobContextService.getContextOrNull(request.jobId());
+                if (ctx != null) {
+                    ExecutionSubContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
+                    if (fetchContext != null) {
+                        fetchContext.close();
+                    }
+                }
                 fetchResponse.onResponse(NodeFetchResponse.EMPTY);
-                fetchContext.close();
                 return;
             }
 
-
+            JobExecutionContext jobExecutionContext = jobContextService.getContext(request.jobId());
+            final FetchContext fetchContext = jobExecutionContext.getSubContext(request.fetchPhaseId());
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
             executor.execute(new AbstractRunnable() {
                 @Override
                 public void onFailure(Throwable t) {
+                    fetchContext.kill(t);
                     fetchResponse.onFailure(t);
                     statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
                             ramAccountingContext.totalBytes());
-                    fetchContext.kill(t);
                 }
 
                 @Override
@@ -141,10 +145,10 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                             fetchContext, request.toFetch());
                     // no streamers needed to serialize, since the buckets are StreamBuckets
                     NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
+                    fetchContext.close();
                     fetchResponse.onResponse(response);
                     statsTables.operationFinished(request.fetchPhaseId(), null,
                             ramAccountingContext.totalBytes());
-                    fetchContext.close();
                 }
 
                 @Override
