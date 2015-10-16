@@ -112,3 +112,16 @@ chunk_size
 
 Defines the maximum size of a single file that gets created during snapshot creation.
 Defaults to ``null``. So big files will not be split up into smaller chunks.
+
+url
+---
+
+A read-only repository that points to the location of
+a :ref:`ref-create-repository-types-fs` repository via "http", "https", "ftp",
+"file" and "jar" urls. It only allows for :ref:`ref-restore-snapshot` operations.
+
+url
+~~~
+
+This url must point to the root of the shared :ref:`ref-create-repository-types-fs`
+repository.
