@@ -1,0 +1,79 @@
+.. highlight:: psql
+.. _ref-create-snapshot:
+
+===============
+CREATE SNAPSHOT
+===============
+
+Create a new incremental snapshot inside a repository that contains the
+current state of the given tables and/or partitions and the cluster metadata.
+
+Synopsis
+========
+
+::
+
+    CREATE SNAPSHOT repository_name.snapshot_name
+    { ( TABLE table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
+    [ WITH (snapshot_parameter [= value], [, ...]) ]
+
+
+Description
+===========
+
+Create a new incremental snapshot inside a repository.
+
+A snapshot is a backup of the current state of the given tables and the cluster metadata
+at the point the CREATE SNAPSHOT query starts executing.
+Changes made after that are not considered for the snapshot.
+
+A snapshot is fully qualified by its ``snapshot_name`` and the name of the repository
+it should be created in (``repository_name``). A ``snapshot_name`` must be unique
+per repository.
+
+Creating the snapshot operates on primary shards which are not currently relocated.
+If a shard is being relocated the snapshot of the shard is created
+when the relocation is completed.
+
+A snapshot only backups the parts of the data that are not yet stored in the
+given repository by older snapshots, thus creating snapshots is incremental.
+
+Snapshots can include one or more tables, each given as ``table_ident``.
+It is also possible to include only single partitions given the values of the partition columns.
+
+If ``ALL`` is used, every table in the cluster is included in the snapshot.
+
+
+Parameters
+==========
+
+:repository_name: the name of the repository to create the snapshot in as ident
+
+:snapshot_name: the name of the snapshot as ident
+
+:table_ident: The name (optionally schema-qualified) of an existing
+              table that is to be included in the snapshot
+
+:partition_column: Column name by which the table is partitioned
+
+
+WITH Clause
+===========
+
+::
+
+    [ WITH (snapshot_parameter [= value], [, ...]) ]
+
+The following configuration parameters can be used to modify how the snapshot is
+created:
+
+:wait_for_completion: (Default ``false``) By default the request returns once the snapshot creation
+                      started. If set to ``true`` the request returns after the
+                      whole snapshot was created or an error occurred.
+                      This can take a serious amount of time.
+
+:partial: (Default ``false``) if a table has unavailable primary shards the snapshot creation will fail.
+          If set to ``true`` creation will continue and leave out the unavailable shards.
+
+:ignore_unavailable: (Default ``false``) if a given table does not exist the command will fail by default.
+                     If set to ``true`` these tables are ignored and not included in the snapshot.
