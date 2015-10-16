@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that was introduced in 0.52.0 which could cause a
+   FetchContext to remain open longer than necessary in an error case.
+   This could then lead to failures if an attempt was made to move shards to
+   which the FetchContext hold onto.
+
  - Added initial limited cross-join support
 
  - Updated crate/elasticsearch for improved logging on graceful shutdown errors
