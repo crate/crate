@@ -115,14 +115,14 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         } else {
             String nodeId = nodeId(request.remoteAddress());
             final KeepAliveTimers.ResettableTimer keepAliveTimer;
-            if (nodeId != null) {
+            if (nodeId == null) {
+                // assuming local node in this case
+                LOGGER.debug("Could not determine direct response node for address [{}]. Assuming local node. Not starting keep alive timer.", request.remoteAddress());
+                keepAliveTimer = null;
+            } else {
                 keepAliveTimer = keepAliveTimers.forJobOnNode(request.jobId(), nodeId);
                 keepAliveTimer.start();
-            } else {
-                LOGGER.warn("could not determine direct response node for address {}. not starting keepalive timer.", request.remoteAddress());
-                keepAliveTimer = null;
             }
-
             Futures.addCallback(Futures.allAsList(directResponseFutures), new FutureCallback<List<Bucket>>() {
                 @Override
                 public void onSuccess(List<Bucket> buckets) {
