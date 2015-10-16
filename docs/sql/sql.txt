@@ -19,12 +19,17 @@ supported by Crate.
     reference/copy_to
     reference/create_analyzer
     reference/create_blob_table
+    reference/create_repository
+    reference/create_snapshot
     reference/create_table
     reference/delete
+    reference/drop_repository
+    reference/drop_snapshot
     reference/drop_table
     reference/insert
     reference/kill
     reference/refresh
+    reference/restore_snapshot
     reference/select
     reference/set
     reference/show_create_table
