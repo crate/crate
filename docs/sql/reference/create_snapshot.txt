@@ -68,12 +68,12 @@ The following configuration parameters can be used to modify how the snapshot is
 created:
 
 :wait_for_completion: (Default ``false``) By default the request returns once the snapshot creation
-                      started. If set to ``true`` the request returns if the
+                      started. If set to ``true`` the request returns after the
                       whole snapshot was created or an error occurred.
                       This can take a serious amount of time.
 
 :partial: (Default ``false``) if a table has unavailable primary shards the snapshot creation will fail.
-          Set this to ``true`` will continue creating the snapshot and leave out the unavailable shards.
+          If set to ``true`` creation will continue and leave out the unavailable shards.
 
 :ignore_unavailable: (Default ``false``) if a given table does not exist the command will fail by default.
                      If set to ``true`` these tables are ignored and not included in the snapshot.
