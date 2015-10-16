@@ -85,6 +85,23 @@ public class KeepAliveTimers {
     }
 
 
+    /**
+     * A timer that executes a given runnable periodically with a given delay if
+     * the delay duration was exceeded since the last reset.
+     *
+     * Execution example:
+     *
+     * ResettableTimer timer = new ResettableTimer(threadPool, new Runnable { System.out.println("hello world"); }, TimeValue.timeValueMillis(100));
+     * timer.start();
+     *
+     * t+100 -> no reset yet -> "hello world"
+     *
+     * t+150 -> another thread calls reset()
+     *
+     * t+200 -> only 50 ms since last reset
+     *
+     * t+300 -> 150 ms since last reset -> "hello world"
+     */
     public static class ResettableTimer {
         private final Runnable runnable;
         private final TimeValue delay;
