@@ -199,8 +199,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         // select u1.name, u2.name from users u1, users u2 order by u1.name
 
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
-        assertThat(plan.left().resultNode().projections().size(), is(1));
 
+        assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(1));

@@ -191,7 +191,8 @@ public class DistributedGroupByConsumer implements Consumer {
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(topN),
-                        mergePhase);
+                        mergePhase.executionNodes().size(),
+                        mergePhase.outputTypes());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
             }
 

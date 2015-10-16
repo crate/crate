@@ -29,9 +29,9 @@ import io.crate.analyze.relations.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchRequiredVisitor;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
@@ -41,6 +41,7 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -135,12 +136,12 @@ public class CrossJoinConsumer implements Consumer {
             MergePhase leftMerge = mergePhase(
                     context,
                     localExecutionNodes,
-                    leftPlan.resultNode(),
+                    leftPlan.resultPhase(),
                     left.querySpec());
             MergePhase rightMerge = mergePhase(
                     context,
                     localExecutionNodes,
-                    rightPlan.resultNode(),
+                    rightPlan.resultPhase(),
                     right.querySpec());
 
 
@@ -177,26 +178,26 @@ public class CrossJoinConsumer implements Consumer {
         @Nullable
         private MergePhase mergePhase(ConsumerContext context,
                                       Set<String> localExecutionNodes,
-                                      DQLPlanNode previousPhase,
+                                      UpstreamPhase upstreamPhase,
                                       QuerySpec querySpec) {
-            return mergePhase(context, localExecutionNodes, previousPhase, querySpec.outputs(), querySpec.orderBy());
+            return mergePhase(context, localExecutionNodes, upstreamPhase, querySpec.outputs(), querySpec.orderBy());
         }
 
         @Nullable
         private MergePhase mergePhase(ConsumerContext context,
                                       Set<String> localExecutionNodes,
-                                      DQLPlanNode previousPhase,
+                                      UpstreamPhase upstreamPhase,
                                       List<Symbol> previousOutputs,
                                       @Nullable OrderBy orderBy) {
-            if (previousPhase.executionNodes().isEmpty()
-                || previousPhase.executionNodes().equals(localExecutionNodes)) {
+            if (upstreamPhase.executionNodes().isEmpty()
+                || upstreamPhase.executionNodes().equals(localExecutionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
                 return null;
             }
 
-            if (previousPhase instanceof MergePhase && previousPhase.executionNodes().isEmpty()) {
-                ((MergePhase) previousPhase).executionNodes(localExecutionNodes);
+            if (upstreamPhase instanceof MergePhase && upstreamPhase.executionNodes().isEmpty()) {
+                ((MergePhase) upstreamPhase).executionNodes(localExecutionNodes);
             }
             MergePhase mergePhase;
             if (OrderBy.isSorted(orderBy)) {
@@ -207,14 +208,16 @@ public class CrossJoinConsumer implements Consumer {
                         previousOutputs,
                         orderBy.orderBySymbols(),
                         ImmutableList.<Projection>of(),
-                        previousPhase
+                        upstreamPhase.executionNodes().size(),
+                        Symbols.extractTypes(previousOutputs)
                 );
             } else {
                 mergePhase = MergePhase.localMerge(
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(),
-                        previousPhase
+                        upstreamPhase.executionNodes().size(),
+                        Symbols.extractTypes(previousOutputs)
                 );
             }
             mergePhase.executionNodes(localExecutionNodes);

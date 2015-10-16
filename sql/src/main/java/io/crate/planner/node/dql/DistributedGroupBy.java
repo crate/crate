@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
@@ -66,7 +67,11 @@ public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        resultNode().addProjection(projection);
+        if (localMergeNode != null) {
+            localMergeNode.addProjection(projection);
+        } else {
+            reducerMergeNode.addProjection(projection);
+        }
     }
 
     @Override
@@ -75,7 +80,7 @@ public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
     }
 
     @Override
-    public DQLPlanNode resultNode() {
+    public UpstreamPhase resultPhase() {
         return localMergeNode != null ? localMergeNode : reducerMergeNode;
     }
 }

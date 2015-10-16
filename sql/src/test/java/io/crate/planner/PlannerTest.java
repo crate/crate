@@ -12,7 +12,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -530,15 +529,14 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topNProjection.limit(), is(10));
         assertThat(topNProjection.isOrdered(), is(false));
 
-        DQLPlanNode resultNode = ((CollectAndMerge) plan).resultNode();
-        assertThat(resultNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
+        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        assertThat(mergePhase.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergePhase.class));
-        MergePhase mergeNode = (MergePhase) resultNode;
-        assertTrue(mergeNode.finalProjection().isPresent());
+        assertTrue(mergePhase.finalProjection().isPresent());
 
-        Projection lastProjection = mergeNode.finalProjection().get();
+        Projection lastProjection = mergePhase.finalProjection().get();
         assertThat(lastProjection, instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection) lastProjection;
         assertThat(fetchProjection.outputs().size(), is(1));
@@ -554,15 +552,14 @@ public class PlannerTest extends CrateUnitTest {
         CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        DQLPlanNode resultNode = ((CollectAndMerge) plan).resultNode();
-        assertThat(resultNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
+        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        assertThat(mergePhase.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergePhase.class));
-        MergePhase mergeNode = (MergePhase) resultNode;
-        assertTrue(mergeNode.finalProjection().isPresent());
+        assertTrue(mergePhase.finalProjection().isPresent());
 
-        Projection lastProjection = mergeNode.finalProjection().get();
+        Projection lastProjection = mergePhase.finalProjection().get();
         assertThat(lastProjection, instanceOf(TopNProjection.class));
         TopNProjection topNProjection = (TopNProjection) lastProjection;
         assertThat(topNProjection.outputs().size(), is(1));
@@ -570,7 +567,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCollectAndMergePlanDefaultLimit() throws Exception {
-        CollectAndMerge plan = (CollectAndMerge)plan("select name from users");
+        CollectAndMerge plan = plan("select name from users");
         CollectPhase collectPhase = plan.collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT));
 
@@ -585,7 +582,7 @@ public class PlannerTest extends CrateUnitTest {
         FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
 
         // with offset
-        plan = (CollectAndMerge)plan("select name from users offset 20");
+        plan = plan("select name from users offset 20");
         collectPhase = plan.collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
 
@@ -617,7 +614,7 @@ public class PlannerTest extends CrateUnitTest {
         FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
 
         // with offset
-        plan = (CollectAndMerge)plan("select name from users limit 100000 offset 20");
+        plan = plan("select name from users limit 100000 offset 20");
         collectPhase = plan.collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
@@ -650,8 +647,8 @@ public class PlannerTest extends CrateUnitTest {
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        DQLPlanNode resultNode = ((CollectAndMerge) plan).resultNode();
-        assertThat(resultNode.outputTypes().size(), is(3));
+        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        assertThat(mergePhase.outputTypes().size(), is(3));
     }
 
     @Test
@@ -662,16 +659,15 @@ public class PlannerTest extends CrateUnitTest {
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        DQLPlanNode resultNode = ((CollectAndMerge) plan).resultNode();
-        assertThat(resultNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
-        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(1));
+        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
+        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        assertThat(mergePhase.outputTypes().size(), is(2));
+        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(1));
 
-        assertThat(resultNode, instanceOf(MergePhase.class));
-        MergePhase mergeNode = (MergePhase) resultNode;
-        assertTrue(mergeNode.finalProjection().isPresent());
+        assertTrue(mergePhase.finalProjection().isPresent());
 
-        Projection lastProjection = mergeNode.finalProjection().get();
+        Projection lastProjection = mergePhase.finalProjection().get();
         assertThat(lastProjection, instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection) lastProjection;
         assertThat(fetchProjection.outputs().size(), is(2));
@@ -1345,16 +1341,15 @@ public class PlannerTest extends CrateUnitTest {
         CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        DQLPlanNode resultNode = ((CollectAndMerge) plan).resultNode();
-        assertThat(resultNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.STRING, resultNode.outputTypes().get(0));
+        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
+        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        assertThat(mergePhase.outputTypes().size(), is(1));
+        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
-        assertThat(resultNode, instanceOf(MergePhase.class));
-        MergePhase mergeNode = (MergePhase) resultNode;
-        assertTrue(mergeNode.finalProjection().isPresent());
+        assertTrue(mergePhase.finalProjection().isPresent());
 
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergePhase.projections().size(), is(2));
+        assertThat(mergePhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
     }
 
     @Test (expected = UnsupportedFeatureException.class)

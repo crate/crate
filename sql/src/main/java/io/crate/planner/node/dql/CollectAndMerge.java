@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
@@ -61,7 +62,11 @@ public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        resultNode().addProjection(projection);
+        if (localMerge != null) {
+            localMerge.addProjection(projection);
+        } else {
+            collectPhase.addProjection(projection);
+        }
     }
 
     @Override
@@ -70,7 +75,7 @@ public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
     }
 
     @Override
-    public DQLPlanNode resultNode() {
+    public UpstreamPhase resultPhase() {
         if (localMerge == null) {
             return collectPhase;
         }

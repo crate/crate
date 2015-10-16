@@ -34,6 +34,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Field;
@@ -176,8 +177,9 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     }
 
     @Override
-    public DQLPlanNode resultNode() {
-        return this;
+    public UpstreamPhase resultPhase() {
+        //return this;
+        throw new UnsupportedOperationException("resultPhase is not supported");
     }
 
     @Override

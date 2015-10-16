@@ -317,7 +317,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 null);
 
         WhereClause whereClause = new WhereClause(query);
-        CollectPhase collectNode1 = new CollectPhase(
+        CollectPhase collectPhase1 = new CollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
@@ -332,8 +332,9 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectNode1);
-        childNodes.add(new CollectAndMerge(collectNode1, mergeNode1, plannerContext.jobId()));
+                collectPhase1.executionNodes().size(),
+                collectPhase1.outputTypes());
+        childNodes.add(new CollectAndMerge(collectPhase1, mergeNode1, plannerContext.jobId()));
 
         // 2nd collect and merge nodes
         Function query2 = new Function(new FunctionInfo(
@@ -342,7 +343,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
 
         final WhereClause whereClause1 = new WhereClause(query2);
-        CollectPhase collectNode2 = new CollectPhase(
+        CollectPhase collectPhase2 = new CollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
@@ -357,8 +358,9 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectNode2);
-        childNodes.add(new CollectAndMerge(collectNode2, mergeNode2, plannerContext.jobId()));
+                collectPhase2.executionNodes().size(),
+                collectPhase2.outputTypes());
+        childNodes.add(new CollectAndMerge(collectPhase2, mergeNode2, plannerContext.jobId()));
 
         Upsert plan = new Upsert(childNodes, plannerContext.jobId());
         Job job = executor.newJob(plan);

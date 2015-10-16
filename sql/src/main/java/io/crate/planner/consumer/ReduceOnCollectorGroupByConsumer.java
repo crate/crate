@@ -203,7 +203,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         table.querySpec().outputs(),
                         null,
                         handlerProjections,
-                        collectPhase
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
                 );
             } else {
                 handlerProjections.add(
@@ -220,7 +221,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
                         handlerProjections,
-                        collectPhase
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
                 );
             }
             return new NonDistributedGroupBy(collectPhase, localMerge, context.plannerContext().jobId());

@@ -35,6 +35,7 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 
@@ -84,7 +85,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(aggregationProjection),
-                        plannedSubQuery.resultNode());
+                        plannedSubQuery.resultPhase().executionNodes().size(),
+                        Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
             return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());

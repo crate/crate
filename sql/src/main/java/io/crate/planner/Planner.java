@@ -424,7 +424,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectPhase);
+                collectPhase.executionNodes().size(),
+                collectPhase.outputTypes());
         return new CollectAndMerge(collectPhase, mergePhase, context.jobId());
     }
 
@@ -510,7 +511,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
-        FileUriCollectPhase collectNode = new FileUriCollectPhase(
+        FileUriCollectPhase collectPhase = new FileUriCollectPhase(
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 "copyFrom",
@@ -523,11 +524,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 analysis.settings().getAsBoolean("shared", null)
         );
 
-        return new CollectAndMerge(collectNode, MergePhase.localMerge(
+        return new CollectAndMerge(collectPhase, MergePhase.localMerge(
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectNode), context.jobId());
+                collectPhase.executionNodes().size(),
+                collectPhase.outputTypes()), context.jobId());
     }
 
     private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {

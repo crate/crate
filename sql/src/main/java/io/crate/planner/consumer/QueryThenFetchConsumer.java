@@ -154,7 +154,8 @@ public class QueryThenFetchConsumer implements Consumer {
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.of(topN, fp),
-                        collectPhase
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
                 );
             } else {
                 localMergePhase = MergePhase.sortedMerge(
@@ -164,7 +165,8 @@ public class QueryThenFetchConsumer implements Consumer {
                         collectPhase.toCollect(),
                         null,
                         ImmutableList.of(topN, fp),
-                        collectPhase
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
                 );
             }
 

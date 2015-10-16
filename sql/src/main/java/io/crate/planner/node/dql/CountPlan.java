@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
@@ -69,7 +69,7 @@ public class CountPlan extends PlanAndPlannedAnalyzedRelation{
     }
 
     @Override
-    public DQLPlanNode resultNode() {
+    public UpstreamPhase resultPhase() {
         return mergeNode;
     }
 }

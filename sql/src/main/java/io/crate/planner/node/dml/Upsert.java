@@ -24,7 +24,7 @@ package io.crate.planner.node.dml;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.List;
@@ -65,8 +65,8 @@ public class Upsert extends PlanAndPlannedAnalyzedRelation {
     }
 
     @Override
-    public DQLPlanNode resultNode() {
-        throw new UnsupportedOperationException("resultNode is not supported");
+    public UpstreamPhase resultPhase() {
+        throw new UnsupportedOperationException("resultPhase is not supported");
     }
 
 }

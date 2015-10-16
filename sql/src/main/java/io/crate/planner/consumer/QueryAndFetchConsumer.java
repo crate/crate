@@ -208,7 +208,8 @@ public class QueryAndFetchConsumer implements Consumer {
                                 plannerContext.jobId(),
                                 plannerContext.nextExecutionPhaseId(),
                                 ImmutableList.<Projection>of(tnp),
-                                collectPhase
+                                collectPhase.executionNodes().size(),
+                                collectPhase.outputTypes()
                         );
                     } else {
                         // no order by needed in TopN as we already sorted on collector
@@ -220,7 +221,8 @@ public class QueryAndFetchConsumer implements Consumer {
                                 allOutputs,
                                 orderByInputColumns,
                                 ImmutableList.<Projection>of(tnp),
-                                collectPhase
+                                collectPhase.executionNodes().size(),
+                                collectPhase.outputTypes()
                         );
                     }
                 }
@@ -236,7 +238,9 @@ public class QueryAndFetchConsumer implements Consumer {
                             plannerContext.jobId(),
                             plannerContext.nextExecutionPhaseId(),
                             ImmutableList.<Projection>of(),
-                            collectPhase);
+                            collectPhase.executionNodes().size(),
+                            collectPhase.outputTypes()
+                    );
                 }
             }
 
