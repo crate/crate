@@ -233,9 +233,15 @@
 #
 # path.plugins: /path/to/plugins
 
+
+# Paths where Repositories of type fs may be created:
+#
+# path.repo: /path/to/shared/fs,/other/shared/fs
+
 # path:
 #     logs: /var/log/crate
 #     data: /var/lib/crate
+
 
 #################################### Plugin ###################################
 
