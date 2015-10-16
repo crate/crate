@@ -1,12 +1,25 @@
 .. highlight:: psql
+.. _system-information:
 
 ==================
 System Information
 ==================
 
-Crate provides some useful schemas which contains virtual tables.
+Crate provides the ``sys`` schema which contains virtual tables.
 Those tables are read-only and can be queried to get statistical
-real-time information about the cluster, its nodes, and their shards.
+real-time information about the cluster, its nodes, and their shards:
+
+ * :ref:`sys.checks <sys-checks>`
+ * :ref:`sys.cluster <sys-cluster>`
+ * :ref:`sys.jobs <sys-jobs>`
+ * :ref:`sys.jobs_log <sys-logs>`
+ * :ref:`sys.nodes <sys-nodes>`
+ * :ref:`sys.operations <sys-operations>`
+ * :ref:`sys.operations_log <sys-logs>`
+ * :ref:`sys.shards <sys-shards>`
+
+
+.. _sys-cluster:
 
 Cluster
 =======
@@ -165,6 +178,8 @@ currently applied cluster settings.
     SELECT 91 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
+
+.. _sys-nodes:
 
 Nodes
 =====
@@ -507,6 +522,8 @@ at query time. Use the probe timestamp to get the time of the collect. When anal
 cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference 
 between 2 probes.
 
+.. _sys-shards:
+
 Shards
 ======
 
@@ -613,6 +630,8 @@ In order to activate stats tracking :ref:`ref-set` can be used::
     cr> set global stats.enabled = true;
     SET OK (... sec)
 
+.. _sys-jobs:
+
 Jobs
 ----
 
@@ -633,6 +652,7 @@ a ``job`` if it passes the analysis step.
 For example a request that fails because it attempts to query a table that
 doesn't exist won't get listed.
 
+.. _sys-operations:
 
 Operations
 ----------
@@ -654,6 +674,9 @@ In order to see on which nodes the operations are being executed the
     | crate         | ...        | collect | ...        |
     +---------------+--------...-+---------+------------+
     SELECT 1 row in set (... sec)
+
+
+.. _sys-logs:
 
 Logs
 ----
@@ -698,6 +721,7 @@ deactivate the stats tracking. This will also wipe all existing log entries::
     Instead of ``SET`` the ``RESET`` statement could also have been used to
     reset the value of ``stats.enabled`` to its default which is false.
 
+.. _sys-checks:
 
 Cluster Checks
 ==============
