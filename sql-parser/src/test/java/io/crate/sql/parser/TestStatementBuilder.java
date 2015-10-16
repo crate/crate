@@ -341,6 +341,23 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testSnapshotRepository() throws Exception {
+        printStatement("create repository my_repo type hdfs");
+        printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
+        printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
+        Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
+        assertThat(statement.toString(), is("CreateRepository{" +
+                                                "repository=my_repo, "+
+                                                "type=hdfs, "+
+                                                "properties=Optional.of({location='/mount/backups/my_backup'})}"));
+
+        printStatement("DROP REPOSITORY my_repo");
+        statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
+        assertThat(statement.toString(), is("DropRepository{" +
+                                                "repository=myRepo}"));
+    }
+
+    @Test
     public void testCast() throws Exception {
         printStatement("select cast(y as integer) from foo");
     }
