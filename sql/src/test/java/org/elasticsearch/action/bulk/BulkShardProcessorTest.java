@@ -41,6 +41,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -127,6 +128,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
+                mock(TransportClusterHealthAction.class),
                 shardingProjector,
                 false,
                 1,
@@ -202,6 +204,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportBulkCreateIndicesAction.class),
+                mock(TransportClusterHealthAction.class),
                 shardingProjector,
                 false,
                 1,
