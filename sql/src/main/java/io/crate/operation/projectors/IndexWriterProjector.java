@@ -127,6 +127,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 clusterService,
                 settings,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                transportActionProvider.transportClusterHealthAction(),
                 bulkActions,
                 autoCreateIndices,
                 overwriteDuplicates,

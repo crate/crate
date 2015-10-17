@@ -139,7 +139,9 @@ public class Rows implements Iterable<Row>, Streamable {
 
         @Override
         public Object[] materialize() {
-            return row;
+            Object[] copy = new Object[row.length];
+            System.arraycopy(row, 0, copy, 0, row.length);
+            return copy;
         }
 
         @Override
