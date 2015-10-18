@@ -56,7 +56,7 @@ def bash_transform(s):
         return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
     return (
         r'import subprocess;'
-        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True))' % s) + '\n'
+        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s) + '\n'
 
 
 def crash_transform(s):

@@ -5,7 +5,7 @@ task bootstrap (type:Exec) {
     inputs.file "$projectDir/bootstrap.py"
     outputs.file "$projectDir/bin/buildout"
 
-    commandLine 'python2.7', "$projectDir/bootstrap.py"
+    commandLine 'python', "$projectDir/bootstrap.py"
 }
 
 task unpackDistTar (dependsOn: project(':app').distTar) << {
