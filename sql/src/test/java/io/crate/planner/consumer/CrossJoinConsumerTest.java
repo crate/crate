@@ -147,6 +147,13 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNoLimitPushDownWithJoinConditionOnDocTables() throws Exception {
+        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 where u1.name = u2.name  order by 1, 2 limit 10");
+        assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
+        assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
+    }
+
+    @Test
     public void testJoinConditionInWhereClause() throws Exception {
         // TODO: once fetch is supported for cross joins, reset query to:
         // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
@@ -239,12 +246,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
-        assertThat(topNProjection.isOrdered(), is(false));
-        assertThat(topNProjection.offset(), is(0));
-        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test
@@ -296,5 +299,18 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(orderBy, notNullValue());
         assertThat(orderBy.size(), is(1));
         assertThat(orderBy.get(0), isFunction("concat"));
+    }
+
+    @Test
+    public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
+        NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
+        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
+
+        assertThat(distTopN.limit(), is(25));
+        assertThat(distTopN.offset(), is(0));
+
+        TopNProjection localTopN = (TopNProjection) nl.localMerge().projections().get(0);
+        assertThat(localTopN.limit(), is(15));
+        assertThat(localTopN.offset(), is(10));
     }
 }

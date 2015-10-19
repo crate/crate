@@ -154,21 +154,27 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
 
-                int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
-                TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
-                topNProjection.outputs(allOutputs);
+                List<Projection> projections = ImmutableList.of();
+                Integer nodePageSizeHint = null;
+                if (context.rootRelation() == table || querySpec.limit().isPresent()) {
+                    int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
+                    TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
+                    topNProjection.outputs(allOutputs);
+                    projections = ImmutableList.<Projection>of(topNProjection);
+                    nodePageSizeHint = limit + querySpec.offset();
+                }
                 collectPhase = CollectPhase.forQueriedTable(
                         plannerContext,
                         table,
                         toCollect,
-                        ImmutableList.<Projection>of(topNProjection)
+                        projections
                 );
                 collectPhase.orderBy(orderBy.orNull());
-                collectPhase.nodePageSizeHint(limit + querySpec.offset());
+                collectPhase.nodePageSizeHint(nodePageSizeHint);
 
                 // MERGE
                 if (context.rootRelation() == table) {
-                    TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
+                    TopNProjection tnp = new TopNProjection(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT), querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
                         // no sorting needed

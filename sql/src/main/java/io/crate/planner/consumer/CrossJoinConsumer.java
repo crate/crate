@@ -201,11 +201,12 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
+            int topNLimit = statement.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     inputs,
                     remainingOrderBy,
-                    statement.querySpec().offset(),
-                    statement.querySpec().limit().orNull(),
+                    isDistributed ? 0 : statement.querySpec().offset(),
+                    isDistributed ? topNLimit + statement.querySpec().offset() : topNLimit,
                     postNLOutputs
             );
             projections.add(topN);
