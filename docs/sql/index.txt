@@ -26,3 +26,4 @@ see :doc:`sql`. For general information about SQL please refer to
    system
    sql
    kill
+   backup_restore
