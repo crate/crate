@@ -91,6 +91,7 @@ tokens {
     DROP_TABLE;
     DROP_BLOB_TABLE;
     DROP_REPOSITORY;
+    DROP_SNAPSHOT;
     TABLE_ELEMENT_LIST;
     TABLE_PARTITION_LIST;
     ADD_COLUMN;
@@ -888,6 +889,7 @@ dropStatement
 	| BLOB TABLE ( IF EXISTS )? table -> ^(DROP_BLOB_TABLE EXISTS? table)
 	| ALIAS qname -> ^(DROP_ALIAS qname)
 	| REPOSITORY repository -> ^(DROP_REPOSITORY repository)
+	| SNAPSHOT qname -> ^(DROP_SNAPSHOT qname)
 	;
 // END DROP STATEMENTS
 
