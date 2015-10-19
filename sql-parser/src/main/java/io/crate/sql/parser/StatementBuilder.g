@@ -79,6 +79,7 @@ statement returns [Statement value]
     | showCreateTable           { $value = $showCreateTable.value; }
     | createTable               { $value = $createTable.value; }
     | createRepository          { $value = $createRepository.value; }
+    | createSnapshot            { $value = $createSnapshot.value; }
     | alterTable                { $value = $alterTable.value; }
     | alterBlobTable            { $value = $alterBlobTable.value; }
     | createBlobTable           { $value = $createBlobTable.value; }
@@ -822,6 +823,20 @@ createRepository returns [Statement value]
             $value = new CreateRepository($repository.value,
                                           $ident.value,
                                           $genericProperties.value);
+        }
+    ;
+
+createSnapshot returns [Statement value]
+    : ^(CREATE_SNAPSHOT qname ALL genericProperties?)
+        {
+            $value = new CreateSnapshot($qname.value,
+                                        $genericProperties.value);
+        }
+    | ^(CREATE_SNAPSHOT qname tableWithPartitionList genericProperties?)
+        {
+            $value = new CreateSnapshot($qname.value,
+                                        $tableWithPartitionList.value,
+                                        $genericProperties.value);
         }
     ;
 
