@@ -90,6 +90,7 @@ statement returns [Statement value]
     | dropTable                 { $value = $dropTable.value; }
     | dropBlobTable             { $value = $dropBlobTable.value; }
     | dropRepository            { $value = $dropRepository.value; }
+    | dropSnapshot              { $value = $dropSnapshot.value; }
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
@@ -661,6 +662,10 @@ dropTable returns [Statement value]
 
 dropRepository returns [Statement value]
     : ^(DROP_REPOSITORY repository) { $value = new DropRepository($repository.value); }
+    ;
+
+dropSnapshot returns [Statement value]
+    : ^(DROP_SNAPSHOT qname) { $value = new DropSnapshot($qname.value); }
     ;
 
 insert returns [Statement value]
