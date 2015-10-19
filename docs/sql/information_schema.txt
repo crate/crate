@@ -1,5 +1,5 @@
-.. _information_schema:
 .. highlight:: psql
+.. _information_schema:
 
 ==================
 Information Schema

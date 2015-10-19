@@ -27,8 +27,7 @@ A job can have contexts on multiple nodes.
 
 ``KILL job_id`` kills one single job with the specified ``job_id``. Like
 ``KILL ALL`` it returns the total number of contexts of that job killed on all
-nodes. Like ``KILL ALL`` it returns the number of jobs that have been
-killed per node.
+nodes.
 
 ::
 

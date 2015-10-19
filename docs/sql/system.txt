@@ -700,7 +700,7 @@ deactivate the stats tracking. This will also wipe all existing log entries::
 
 
 Cluster Checks
-===============
+==============
 
 The table ``sys.checks`` exposes a list of internal cluster checks and
 results of their validation.
@@ -741,7 +741,7 @@ There are currently four checks:
 
 Settings checks:
 ----------------
-All of the settings must be present in the cluster configuration.
+All of the settings must be present in the cluster `configuration`_
 
 Minimum master nodes
 ....................
@@ -809,59 +809,5 @@ results
     +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
     SELECT 5 rows in set (... sec)
 
-
-Graceful Stop
-=============
-
-In order to change the shutdown behaviour of nodes of the cluster,
-you can utilise the ``cluster.graceful_stop.*`` cluster settings.
-
-Please refer to :ref:`ref-set` for a complete list of settings.
-
-For example to set the timeout to 30 minutes::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
-    SET OK (... sec)
-
-Crate supports string literals for time values the same way as the ``crate.yml`` 
-does.
-So you can write the previous statmement as::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
-    SET OK (... sec)
-
-Note, that querying a time setting will always return a ``string`` value::
-
-    cr> select settings['cluster']['graceful_stop']['timeout'] from sys.cluster;
-    +-------------------------------------------------+
-    | settings['cluster']['graceful_stop']['timeout'] |
-    +-------------------------------------------------+
-    | 30m                                             |
-    +-------------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
-    SET OK (... sec)
-
-
-    cr> select settings['cluster']['graceful_stop'] from sys.cluster;
-    +---------------------------------------------------...-------------------+
-    | settings['cluster']['graceful_stop']                                    |
-    +---------------------------------------------------...-------------------+
-    | {"force": true, "min_availability": "primaries", ... "timeout": "30m"} |
-    +---------------------------------------------------...-------------------+
-    SELECT 1 row in set (... sec)
-
-The default configuration in ``crate.yml`` looks like:
-
-.. code-block:: yaml
-
-  graceful_stop:
-    min_availability: primaries
-    reallocate: true
-    timeout: 2h
-    force: false
 
 .. _configuration: ../configuration.html

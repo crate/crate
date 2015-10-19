@@ -416,6 +416,15 @@ information about its usage.
 
 Graceful Stop
 -------------
+
+By default, when the crate process stops it simply shuts down, possibly making some
+shards unavailable which leads to a *red* cluster state and lets some queries fail
+that required the now unavailable shards. In order to *safely* shutdown a crate node,
+the graceful stop procedure can be used.
+
+The following cluster settings can be used to change the shutdown behaviour of
+nodes of the cluster:
+
 .. _cluster.graceful_stop.min_availability:
 
 **cluster.graceful_stop.min_availability**
