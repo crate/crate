@@ -47,6 +47,7 @@ tokens {
     EXPLAIN_TYPE;
     TABLE;
     REPOSITORY;
+    SNAPSHOT;
     JOINED_TABLE;
     QUALIFIED_JOIN;
     CROSS_JOIN;
@@ -82,6 +83,7 @@ tokens {
     CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
     CREATE_REPOSITORY;
+    CREATE_SNAPSHOT;
     REFRESH_MATERIALIZED_VIEW;
     VIEW_REFRESH;
     CREATE_ALIAS;
@@ -818,6 +820,7 @@ createStatement
     | ALIAS createAliasStmt -> createAliasStmt
     | ANALYZER createAnalyzerStmt -> createAnalyzerStmt
     | REPOSITORY createRepositoryStmt -> createRepositoryStmt
+    | SNAPSHOT createSnapshotStmt -> createSnapshotStmt
     ;
 
 createTableStmt
@@ -844,6 +847,12 @@ createRepositoryStmt
     : repository
       TYPE ident
       (WITH '(' genericProperties ')' )? -> ^(CREATE_REPOSITORY repository ident genericProperties?)
+    ;
+
+createSnapshotStmt
+    : qname
+      allOrTableWithPartitionList
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_SNAPSHOT qname allOrTableWithPartitionList genericProperties?)
     ;
 
 // END CREATE STATEMENTS
@@ -1025,6 +1034,11 @@ tableWithPartitionList
     : tableWithPartition ( ',' tableWithPartition )* -> ^(TABLE_PARTITION_LIST tableWithPartition+)
     ;
 
+allOrTableWithPartitionList
+    : ALL
+    | TABLE tableWithPartitionList -> tableWithPartitionList
+    ;
+
 refreshStmt
     : REFRESH TABLE tableWithPartitionList -> ^(REFRESH tableWithPartitionList)
     ;
@@ -1138,6 +1152,7 @@ CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
 REPOSITORY: 'REPOSITORY';
+SNAPSHOT: 'SNAPSHOT';
 ALTER: 'ALTER';
 KILL: 'KILL';
 ONLY: 'ONLY';
