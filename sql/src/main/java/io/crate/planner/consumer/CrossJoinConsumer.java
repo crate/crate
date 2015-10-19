@@ -21,18 +21,18 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchRequiredVisitor;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -50,6 +50,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 
 import java.util.*;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 
 public class CrossJoinConsumer implements Consumer {
@@ -192,11 +194,13 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
+
+            int topNLimit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN = projectionBuilder.topNProjection(
                     inputs,
                     hasRemainingOrderBy ? orderByBeforeSplit : orderBy,
-                    statement.querySpec().offset(),
-                    statement.querySpec().limit(),
+                    isDistributed ? 0 : statement.querySpec().offset(),
+                    isDistributed ? topNLimit + statement.querySpec().offset() : topNLimit,
                     postNLOutputs
             );
             projections.add(topN);
@@ -290,8 +294,8 @@ public class CrossJoinConsumer implements Consumer {
                 @Override
                 public int compare(QueriedTableRelation o1, QueriedTableRelation o2) {
                     return Integer.compare(
-                            MoreObjects.firstNonNull(relationOrder.get(o1.tableRelation()), Integer.MAX_VALUE),
-                            MoreObjects.firstNonNull(relationOrder.get(o2.tableRelation()), Integer.MAX_VALUE));
+                            firstNonNull(relationOrder.get(o1.tableRelation()), Integer.MAX_VALUE),
+                            firstNonNull(relationOrder.get(o2.tableRelation()), Integer.MAX_VALUE));
                 }
             });
         }
