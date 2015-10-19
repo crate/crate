@@ -14,7 +14,7 @@ Synopsis
 ::
 
     CREATE SNAPSHOT repository_name.snapshot_name
-    { ( TABLE table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
+    { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
     [ WITH (snapshot_parameter [= value], [, ...]) ]
 
 
@@ -42,7 +42,8 @@ Snapshots can include one or more tables, each given as ``table_ident``.
 It is also possible to include only single partitions given the values of the partition columns.
 
 If ``ALL`` is used, every table in the cluster (except system tables, blob tables
-and information_schema tables) is included in the snapshot.
+and information_schema tables) as well as all persistent settings and the full cluster metadata
+is included in the snapshot.
 
 
 Parameters
