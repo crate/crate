@@ -372,6 +372,9 @@ public class TestStatementBuilder
                                                           "Assignment{column=\"year\", expression=2014}]}, " +
                                                       "Table{only=false, books, partitionProperties=[]}])}"));
 
+        statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
+        assertThat(statement.toString(), is("DropSnapshot{" +
+                                                "name=my_repo.my_snapshot}"));
     }
 
     @Test

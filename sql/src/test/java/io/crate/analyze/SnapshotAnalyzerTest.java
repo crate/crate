@@ -54,4 +54,11 @@ public class SnapshotAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("cannot analyze statement: 'CreateSnapshot{name=my_repo.my_snapshot, properties=Optional.absent(), tableList=Optional.absent()}'");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot ALL");
     }
+
+    @Test
+    public void testSimpleDropSnapshot() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("cannot analyze statement: 'DropSnapshot{name=my_repo.my_snapshot}'");
+        analyze("DROP SNAPSHOT my_repo.my_snapshot");
+    }
 }
