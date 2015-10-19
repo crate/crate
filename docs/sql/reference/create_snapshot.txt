@@ -41,7 +41,8 @@ given repository by older snapshots, thus creating snapshots is incremental.
 Snapshots can include one or more tables, each given as ``table_ident``.
 It is also possible to include only single partitions given the values of the partition columns.
 
-If ``ALL`` is used, every table in the cluster is included in the snapshot.
+If ``ALL`` is used, every table in the cluster (except system tables, blob tables
+and information_schema tables) is included in the snapshot.
 
 
 Parameters
