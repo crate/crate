@@ -46,6 +46,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -195,6 +196,19 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(finalTopN.offset(), is(0));
         assertThat(finalTopN.outputs().size(), is(2));
+    }
+
+    @Test
+    public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
+        NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
+        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
+
+        assertThat(distTopN.limit(), is(25));
+        assertThat(distTopN.offset(), is(0));
+
+        TopNProjection localTopN = (TopNProjection) nl.localMerge().projections().get(0);
+        assertThat(localTopN.limit(), is(15));
+        assertThat(localTopN.offset(), is(10));
     }
 
     @Test
