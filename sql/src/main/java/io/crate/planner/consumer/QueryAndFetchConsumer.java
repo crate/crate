@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
@@ -185,6 +186,9 @@ public class QueryAndFetchConsumer implements Consumer {
                 CollectPhaseOrderedProjectionBuilderContext projectionBuilderContext =
                         new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
 
+                if (context.rootRelation() == table && table.querySpec().limit() == null) {
+                    table.querySpec().limit(Constants.DEFAULT_SELECT_LIMIT);
+                }
                 List<Projection> collectPhaseProjections = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
                 collectPhase = CollectPhase.forQueriedTable(
                         plannerContext,
@@ -275,7 +279,7 @@ public class QueryAndFetchConsumer implements Consumer {
             this.allOutputs = allOutputs;
             this.orderBy = querySpec.orderBy();
             this.offset = querySpec.offset();
-            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
+            this.limit = querySpec.limit();
         }
     }
 
@@ -284,13 +288,16 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public List<Projection> visitQueriedTable(QueriedTable table,
                                             CollectPhaseOrderedProjectionBuilderContext context) {
+
+            int limit = MoreObjects.firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
+
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
             TopNProjection topNProjection;
             if (context.orderBy == null) {
-                topNProjection = new TopNProjection(context.offset + context.limit, 0);
+                topNProjection = new TopNProjection(context.offset + limit, 0);
             } else {
-                topNProjection = new TopNProjection(context.offset + context.limit, 0,
+                topNProjection = new TopNProjection(context.offset + limit, 0,
                         context.orderByInputColumns,
                         context.orderBy.reverseFlags(),
                         context.orderBy.nullsFirst()
@@ -307,6 +314,9 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public List<Projection> visitQueriedDocTable(QueriedDocTable table,
                                                      CollectPhaseOrderedProjectionBuilderContext context) {
+            if (context.limit == null) {
+                return ImmutableList.of();
+            }
             TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
             topNProjection.outputs(context.allOutputs);
             return ImmutableList.<Projection>of(topNProjection);

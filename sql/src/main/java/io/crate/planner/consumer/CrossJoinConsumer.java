@@ -115,7 +115,8 @@ public class CrossJoinConsumer implements Consumer {
             OrderBy orderByBeforeSplit = statement.querySpec().orderBy();
 
             boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();
-            if (hasRemainingOrderBy) {
+            boolean isFilterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
+            if (hasRemainingOrderBy || isFilterNeeded) {
                 for (QueriedTableRelation queriedTable : queriedTables) {
                     queriedTable.querySpec().limit(null);
                     queriedTable.querySpec().offset(TopN.NO_OFFSET);
@@ -123,7 +124,6 @@ public class CrossJoinConsumer implements Consumer {
             }
             sortQueriedTables(relationOrder, queriedTables);
 
-            boolean isFilterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             // TODO: do we always distribute if filter is needed?
             boolean isDistributed = isFilterNeeded;
 

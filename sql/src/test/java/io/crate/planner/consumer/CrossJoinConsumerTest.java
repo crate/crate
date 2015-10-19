@@ -166,6 +166,13 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNoLimitPushDownWithJoinCondition() throws Exception {
+        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 where u1.name = u2.name  order by 1, 2 limit 10");
+        assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
+        assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
+    }
+
+    @Test
     public void testJoinConditionInWhereClause() throws Exception {
         // TODO: once fetch is supported for cross joins, reset query to:
         // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
@@ -244,12 +251,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
-        assertThat(topNProjection.isOrdered(), is(false));
-        assertThat(topNProjection.offset(), is(0));
-        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test
