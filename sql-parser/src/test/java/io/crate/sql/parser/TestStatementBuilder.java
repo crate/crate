@@ -341,20 +341,37 @@ public class TestStatementBuilder
     }
 
     @Test
-    public void testSnapshotRepository() throws Exception {
+    public void testRepository() throws Exception {
         printStatement("create repository my_repo type hdfs");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
         assertThat(statement.toString(), is("CreateRepository{" +
-                                                "repository=my_repo, "+
-                                                "type=hdfs, "+
+                                                "repository=my_repo, " +
+                                                "type=hdfs, " +
                                                 "properties=Optional.of({location='/mount/backups/my_backup'})}"));
 
         printStatement("DROP REPOSITORY my_repo");
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
         assertThat(statement.toString(), is("DropRepository{" +
                                                 "repository=myRepo}"));
+    }
+
+    @Test
+    public void testSnapshot() throws Exception {
+        printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL");
+        printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
+        printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
+        Statement statement = SqlParser.createStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
+        assertThat(statement.toString(), is("CreateSnapshot{" +
+                                                "name=my_repo.my_snapshot, " +
+                                                "properties=Optional.absent(), " +
+                                                "tableList=Optional.of(" +
+                                                    "[Table{only=false, authors, partitionProperties=["+"" +
+                                                          "Assignment{column=\"year\", expression=2015}, " +
+                                                          "Assignment{column=\"year\", expression=2014}]}, " +
+                                                      "Table{only=false, books, partitionProperties=[]}])}"));
+
     }
 
     @Test
