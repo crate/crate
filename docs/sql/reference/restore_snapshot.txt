@@ -13,7 +13,7 @@ Synopsis
 ::
 
     RESTORE SNAPSHOT repository_name.snapshot_name
-    { ( TABLE table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
+    { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
     [ WITH (restore_parameter [= value], [, ...]) ]
 
 

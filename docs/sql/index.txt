@@ -23,6 +23,7 @@ see :doc:`sql`. For general information about SQL please refer to
    analyzer
    information_schema
    system
-   kill
    sql
    rest
+   kill
+   backup_restore
