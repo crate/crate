@@ -91,6 +91,7 @@ statement returns [Statement value]
     | dropBlobTable             { $value = $dropBlobTable.value; }
     | dropRepository            { $value = $dropRepository.value; }
     | dropSnapshot              { $value = $dropSnapshot.value; }
+    | restoreSnapshot           { $value = $restoreSnapshot.value; }
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
@@ -817,6 +818,20 @@ createSnapshot returns [Statement value]
     | ^(CREATE_SNAPSHOT qname tableWithPartitionList genericProperties?)
         {
             $value = new CreateSnapshot($qname.value,
+                                        $tableWithPartitionList.value,
+                                        $genericProperties.value);
+        }
+    ;
+
+restoreSnapshot returns [Statement value]
+    : ^(RESTORE_SNAPSHOT qname ALL genericProperties?)
+        {
+            $value = new RestoreSnapshot($qname.value,
+                                        $genericProperties.value);
+        }
+    | ^(RESTORE_SNAPSHOT qname tableWithPartitionList genericProperties?)
+        {
+            $value = new RestoreSnapshot($qname.value,
                                         $tableWithPartitionList.value,
                                         $genericProperties.value);
         }
