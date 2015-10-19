@@ -48,6 +48,7 @@ tokens {
     TABLE;
     REPOSITORY;
     SNAPSHOT;
+    RESTORE;
     JOINED_TABLE;
     QUALIFIED_JOIN;
     CROSS_JOIN;
@@ -84,6 +85,7 @@ tokens {
     CREATE_MATERIALIZED_VIEW;
     CREATE_REPOSITORY;
     CREATE_SNAPSHOT;
+    RESTORE_SNAPSHOT;
     REFRESH_MATERIALIZED_VIEW;
     VIEW_REFRESH;
     CREATE_ALIAS;
@@ -215,6 +217,7 @@ statement
     | setStmt
     | resetStmt
     | killStmt
+    | RESTORE restoreStmt -> restoreStmt
     ;
 
 query
@@ -893,6 +896,14 @@ dropStatement
 	;
 // END DROP STATEMENTS
 
+restoreStmt
+    : SNAPSHOT qname
+      allOrTableWithPartitionList
+      (WITH '(' genericProperties ')' )? -> ^(RESTORE_SNAPSHOT qname allOrTableWithPartitionList genericProperties?)
+    ;
+
+
+
 crateTableOption
     : clusteredBy
     | partitionedBy
@@ -1198,6 +1209,7 @@ FUNCTIONS: 'FUNCTIONS';
 MATERIALIZED: 'MATERIALIZED';
 VIEW: 'VIEW';
 REFRESH: 'REFRESH';
+RESTORE: 'RESTORE';
 DROP: 'DROP';
 ALIAS: 'ALIAS';
 UNION: 'UNION';
