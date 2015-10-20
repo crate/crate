@@ -122,6 +122,10 @@ public class CollectingRowReceiver implements RowReceiver {
         }
     }
 
+    public void repeatUpstream() {
+        upstream.repeat();
+    }
+
     private static class LimitingReceiver extends CollectingRowReceiver {
 
         private final int limit;

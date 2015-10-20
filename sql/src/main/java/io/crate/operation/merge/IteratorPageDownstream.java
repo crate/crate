@@ -35,7 +35,7 @@ import io.crate.core.collections.Row;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.RejectionAwareExecutor;
-import io.crate.operation.RowUpstream;
+import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class IteratorPageDownstream implements PageDownstream, RowUpstream {
+public class IteratorPageDownstream implements PageDownstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(IteratorPageDownstream.class);
 
@@ -55,54 +55,42 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
     private final Executor executor;
     private final AtomicBoolean finished = new AtomicBoolean(false);
     private final PagingIterator<Row> pagingIterator;
-    private final AtomicBoolean paused = new AtomicBoolean(false);
+    private final TopRowUpstream topRowUpstream;
 
     private volatile PageConsumeListener pausedListener;
     private volatile Iterator<Row> pausedIterator;
-    private volatile boolean pendingPause;
     private boolean downstreamWantsMore = true;
 
-    public IteratorPageDownstream(RowReceiver rowReceiver,
-                                  PagingIterator<Row> pagingIterator,
+    public IteratorPageDownstream(final RowReceiver rowReceiver,
+                                  final PagingIterator<Row> pagingIterator,
                                   Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
         this.executor = executor.or(MoreExecutors.directExecutor());
         this.rowReceiver = rowReceiver;
-        rowReceiver.setUpstream(this);
-    }
-
-    @Override
-    public void pause() {
-        pendingPause = true;
-    }
-
-    @Override
-    public void resume(boolean async) {
-        pendingPause = false;
-        if (paused.compareAndSet(true, false)) {
-            LOGGER.trace("resume");
-            processBuckets(pausedIterator, pausedListener);
-        }
-    }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        if (finished.compareAndSet(true, false)) {
-            assert downstreamWantsMore : "downstream doesn't want more but still called repeat";
-            LOGGER.trace("received repeat: {}", rowReceiver);
-
-            paused.set(false);
-            if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
-                consumeRemaining();
-            }
-            rowReceiver.finish();
-            finished.set(true);
-        } else {
-            LOGGER.trace("received repeat, but wasn't finished {}", rowReceiver);
-         }
+        this.topRowUpstream = new TopRowUpstream(
+                this.executor,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        processBuckets(pausedIterator, pausedListener);
+                    }
+                },
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        if (finished.compareAndSet(true, false)) {
+                            if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
+                                consumeRemaining();
+                            }
+                            finished.set(true);
+                            rowReceiver.finish();
+                        } else {
+                            LOGGER.trace("Received repeat, but wasn't finished");
+                        }
+                    }
+                }
+        );
+        rowReceiver.setUpstream(topRowUpstream);
     }
 
     private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
@@ -113,12 +101,11 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
             }
             Row row = iterator.next();
             boolean wantMore = rowReceiver.setNextRow(row);
-            if (pendingPause) {
+            if (topRowUpstream.shouldPause()) {
                 pausedListener = listener;
                 pausedIterator = iterator;
-                paused.set(true);
-                pendingPause = false;
-                return wantMore;
+                topRowUpstream.pauseProcessed();
+                return true;
             }
             if (!wantMore) {
                 downstreamWantsMore = false;

@@ -181,7 +181,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
         pageDownstream.finish();
-        pageDownstream.repeat();
+        rowReceiver.repeatUpstream();
         pageDownstream.finish();
         assertThat(TestingHelpers.printedTable(rowReceiver.result()), is(
                 "a\n" +
@@ -216,11 +216,11 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         ));
         pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
         assertThat(rowReceiver.rows.size(), is(2));
-        pageDownstream.resume(false);
+        rowReceiver.resumeUpstream(false);
         assertThat(rowReceiver.rows.size(), is(3));
 
         pageDownstream.finish();
-        pageDownstream.repeat();
+        rowReceiver.repeatUpstream();
 
         assertThat(TestingHelpers.printedTable(rowReceiver.result()), is(
                 "a\n" +
@@ -229,7 +229,5 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                 "a\n" +
                 "b\n" +
                 "c\n"));
-
-
     }
 }
