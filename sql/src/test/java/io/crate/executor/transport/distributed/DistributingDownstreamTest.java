@@ -51,11 +51,9 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyString;
@@ -200,5 +198,58 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         );
         distributingDownstream.prepare(mock(ExecutionState.class));
         countDownLatch.await(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testTwoDownstreamsOneFinishedOneNeedsMoreDoesNotGetStuck() throws Exception {
+        Streamer[] streamers = new Streamer[] {DataTypes.INTEGER.streamer() };
+
+        final AtomicInteger requestsReceived = new AtomicInteger(0);
+        TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
+                mock(Transports.class),
+                mock(JobContextService.class),
+                mock(ThreadPool.class),
+                mock(TransportService.class)) {
+
+
+            @Override
+            public void pushResult(String node, final DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
+                if (node.equals("n1")) {
+                    listener.onResponse(new DistributedResultResponse(false));
+                } else {
+                    requestsReceived.incrementAndGet();
+                    listener.onResponse(new DistributedResultResponse(!request.isLast()));
+                }
+            }
+        };
+
+        KeepAliveTimers keepAliveTimers = new KeepAliveTimers(threadPool, TimeValue.timeValueMillis(10), mock(TransportKeepAliveAction.class));
+        DistributingDownstream dd = new DistributingDownstream(
+                UUID.randomUUID(),
+                new BroadcastingBucketBuilder(streamers, 2),
+                1,
+                (byte) 0,
+                0,
+                ImmutableList.of("n1", "n2"),
+                transportDistributedResultAction,
+                keepAliveTimers,
+                streamers,
+                2
+        );
+        dd.prepare(mock(ExecutionState.class));
+
+        RowSender rowSender = new RowSender(
+                Arrays.<Row>asList(
+                        new Row1(1),
+                        new Row1(2),
+                        new Row1(3),
+                        new Row1(4),
+                        new Row1(5)
+                ),
+                dd,
+                MoreExecutors.directExecutor()
+        );
+        rowSender.run();
+        assertThat(requestsReceived.get(), is(3));
     }
 }

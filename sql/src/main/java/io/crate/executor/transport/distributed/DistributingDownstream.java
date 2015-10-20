@@ -226,6 +226,7 @@ public class DistributingDownstream implements RowReceiver {
 
         public void sendRequest(Bucket bucket, boolean isLast) {
             if (finished) {
+                requestsPending.decrementAndGet();
                 return;
             }
             keepAliveTimer.reset();
