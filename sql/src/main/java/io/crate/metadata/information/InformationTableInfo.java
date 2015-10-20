@@ -24,12 +24,8 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.table.AbstractTableInfo;
-import io.crate.planner.RowGranularity;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;

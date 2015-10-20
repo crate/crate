@@ -22,11 +22,7 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;

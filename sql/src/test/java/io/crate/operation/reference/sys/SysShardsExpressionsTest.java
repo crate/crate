@@ -29,7 +29,6 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
-import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;

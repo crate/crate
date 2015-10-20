@@ -27,7 +27,6 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
-import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;

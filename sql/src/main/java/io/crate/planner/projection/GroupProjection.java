@@ -21,7 +21,7 @@
 
 package io.crate.planner.projection;
 
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;

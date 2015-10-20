@@ -31,7 +31,6 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;

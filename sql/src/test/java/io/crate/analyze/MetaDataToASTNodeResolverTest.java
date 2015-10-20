@@ -27,7 +27,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import io.crate.test.integration.CrateUnitTest;

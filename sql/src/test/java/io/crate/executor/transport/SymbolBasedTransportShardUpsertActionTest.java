@@ -22,11 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.jobs.JobContextService;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;

@@ -26,7 +26,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;

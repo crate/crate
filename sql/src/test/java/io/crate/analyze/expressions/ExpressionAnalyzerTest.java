@@ -33,7 +33,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;

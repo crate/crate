@@ -23,7 +23,6 @@ package io.crate.operation.predicate;
 
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;

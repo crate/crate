@@ -37,7 +37,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;

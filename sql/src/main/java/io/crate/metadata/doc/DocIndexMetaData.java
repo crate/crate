@@ -29,7 +29,6 @@ import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

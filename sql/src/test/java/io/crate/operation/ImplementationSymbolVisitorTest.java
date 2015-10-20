@@ -28,7 +28,6 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;

@@ -24,7 +24,6 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

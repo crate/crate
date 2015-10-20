@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;

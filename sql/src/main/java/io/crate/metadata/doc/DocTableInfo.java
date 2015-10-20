@@ -32,7 +32,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.AbstractDynamicTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
-import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;

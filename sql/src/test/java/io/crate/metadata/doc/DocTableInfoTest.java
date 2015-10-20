@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;

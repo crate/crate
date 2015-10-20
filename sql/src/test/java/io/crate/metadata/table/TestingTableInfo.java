@@ -28,7 +28,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.mockito.Answers;

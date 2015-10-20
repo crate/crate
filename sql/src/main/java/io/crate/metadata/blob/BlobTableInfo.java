@@ -30,7 +30,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

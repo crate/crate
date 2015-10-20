@@ -23,8 +23,8 @@ package io.crate.planner.symbol;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;
 

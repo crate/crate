@@ -35,7 +35,6 @@ import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;

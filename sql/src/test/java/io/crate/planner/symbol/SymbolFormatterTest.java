@@ -23,7 +23,6 @@ package io.crate.planner.symbol;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
-import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

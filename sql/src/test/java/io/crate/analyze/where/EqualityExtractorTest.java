@@ -30,7 +30,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;

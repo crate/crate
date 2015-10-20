@@ -24,7 +24,7 @@ package io.crate.planner.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;

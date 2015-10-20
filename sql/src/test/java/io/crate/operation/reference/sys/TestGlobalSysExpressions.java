@@ -32,7 +32,6 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
-import io.crate.planner.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;

@@ -32,7 +32,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
 import io.crate.metadata.*;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.fetch.FetchReference;
 import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;

@@ -50,7 +50,6 @@ import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;

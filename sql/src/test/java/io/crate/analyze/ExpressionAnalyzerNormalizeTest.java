@@ -36,7 +36,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;

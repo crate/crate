@@ -31,7 +31,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;

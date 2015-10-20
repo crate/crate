@@ -36,7 +36,6 @@ import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;

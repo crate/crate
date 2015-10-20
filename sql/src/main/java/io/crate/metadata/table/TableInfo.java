@@ -23,11 +23,7 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.*;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

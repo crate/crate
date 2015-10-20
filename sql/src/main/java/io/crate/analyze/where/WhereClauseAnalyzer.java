@@ -32,7 +32,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;

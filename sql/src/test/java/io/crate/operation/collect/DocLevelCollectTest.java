@@ -35,7 +35,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.CollectPhase;

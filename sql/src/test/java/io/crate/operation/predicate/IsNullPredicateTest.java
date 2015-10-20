@@ -23,7 +23,6 @@ package io.crate.operation.predicate;
 
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
