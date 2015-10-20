@@ -28,7 +28,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.OutputName;
-import io.crate.planner.consumer.QuerySplitter;
 
 import java.util.*;
 

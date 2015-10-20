@@ -19,15 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.consumer;
+package io.crate.analyze.relations;
 
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FieldProvider;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;

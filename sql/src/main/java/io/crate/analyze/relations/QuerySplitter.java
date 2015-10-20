@@ -19,9 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.consumer;
+package io.crate.analyze.relations;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
 
@@ -102,8 +101,8 @@ public class QuerySplitter {
     }
 
     public static class RelationCount {
-        int numThis = 0;
-        int numOther = 0;
+        public int numThis = 0;
+        public int numOther = 0;
 
         private RelationCount() {
         }
