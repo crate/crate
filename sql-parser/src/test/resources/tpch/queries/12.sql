@@ -27,7 +27,7 @@ where
 	and l_commitdate < l_receiptdate
 	and l_shipdate < l_commitdate
 	and l_receiptdate >= date ':3'
-	and l_receiptdate < date ':3' + interval '1' year
+	and l_receiptdate < date ':3'
 group by
 	l_shipmode
 order by

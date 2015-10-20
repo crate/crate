@@ -171,13 +171,6 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitIntervalLiteral(IntervalLiteral node, Void context)
-        {
-            String sign = (node.getSign() == IntervalLiteral.Sign.NEGATIVE) ? "- " : "";
-            return "INTERVAL " + sign + "'" + node.getValue() + "' " + node.getType();
-        }
-
-        @Override
         public String visitArrayLiteral(ArrayLiteral node, Void context) {
             StringBuilder builder = new StringBuilder("[");
             boolean first = true;
