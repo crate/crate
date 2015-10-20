@@ -26,8 +26,18 @@ With these elements in place, analyzer provide fine-grained control over buildin
 used for fulltext search. For example you can use language specific analyzers,
 tokenizers and token-filters to get proper search results for data provided in a certain language.
 
-Below the builtin analyzers, tokenizers, token-filters and char-filters are listed.
-They can be used as is or can be extended. See :ref:`fulltext-indices`.
+Below the builtin analyzers, tokenizers, token-filters and char-filters are
+listed.  They can be used as is or can be extended.
+
+.. seealso::
+
+  :ref:`fulltext-indices` for examples showing how to create tables which make
+  use of analyzers.
+
+  :ref:`create_custom_analyzer` for an example showing how to create a custom
+  analyzer.
+
+  :ref:`ref-create-analyzer` for the syntax reference.
 
 .. _builtin-analyzer:
 

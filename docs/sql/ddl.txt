@@ -556,7 +556,26 @@ Here is a simple Example::
     ...     kstem
     ...   ),
     ...   CHAR_FILTERS (
-    ...     html_strip,
+    ...     mapping
+    ...   )
+    ... );
+    CREATE OK (... sec)
+
+This creates a custom analyzer called ``myanalyzer``. It uses the built-in
+:ref:`whitespace-tokenizer` tokenizer and two built-in token filters.
+:ref:`lowercase-tokenfilter` and :ref:`kstem-tokenfilter`, as well as a
+:ref:`mapping-charfilter` char-filter.
+
+It is possible to further customize the built-in token filters, char-filters or
+tokenizers::
+
+    cr> create ANALYZER myanalyzer_customized (
+    ...   TOKENIZER whitespace,
+    ...   TOKEN_FILTERS (
+    ...     lowercase,
+    ...     kstem
+    ...   ),
+    ...   CHAR_FILTERS (
     ...     mymapping WITH (
     ...       type='mapping',
     ...       mappings = ['ph=>f', 'qu=>q', 'foo=>bar']
@@ -565,21 +584,33 @@ Here is a simple Example::
     ... );
     CREATE OK (... sec)
 
-This example creates an analyzer called ``myanalyzer`` to be used in
-index-definitions and index-constraints.  It will use a
-:ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter`
-token-filter and a :ref:`kstem-tokenfilter` token-filter, a
-:ref:`htmlstrip-charfilter` char-filter and a custom char-filter that
-extends the :ref:`mapping-charfilter` char-filter.
+This example creates another analyzer. This time called
+``myanalyzer_customized``. It uses the same tokenizer and token filters as in
+the previous example, but specifies custom options to the
+:ref:`mapping-charfilter` char-filter.
 
-You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and
-:ref:`builtin-char-filter` by just writing their names and you can
-extend and parameterize them, see for example the ``mymapping``
-char-filter above. You have to give these extended ones a unique name.
+The name (``mymapping``) is a custom name which may not conflict with built-in
+char-filters or other custom char-filters.
+
+The provided ``type`` property is **required** as it specifies which built-in
+char-filter should be customized. The other option ``mappings`` is specific to
+the used type/char-filter.
+
+Tokenizer and token-filters can be customized in the same way.
 
 .. note::
 
     Altering analyzers is not supported yet.
+
+.. seealso::
+
+  :ref:`ref-create-analyzer` for the syntax reference.
+
+  :ref:`builtin-tokenizer` for a list of built-in tokenizer.
+
+  :ref:`builtin-token-filter` for a list of built-in token-filter.
+
+  :ref:`builtin-char-filter` for a list of built-in char-filter.
 
 Extending Bultin Analyzer
 -------------------------
