@@ -491,7 +491,6 @@ exprPrimary
 simpleExpr
     : NULL
     | (dateValue) => dateValue
-    | (intervalValue) => intervalValue
     | ('[') => arrayLiteral
     | ('{') => objectLiteral
     | qnameOrFunction
@@ -569,20 +568,6 @@ dateValue
     : DATE STRING      -> ^(DATE STRING)
     | TIME STRING      -> ^(TIME STRING)
     | TIMESTAMP STRING -> ^(TIMESTAMP STRING)
-    ;
-
-intervalValue
-    : INTERVAL intervalSign? STRING intervalQualifier -> ^(INTERVAL STRING intervalQualifier intervalSign?)
-    ;
-
-intervalSign
-    : '+' ->
-    | '-' -> NEGATIVE
-    ;
-
-intervalQualifier
-    : nonSecond ('(' integer ')')?                 -> ^(nonSecond integer?)
-    | SECOND ('(' p=integer (',' s=integer)? ')')? -> ^(SECOND $p? $s?)
     ;
 
 nonSecond
@@ -1050,7 +1035,7 @@ nonReserved
     : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | INTERVAL | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
+    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
@@ -1094,7 +1079,6 @@ SUBSTRING: 'SUBSTRING';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
-INTERVAL: 'INTERVAL';
 YEAR: 'YEAR';
 MONTH: 'MONTH';
 DAY: 'DAY';

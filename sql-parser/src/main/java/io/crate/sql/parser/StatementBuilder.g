@@ -347,7 +347,6 @@ expr returns [Expression value]
     | ^(DATE string)        { $value = new DateLiteral($string.value); }
     | ^(TIME string)        { $value = new TimeLiteral($string.value); }
     | ^(TIMESTAMP string)   { $value = new TimestampLiteral($string.value); }
-    | intervalValue         { $value = $intervalValue.value; }
     | predicate             { $value = $predicate.value; }
     | ^(IN_LIST exprList)   { $value = new InListExpression($exprList.value); }
     | ^(NEGATIVE e=expr)    { $value = new NegativeExpression($e.value); }
@@ -509,28 +508,6 @@ setCompareQuantifier returns [ArrayComparisonExpression.Quantifier value]
     : ANY                { $value = ArrayComparisonExpression.Quantifier.ANY; }
     | SOME               { $value = ArrayComparisonExpression.Quantifier.ANY; }
     | ALL                { $value = ArrayComparisonExpression.Quantifier.ALL; }
-    ;
-
-intervalValue returns [IntervalLiteral value]
-    : ^(INTERVAL s=string q=intervalQualifier g=intervalSign) { $value = new IntervalLiteral($s.value, $q.value, $g.value); }
-    ;
-
-// TODO: this needs to be structured data
-intervalQualifier returns [String value]
-    : t=nonSecond                   { $value = $t.value; }
-    | ^(t=nonSecond p=integer)      { $value = String.format("\%s (\%s)", $t.value, $p.value); }
-    | SECOND                        { $value = "SECOND"; }
-    | ^(SECOND p=integer)           { $value = String.format("SECOND (\%s)", $p.value); }
-    | ^(SECOND p=integer s=integer) { $value = String.format("SECOND (\%s, \%s)", $p.value, $s.value); }
-    ;
-
-nonSecond returns [String value]
-    : t=(YEAR | MONTH | DAY | HOUR | MINUTE) { $value = $t.text; }
-    ;
-
-intervalSign returns [IntervalLiteral.Sign value]
-    : NEGATIVE { $value = IntervalLiteral.Sign.NEGATIVE; }
-    |          { $value = IntervalLiteral.Sign.POSITIVE; }
     ;
 
 predicate returns [Expression value]
