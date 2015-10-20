@@ -21,8 +21,6 @@
 
 package io.crate.analyze.symbol;
 
-import io.crate.planner.fetch.FetchReference;
-
 import javax.annotation.Nullable;
 
 

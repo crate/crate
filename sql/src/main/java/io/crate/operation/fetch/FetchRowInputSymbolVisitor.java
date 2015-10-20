@@ -21,6 +21,7 @@
 
 package io.crate.operation.fetch;
 
+import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Reference;
 import io.crate.core.collections.Row;
@@ -30,7 +31,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.FetchProjector;
-import io.crate.planner.fetch.FetchReference;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Collection;

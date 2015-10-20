@@ -33,7 +33,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.*;
 import io.crate.metadata.*;
-import io.crate.planner.fetch.FetchReference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

@@ -20,12 +20,8 @@
  * agreement.
  */
 
-package io.crate.planner.fetch;
+package io.crate.analyze.symbol;
 
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
