@@ -212,6 +212,7 @@ Column Policy
 
   Specifies the column policy of the table.
 
+
 Node Specific Settings
 ======================
 
@@ -222,6 +223,84 @@ Node Specific Settings
   | *Runtime:*   ``no``
 
   The name of the Crate cluster the node should join to.
+
+**node.name**
+  | *Runtime:* ``no``
+
+  The name of the node. If no name is configured a random one will be generated.
+
+.. note::
+
+   Node names must be unique in a Crate cluster.
+
+Node Types
+----------
+
+Crate supports different kinds of nodes. The following settings can be used
+to differentiate nodes upon startup:
+
+**node.master**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node is able to get elected as *master* node in the
+  cluster.
+
+**node.data**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node will store data.
+
+**node.client**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Shorthand for: ``node.data=false`` and ``node.master=false``.
+
+
+**node.local**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If set to ``true``, the node will use a *JVM-local*
+  transport and discovery. *Used primarily for testing purposes.*
+
+Examples
+~~~~~~~~
+
+A node by default is eligible as *master* and contains *data*.
+
+Nodes that only contain *data* but cannot become *master* will mainly execute
+and respond to queries:
+
+
+.. code-block::
+   yaml
+
+   node:
+     data: true
+     master: false
+
+
+*Master-only*-nodes that do not contain *data* but are able to become *master* can be used to
+separate cluster-management loads from the query execution loads:
+
+.. code-block::
+   yaml
+
+   node:
+     data: false
+     master: true
+
+Nodes that do not contain *data* and are not eligible as *master* are called
+*client*-nodes. They can be used to separate request handling loads:
+
+.. code-block::
+   yaml
+
+   node:
+     client: true
 
 .. _conf_hosts:
 
@@ -243,7 +322,7 @@ Hosts
   | *Default:*    ``0.0.0.0``
   | *Runtime:*   ``no``
 
-  This setting determines to which address crate should bind itself
+  This setting determines to which address Crate should bind itself
   to. To only bind to localhost, set it to any local address or ``_local_``.
 
 .. _network.publish_host:
@@ -254,7 +333,7 @@ Hosts
   This setting is used by a Crate node to publish its own address
   to the rest of the cluster. Per default it is the first non local address.
 
-  To explicitly bind crate to a specific interface use the interface
+  To explicitly bind Crate to a specific interface use the interface
   name between underscores. For example ``_eth0_``. This resolves to
   the ip address of this interface. With ``_eth0:ipv{4,6}_`` you
   explicitly listen on an ipv6 or ipv4 address.
@@ -307,10 +386,159 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
-  .. note::
 
-    It is also possible to alter settings of single partitions of a partitioned table.
-    To change table settings for a particular partitions please refer to :ref:`ref-alter-table-partition-clause`.
+.. _conf-node-attributes:
+
+Node Attributes
+---------------
+
+It is possible to apply generic attributes to a node, with configuration settings
+like ``node.key: value``. These attributes can be used for customized shard allocation.
+
+See also :ref:`conf-routing-allocation-awareness` Settings.
+
+Paths
+-----
+
+**path.conf**
+  | *Runtime:* ``no``
+
+  Filesystem path to the directory containing the configuration files ``crate.yml``
+  and ``logging.yml``.
+
+**path.data**
+  | *Runtime:* ``no``
+
+  Filesystem path to the directory where this Crate node stores its data (table
+  data and cluster metadata).
+
+  This setting can contain a comma separated list of paths. In this case Crate will
+  stripe the data across both locations like in RAID 0.
+
+
+**path.work**
+  | *Runtime:* ``no``
+
+  Filesystem path to a directory holding temporary files created and used
+  during operation. This directory contains mostly internal files which should not
+  be tinkered with.
+
+**path.logs**
+  | *Runtime:* ``no``
+
+  Filesystem path to a directory where log files should be stored.
+  Can be used as a variable inside ``logging.yml``.
+
+  For example:
+
+  .. code-block::
+     yaml
+
+     appender:
+       file:
+         file: ${path.logs}/${cluster.name}.log
+
+**path.plugins**
+  | *Runtime:* ``no``
+
+  Filesystem path to the directory containing Elasticsearch plugins that will be loaded
+  on startup.
+
+Plugins
+-------
+
+**plugin.mandatory**
+  | *Runtime:* ``no``
+
+  A list of plugins that are required for a node to startup.
+  If any plugin listed here, the Crate node will fail to start.
+
+Memory
+------
+
+**bootstrap.mlockall**
+  | *Runtime:* ``no``
+  | *Default:* ``false``
+
+  Crate performs poorly when the JVM starts swapping: you should ensure that
+  it *never* swaps. If set to ``true``, Crate will use the ``mlockall`` system
+  call on startup to ensure that the memory pages of the Crate process
+  are locked into RAM.
+
+
+Garbage Collection
+------------------
+
+Crate logs if JVM garbage collection on different memory pools takes too long.
+The following settings can be used to adjust these timeouts:
+
+**monitor.jvm.gc.young.warn**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a warning message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.young.info**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log an info message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.young.debug**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a debug message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.old.warn**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a warning message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+**monitor.jvm.gc.old.info**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log an info message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+**monitor.jvm.gc.old.debug**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a debug message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+
+Elasticsearch HTTP REST API
+---------------------------
+
+**es.api.enabled**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Enable or disable elasticsearch HTTP REST API.
+
+  .. warning::
+
+    Manipulating your data via elasticsearch API and not via SQL
+    might result in inconsistent data. You have been warned!
+
+Blobs
+-----
+
+**blobs.path**
+  | *Runtime:* ``no``
+
+  Path to a filesystem directory where to store blob data allocated for this node.
+
+  By default blobs will be stored under the same path as normal data.
+  A relative path value is interpreted as relative to ``CRATE_HOME``.
 
 .. _conf-cluster-settings:
 
@@ -417,9 +645,9 @@ information about its usage.
 Graceful Stop
 -------------
 
-By default, when the crate process stops it simply shuts down, possibly making some
+By default, when the Crate process stops it simply shuts down, possibly making some
 shards unavailable which leads to a *red* cluster state and lets some queries fail
-that required the now unavailable shards. In order to *safely* shutdown a crate node,
+that required the now unavailable shards. In order to *safely* shutdown a Crate node,
 the graceful stop procedure can be used.
 
 The following cluster settings can be used to change the shutdown behaviour of
@@ -763,8 +991,12 @@ Routing Allocation
   | *Runtime:*  ``yes``
     How many concurrent recoveries are allowed to happen on a node.
 
+
+.. _conf-routing-allocation-awareness:
+
 Awareness
 ~~~~~~~~~
+
 Cluster allocation awareness allows to configure shard and replicas
 allocation across generic attributes associated with nodes.
 
