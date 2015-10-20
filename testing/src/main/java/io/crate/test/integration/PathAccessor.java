@@ -22,18 +22,11 @@
 package io.crate.test.integration;
 
 
-import com.google.common.base.Charsets;
 import org.elasticsearch.common.io.Streams;
 
 import java.io.*;
 
 public class PathAccessor {
-
-    public static String stringFromPath(String path, Class<?> aClass) throws IOException {
-        return Streams.copyToString(new InputStreamReader(
-                getInputStream(path, aClass),
-                Charsets.UTF_8));
-    }
 
     public static byte[] bytesFromPath(String path, Class<?> aClass) throws IOException {
         try (InputStream is = getInputStream(path, aClass);
