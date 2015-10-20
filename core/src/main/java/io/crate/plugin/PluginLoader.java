@@ -38,11 +38,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
@@ -67,8 +69,12 @@ public class PluginLoader {
         List<Class<? extends Plugin>> implementations = null;
         try {
             implementations = finder.findAllImplementations(Plugin.class);
-        } catch (ClassNotFoundException | IOException e) {
-            logger.trace("exception while searching for plugins", e);
+        } catch (ClassCastException e) {
+            logger.error("plugin does implement io.crate.Plugin interface", e);
+        } catch (ClassNotFoundException e) {
+            logger.error("error while loading plugin, misconfigured plugin", e);
+        } catch (Exception e) {
+            logger.error("error while loading plugins", e);
         }
 
         if (implementations == null) {
