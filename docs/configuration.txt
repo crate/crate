@@ -438,6 +438,21 @@ Paths
        file:
          file: ${path.logs}/${cluster.name}.log
 
+.. _conf-path-repo:
+
+**path.repo**
+  | *Runtime:* ``no``
+
+  A list of filesystem or UNC paths where repositories of type
+  :ref:`ref-create-repository-types-fs` may be stored.
+
+  Without this setting a Crate user could write snapshot files to any directory
+  that is writable by the Crate process. To safeguard against this security issue,
+  the possible paths have to be whitelisted here.
+
+  See also :ref:`ref-create-repository-types-fs-location` setting
+  of repository type ``fs``.
+
 Plugins
 -------
 
@@ -533,6 +548,41 @@ Blobs
 
   By default blobs will be stored under the same path as normal data.
   A relative path value is interpreted as relative to ``CRATE_HOME``.
+
+Repositories
+------------
+
+Repositories are used to :ref:`backup-restore` a Crate cluster.
+The following settings are used to configure some types of repositories globally.
+
+**repositories.url.allowed_urls**
+  | *Runtime:* ``no``
+
+  Whitelist for urls that can be used with the :ref:`ref-create-repository-types-url`
+  repository type. Wildcards are supported in the host, path, query and fragment parts.
+
+  Supported protocols are configured in
+  :ref:`repositories.url.supported_protocols <conf-repositories-url-supported-protocols>`.
+  Only ``http``, ``https`` and ``ftp`` URLs need to be listed here for usage in
+  :ref:`ref-create-repository-types-url` repsoitories.
+  
+  ``file`` urls listed here must be prefixed with an entry configured in
+  :ref:`path.repo <conf-path-repo>`.
+
+.. _conf-repositories-url-supported-protocols:
+
+**repositories.url.supported_protocols**
+  | *Default:* ``http``, ``https``, ``ftp``, ``file`` and ``jar``
+  | *Runtime:* ``no``
+
+  A list of protocols that are supported by repositories of type
+  :ref:`ref-create-repository-types-url`.
+
+  The ``jar`` protocol is used to access the contents of jar files.
+  For more info, see the java `JarURLConnection documentation`_.
+
+See also the :ref:`path.repo <conf-path-repo>` Setting.
+
 
 .. _conf-cluster-settings:
 
@@ -1532,3 +1582,5 @@ example::
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+
+.. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
