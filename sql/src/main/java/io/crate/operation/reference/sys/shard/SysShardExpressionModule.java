@@ -21,14 +21,11 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-
-import java.util.Map;
 
 public class SysShardExpressionModule extends AbstractModule {
 

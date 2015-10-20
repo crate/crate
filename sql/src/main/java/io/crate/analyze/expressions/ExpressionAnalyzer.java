@@ -53,7 +53,6 @@ import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
-import io.crate.rest.action.RestSQLAction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;

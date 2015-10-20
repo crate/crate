@@ -23,8 +23,8 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.TaskResult;
 import io.crate.executor.JobTask;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;

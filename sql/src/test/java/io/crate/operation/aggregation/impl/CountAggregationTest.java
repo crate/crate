@@ -28,8 +28,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class CountAggregationTest extends AggregationTest {
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {

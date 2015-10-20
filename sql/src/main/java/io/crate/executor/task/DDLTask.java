@@ -28,10 +28,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.executor.JobTask;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.GenericDDLNode;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.JobTask;
 
 import javax.annotation.Nonnull;
 import java.util.List;

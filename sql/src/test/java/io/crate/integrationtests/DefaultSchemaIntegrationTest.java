@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

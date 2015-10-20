@@ -25,11 +25,7 @@ package io.crate.test.integration;
 import com.google.common.base.Charsets;
 import org.elasticsearch.common.io.Streams;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 public class PathAccessor {
 

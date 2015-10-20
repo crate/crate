@@ -51,9 +51,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;

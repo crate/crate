@@ -21,7 +21,6 @@
 
 package io.crate.test.integration;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.collect.Sets;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;

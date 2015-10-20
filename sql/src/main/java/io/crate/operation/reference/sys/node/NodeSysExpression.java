@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.*;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.cluster.ClusterService;
@@ -30,7 +30,6 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.network.NetworkService;
-import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.sigar.SigarService;

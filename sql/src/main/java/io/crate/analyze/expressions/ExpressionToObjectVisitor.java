@@ -24,7 +24,9 @@ package io.crate.analyze.expressions;
 
 import io.crate.sql.tree.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 

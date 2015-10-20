@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
-import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.projectors.Requirement;

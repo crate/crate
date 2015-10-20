@@ -41,7 +41,6 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-in-numeric-history", labelWith = LabelType.CUSTOM_KEY)

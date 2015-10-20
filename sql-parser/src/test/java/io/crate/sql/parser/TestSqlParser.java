@@ -21,11 +21,11 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.tree.*;
-import io.crate.sql.tree.IntervalLiteral.Sign;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.sql.tree.*;
+import io.crate.sql.tree.IntervalLiteral.Sign;
 import org.testng.annotations.Test;
 
 import java.util.Locale;

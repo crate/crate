@@ -22,6 +22,7 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -32,7 +33,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
-import com.google.common.base.Optional;
 
 import java.util.*;
 

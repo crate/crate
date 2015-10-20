@@ -25,7 +25,6 @@ import io.crate.blob.BlobWriteException;
 import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;

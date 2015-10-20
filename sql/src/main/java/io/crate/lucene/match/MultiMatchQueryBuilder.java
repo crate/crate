@@ -33,7 +33,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

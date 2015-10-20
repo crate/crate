@@ -38,7 +38,6 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;

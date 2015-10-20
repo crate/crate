@@ -22,7 +22,6 @@
 package io.crate.action.sql;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

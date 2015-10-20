@@ -21,7 +21,10 @@
 
 package io.crate.breaker;
 
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.FixedWidthType;
+import io.crate.types.IpType;
+import io.crate.types.StringType;
 
 public class SizeEstimatorFactory {
 

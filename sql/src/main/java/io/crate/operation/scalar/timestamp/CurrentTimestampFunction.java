@@ -21,8 +21,6 @@
 
 package io.crate.operation.scalar.timestamp;
 
-import java.math.RoundingMode;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
 import io.crate.metadata.FunctionIdent;
@@ -36,6 +34,8 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.joda.time.DateTimeUtils;
+
+import java.math.RoundingMode;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 

@@ -22,9 +22,7 @@
 
 package org.elasticsearch.discovery.srv;
 
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
@@ -38,8 +36,6 @@ import org.elasticsearch.transport.TransportService;
 import org.xbill.DNS.*;
 
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 

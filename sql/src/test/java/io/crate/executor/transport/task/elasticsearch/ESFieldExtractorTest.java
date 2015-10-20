@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -33,8 +34,6 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-
-import io.crate.test.integration.CrateUnitTest;
 
 public class ESFieldExtractorTest extends CrateUnitTest {
 

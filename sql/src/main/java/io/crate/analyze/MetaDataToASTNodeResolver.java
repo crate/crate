@@ -21,7 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexReferenceInfo;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.*;

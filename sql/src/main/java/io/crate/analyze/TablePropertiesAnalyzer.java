@@ -33,7 +33,6 @@ import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.ImmutableSettings;

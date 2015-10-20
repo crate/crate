@@ -21,14 +21,10 @@
 
 package io.crate.sql.parser;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Statement;
-import com.google.common.annotations.VisibleForTesting;
-import org.antlr.runtime.ANTLRStringStream;
-import org.antlr.runtime.CharStream;
-import org.antlr.runtime.CommonTokenStream;
-import org.antlr.runtime.RecognitionException;
-import org.antlr.runtime.TokenStream;
+import org.antlr.runtime.*;
 import org.antlr.runtime.tree.BufferedTreeNodeStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.TreeNodeStream;

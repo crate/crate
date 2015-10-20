@@ -24,19 +24,18 @@ package io.crate.stress;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Iterator;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.junit.Before;
-
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 

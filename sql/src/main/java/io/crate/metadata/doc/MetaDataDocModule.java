@@ -22,11 +22,11 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.array.ArrayMapperMetaMigration;
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.gateway.local.state.meta.LocalGatewayMetaMigrator;
-import io.crate.metadata.doc.array.ArrayMapperMetaMigration;
 
 public class MetaDataDocModule extends AbstractModule {
 

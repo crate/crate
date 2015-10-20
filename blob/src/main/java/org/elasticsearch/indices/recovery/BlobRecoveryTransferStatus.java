@@ -22,7 +22,6 @@
 package org.elasticsearch.indices.recovery;
 
 import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
 
 public class BlobRecoveryTransferStatus {
 

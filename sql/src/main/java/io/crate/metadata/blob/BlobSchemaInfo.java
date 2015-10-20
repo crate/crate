@@ -21,12 +21,6 @@
 
 package io.crate.metadata.blob;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -45,6 +39,11 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.Environment;
+
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 
 public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 

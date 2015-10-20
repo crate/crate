@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.rest.action.RestSQLAction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

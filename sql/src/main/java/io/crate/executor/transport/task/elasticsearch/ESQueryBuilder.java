@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 
-import com.google.common.base.*;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
@@ -43,7 +43,6 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.RegexMatcher;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;

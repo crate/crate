@@ -21,12 +21,7 @@
 
 package io.crate.operation.reference.sys.check;
 
-import io.crate.operation.reference.sys.check.checks.NumberOfPartitionsSysCheck;
-import io.crate.operation.reference.sys.check.checks.SysCheck;
-import io.crate.operation.reference.sys.check.checks.MinMasterNodesSysCheck;
-import io.crate.operation.reference.sys.check.checks.RecoveryAfterNodesSysCheck;
-import io.crate.operation.reference.sys.check.checks.RecoveryAfterTimeSysCheck;
-import io.crate.operation.reference.sys.check.checks.RecoveryExpectedNodesSysCheck;
+import io.crate.operation.reference.sys.check.checks.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
 

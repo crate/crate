@@ -24,7 +24,6 @@ package org.elasticsearch.discovery.srv;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.zen.ZenDiscoveryModule;
 
 /**

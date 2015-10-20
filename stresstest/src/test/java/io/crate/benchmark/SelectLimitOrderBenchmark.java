@@ -44,8 +44,6 @@ import org.junit.rules.TestRule;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-select-limit-order-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-select-limit-order")

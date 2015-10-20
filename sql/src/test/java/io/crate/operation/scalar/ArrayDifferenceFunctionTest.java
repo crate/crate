@@ -36,11 +36,11 @@ import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.*;
 
 public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 

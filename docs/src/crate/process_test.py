@@ -3,7 +3,6 @@ import os
 import signal
 import time
 import random
-import socket
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path

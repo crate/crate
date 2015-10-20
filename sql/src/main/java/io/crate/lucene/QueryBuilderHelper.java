@@ -10,7 +10,10 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.search.*;
+import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.lucene.search.RegexpFilter;
+import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 

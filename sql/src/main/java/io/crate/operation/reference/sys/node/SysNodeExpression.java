@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.SimpleObjectExpression;
 
 public abstract class SysNodeExpression<T> extends SimpleObjectExpression<T> {

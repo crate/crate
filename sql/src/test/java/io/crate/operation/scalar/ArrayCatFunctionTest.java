@@ -33,7 +33,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

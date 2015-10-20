@@ -23,10 +23,15 @@ package io.crate.sql;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.TreeMultimap;
 import io.crate.sql.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;

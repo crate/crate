@@ -31,7 +31,6 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;

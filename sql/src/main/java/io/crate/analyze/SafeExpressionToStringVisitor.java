@@ -21,7 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.StringLiteral;
 
 import javax.annotation.Nullable;
 import java.util.Locale;

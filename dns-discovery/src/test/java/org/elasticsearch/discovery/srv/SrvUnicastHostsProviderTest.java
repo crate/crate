@@ -34,10 +34,10 @@ import org.xbill.DNS.*;
 
 import java.util.List;
 
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.junit.Assert.*;
 
 public class SrvUnicastHostsProviderTest {
 

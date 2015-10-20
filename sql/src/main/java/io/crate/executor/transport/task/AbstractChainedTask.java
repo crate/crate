@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import org.elasticsearch.common.logging.ESLogger;

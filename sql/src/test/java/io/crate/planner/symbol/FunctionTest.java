@@ -34,7 +34,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class FunctionTest extends CrateUnitTest {
 

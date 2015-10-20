@@ -21,14 +21,15 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Strings;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class RelationAnalysisContext {
 

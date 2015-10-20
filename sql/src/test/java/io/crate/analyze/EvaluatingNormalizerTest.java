@@ -2,7 +2,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;

@@ -24,7 +24,6 @@ package io.crate.operation.merge;
 import com.google.common.collect.Ordering;
 
 import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * A pagingIterator that sorts on consumption

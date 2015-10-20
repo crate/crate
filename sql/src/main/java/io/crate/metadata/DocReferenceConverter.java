@@ -25,7 +25,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

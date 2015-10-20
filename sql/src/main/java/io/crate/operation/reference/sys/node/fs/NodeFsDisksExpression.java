@@ -23,9 +23,9 @@ package io.crate.operation.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysNodeObjectArrayReference;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
@@ -41,7 +41,10 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static org.mockito.Mockito.mock;

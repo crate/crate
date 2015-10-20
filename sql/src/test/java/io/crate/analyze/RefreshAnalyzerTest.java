@@ -22,7 +22,10 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.*;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -35,7 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;

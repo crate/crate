@@ -33,7 +33,6 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.action.bulk.BulkProcessorRequest;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;

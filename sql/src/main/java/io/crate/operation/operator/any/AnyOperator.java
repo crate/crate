@@ -23,10 +23,15 @@ package io.crate.operation.operator.any;
 
 import com.google.common.base.Preconditions;
 import io.crate.core.collections.MapComparator;
-import io.crate.metadata.*;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;

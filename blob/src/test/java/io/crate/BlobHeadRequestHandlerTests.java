@@ -32,7 +32,9 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.transport.*;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

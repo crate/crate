@@ -31,9 +31,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 public class StdDevAggregationTest extends AggregationTest {
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {

@@ -31,7 +31,6 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.search.suggest.CustomSuggesterPlugin;
 import org.junit.Before;
 
 import java.io.IOException;

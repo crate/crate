@@ -27,7 +27,10 @@ import io.crate.Version;
 import io.crate.core.CrateComponentLoader;
 import io.crate.plugin.PluginLoader;
 import io.crate.rest.CrateRestMainAction;
-import org.elasticsearch.common.inject.*;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.inject.PreProcessModule;
+import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
@@ -37,12 +40,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.action.main.RestMainAction;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static org.elasticsearch.common.inject.Modules.createModule;
 
 public class CrateCoreModule extends AbstractModule implements PreProcessModule {
 

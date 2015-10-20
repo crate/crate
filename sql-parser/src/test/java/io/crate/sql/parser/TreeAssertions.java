@@ -21,12 +21,11 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.tree.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import io.crate.sql.tree.*;
 
 import javax.annotation.Nullable;
-
 import java.util.List;
 
 import static io.crate.sql.SqlFormatter.formatSql;

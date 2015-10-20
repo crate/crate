@@ -22,7 +22,6 @@
 package io.crate.planner.node.management;
 
 import io.crate.analyze.AbstractShowAnalyzedStatement;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 

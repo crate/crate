@@ -46,8 +46,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-update-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-update")

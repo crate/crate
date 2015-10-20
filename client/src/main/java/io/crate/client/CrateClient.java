@@ -55,8 +55,6 @@ import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-
-
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 
 public class CrateClient {

@@ -27,7 +27,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class TableSettingsTest extends SQLTransportIntegrationTest {

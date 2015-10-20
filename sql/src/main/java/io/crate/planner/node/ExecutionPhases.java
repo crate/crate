@@ -26,7 +26,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 
 public class ExecutionPhases {
 

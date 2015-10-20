@@ -24,8 +24,6 @@ package io.crate.executor.transport.distributed;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 /**
  * Builder used to build one or more buckets
  */

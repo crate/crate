@@ -32,7 +32,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Set;
 
 public class SortingTopNProjector extends AbstractProjector {

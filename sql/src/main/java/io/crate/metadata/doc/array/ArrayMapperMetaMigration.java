@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.gateway.local.state.meta.LocalGatewayMetaMigrator;
 
 import javax.annotation.Nullable;

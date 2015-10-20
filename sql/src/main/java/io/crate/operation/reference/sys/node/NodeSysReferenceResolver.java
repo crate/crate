@@ -21,9 +21,9 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 

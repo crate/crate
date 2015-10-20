@@ -34,7 +34,6 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;

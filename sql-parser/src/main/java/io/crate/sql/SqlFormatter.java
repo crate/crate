@@ -21,9 +21,12 @@
 
 package io.crate.sql;
 
-import com.google.common.base.*;
-import io.crate.sql.tree.*;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import io.crate.sql.tree.*;
 
 import java.util.*;
 

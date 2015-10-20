@@ -29,8 +29,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class MinimumAggregationTest extends AggregationTest {
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {

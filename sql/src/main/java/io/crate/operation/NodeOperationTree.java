@@ -24,7 +24,6 @@ package io.crate.operation;
 import io.crate.planner.node.ExecutionPhase;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * An execution tree generated from a Plan.

@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.Schemas;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 

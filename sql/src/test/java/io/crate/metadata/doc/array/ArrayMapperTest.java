@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc.array;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateSingleNodeTest;
 import io.crate.testing.TestingHelpers;

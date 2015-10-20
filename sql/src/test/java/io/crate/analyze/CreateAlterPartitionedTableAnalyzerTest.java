@@ -22,7 +22,10 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.*;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
