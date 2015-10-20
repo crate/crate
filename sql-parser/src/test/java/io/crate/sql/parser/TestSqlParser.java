@@ -21,11 +21,10 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.tree.*;
-import io.crate.sql.tree.IntervalLiteral.Sign;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.sql.tree.*;
 import org.testng.annotations.Test;
 
 import java.util.Locale;
@@ -226,21 +225,6 @@ public class TestSqlParser
             assertEquals(e.getLineNumber(), 3);
             assertEquals(e.getColumnNumber(), 7);
         }
-    }
-
-    @Test
-    public void testInterval()
-            throws Exception
-    {
-        assertExpression("INTERVAL '123' YEAR", new IntervalLiteral("123", "YEAR", Sign.POSITIVE));
-        // assertExpression("INTERVAL '123-3' YEAR TO MONTH", new IntervalLiteral("123-3", "YEAR TO MONTH", Sign.POSITIVE));
-        assertExpression("INTERVAL '123' MONTH", new IntervalLiteral("123", "MONTH", Sign.POSITIVE));
-        assertExpression("INTERVAL '123' DAY", new IntervalLiteral("123", "DAY", Sign.POSITIVE));
-        // assertExpression("INTERVAL '123 23:58:53.456' DAY TO SECOND", new IntervalLiteral("123 23:58:53.456", "DAY TO SECOND", Sign.POSITIVE));
-        assertExpression("INTERVAL '123' HOUR", new IntervalLiteral("123", "HOUR", Sign.POSITIVE));
-        // assertExpression("INTERVAL '23:59' HOUR TO MINUTE", new IntervalLiteral("23:58", "HOUR TO MINUTE", Sign.POSITIVE));
-        assertExpression("INTERVAL '123' MINUTE", new IntervalLiteral("123", "MINUTE", Sign.POSITIVE));
-        assertExpression("INTERVAL '123' SECOND", new IntervalLiteral("123", "SECOND", Sign.POSITIVE));
     }
 
     @Test
