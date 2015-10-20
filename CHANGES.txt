@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Crate won't start properly if a plugin loading error occurs
+   (e.g. through a misconfigured plugin)
+
  - Fixed an issue that was introduced in 0.52.0 which could cause a
    FetchContext to remain open longer than necessary in an error case.
    This could then lead to failures if an attempt was made to move shards to
