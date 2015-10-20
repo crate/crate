@@ -47,7 +47,7 @@ public abstract class Literal
                 literal = new LongLiteral(value.toString());
             }
         } else if (value instanceof Boolean) {
-            literal = new BooleanLiteral(value.toString());
+            literal = (Boolean) value ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
         } else if (value instanceof Object[]) {
             List<Expression> expressions = new ArrayList<>();
             for (Object o : (Object[]) value) {
