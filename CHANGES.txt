@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed the issue which causes overloading of the first configured node in
+   the cluster when multiple clients connections are established
+
  - Fix: Crate won't start properly if a plugin loading error occurs
    (e.g. through a misconfigured plugin)
 
