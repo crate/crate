@@ -45,7 +45,6 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
@@ -68,6 +67,7 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.isFunction;
 import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -263,6 +263,16 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
         CollectPhase cpR = ((CollectAndMerge) plan.right().plan()).collectPhase();
         assertThat(cpR.nodePageSizeHint(), is(750));
+    }
+
+    @Test
+    public void testNoNodePageSizePushDownWithJoinCondition() throws Exception {
+        NestedLoop plan = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1 limit 1000");
+        CollectPhase cpL = ((CollectAndMerge) plan.left().plan()).collectPhase();
+        assertThat(cpL.nodePageSizeHint(), nullValue());
+
+        CollectPhase cpR = ((CollectAndMerge) plan.right().plan()).collectPhase();
+        assertThat(cpR.nodePageSizeHint(), nullValue());
     }
 
     @Test

@@ -131,7 +131,7 @@ public class CrossJoinConsumer implements Consumer {
             QueriedTableRelation<?> right = queriedTables.get(1);
 
             Integer limit = statement.querySpec().limit();
-            if (limit != null) {
+            if (!isFilterNeeded && limit != null) {
                 context.requiredPageSize(limit + statement.querySpec().offset());
             }
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
