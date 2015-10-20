@@ -438,12 +438,6 @@ Paths
        file:
          file: ${path.logs}/${cluster.name}.log
 
-**path.plugins**
-  | *Runtime:* ``no``
-
-  Filesystem path to the directory containing Elasticsearch plugins that will be loaded
-  on startup.
-
 Plugins
 -------
 
