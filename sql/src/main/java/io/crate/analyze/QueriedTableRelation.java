@@ -23,10 +23,10 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Collection;

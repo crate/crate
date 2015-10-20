@@ -21,11 +21,11 @@
 
 package io.crate.analyze.where;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
 
 import javax.annotation.Nullable;
 

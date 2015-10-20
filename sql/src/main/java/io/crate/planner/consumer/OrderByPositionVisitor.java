@@ -22,10 +22,10 @@
 package io.crate.planner.consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.SymbolVisitor;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;

@@ -21,11 +21,11 @@
 
 package io.crate.operation.operator.any;
 
+import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Function;
 
 import java.util.regex.Pattern;
 

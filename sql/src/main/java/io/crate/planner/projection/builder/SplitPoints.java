@@ -22,8 +22,8 @@
 package io.crate.planner.projection.builder;
 
 import io.crate.analyze.QuerySpec;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 
 import java.util.ArrayList;
 

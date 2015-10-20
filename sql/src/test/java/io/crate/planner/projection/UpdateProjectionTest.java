@@ -21,8 +21,8 @@
 
 package io.crate.planner.projection;
 
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

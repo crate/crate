@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
 import java.util.List;

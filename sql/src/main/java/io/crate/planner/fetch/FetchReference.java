@@ -22,10 +22,10 @@
 
 package io.crate.planner.fetch;
 
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

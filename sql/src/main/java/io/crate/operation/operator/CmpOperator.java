@@ -1,11 +1,11 @@
 package io.crate.operation.operator;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.Map;
 import java.util.Objects;
@@ -13,7 +13,7 @@ import java.util.Objects;
 public abstract class CmpOperator extends Operator<Object> {
 
     /**
-     * called inside {@link #normalizeSymbol(io.crate.planner.symbol.Function)}
+     * called inside {@link #normalizeSymbol(io.crate.analyze.symbol.Function)}
      * in order to interpret the result of compareTo
      *
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean

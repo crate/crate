@@ -23,13 +23,13 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
 

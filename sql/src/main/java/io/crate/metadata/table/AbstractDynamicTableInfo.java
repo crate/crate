@@ -21,11 +21,11 @@
 
 package io.crate.metadata.table;
 
+import io.crate.analyze.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.symbol.DynamicReference;
 import org.elasticsearch.common.Nullable;
 
 public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {

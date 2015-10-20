@@ -22,12 +22,12 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.Lists;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

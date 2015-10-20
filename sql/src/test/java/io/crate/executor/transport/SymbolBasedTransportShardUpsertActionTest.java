@@ -21,9 +21,9 @@
 
 package io.crate.executor.transport;
 
+import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchException;

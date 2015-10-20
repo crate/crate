@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
@@ -30,8 +32,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;

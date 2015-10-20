@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
@@ -31,7 +32,6 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;

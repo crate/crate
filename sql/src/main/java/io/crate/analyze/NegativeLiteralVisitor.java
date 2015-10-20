@@ -20,10 +20,10 @@
  */
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.types.*;
 
 public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {

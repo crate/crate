@@ -22,8 +22,8 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
-import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
 import java.util.*;

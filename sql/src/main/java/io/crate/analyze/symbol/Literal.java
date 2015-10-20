@@ -1,4 +1,4 @@
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;

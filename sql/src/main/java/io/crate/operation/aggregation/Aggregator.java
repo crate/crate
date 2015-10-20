@@ -21,9 +21,9 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.analyze.symbol.Aggregation;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Aggregation;
 
 import java.util.Locale;
 

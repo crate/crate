@@ -25,12 +25,12 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 

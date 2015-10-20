@@ -23,9 +23,9 @@ package io.crate.planner;
 
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;

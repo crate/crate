@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.planner.symbol.Function;
+import io.crate.analyze.symbol.Function;
 import io.crate.types.DataType;
 
 import java.util.List;

@@ -1,7 +1,7 @@
 package io.crate.operation;
 
+import io.crate.analyze.symbol.Aggregation;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.symbol.Aggregation;
 
 import java.util.ArrayList;
 import java.util.List;

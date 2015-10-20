@@ -24,11 +24,11 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

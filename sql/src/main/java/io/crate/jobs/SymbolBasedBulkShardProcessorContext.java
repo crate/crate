@@ -21,7 +21,7 @@
 
 package io.crate.jobs;
 
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Symbol;
 import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 
 import javax.annotation.Nonnull;

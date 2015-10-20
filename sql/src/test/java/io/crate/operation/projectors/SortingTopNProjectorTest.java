@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import io.crate.analyze.symbol.Literal;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -30,7 +31,6 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;

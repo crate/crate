@@ -22,11 +22,11 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;

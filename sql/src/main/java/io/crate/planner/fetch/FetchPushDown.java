@@ -29,11 +29,11 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.*;

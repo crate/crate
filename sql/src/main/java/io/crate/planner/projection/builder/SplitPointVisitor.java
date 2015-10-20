@@ -23,11 +23,11 @@ package io.crate.planner.projection.builder;
 
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Collection;

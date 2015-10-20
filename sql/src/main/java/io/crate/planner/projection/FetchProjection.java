@@ -22,8 +22,8 @@
 package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;

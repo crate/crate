@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.symbol.Literal;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
@@ -32,7 +33,6 @@ import io.crate.operation.InputRow;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowFilter;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.symbol.Literal;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

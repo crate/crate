@@ -21,8 +21,8 @@
 
 package io.crate.analyze.validator;
 
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;

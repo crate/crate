@@ -21,7 +21,7 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.planner.symbol.*;
+import io.crate.analyze.symbol.*;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;

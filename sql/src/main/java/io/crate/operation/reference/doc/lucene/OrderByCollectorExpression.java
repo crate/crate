@@ -2,7 +2,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.action.sql.query.SortSymbolVisitor;
 import io.crate.analyze.OrderBy;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataType;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.SortField;

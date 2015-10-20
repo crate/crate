@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

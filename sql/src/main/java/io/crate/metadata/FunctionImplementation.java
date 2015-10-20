@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Symbol;
 
 public interface FunctionImplementation<SymbolType extends Symbol> {
 

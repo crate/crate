@@ -21,8 +21,8 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
 
 import javax.annotation.Nullable;
 

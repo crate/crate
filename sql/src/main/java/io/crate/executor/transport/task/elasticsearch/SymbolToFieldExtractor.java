@@ -22,16 +22,16 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Lists;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
-import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Helper class for converting a {@link io.crate.planner.symbol.Symbol} to a
+ * Helper class for converting a {@link io.crate.analyze.symbol.Symbol} to a
  * {@link io.crate.executor.transport.task.elasticsearch.FieldExtractor}.
  *
  * @param <T> The response class a concrete FieldExtractorFactory is operating on

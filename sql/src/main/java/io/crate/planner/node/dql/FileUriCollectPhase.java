@@ -24,12 +24,12 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

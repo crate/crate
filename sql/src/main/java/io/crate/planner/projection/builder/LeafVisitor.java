@@ -21,9 +21,9 @@
 
 package io.crate.planner.projection.builder;
 
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Collection;

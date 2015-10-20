@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Symbol;
 
 import javax.annotation.Nullable;
 

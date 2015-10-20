@@ -21,10 +21,10 @@
 
 package io.crate.operation.operator.any;
 
+import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Function;
 import io.crate.sql.tree.ComparisonExpression;
 
 public class AnyNeqOperator extends AnyOperator<AnyNeqOperator> {

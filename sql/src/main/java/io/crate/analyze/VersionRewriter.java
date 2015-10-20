@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.Operators;
-import io.crate.planner.symbol.*;
 import org.elasticsearch.common.Nullable;
 
 /**

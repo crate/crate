@@ -23,11 +23,11 @@ package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.Lists;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;

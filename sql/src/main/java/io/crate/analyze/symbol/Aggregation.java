@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;

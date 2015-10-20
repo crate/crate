@@ -21,12 +21,12 @@
 
 package io.crate.operation.collect.files;
 
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.SymbolFormatter;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 

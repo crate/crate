@@ -22,11 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.metadata.ColumnIdent;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

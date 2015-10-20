@@ -23,11 +23,11 @@ package io.crate.lucene;
 
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;

@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.action.sql.SQLResponse;
-import io.crate.planner.symbol.*;
+import io.crate.analyze.symbol.*;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;

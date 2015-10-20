@@ -21,9 +21,9 @@
 
 package io.crate.operation;
 
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -23,10 +23,10 @@ package io.crate.metadata;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

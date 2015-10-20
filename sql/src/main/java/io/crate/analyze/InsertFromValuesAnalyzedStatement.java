@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 

@@ -3,11 +3,11 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.planner.symbol.*;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;

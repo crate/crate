@@ -31,6 +31,8 @@ import io.crate.action.sql.SQLBaseRequest;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Literal;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
@@ -50,8 +52,6 @@ import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
-import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
@@ -65,7 +65,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.planner.symbol.Literal.newLiteral;
+import static io.crate.analyze.symbol.Literal.newLiteral;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -158,9 +158,9 @@ public class ExpressionAnalyzer {
     }
 
     /**
-     * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
+     * normalize and validate given value according to the corresponding {@link io.crate.analyze.symbol.Reference}
      *
-     * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
+     * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.analyze.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
@@ -251,9 +251,9 @@ public class ExpressionAnalyzer {
     /**
      * normalize and validate the given value according to the given {@link io.crate.types.DataType}
      *
-     * @param inputValue any {@link io.crate.planner.symbol.Symbol} that evaluates to a Literal or Parameter
+     * @param inputValue any {@link io.crate.analyze.symbol.Symbol} that evaluates to a Literal or Parameter
      * @param dataType   the type to convert this input to
-     * @return a {@link io.crate.planner.symbol.Literal} of type <code>dataType</code>
+     * @return a {@link io.crate.analyze.symbol.Literal} of type <code>dataType</code>
      */
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
         try {
@@ -920,7 +920,7 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid MATCH type '%s'", matchType), e);
             }
             Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext.parameters());
-            return new io.crate.planner.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
+            return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
         }
     }
 

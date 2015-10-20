@@ -27,7 +27,7 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.Locale;
 
-import static io.crate.planner.symbol.Literal.newLiteral;
+import static io.crate.analyze.symbol.Literal.newLiteral;
 
 public class ParameterContext {
 
@@ -101,7 +101,7 @@ public class ParameterContext {
         return parameters;
     }
 
-    public io.crate.planner.symbol.Literal getAsSymbol(int index) {
+    public io.crate.analyze.symbol.Literal getAsSymbol(int index) {
         try {
             Object value = parameters()[index];
             DataType type = guessTypeSafe(value);

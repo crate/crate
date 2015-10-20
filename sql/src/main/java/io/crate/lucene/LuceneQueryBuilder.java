@@ -32,6 +32,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
@@ -51,7 +52,6 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
-import io.crate.planner.symbol.*;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -752,7 +752,7 @@ public class LuceneQueryBuilder {
 
         /**
          * interface for functions that can be used to generate a query from inner functions.
-         * Has only a single method {@link #apply(io.crate.planner.symbol.Function, io.crate.planner.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
+         * Has only a single method {@link #apply(io.crate.analyze.symbol.Function, io.crate.analyze.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
          *
          * e.g. in a query like
          * <pre>

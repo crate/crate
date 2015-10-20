@@ -22,6 +22,9 @@
 package io.crate.operation.collect;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
@@ -29,9 +32,6 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;

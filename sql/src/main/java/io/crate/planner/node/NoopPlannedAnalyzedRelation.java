@@ -24,13 +24,13 @@ package io.crate.planner.node;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Field;
 
 import javax.annotation.Nullable;
 import java.util.List;

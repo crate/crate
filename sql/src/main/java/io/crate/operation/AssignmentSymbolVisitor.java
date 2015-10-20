@@ -21,10 +21,10 @@
 
 package io.crate.operation;
 
+import io.crate.analyze.symbol.*;
 import io.crate.core.collections.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.planner.symbol.*;
 
 import java.util.*;
 

@@ -26,6 +26,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
@@ -37,8 +39,6 @@ import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;

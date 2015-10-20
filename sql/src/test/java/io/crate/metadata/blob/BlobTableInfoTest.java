@@ -22,10 +22,10 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.DynamicReference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

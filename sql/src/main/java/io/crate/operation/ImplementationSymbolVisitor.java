@@ -21,6 +21,10 @@
 
 package io.crate.operation;
 
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -29,10 +33,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
 
 import java.util.*;
 

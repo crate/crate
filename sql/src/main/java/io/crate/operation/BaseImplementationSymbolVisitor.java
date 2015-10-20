@@ -22,11 +22,11 @@
 
 package io.crate.operation;
 
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.aggregation.FunctionExpression;
-import io.crate.planner.symbol.*;
 
 import java.util.List;
 

@@ -21,12 +21,12 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 

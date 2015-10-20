@@ -21,8 +21,8 @@
 
 package io.crate.executor.transport;
 
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;

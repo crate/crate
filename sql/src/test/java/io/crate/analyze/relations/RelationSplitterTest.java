@@ -25,16 +25,16 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
@@ -132,7 +132,7 @@ public class RelationSplitterTest {
                 .where(new WhereClause(symbol));
         QuerySpec splitQuerySpec = RelationSplitter.splitQuerySpec(tr1, querySpec).querySpec();
 
-        assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.planner.symbol.MatchPredicate.class));
+        assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.analyze.symbol.MatchPredicate.class));
         assertThat(querySpec.where().hasQuery(), is(false));
     }
 

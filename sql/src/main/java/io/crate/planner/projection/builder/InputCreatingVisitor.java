@@ -22,7 +22,7 @@
 package io.crate.planner.projection.builder;
 
 import com.google.common.base.MoreObjects;
-import io.crate.planner.symbol.*;
+import io.crate.analyze.symbol.*;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Singleton;
 

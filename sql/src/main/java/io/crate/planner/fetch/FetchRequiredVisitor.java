@@ -23,8 +23,8 @@
 package io.crate.planner.fetch;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;

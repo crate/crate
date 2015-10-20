@@ -21,11 +21,11 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 

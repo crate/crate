@@ -23,10 +23,10 @@ package io.crate.metadata;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.Collection;
 import java.util.List;

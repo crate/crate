@@ -23,6 +23,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.sys.*;
@@ -32,7 +33,6 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 

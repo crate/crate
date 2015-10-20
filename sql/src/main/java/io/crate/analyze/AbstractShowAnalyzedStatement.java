@@ -22,9 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Collections;

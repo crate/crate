@@ -22,11 +22,11 @@
 package io.crate.operation.scalar.elasticsearch.script;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Literal;
 import io.crate.types.*;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.fielddata.ScriptDocValues;

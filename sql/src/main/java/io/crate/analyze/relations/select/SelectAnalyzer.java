@@ -28,10 +28,10 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalysisContext;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 
 import java.util.ArrayList;

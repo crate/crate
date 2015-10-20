@@ -22,6 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
@@ -32,8 +34,6 @@ import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;

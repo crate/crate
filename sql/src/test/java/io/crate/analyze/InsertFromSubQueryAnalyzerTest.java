@@ -22,6 +22,10 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
@@ -33,10 +37,6 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.StringType;
 import org.elasticsearch.common.inject.Module;

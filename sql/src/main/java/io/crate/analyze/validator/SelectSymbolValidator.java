@@ -21,10 +21,10 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.MatchPredicate;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 
 import java.util.Collection;
 

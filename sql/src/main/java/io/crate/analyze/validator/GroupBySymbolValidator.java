@@ -21,7 +21,7 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.planner.symbol.*;
+import io.crate.analyze.symbol.*;
 import io.crate.types.DataTypes;
 
 public class GroupBySymbolValidator {

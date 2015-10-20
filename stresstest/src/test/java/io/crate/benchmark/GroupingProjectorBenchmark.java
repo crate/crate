@@ -22,6 +22,9 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
@@ -37,9 +40,6 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.GroupingProjector;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

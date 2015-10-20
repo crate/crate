@@ -27,6 +27,8 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
@@ -35,8 +37,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
@@ -292,7 +292,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (symbol.symbolType().isValueSymbol()) {
             Literal longLiteral;
             try {
-                longLiteral = io.crate.planner.symbol.Literal.convert(symbol, DataTypes.LONG);
+                longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new UnsupportedOperationException(String.format(
                         "Cannot use %s in %s clause", SymbolFormatter.format(symbol), clause));

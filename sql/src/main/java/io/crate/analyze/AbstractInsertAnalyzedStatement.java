@@ -23,13 +23,13 @@ package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.IntSet;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

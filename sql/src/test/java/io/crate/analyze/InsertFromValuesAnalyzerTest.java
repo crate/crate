@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
@@ -33,8 +35,6 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

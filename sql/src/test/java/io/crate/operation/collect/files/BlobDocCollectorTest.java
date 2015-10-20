@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.files;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.blob.BlobContainer;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.ExecutionState;
@@ -29,7 +30,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import io.crate.operation.reference.doc.blob.BlobLastModifiedExpression;
-import io.crate.planner.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.apache.lucene.util.BytesRef;

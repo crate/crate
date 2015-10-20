@@ -24,9 +24,9 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
-import io.crate.planner.symbol.Field;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;

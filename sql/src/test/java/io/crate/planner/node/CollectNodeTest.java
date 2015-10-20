@@ -23,13 +23,13 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Value;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;

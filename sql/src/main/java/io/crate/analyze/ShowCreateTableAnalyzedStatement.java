@@ -22,9 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.symbol.Field;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;

@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;

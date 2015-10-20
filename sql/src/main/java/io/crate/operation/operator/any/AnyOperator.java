@@ -22,6 +22,9 @@
 package io.crate.operation.operator.any;
 
 import com.google.common.base.Preconditions;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -29,9 +32,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -43,7 +43,7 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     public static final String OPERATOR_PREFIX = "any_";
 
     /**
-     * called inside {@link #normalizeSymbol(io.crate.planner.symbol.Function)}
+     * called inside {@link #normalizeSymbol(io.crate.analyze.symbol.Function)}
      * in order to interpret the result of compareTo
      *
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean

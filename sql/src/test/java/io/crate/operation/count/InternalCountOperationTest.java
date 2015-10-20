@@ -22,9 +22,9 @@
 package io.crate.operation.count;
 
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Literal;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.symbol.Literal;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;

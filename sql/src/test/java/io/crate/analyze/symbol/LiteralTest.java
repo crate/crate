@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;

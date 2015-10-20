@@ -23,6 +23,7 @@ package io.crate.action.sql.query;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.*;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -30,7 +31,6 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.search.FieldComparator;

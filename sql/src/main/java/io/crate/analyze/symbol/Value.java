@@ -19,89 +19,56 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
-import com.google.common.base.MoreObjects;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
-/**
- * A symbol which represents a column of a result array
- */
-public class InputColumn extends Symbol implements Comparable<InputColumn> {
+public class Value extends Symbol {
 
-    public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
+    public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
         @Override
-        public InputColumn newInstance() {
-            return new InputColumn();
+        public Value newInstance() {
+            return new Value();
         }
     };
 
-    private DataType dataType;
+    private DataType type;
 
-    private int index;
-
-    public InputColumn(int index, @Nullable DataType dataType) {
-        assert index >= 0;
-        this.index = index;
-        this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
+    public Value(DataType type) {
+        this.type = type;
     }
 
-    public InputColumn(int index) {
-        this(index, null);
-    }
-
-    public InputColumn() {
+    public Value() {
 
     }
 
-    public int index() {
-        return index;
+    public DataType valueType() {
+        return type;
     }
 
     @Override
     public SymbolType symbolType() {
-        return SymbolType.INPUT_COLUMN;
-    }
-
-    @Override
-    public DataType valueType() {
-        return dataType;
+        return SymbolType.VALUE;
     }
 
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitInputColumn(this, context);
+        return visitor.visitValue(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        index = in.readVInt();
-        dataType = DataTypes.fromStream(in);
+        type = DataTypes.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(index);
-        DataTypes.toStream(dataType, out);
-    }
-
-    @Override
-    public int compareTo(InputColumn o) {
-        return Integer.compare(index, o.index);
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("index", index)
-                .add("type", dataType)
-                .toString();
+        DataTypes.toStream(type, out);
     }
 
     @Override
@@ -109,16 +76,22 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        InputColumn that = (InputColumn) o;
+        Value value = (Value) o;
 
-        if (index != that.index) return false;
+        if (type != value.type) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return index;
+        return type != null ? type.hashCode() : 0;
     }
 
+    @Override
+    public String toString() {
+        return "Value{" +
+                "type=" + type +
+                '}';
+    }
 }

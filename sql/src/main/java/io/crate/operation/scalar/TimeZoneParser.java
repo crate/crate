@@ -21,7 +21,7 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.planner.symbol.Literal;
+import io.crate.analyze.symbol.Literal;
 import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTimeZone;
 

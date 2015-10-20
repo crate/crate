@@ -23,9 +23,9 @@ package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbolVisitor;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

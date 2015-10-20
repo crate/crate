@@ -23,9 +23,9 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.symbol.*;
 
 import java.util.List;
 

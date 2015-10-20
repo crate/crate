@@ -22,9 +22,9 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Value;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

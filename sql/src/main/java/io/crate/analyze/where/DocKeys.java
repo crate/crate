@@ -25,9 +25,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbolVisitor;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Preconditions;
 

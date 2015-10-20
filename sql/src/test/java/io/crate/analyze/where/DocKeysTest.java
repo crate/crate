@@ -22,8 +22,8 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

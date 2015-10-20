@@ -24,14 +24,14 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.Input;
 import io.crate.operation.merge.NumberedIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

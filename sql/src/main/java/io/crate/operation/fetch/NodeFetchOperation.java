@@ -27,12 +27,12 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.IndexService;
 

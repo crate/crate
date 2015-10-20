@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.planner.symbol.Reference;
+import io.crate.analyze.symbol.Reference;
 
 /**
  * Interface is used together with the {@link io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor}

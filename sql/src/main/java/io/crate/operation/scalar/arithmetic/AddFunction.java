@@ -21,12 +21,12 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
 
 import java.util.List;

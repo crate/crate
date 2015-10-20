@@ -28,6 +28,7 @@ import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
@@ -35,7 +36,6 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 

@@ -26,9 +26,9 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.OutputName;
 import io.crate.planner.consumer.QuerySplitter;
-import io.crate.planner.symbol.*;
 
 import java.util.*;
 

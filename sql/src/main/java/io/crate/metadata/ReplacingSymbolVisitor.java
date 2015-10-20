@@ -22,10 +22,10 @@
 
 package io.crate.metadata;
 
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -23,10 +23,10 @@ package io.crate.planner.node.fetch;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

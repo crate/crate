@@ -21,10 +21,10 @@
 
 package io.crate.operation.scalar.elasticsearch.script;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.script.ExecutableScript;
 import org.elasticsearch.script.ScriptModule;

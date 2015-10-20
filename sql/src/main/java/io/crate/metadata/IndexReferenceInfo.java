@@ -118,7 +118,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
         /**
          * if this is extended make sure to adjust all other places where ReferenceInfo/IndexReferenceInfo
          * is streamed for example in
-         * {@link io.crate.planner.symbol.Reference#readFrom(org.elasticsearch.common.io.stream.StreamInput)}
+         * {@link io.crate.analyze.symbol.Reference#readFrom(org.elasticsearch.common.io.stream.StreamInput)}
          */
     }
 

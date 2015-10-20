@@ -22,10 +22,10 @@
 
 package io.crate.planner.node.fetch;
 
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
 
 import java.util.Collection;
 import java.util.List;

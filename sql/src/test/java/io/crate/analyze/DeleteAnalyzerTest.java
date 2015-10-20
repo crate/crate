@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.RowGranularity;
@@ -32,8 +34,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;

@@ -21,9 +21,9 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.planner.symbol.Field;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;

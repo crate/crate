@@ -21,8 +21,8 @@
 
 package io.crate.operation.scalar;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.Scalar;
-import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;

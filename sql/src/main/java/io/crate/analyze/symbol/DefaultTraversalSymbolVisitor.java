@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze.symbol;
 
 public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<C, R> {
 
