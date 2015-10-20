@@ -245,7 +245,9 @@ public class ExecutionPhasesTask extends JobTask {
                 pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
                     @Override
                     public void needMore(boolean needMore) {
-                        // can't page with directResult
+                        if (needMore) {
+                            LOGGER.warn("requested more data but directResponse doesn't support paging");
+                        }
                     }
 
                     @Override

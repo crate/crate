@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a possible race condition that could lead to queries getting stuck
+   (Only affected SELECT queries with a limit/offset > 500000) 
+
  - Fix: Crate won't start properly if a plugin loading error occurs
    (e.g. through a misconfigured plugin)
  
