@@ -34,25 +34,41 @@ import java.util.*;
 public class RelationSplitter {
 
     private final static SplittingVisitor SPLITTING_VISITOR = new SplittingVisitor();
-    private final static FieldReplacingVisitor FIELD_REPLACING_VISITOR = new FieldReplacingVisitor();
 
     public static SplitQuerySpecContext splitQuerySpec(AnalyzedRelation analyzedRelation,
                                                        QuerySpec querySpec) {
+        QuerySpec splitQuerySpec = extractQuerySpecForRelation(analyzedRelation, querySpec);
+
+        List<OutputName> outputNames = new ArrayList<>(splitQuerySpec.outputs().size());
+        for (Symbol symbol : splitQuerySpec.outputs()) {
+            outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
+        }
+
+        return new SplitQuerySpecContext(splitQuerySpec, outputNames);
+    }
+
+    /**
+     * Extracts a query specification of the given relation from a given upper level query specification
+     * @param relation the relation for which the query specification should be extracted for
+     * @param querySpec the source query specification
+     * @return the new query specification holding only fields from the given relation
+     */
+    public static QuerySpec extractQuerySpecForRelation(AnalyzedRelation relation, QuerySpec querySpec) {
         QuerySpec splitQuerySpec = new QuerySpec();
         List<Symbol> outputs = querySpec.outputs();
         if (outputs == null || outputs.isEmpty()) {
             throw new IllegalArgumentException("a querySpec needs to have some outputs in order to create a new sub-relation");
         }
-        List<Symbol> splitOutputs = Lists.newArrayList(RelationSplitter.splitForRelation(analyzedRelation, outputs).splitSymbols());
+        List<Symbol> splitOutputs = Lists.newArrayList(RelationSplitter.splitForRelation(relation, outputs).splitSymbols());
 
         OrderBy orderBy = querySpec.orderBy();
         if (orderBy != null) {
-            RelationSplitter.splitOrderBy(analyzedRelation, querySpec, splitQuerySpec, splitOutputs, orderBy);
+            RelationSplitter.splitOrderBy(relation, querySpec, splitQuerySpec, splitOutputs, orderBy);
         }
 
         WhereClause where = querySpec.where();
         if (where != null && where.hasQuery()) {
-            RelationSplitter.splitWhereClause(analyzedRelation, querySpec, splitQuerySpec, splitOutputs, where);
+            RelationSplitter.splitWhereClause(relation, querySpec, splitQuerySpec, splitOutputs, where);
         } else {
             splitQuerySpec.where(WhereClause.MATCH_ALL);
         }
@@ -64,35 +80,48 @@ public class RelationSplitter {
             splitQuerySpec.offset(0);
         }
         splitQuerySpec.outputs(splitOutputs);
-
-        List<OutputName> outputNames = new ArrayList<>(splitQuerySpec.outputs().size());
-        for (Symbol symbol : splitQuerySpec.outputs()) {
-            outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
-        }
-
-        return new SplitQuerySpecContext(splitQuerySpec, outputNames);
+        return splitQuerySpec;
     }
 
-    public static void replaceFields(AnalyzedRelation analyzedRelation,
-                                     QuerySpec querySpec,
-                                     QuerySpec splitQuerySpec) {
+    public static void replaceFields(Iterable<? extends QueriedRelation> subRelations,
+                                     QuerySpec parentQuerySpec) {
+        Map<Symbol, Field> fieldMap = new HashMap<>();
+        for (QueriedRelation subRelation : subRelations) {
+            List<Field> fields = subRelation.fields();
+            QuerySpec splitQuerySpec = subRelation.querySpec();
+            for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
+                fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
+            }
+        }
+        replaceFields(parentQuerySpec, fieldMap);
+    }
+
+    public static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Field> fieldMap){
         WhereClause where;
-        OrderBy orderBy;Map<Symbol, Field> fieldMap = new HashMap<>();
-        List<Field> fields = analyzedRelation.fields();
+        OrderBy orderBy;
+        MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), fieldMap);
+        where = parentQuerySpec.where();
+        if (where != null && where.hasQuery()) {
+            parentQuerySpec.where(new WhereClause(
+                    MappingSymbolVisitor.inPlace().process(where.query(), fieldMap)
+                    ));
+        }
+        orderBy = parentQuerySpec.orderBy();
+        if (orderBy != null) {
+            MappingSymbolVisitor.inPlace().processInplace(orderBy.orderBySymbols(), fieldMap);
+        }
+
+    }
+
+    public static void replaceFields(QueriedRelation subRelation,
+                                     QuerySpec parentQuerySpec) {
+        QuerySpec splitQuerySpec = subRelation.querySpec();
+        Map<Symbol, Field> fieldMap = new HashMap<>();
+        List<Field> fields = subRelation.fields();
         for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
             fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
         }
-        FieldReplacingCtx fieldReplacingCtx = new FieldReplacingCtx(analyzedRelation, fieldMap);
-        replaceFields(querySpec.outputs(), fieldReplacingCtx);
-
-        where = querySpec.where();
-        if (where != null && where.hasQuery()) {
-            querySpec.where(new WhereClause(replaceFields(where.query(), fieldReplacingCtx)));
-        }
-        orderBy = querySpec.orderBy();
-        if (orderBy != null) {
-            replaceFields(orderBy.orderBySymbols(), fieldReplacingCtx);
-        }
+        replaceFields(parentQuerySpec, fieldMap);
     }
 
     private static void splitWhereClause(AnalyzedRelation analyzedRelation,
@@ -157,26 +186,16 @@ public class RelationSplitter {
         boolean[] reverseFlags = new boolean[splitContext.directSplit.size()];
         Boolean[] nullsFirst = new Boolean[splitContext.directSplit.size()];
 
-        int numRemaining = orderBy.orderBySymbols().size() - splitContext.directSplit.size();
-        List<Symbol> remainingOrderBySymbols = new ArrayList<>(numRemaining);
-        boolean[] remainingReverseFlags = new boolean[numRemaining];
-        Boolean[] remainingNullsFirst = new Boolean[numRemaining];
-
         int idx = 0;
         for (Symbol symbol : orderBy.orderBySymbols()) {
             int splitIdx = splitContext.directSplit.indexOf(symbol);
-            if (splitIdx < 0) {
-                remainingReverseFlags[remainingOrderBySymbols.size()] = orderBy.reverseFlags()[idx];
-                remainingNullsFirst[remainingOrderBySymbols.size()] = orderBy.nullsFirst()[idx];
-                remainingOrderBySymbols.add(symbol);
-            } else {
+            if (splitIdx >= 0 ) {
                 reverseFlags[splitIdx] = orderBy.reverseFlags()[idx];
                 nullsFirst[splitIdx] = orderBy.nullsFirst()[idx];
             }
             idx++;
         }
         splitQuerySpec.orderBy(new OrderBy(splitContext.directSplit, reverseFlags, nullsFirst));
-        querySpec.orderBy(new OrderBy(remainingOrderBySymbols, remainingReverseFlags, remainingNullsFirst));
     }
 
     private static void addAllNew(List<Symbol> list, Collection<? extends Symbol> collectionToAdd) {
@@ -189,54 +208,15 @@ public class RelationSplitter {
     }
 
 
-    private static Symbol replaceFields(Symbol symbol, FieldReplacingCtx fieldReplacingCtx) {
-        return FIELD_REPLACING_VISITOR.process(symbol, fieldReplacingCtx);
-    }
-
-    private static void replaceFields(List<Symbol> outputs, FieldReplacingCtx fieldReplacingCtx) {
-        for (int i = 0; i < outputs.size(); i++) {
-            outputs.set(i, replaceFields(outputs.get(i), fieldReplacingCtx));
-        }
-    }
-
     private static class FieldReplacingCtx {
-        AnalyzedRelation relation;
         Map<Symbol, Field> fieldMap;
 
-        public FieldReplacingCtx(AnalyzedRelation analyzedRelation, Map<Symbol, Field> fieldMap) {
-            relation = analyzedRelation;
+        public FieldReplacingCtx(Map<Symbol, Field> fieldMap) {
             this.fieldMap = fieldMap;
         }
 
         public Field get(Symbol symbol) {
             return fieldMap.get(symbol);
-        }
-    }
-
-    private static class FieldReplacingVisitor extends SymbolVisitor<FieldReplacingCtx, Symbol> {
-        @Override
-        public Symbol visitFunction(Function symbol, FieldReplacingCtx context) {
-            Field field = context.get(symbol);
-            if (field != null) {
-                return field;
-            }
-            if (symbol.arguments().isEmpty()) {
-                return symbol;
-            }
-            List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
-            for (Symbol argument : symbol.arguments()) {
-                newArgs.add(process(argument, context));
-            }
-            return new Function(symbol.info(), newArgs);
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, FieldReplacingCtx context) {
-            Field field = context.get(symbol);
-            if (field != null) {
-                return field;
-            }
-            return symbol;
         }
     }
 

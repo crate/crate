@@ -21,21 +21,44 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.hppc.IntOpenHashSet;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationSplitter;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MultiSourceSelect implements QueriedRelation {
 
-    private final Map<QualifiedName, AnalyzedRelation> sources;
+    public class Source {
+        private final AnalyzedRelation relation;
+        private final QuerySpec querySpec;
+
+        public Source(AnalyzedRelation relation, QuerySpec querySpec) {
+            this.relation = relation;
+            this.querySpec = querySpec;
+        }
+
+        public QuerySpec querySpec() {
+            return querySpec;
+        }
+
+        public AnalyzedRelation relation() {
+            return relation;
+        }
+    }
+
+    private final HashMap<QualifiedName, Source> sources;
     private final List<Field> fields;
     private final QuerySpec querySpec;
 
@@ -45,7 +68,8 @@ public class MultiSourceSelect implements QueriedRelation {
             QuerySpec querySpec){
         assert sources.size() > 1: "MultiSourceSelect requires at least 2 relations";
         this.querySpec = querySpec;
-        this.sources = sources;
+        this.sources = new HashMap<>(sources.size());
+        initSources(sources);
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new ArrayList<>(outputNames.size());
         for (int i = 0; i < outputNames.size(); i++) {
@@ -53,7 +77,7 @@ public class MultiSourceSelect implements QueriedRelation {
         }
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
+    public Map<QualifiedName, Source> sources() {
         return sources;
     }
 
@@ -84,4 +108,63 @@ public class MultiSourceSelect implements QueriedRelation {
     public QuerySpec querySpec() {
         return querySpec;
     }
+
+    private void initSources(Map<QualifiedName, AnalyzedRelation> sources){
+        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
+            QuerySpec subQuerySpec = RelationSplitter.extractQuerySpecForRelation(entry.getValue(), querySpec);
+            Source source = new Source(entry.getValue(), subQuerySpec);
+            this.sources.put(entry.getKey(), source);
+        }
+    }
+
+    /**
+     * Returns an orderBy containing only orderings which are not already pushed down to sources.
+     * This method always returns null if no orderBySymbols are left. The existing orderBy is returned if it
+     * there are no changes.
+     */
+    @Nullable
+    public OrderBy remainingOrderBy(){
+        OrderBy orderBy = querySpec.orderBy();
+        if (orderBy == null || !orderBy.isSorted()){
+            return null;
+        }
+        IntOpenHashSet toRemove = new IntOpenHashSet(orderBy.orderBySymbols().size());
+        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
+            Symbol s = orderBy.orderBySymbols().get(i);
+            for (MultiSourceSelect.Source source : sources.values()) {
+                OrderBy subOrderBy = source.querySpec().orderBy();
+                if (subOrderBy != null && subOrderBy.isSorted()){
+                    for (Symbol specSymbol : subOrderBy.orderBySymbols()) {
+                        if (s == specSymbol){
+                            toRemove.add(i);
+                        }
+                    }
+                }
+            }
+        }
+        if (toRemove.size() == 0) {
+            return orderBy;
+        }
+        int numRemaining = toRemove.size() - orderBy.orderBySymbols().size();
+
+        if (numRemaining == 0 ){
+            return null;
+        }
+
+        ArrayList<Symbol> newSymbols = new ArrayList<>(numRemaining);
+        boolean[] reverseFlags = new boolean[numRemaining];
+        Boolean[] nullsFirst = new Boolean[numRemaining];
+        int idx= 0;
+        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
+            if (!toRemove.contains(i)){
+                newSymbols.add(orderBy.orderBySymbols().get(i));
+                reverseFlags[idx] = orderBy.reverseFlags()[i];
+                nullsFirst[idx] = orderBy.nullsFirst()[i];
+                idx++;
+            }
+        }
+        return new OrderBy(newSymbols, reverseFlags, nullsFirst);
+    }
+
+
 }

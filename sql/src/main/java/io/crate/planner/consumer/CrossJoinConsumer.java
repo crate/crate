@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
@@ -31,7 +30,6 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchRequiredVisitor;
@@ -70,12 +68,10 @@ public class CrossJoinConsumer implements Consumer {
 
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
-        private final SubRelationConverter subRelationConverter;
 
         public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
             this.clusterService = clusterService;
             this.analysisMetaData = analysisMetaData;
-            subRelationConverter = new SubRelationConverter(analysisMetaData);
         }
 
         @Override
@@ -85,16 +81,18 @@ public class CrossJoinConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
-            final Map<Object, Integer> relationOrder = getRelationOrder(statement);
+            final Collection<QualifiedName> relationNames = getOrderedRelationNames(statement);
 
             // TODO: replace references with docIds.. and add fetch projection
 
-            List<QueriedTableRelation> queriedTables = new ArrayList<>();
-            for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
-                AnalyzedRelation analyzedRelation = entry.getValue();
+
+
+            List<QueriedTableRelation> queriedTables = new ArrayList<>(relationNames.size());
+            for (QualifiedName relationName : relationNames) {
+                MultiSourceSelect.Source source = statement.sources().get(relationName);
                 QueriedTableRelation queriedTable;
                 try {
-                    queriedTable = subRelationConverter.process(analyzedRelation, statement);
+                    queriedTable = SubRelationConverter.INSTANCE.process(source.relation(), source);
                 } catch (ValidationException e) {
                     context.validationException(e);
                     return null;
@@ -103,28 +101,41 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             WhereClause where = statement.querySpec().where();
-            OrderBy orderBy = statement.querySpec().orderBy();
             if (where.hasQuery() && !(where.query() instanceof Literal)) {
                 throw new UnsupportedOperationException("JOIN condition in the WHERE clause is not supported");
             }
 
-            boolean hasRemainingOrderBy = orderBy != null && orderBy.isSorted();
-            if (hasRemainingOrderBy) {
-                for (QueriedTableRelation queriedTable : queriedTables) {
-                    queriedTable.querySpec().limit(null);
-                    queriedTable.querySpec().offset(TopN.NO_OFFSET);
-                }
-            }
-            sortQueriedTables(relationOrder, queriedTables);
+            // for nested loops we are fine to remove pushed down orders
+            OrderBy remainingOrderBy = statement.remainingOrderBy();
+            statement.querySpec().orderBy(remainingOrderBy);
+
+            // replace all the fields in the root query spec
+            RelationSplitter.replaceFields(queriedTables, statement.querySpec());
+
+
+            //TODO: queriedTable.normalize(analysisMetaData);
 
 
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
 
+            if (remainingOrderBy != null) {
+                for (QueriedTableRelation queriedTable : queriedTables) {
+                    queriedTable.querySpec().limit(null);
+                    queriedTable.querySpec().offset(TopN.NO_OFFSET);
+                }
+            }
+
             Integer limit = statement.querySpec().limit();
             if (limit != null) {
                 context.requiredPageSize(limit + statement.querySpec().offset());
             }
+
+            // this normalization is required to replace fields of the table relations
+            left.normalize(analysisMetaData);
+            right.normalize(analysisMetaData);
+
+            // plan the subRelations
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
@@ -210,17 +221,6 @@ public class CrossJoinConsumer implements Consumer {
             return mergePhase;
         }
 
-        private void sortQueriedTables(final Map<Object, Integer> relationOrder, List<QueriedTableRelation> queriedTables) {
-            Collections.sort(queriedTables, new Comparator<QueriedTableRelation>() {
-                @Override
-                public int compare(QueriedTableRelation o1, QueriedTableRelation o2) {
-                    return Integer.compare(
-                            MoreObjects.firstNonNull(relationOrder.get(o1.tableRelation()), Integer.MAX_VALUE),
-                            MoreObjects.firstNonNull(relationOrder.get(o2.tableRelation()), Integer.MAX_VALUE));
-                }
-            });
-        }
-
         /**
          * returns a map with the relation as keys and the values are their order in occurrence in the order by clause.
          * <p/>
@@ -231,23 +231,32 @@ public class CrossJoinConsumer implements Consumer {
          * t3: 1                 (second)
          * }
          */
-        private Map<Object, Integer> getRelationOrder(MultiSourceSelect statement) {
+        private Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement) {
             OrderBy orderBy = statement.querySpec().orderBy();
             if (orderBy == null || !orderBy.isSorted()) {
-                return Collections.emptyMap();
+                return statement.sources().keySet();
             }
-
-            final Map<Object, Integer> orderByOrder = new IdentityHashMap<>();
-            int idx = 0;
+            final List<QualifiedName> orderByOrder = new ArrayList<>(statement.sources().size());
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
-                    QuerySplitter.RelationCount relationCount = QuerySplitter.getRelationCount(analyzedRelation, orderBySymbol);
-                    if (relationCount != null && relationCount.numOther == 0 && relationCount.numThis > 0 &&
-                        !orderByOrder.containsKey(analyzedRelation)) {
-                        orderByOrder.put(analyzedRelation, idx);
+                for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
+                    OrderBy subOrderBy = entry.getValue().querySpec().orderBy();
+                    if (subOrderBy == null || !subOrderBy.isSorted() || orderByOrder.contains(entry.getKey())) {
+                        continue;
+                    }
+                    if (orderBySymbol.equals(subOrderBy.orderBySymbols().get(0))) {
+                        orderByOrder.add(entry.getKey());
+                        break;
                     }
                 }
-                idx++;
+            }
+            if (orderByOrder.size() < statement.sources().size()) {
+                Iterator<QualifiedName> iter = statement.sources().keySet().iterator();
+                while (orderByOrder.size() < statement.sources().size()) {
+                    QualifiedName qn = iter.next();
+                    if (!orderByOrder.contains(qn)) {
+                        orderByOrder.add(qn);
+                    }
+                }
             }
             return orderByOrder;
         }
@@ -279,75 +288,29 @@ public class CrossJoinConsumer implements Consumer {
             FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(querySpec.orderBy());
             return FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), ctx);
         }
-
-
     }
 
-    private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect, QueriedTableRelation> {
+    private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect.Source, QueriedTableRelation> {
 
-        private static final QueriedTableFactory<QueriedTable, TableRelation> QUERIED_TABLE_FACTORY =
-                new QueriedTableFactory<QueriedTable, TableRelation>() {
-                    @Override
-                    public QueriedTable create(TableRelation tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
-                        return new QueriedTable(tableRelation, outputNames, querySpec);
-                    }
-                };
-        private static final QueriedTableFactory<QueriedDocTable, DocTableRelation> QUERIED_DOC_TABLE_FACTORY =
-                new QueriedTableFactory<QueriedDocTable, DocTableRelation>() {
-                    @Override
-                    public QueriedDocTable create(DocTableRelation tableRelation, List<OutputName> outputNames, QuerySpec querySpec) {
-                        return new QueriedDocTable(tableRelation, outputNames, querySpec);
-                    }
-                };
-
-        private final AnalysisMetaData analysisMetaData;
-
-        public SubRelationConverter(AnalysisMetaData analysisMetaData) {
-            this.analysisMetaData = analysisMetaData;
-        }
+        static final SubRelationConverter INSTANCE = new SubRelationConverter();
 
         @Override
         public QueriedTableRelation visitTableRelation(TableRelation tableRelation,
-                                                       MultiSourceSelect statement) {
-            return newSubRelation(tableRelation, statement.querySpec(), QUERIED_TABLE_FACTORY);
+                                                       MultiSourceSelect.Source source) {
+            return new QueriedTable(tableRelation, source.querySpec());
         }
 
         @Override
         public QueriedTableRelation visitDocTableRelation(DocTableRelation tableRelation,
-                                                          MultiSourceSelect statement) {
-            return newSubRelation(tableRelation, statement.querySpec(), QUERIED_DOC_TABLE_FACTORY);
+                                                          MultiSourceSelect.Source source) {
+            return new QueriedDocTable(tableRelation, source.querySpec());
         }
 
         @Override
         protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation,
-                                                             MultiSourceSelect statement) {
+                                                             MultiSourceSelect.Source source) {
             throw new ValidationException("CROSS JOIN with sub queries is not supported");
         }
-
-
-        /**
-         * Create a new concrete QueriedTableRelation implementation for the given
-         * AbstractTableRelation implementation
-         * <p/>
-         * It will walk through all symbols from QuerySpec and pull-down any symbols that the
-         * new QueriedTable can handle. The symbols that are pulled down from the original
-         * querySpec will be replaced with symbols that point to a output/field of the
-         * QueriedTableRelation.
-         */
-        private <QT extends QueriedTableRelation, TR extends AbstractTableRelation> QT newSubRelation(TR tableRelation,
-                                                                                                      QuerySpec querySpec,
-                                                                                                      QueriedTableFactory<QT, TR> factory) {
-            RelationSplitter.SplitQuerySpecContext context = RelationSplitter.splitQuerySpec(tableRelation, querySpec);
-            QT queriedTable = factory.create(tableRelation, context.outputNames(), context.querySpec());
-            RelationSplitter.replaceFields(queriedTable, querySpec, context.querySpec());
-            queriedTable.normalize(analysisMetaData);
-            return queriedTable;
-        }
-
-        private interface QueriedTableFactory<QT extends QueriedTableRelation, TR extends AbstractTableRelation> {
-            QT create(TR tableRelation, List<OutputName> outputNames, QuerySpec querySpec);
-        }
-
     }
 
 }

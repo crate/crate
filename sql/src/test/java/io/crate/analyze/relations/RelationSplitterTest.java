@@ -37,6 +37,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -51,12 +52,11 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RelationSplitterTest {
+public class RelationSplitterTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -98,6 +98,7 @@ public class RelationSplitterTest {
                 new ParameterContext(new Object[0], new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources)
         );
+        super.setUp();
     }
 
     private TableInfo tableInfoWith(String tableName, String ... columns) {
@@ -116,7 +117,7 @@ public class RelationSplitterTest {
     private QueriedTableRelation newSubRelation(TableRelation tr, QuerySpec querySpec) {
         RelationSplitter.SplitQuerySpecContext splitQuerySpecContext = RelationSplitter.splitQuerySpec(tr, querySpec);
         QueriedTableRelation queriedTable = new QueriedTable(tr, splitQuerySpecContext.outputNames(), splitQuerySpecContext.querySpec());
-        RelationSplitter.replaceFields(queriedTable, querySpec, splitQuerySpecContext.querySpec());
+        RelationSplitter.replaceFields(queriedTable, querySpec);
         return queriedTable;
     }
 
@@ -361,7 +362,8 @@ public class RelationSplitterTest {
         assertThat(qt1.querySpec().orderBy().orderBySymbols().get(0), isField("x"));
         assertThat(qt1.querySpec().orderBy().reverseFlags()[0], is(true));
 
-        assertThat(querySpec.orderBy().orderBySymbols().size(), is(1));
+        // the oderBy should not be replaced when pushed down
+        assertThat(querySpec.orderBy().orderBySymbols().size(), is(2));
 
         assertThat(qt2.querySpec().outputs().size(), is(1));
         assertThat(qt2.querySpec().outputs().get(0), isField("y"));
@@ -406,6 +408,6 @@ public class RelationSplitterTest {
         assertThat(qt3.querySpec().orderBy().orderBySymbols().size(), is(1));
         assertThat(qt3.querySpec().orderBy().orderBySymbols().get(0), isField("x", DataTypes.SHORT));
 
-        assertThat(querySpec.orderBy(), nullValue());
+        assertThat(querySpec.orderBy().orderBySymbols(), hasSize(3));
     }
 }

@@ -33,6 +33,10 @@ public class QueriedTable extends QueriedTableRelation<TableRelation> {
         super(tableRelation, paths, querySpec);
     }
 
+    public QueriedTable(TableRelation tableRelation, QuerySpec querySpec) {
+        super(tableRelation, querySpec);
+    }
+
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedTable(this, context);
