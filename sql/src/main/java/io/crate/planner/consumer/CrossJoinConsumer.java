@@ -44,7 +44,6 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -143,18 +142,10 @@ public class CrossJoinConsumer implements Consumer {
                     rightPlan.resultPhase(),
                     right.querySpec());
 
-
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
 
-            List<Field> inputs = new ArrayList<>(
-                    left.querySpec().outputs().size() + right.querySpec().outputs().size());
-
-
-            inputs.addAll(left.fields());
-            inputs.addAll(right.fields());
-
             TopNProjection topN = projectionBuilder.topNProjection(
-                    inputs,
+                    concatFields(left, right),
                     statement.querySpec().orderBy(),
                     statement.querySpec().offset(),
                     statement.querySpec().limit(),
@@ -170,34 +161,30 @@ public class CrossJoinConsumer implements Consumer {
                     rightMerge,
                     localExecutionNodes
             );
-
             return new NestedLoop(nl, leftPlan, rightPlan, true);
         }
 
-        @Nullable
+        private static List<Field> concatFields(QueriedTableRelation<?> left, QueriedTableRelation<?> right) {
+            List<Field> inputs = new ArrayList<>(left.fields().size() + right.fields().size());
+            inputs.addAll(left.fields());
+            inputs.addAll(right.fields());
+            return inputs;
+        }
+
         private MergePhase mergePhase(ConsumerContext context,
                                       Set<String> localExecutionNodes,
                                       UpstreamPhase upstreamPhase,
                                       QuerySpec querySpec) {
-            return mergePhase(context, localExecutionNodes, upstreamPhase, querySpec.outputs(), querySpec.orderBy());
-        }
-
-        @Nullable
-        private MergePhase mergePhase(ConsumerContext context,
-                                      Set<String> localExecutionNodes,
-                                      UpstreamPhase upstreamPhase,
-                                      List<Symbol> previousOutputs,
-                                      @Nullable OrderBy orderBy) {
-            if (upstreamPhase.executionNodes().isEmpty()
-                || upstreamPhase.executionNodes().equals(localExecutionNodes)) {
+            assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
+            if (upstreamPhase.executionNodes().equals(localExecutionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
                 return null;
             }
 
-            if (upstreamPhase instanceof MergePhase && upstreamPhase.executionNodes().isEmpty()) {
-                ((MergePhase) upstreamPhase).executionNodes(localExecutionNodes);
-            }
+            OrderBy orderBy = querySpec.orderBy();
+            List<Symbol> previousOutputs = querySpec.outputs();
+
             MergePhase mergePhase;
             if (OrderBy.isSorted(orderBy)) {
                 mergePhase = MergePhase.sortedMerge(
