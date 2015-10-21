@@ -40,7 +40,7 @@ dependencies {
     compile 'com.tdunning:t-digest:3.0'
     compile 'com.vividsolutions:jts:1.13'
     compile 'commons-cli:commons-cli:1.2'
-    compile 'io.netty:netty:3.10.0.Final'
+    compile 'io.netty:netty:3.10.5.Final'
     compile 'joda-time:joda-time:2.7'
     compile 'log4j:apache-log4j-extras:1.2.17'
     compile 'log4j:log4j:1.2.17'
