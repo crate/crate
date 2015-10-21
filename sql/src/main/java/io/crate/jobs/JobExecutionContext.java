@@ -22,6 +22,7 @@
 package io.crate.jobs;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -62,6 +63,16 @@ public class JobExecutionContext implements KeepAliveListener {
     @Override
     public void keepAlive() {
         this.lastAccessTime = threadPool.estimatedTimeInMillis();
+    }
+
+    /**
+     * only triggers keepAlive internally if no {@linkplain ExecutionSubContext.SubContextMode#ACTIVE}
+     * subcontexts are available.
+     */
+    public void externalKeepAlive() {
+        if (!Iterables.any(subContexts.values(), ExecutionSubContext.IS_ACTIVE_PREDICATE)) {
+            keepAlive();
+        }
     }
 
     public static class Builder {

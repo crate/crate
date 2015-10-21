@@ -151,4 +151,11 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     }
 
+    /**
+     * by default is PASSIVE, as it does not trigger keep alive on execution context itself
+     */
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.PASSIVE;
+    }
 }
