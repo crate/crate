@@ -552,7 +552,7 @@ Blobs
 Repositories
 ------------
 
-Repositories are used to :ref:`backup-restore` a Crate cluster.
+Repositories are used to :ref:`backup <snapshot-restore>` a Crate cluster.
 The following settings are used to configure some types of repositories globally.
 
 **repositories.url.allowed_urls**
