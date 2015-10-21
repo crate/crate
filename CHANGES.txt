@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.14.2 which contains following changes:
+
+  - Fixed an assertion error that could occur under python2.7
+
  - Upgraded Elasticsearch to 1.7.3
 
  - Fixed the issue which causes overloading of the first configured node in
