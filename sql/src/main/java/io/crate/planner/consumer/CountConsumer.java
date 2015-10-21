@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
@@ -55,7 +54,7 @@ public class CountConsumer implements Consumer {
         return VISITOR.process(rootRelation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
@@ -95,11 +94,6 @@ public class CountConsumer implements Consumer {
                     DistributionInfo.DEFAULT_SAME_NODE
             );
             return new CountPlan(countNode, mergeNode, context.plannerContext().jobId());
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
 
         private boolean hasOnlyGlobalCount(List<Symbol> symbols) {

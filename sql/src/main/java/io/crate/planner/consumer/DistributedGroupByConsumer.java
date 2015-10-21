@@ -30,7 +30,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
@@ -73,7 +72,7 @@ public class DistributedGroupByConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         private final Functions functions;
 
@@ -202,11 +201,6 @@ public class DistributedGroupByConsumer implements Consumer {
                     localMergeNode,
                     plannerContext.jobId()
             );
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
     }
 }

@@ -63,7 +63,7 @@ public class CrossJoinConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
@@ -73,11 +73,6 @@ public class CrossJoinConsumer implements Consumer {
             this.clusterService = clusterService;
             this.analysisMetaData = analysisMetaData;
             subRelationConverter = new SubRelationConverter(analysisMetaData);
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
 
         @Override

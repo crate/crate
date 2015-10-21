@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -48,7 +47,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
         return VISITOR.process(relation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         @Override
         public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
@@ -90,11 +89,6 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
             return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
     }
 }

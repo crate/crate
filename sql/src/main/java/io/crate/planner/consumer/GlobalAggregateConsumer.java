@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
@@ -55,7 +58,7 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 public class GlobalAggregateConsumer implements Consumer {
 
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
-    private final Visitor visitor;
+    private final RelationPlanningVisitor visitor;
 
     @Inject
     public GlobalAggregateConsumer(Functions functions) {
@@ -67,7 +70,7 @@ public class GlobalAggregateConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         private final Functions functions;
 
@@ -90,10 +93,6 @@ public class GlobalAggregateConsumer implements Consumer {
             return globalAggregates(functions, table, context);
         }
 
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
-        }
     }
 
     private static PlannedAnalyzedRelation globalAggregates(Functions functions,

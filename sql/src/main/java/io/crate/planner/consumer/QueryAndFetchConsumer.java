@@ -71,7 +71,7 @@ public class QueryAndFetchConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 
@@ -114,11 +114,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
             return normalSelect(table, context, querySpec.outputs());
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {

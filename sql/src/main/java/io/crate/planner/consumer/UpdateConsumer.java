@@ -26,7 +26,6 @@ import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.InputColumn;
@@ -74,7 +73,7 @@ public class UpdateConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    static class Visitor extends RelationPlanningVisitor {
 
         @Override
         public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
@@ -211,11 +210,6 @@ public class UpdateConsumer implements Consumer {
                 i++;
             }
             return new Tuple<>(assignmentColumns, assignmentSymbols);
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
     }
 }

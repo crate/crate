@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
@@ -41,7 +40,7 @@ public class ESGetConsumer implements Consumer {
         return VISITOR.process(relation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
@@ -76,11 +75,6 @@ public class ESGetConsumer implements Consumer {
                 table.tableRelation().validateOrderBy(orderBy);
             }
             return new ESGetNode(context.plannerContext().nextExecutionPhaseId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
-        }
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
     }
 }

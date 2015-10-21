@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
@@ -66,7 +69,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+    private static class Visitor extends RelationPlanningVisitor {
 
         private final Functions functions;
 
@@ -90,12 +93,6 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 return null;
             }
             return optimizedReduceOnCollectorGroupBy(table, tableRelation, context);
-        }
-
-
-        @Override
-        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
-            return null;
         }
 
         /**
