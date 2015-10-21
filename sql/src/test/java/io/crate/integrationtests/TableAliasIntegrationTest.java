@@ -172,7 +172,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropTableWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("doc.mytablealias is an alias. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("doc.mytablealias is an alias and hence not dropable.");
         execute(String.format("drop table %s", tableAlias));
     }
 

@@ -54,10 +54,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
@@ -181,26 +178,19 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedAlias() throws Exception {
-        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).stringValue();
+        String partitionName = new PartitionName("test", Collections.singletonList(new BytesRef("foo"))).stringValue();
         client().admin().indices().prepareCreate(partitionName)
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
                 .setSettings(TEST_SETTINGS)
                 .addAlias(new Alias("test"))
                 .execute().actionGet();
         ensureGreen();
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                new TableIdent(null, "test"),
-                false,
-                TEST_SETTINGS,
-                TEST_MAPPING
-        );
-        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
+        execute("create table test (id integer, name string, names string) " +
+                "clustered into 2 shards " +
+                "partitioned by (id) with (number_of_replicas=0)");
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -208,7 +198,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         execute("select count(*) from information_schema.columns where table_name = 'test'");
         assertThat((Long) response.rows()[0][0], is(3L));
 
-        // check that orphaned partition has been deleted
+        // check that orphaned alias has been deleted
         assertThat(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().aliases().containsKey("test"), is(false));
         // check that orphaned partition has been deleted
