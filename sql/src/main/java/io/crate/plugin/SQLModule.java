@@ -23,8 +23,10 @@ package io.crate.plugin;
 
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.planner.TableStatsService;
 import io.crate.service.SQLService;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.unit.TimeValue;
 
 
 public class SQLModule extends AbstractModule {
@@ -34,5 +36,7 @@ public class SQLModule extends AbstractModule {
         bind(SQLService.class).asEagerSingleton();
         bind(DDLStatementDispatcher.class).asEagerSingleton();
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
+
+        bind(TimeValue.class).annotatedWith(TableStatsService.StatsUpdateInterval.class).toInstance(TimeValue.timeValueSeconds(60));
     }
 }

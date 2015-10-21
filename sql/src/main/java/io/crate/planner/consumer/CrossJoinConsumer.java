@@ -34,6 +34,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.OutputName;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchRequiredVisitor;
@@ -49,6 +50,8 @@ import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -60,11 +63,11 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 public class CrossJoinConsumer implements Consumer {
 
     private final Visitor visitor;
+    private final static ESLogger LOGGER = Loggers.getLogger(CrossJoinConsumer.class);
 
     @Inject
-    public CrossJoinConsumer(ClusterService clusterService,
-                             AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(clusterService, analysisMetaData);
+    public CrossJoinConsumer(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
+        visitor = new Visitor(clusterService, analysisMetaData, tableStatsService);
     }
 
     @Override
@@ -76,11 +79,13 @@ public class CrossJoinConsumer implements Consumer {
 
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
+        private final TableStatsService tableStatsService;
         private final SubRelationConverter subRelationConverter;
 
-        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
+        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
             this.clusterService = clusterService;
             this.analysisMetaData = analysisMetaData;
+            this.tableStatsService = tableStatsService;
             subRelationConverter = new SubRelationConverter(analysisMetaData);
         }
 
@@ -129,6 +134,18 @@ public class CrossJoinConsumer implements Consumer {
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
 
+            boolean broadcastLeftTable = false;
+            if (isDistributed) {
+                long leftNumDocs = tableStatsService.numDocs(left.tableRelation().tableInfo().ident());
+                long rightNumDocs = tableStatsService.numDocs(right.tableRelation().tableInfo().ident());
+
+                if (rightNumDocs > leftNumDocs) {
+                    broadcastLeftTable = true;
+                    LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
+                            rightNumDocs, leftNumDocs);
+                }
+            }
+
             Integer limit = statement.querySpec().limit();
             if (!isFilterNeeded && limit != null) {
                 context.requiredPageSize(limit + statement.querySpec().offset());
@@ -137,38 +154,61 @@ public class CrossJoinConsumer implements Consumer {
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
 
+
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
             Collection<String> nlExecutionNodes = localExecutionNodes;
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
-            if (isDistributed) {
-                leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                nlExecutionNodes = leftPlan.resultPhase().executionNodes();
-            } else {
-                leftMerge = mergePhase(
-                        context,
-                        nlExecutionNodes,
-                        leftPlan.resultPhase(),
-                        left.querySpec().orderBy(),
-                        left.querySpec().outputs(),
-                        false);
-            }
-            if (nlExecutionNodes.size() == 1
-                    && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
-                // if the left and the right plan are executed on the same single node the mergePhase
-                // should be omitted. This is the case if the left and right table have only one shards which
-                // are on the same node
+            if (isDistributed && broadcastLeftTable) {
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = rightPlan.resultPhase().executionNodes();
+
+                if (nlExecutionNodes.size() == 1
+                    && nlExecutionNodes.equals(leftPlan.resultPhase().executionNodes())) {
+                    // if the left and the right plan are executed on the same single node the mergePhase
+                    // should be omitted. This is the case if the left and right table have only one shards which
+                    // are on the same node
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                } else {
+                    leftMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            leftPlan.resultPhase(),
+                            left.querySpec().orderBy(),
+                            left.querySpec().outputs(),
+                            true);
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                }
             } else {
-                rightMerge = mergePhase(
-                        context,
-                        nlExecutionNodes,
-                        rightPlan.resultPhase(),
-                        right.querySpec().orderBy(),
-                        right.querySpec().outputs(),
-                        isDistributed);
-                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                if (isDistributed) {
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                    nlExecutionNodes = leftPlan.resultPhase().executionNodes();
+                } else {
+                    leftMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            leftPlan.resultPhase(),
+                            left.querySpec().orderBy(),
+                            left.querySpec().outputs(),
+                            false);
+                }
+                if (nlExecutionNodes.size() == 1
+                    && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
+                    // if the left and the right plan are executed on the same single node the mergePhase
+                    // should be omitted. This is the case if the left and right table have only one shards which
+                    // are on the same node
+                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                } else {
+                    rightMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            rightPlan.resultPhase(),
+                            right.querySpec().orderBy(),
+                            right.querySpec().outputs(),
+                            isDistributed);
+                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                }
             }
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
@@ -191,7 +231,6 @@ public class CrossJoinConsumer implements Consumer {
                     }
                 }
             }
-
 
             int topNLimit = firstNonNull(statement.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN = projectionBuilder.topNProjection(

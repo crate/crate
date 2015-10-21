@@ -41,6 +41,8 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStatsService;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -55,6 +57,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -66,10 +69,13 @@ import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isFunction;
 import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CrossJoinConsumerTest extends CrateUnitTest {
 
@@ -80,9 +86,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private final CrossJoinConsumer consumer =
-            new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class));
+    private CrossJoinConsumer consumer;
     private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+    private TableStatsService statsService;
 
     @Before
     public void initPlanner() throws Exception {
@@ -95,12 +101,17 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
 
     private class TestModule implements Module {
         @Override
         public void configure(Binder binder) {
+            statsService = mock(TableStatsService.class);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT))).thenReturn(10L);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            binder.bind(TableStatsService.class).toInstance(statsService);
             binder.bind(NestedReferenceResolver.class).toInstance(mock(NestedReferenceResolver.class));
             binder.bind(FulltextAnalyzerResolver.class).toInstance(mock(FulltextAnalyzerResolver.class));
             binder.bind(ClusterService.class).toInstance(new NoopClusterService());
@@ -114,6 +125,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
                 public TableInfo getTableInfo(TableIdent ident) {
                     if (ident.name().equals("users")) {
                         return BaseAnalyzerTest.userTableInfo;
+                    } else if (ident.name().equals("users_multi_pk")) {
+                        return BaseAnalyzerTest.userTableInfoMultiPk;
                     }
                     throw new TableUnknownException(ident);
                 }
@@ -203,6 +216,14 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(finalTopN.offset(), is(0));
         assertThat(finalTopN.outputs().size(), is(2));
+    }
+
+    @Test
+    public void testLeftSideIsBroadcastIfLeftTableIsSmaller() throws Exception {
+        NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
+                               "where users.name = u2.name " +
+                               "order by users.name, u2.name ");
+        assertThat(plan.left().resultPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
     @Test
