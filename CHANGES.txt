@@ -7,7 +7,10 @@ Unreleased
 
  - Updated crash to 0.14.2 which contains following changes:
 
-  - Fixed an assertion error that could occur under python2.7
+   - Fixed an assertion error that could occur under python2.7
+ 
+ - Fixed an issue that was causing like queries to fail if using a special regex 
+   character
 
  - Upgraded Elasticsearch to 1.7.3
 

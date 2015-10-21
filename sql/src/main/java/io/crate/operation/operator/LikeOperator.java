@@ -117,6 +117,8 @@ public class LikeOperator extends Operator<BytesRef> {
                             case ']':
                             case '(':
                             case ')':
+                            case '|':
+                            case '+':
                                 regex.append('\\');
                         }
 

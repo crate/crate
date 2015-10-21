@@ -308,8 +308,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         for (int i = 0; i < 2; i++) {
             // like --> XConstantScoreQuery with regexp-filter
             Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
-            assertThat(filteredQuery, instanceOf(XConstantScoreQuery.class));
-            assertThat(((XConstantScoreQuery)filteredQuery).getFilter(), instanceOf(RegexpFilter.class));
+            assertThat(filteredQuery, instanceOf(WildcardQuery.class));
         }
 
         // col not like any (1,2,3)
@@ -322,8 +321,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(((BooleanQuery)clause.getQuery()).clauses(), hasSize(3));
         for (BooleanClause innerClause : ((BooleanQuery)clause.getQuery()).clauses()) {
             assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
-            assertThat(innerClause.getQuery(), instanceOf(XConstantScoreQuery.class));
-            assertThat(((XConstantScoreQuery)innerClause.getQuery()).getFilter(), instanceOf(RegexpFilter.class));
+            assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
         }
 
 
@@ -332,6 +330,17 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(ltQuery2, instanceOf(BooleanQuery.class));
         BooleanQuery ltBQuery = (BooleanQuery)ltQuery2;
         assertThat(ltBQuery.toString(), is("(d:{* TO a} d:{* TO b} d:{* TO c})~1"));
+    }
+
+    @Test
+    public void testSqlLikeToLuceneWildcard() throws Exception {
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%me"), is("*me"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));
+
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("_me"), is("?me"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
     }
 
     private Query convert(WhereClause clause) {

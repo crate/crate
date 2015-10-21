@@ -32,6 +32,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
@@ -81,19 +82,6 @@ public class ESQueryBuilder {
         static final XContentBuilderString MATCH = new XContentBuilderString("match");
         static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
         static final XContentBuilderString BOOST = new XContentBuilderString("boost");
-    }
-
-    public static String convertWildcard(String wildcardString) {
-        // lucene uses * and ? as wildcard characters
-        // but via SQL they are used as % and _
-        // here they are converted back.
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
-        wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
-        return wildcardString.replaceAll("\\\\_", "_");
     }
 
     public static String convertWildcardToRegex(String wildcardString) {
@@ -693,7 +681,7 @@ public class ESQueryBuilder {
             @Override
             public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
                 String like = value.toString();
-                like = convertWildcard(like);
+                like = LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(like);
                 context.builder.startObject("wildcard").field(columnName, like).endObject();
                 return true;
             }

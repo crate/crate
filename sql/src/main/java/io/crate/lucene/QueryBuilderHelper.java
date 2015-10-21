@@ -12,8 +12,6 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.common.lucene.search.RegexpFilter;
-import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
@@ -276,13 +274,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query like(String columnName, Object value, @Nullable FilterCache filterCache) {
-
-            Filter filter = new RegexpFilter(
-                    new Term(columnName, LuceneQueryBuilder.convertWildcardToRegex(BytesRefs.toString(value))));
-            if (filterCache != null) {
-                filter = filterCache.cache(filter);
-            }
-            return new XConstantScoreQuery(filter);
+            return new WildcardQuery(new Term(columnName, LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
         }
     }
 }
