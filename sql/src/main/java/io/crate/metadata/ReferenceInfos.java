@@ -78,6 +78,21 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     }
 
     @Override
+    public DocTableInfo getDropableTable(TableIdent tableIdent) {
+        TableInfo tableInfo = getTableInfo(tableIdent);
+        if (!(tableInfo instanceof DocTableInfo)) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "The table %s is not droppable.", tableInfo.ident()));
+        }
+        DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+        if (docTableInfo.isAlias() && !docTableInfo.isPartitioned() && !isOrphanedAlias(docTableInfo)) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "%s is an alias and hence not droppable.", tableInfo.ident()));
+        }
+        return docTableInfo;
+    }
+
+    @Override
     public DocTableInfo getWritableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
         if (!(tableInfo instanceof DocTableInfo)) {
@@ -207,7 +222,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             return false;
-        } else if (tableInfo instanceof DocTableInfo) {
+        } else if ((tableInfo instanceof DocTableInfo)) {
             return !isOrphanedAlias((DocTableInfo) tableInfo);
         }
         return true;
@@ -217,18 +232,15 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      * checks if the given TableInfo has been created from an orphaned alias left from
      * an incomplete drop table on a partitioned table
      */
-    private static boolean isOrphanedAlias(DocTableInfo table) {
-        if (!table.isPartitioned() && table.isAlias()
+    public boolean isOrphanedAlias(DocTableInfo table) {
+        if (table.isPartitioned() && table.isAlias()
                 && table.concreteIndices().length >= 1) {
-
-            boolean isPartitionAlias = true;
-            for (String index : table.concreteIndices()) {
-                if (!PartitionName.isPartition(index)) {
-                    isPartitionAlias = false;
-                    break;
-                }
+            String templateName = PartitionName.templateName(table.ident().schema(), table.ident().name());
+            MetaData metaData = clusterService.state().metaData();
+            if (!metaData.templates().containsKey(templateName)) {
+                // template or alias missing
+                return true;
             }
-            return isPartitionAlias;
         }
         return false;
     }
