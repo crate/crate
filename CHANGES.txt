@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that was causing like queries to fail if using a special regex 
+   character
+
  - Upgraded Elasticsearch to 1.7.3
 
  - Fixed the issue which causes overloading of the first configured node in
