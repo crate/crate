@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport.task;
+package io.crate.executor.transport;
 
 import com.google.common.base.Joiner;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
-import io.crate.planner.node.ddl.CreateTableNode;
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -40,71 +41,78 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
-import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
-public class CreateTableTask extends AbstractChainedTask {
+public class TableCreator {
 
-    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
+    protected static final ESLogger logger = Loggers.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
     private final TransportCreateIndexAction createIndexAction;
     private final TransportDeleteIndexAction deleteIndexAction;
     private final TransportPutIndexTemplateAction putIndexTemplateAction;
-    private final CreateTableNode planNode;
+    private final CreateTableAnalyzedStatement statement;
 
-    public CreateTableTask(UUID jobId,
-                           ClusterService clusterService,
-                           TransportCreateIndexAction createIndexAction,
-                           TransportDeleteIndexAction deleteIndexAction, TransportPutIndexTemplateAction putIndexTemplateAction,
-                           CreateTableNode node) {
-        super(jobId);
+    private final Settings settings;
+
+    public TableCreator(ClusterService clusterService,
+                        TransportCreateIndexAction createIndexAction,
+                        TransportDeleteIndexAction deleteIndexAction,
+                        TransportPutIndexTemplateAction putIndexTemplateAction,
+                        CreateTableAnalyzedStatement statement) {
         this.clusterService = clusterService;
         this.createIndexAction = createIndexAction;
         this.deleteIndexAction = deleteIndexAction;
         this.putIndexTemplateAction = putIndexTemplateAction;
-        this.planNode = node;
+        this.statement = statement;
+
+        this.settings = statement.tableParameter().settings().getByPrefix("index.");
     }
 
-    @Override
-    protected void doStart(List<TaskResult> upstreamResults) {
+
+    public ListenableFuture<Void> start() {
+        final SettableFuture<Void> result = SettableFuture.create();
+
         // real work done in createTable()
-        deleteOrphans(new CreateTableResponseListener());
+        deleteOrphans(new CreateTableResponseListener(result));
+        return result;
     }
 
     private CreateIndexRequest createIndexRequest() {
-        return new CreateIndexRequest(planNode.tableIdent().indexName(), planNode.settings())
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, planNode.mapping());
+        return new CreateIndexRequest(statement.tableIdent().indexName(), settings)
+                .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping());
     }
 
     private PutIndexTemplateRequest createTemplateRequest() {
-        return new PutIndexTemplateRequest(planNode.templateName().get())
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, planNode.mapping())
+        return new PutIndexTemplateRequest(statement.templateName())
+                .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping())
                 .create(true)
-                .settings(planNode.settings())
-                .template(planNode.templateIndexMatch().get())
+                .settings(settings)
+                .template(statement.templatePrefix())
                 .order(100)
-                .alias(new Alias(planNode.tableIdent().indexName()));
+                .alias(new Alias(statement.tableIdent().indexName()));
     }
 
-    private void createTable() {
-        if (planNode.createsPartitionedTable()) {
+    private void createTable(final SettableFuture<Void> result) {
+        if (statement.templateName() != null) {
             putIndexTemplateAction.execute(createTemplateRequest(), new ActionListener<PutIndexTemplateResponse>() {
                 @Override
                 public void onResponse(PutIndexTemplateResponse response) {
                     if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableIdent().fqn()));
+                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.set(null);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    setException(e);
+                    setException(result, e);
                 }
             });
         } else {
@@ -112,48 +120,48 @@ public class CreateTableTask extends AbstractChainedTask {
                 @Override
                 public void onResponse(CreateIndexResponse response) {
                     if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableIdent().fqn()));
+                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.set(null);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    setException(e);
+                    setException(result, e);
                 }
             });
         }
     }
 
-    private void setException(Throwable e) {
+
+    private void setException(SettableFuture<Void> result, Throwable e) {
         e = Exceptions.unwrap(e);
         String message = e.getMessage();
         if (message.equals("mapping [default]") && e.getCause() != null) {
             // this is a generic mapping parse exception,
             // the cause has usually a better more detailed error message
             result.setException(e.getCause());
-        } else if (planNode.ifNotExists() &&
-                (e instanceof IndexAlreadyExistsException
-                        || (e instanceof IndexTemplateAlreadyExistsException && planNode.createsPartitionedTable()))) {
-            result.set(SUCCESS_RESULT);
+        } else if (statement.ifNotExists() &&
+                   (e instanceof IndexAlreadyExistsException
+                    || (e instanceof IndexTemplateAlreadyExistsException && statement.templateName() != null))) {
+            result.set(null);
         } else {
             result.setException(e);
         }
     }
 
-
     private void deleteOrphans(final CreateTableResponseListener listener) {
-        if (clusterService.state().metaData().aliases().containsKey(planNode.tableIdent().fqn())
-                && PartitionName.isPartition(
-                clusterService.state().metaData().aliases().get(planNode.tableIdent().fqn()).keysIt().next())) {
-            logger.debug("Deleting orphaned partitions with alias: {}", planNode.tableIdent().fqn());
-            deleteIndexAction.execute(new DeleteIndexRequest(planNode.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
+        if (clusterService.state().metaData().aliases().containsKey(statement.tableIdent().fqn())
+            && PartitionName.isPartition(
+                clusterService.state().metaData().aliases().get(statement.tableIdent().fqn()).keysIt().next())) {
+            logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
+            deleteIndexAction.execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
                 public void onResponse(DeleteIndexResponse response) {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphaned alias");
                     }
-                    deleteOrphanedPartitions(listener);
+                    deleteOrphanedPartitions(listener, statement.tableIdent());
                 }
 
                 @Override
@@ -162,7 +170,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 }
             });
         } else {
-            deleteOrphanedPartitions(listener);
+            deleteOrphanedPartitions(listener, statement.tableIdent());
         }
     }
 
@@ -173,8 +181,8 @@ public class CreateTableTask extends AbstractChainedTask {
      *
      * should never delete partitions of existing partitioned tables
      */
-    private void deleteOrphanedPartitions(final CreateTableResponseListener listener) {
-        String partitionWildCard = PartitionName.templateName(planNode.tableIdent().schema(), planNode.tableIdent().name()) + "*";
+    private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
+        String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
         String[] orphans = clusterService.state().metaData().concreteIndices(
                 new String[]{partitionWildCard});
         if (orphans.length > 0) {
@@ -200,18 +208,28 @@ public class CreateTableTask extends AbstractChainedTask {
         }
     }
 
+    protected void warnNotAcknowledged(String operationName) {
+        logger.warn("{} was not acknowledged. This could lead to inconsistent state.",
+                operationName);
+    }
+
     class CreateTableResponseListener implements ActionListener<Void> {
+
+        final SettableFuture<Void> result;
+
+        public CreateTableResponseListener(SettableFuture<Void> result) {
+            this.result = result;
+
+        }
 
         @Override
         public void onResponse(Void ignored) {
-            createTable();
+            createTable(result);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            throw new TaskExecutionException(CreateTableTask.this, e);
+            result.setException(e);
         }
     }
-
 }
-

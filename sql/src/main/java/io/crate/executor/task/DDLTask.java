@@ -32,6 +32,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.GenericDDLNode;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -48,6 +49,12 @@ public class DDLTask extends JobTask {
         super(jobId);
         this.ddlStatementDispatcher = ddlStatementDispatcher;
         analyzedStatement = genericDDLNode.analyzedStatement();
+    }
+
+    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, GenericDDLPlan genericDDLPlan) {
+        super(jobId);
+        this.ddlStatementDispatcher = ddlStatementDispatcher;
+        analyzedStatement = genericDDLPlan.statement();
     }
 
     @Override

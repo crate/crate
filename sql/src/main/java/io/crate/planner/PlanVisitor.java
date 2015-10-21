@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
@@ -85,6 +86,10 @@ public class PlanVisitor<C, R> {
 
     public R visitGenericShowPlan(GenericShowPlan genericShowPlan, C context) {
         return visitPlan(genericShowPlan, context);
+    }
+
+    public R visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, C context) {
+        return visitPlan(genericDDLPlan, context);
     }
 
     public R visitNestedLoop(NestedLoop plan, C context) {

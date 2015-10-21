@@ -224,6 +224,13 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     showStatementDispatcherProvider,
                     genericShowPlan.statement()));
         }
+
+        @Override
+        public List<? extends Task> visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Job context) {
+            return ImmutableList.<Task>of(new DDLTask(context.id(),
+                    ddlAnalysisDispatcherProvider,
+                    genericDDLPlan));
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
@@ -265,18 +272,6 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     node,
                     transportActionProvider.transportDeleteAction(),
                     jobContextService));
-        }
-
-        @Override
-        public ImmutableList<Task> visitCreateTableNode(CreateTableNode node, UUID jobId) {
-            return singleTask(new CreateTableTask(
-                            jobId,
-                            clusterService,
-                            transportActionProvider.transportCreateIndexAction(),
-                            transportActionProvider.transportDeleteIndexAction(),
-                            transportActionProvider.transportPutIndexTemplateAction(),
-                            node)
-            );
         }
 
         @Override

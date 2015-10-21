@@ -81,10 +81,6 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitCreateTableNode(CreateTableNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitNestedLoopPhase(NestedLoopPhase phase, C context) {
         return visitPlanNode(phase, context);
     }

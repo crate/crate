@@ -43,6 +43,7 @@ import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TableCreator;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.PartitionName;
@@ -124,6 +125,18 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
                         analysis.tableName(),
                         analysis.tableParameter().settings()
                 ),
+                1L
+        );
+    }
+
+    @Override
+    public ListenableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, UUID jobId) {
+        return wrapRowCountFuture(
+                new TableCreator(clusterService,
+                        transportActionProvider.transportCreateIndexAction(),
+                        transportActionProvider.transportDeleteIndexAction(),
+                        transportActionProvider.transportPutIndexTemplateAction(),
+                        analysis).start(),
                 1L
         );
     }
