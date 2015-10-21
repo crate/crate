@@ -39,6 +39,8 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
@@ -121,28 +123,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
     }
 
-    /*
-    @Test
-    public void testCreateTable() throws Exception {
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                new TableIdent(null, "test"),
-                false,
-                TEST_SETTINGS,
-                TEST_MAPPING
-        );
-        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
-
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket rows = listenableFuture.get().get(0).rows();
-        assertThat(rows, contains(isRow(1L)));
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("select count(*) from information_schema.columns where table_name = 'test'");
-        assertThat((Long)response.rows()[0][0], is(3L));
-    }
 
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
@@ -152,21 +132,10 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .setSettings(TEST_SETTINGS)
                 .execute().actionGet();
         ensureGreen();
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                new TableIdent(null, "test"),
-                false,
-                TEST_SETTINGS,
-                TEST_MAPPING
-        );
-        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
-
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
+        execute("create table test (id integer, name string, names string) partitioned by (id)");
+        ensureYellow();
+        execute("select * from information_schema.tables where table_name = 'test'");
         assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from information_schema.columns where table_name = 'test'");
@@ -185,7 +154,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .addAlias(new Alias("test"))
                 .execute().actionGet();
         ensureGreen();
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
+        /*CreateTableNode createTableNode = CreateTableNode.createTableNode(
                 new TableIdent(null, "test"),
                 false,
                 TEST_SETTINGS,
@@ -197,9 +166,11 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
+        assertThat(objects, contains(isRow(1L)));*/
+        execute("create table test (id integer, name string, names string) partitioned by (id)");
+        ensureYellow();
 
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
+        execute("select * from information_schema.tables where table_name = 'test'");
         assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from information_schema.columns where table_name = 'test'");
@@ -210,7 +181,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .getState().metaData().aliases().containsKey("test"), is(false));
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
-    }*/
+    }
 
     @Test
     public void testDeletePartitionTask() throws Exception {
