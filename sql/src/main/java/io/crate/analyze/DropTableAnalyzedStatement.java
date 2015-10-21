@@ -40,7 +40,7 @@ public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStateme
 
     public void table(TableIdent tableIdent) {
         try {
-            tableInfo = schemas.getWritableTable(tableIdent);
+            tableInfo = schemas.getDropableTable(tableIdent);
         } catch (SchemaUnknownException | TableUnknownException e) {
             if (dropIfExists) {
                 noop = true;

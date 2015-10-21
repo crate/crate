@@ -22,6 +22,7 @@
 package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -59,22 +60,25 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                         "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
             }
             TableIdent tableIdent = partitionName.tableIdent();
-            // check if alias exists
-            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.indexName())) {
+            try {
                 DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
-                assert info.isPartitioned();
-                int i = 0;
-                int numPartitionedColumns = info.partitionedByColumns().size();
+                if (!schemas.isOrphanedAlias(info)) {
+                    assert info.isPartitioned();
+                    int i = 0;
+                    int numPartitionedColumns = info.partitionedByColumns().size();
 
-                assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
-                for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
-                    builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
-                            partitionedInfo,
-                            partitionName.values().get(i)
-                    ));
-                    i++;
+                    assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
+                    for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
+                        builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
+                                partitionedInfo,
+                                partitionName.values().get(i)
+                        ));
+                        i++;
+                    }
+                } else {
+                    LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
                 }
-            } else {
+            } catch (TableUnknownException e) {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
             }
         }
