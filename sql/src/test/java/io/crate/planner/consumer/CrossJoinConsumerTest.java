@@ -38,6 +38,8 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStatsService;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -60,9 +62,12 @@ import org.junit.rules.ExpectedException;
 import java.util.List;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,9 +80,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private final CrossJoinConsumer consumer =
-            new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class));
+    private CrossJoinConsumer consumer;
     private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+    private TableStatsService statsService;
 
     @Before
     public void initPlanner() throws Exception {
@@ -92,6 +97,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
 
@@ -101,6 +107,10 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         protected void configure() {
             super.configure();
             bind(ThreadPool.class).toInstance(newMockedThreadPool());
+            statsService = mock(TableStatsService.class);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT))).thenReturn(10L);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            bind(TableStatsService.class).toInstance(statsService);
         }
 
         @Override
@@ -108,6 +118,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo("users")).thenReturn(BaseAnalyzerTest.userTableInfo);
+            when(schemaInfo.getTableInfo("users_multi_pk")).thenReturn(BaseAnalyzerTest.userTableInfoMultiPk);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -185,6 +196,15 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(finalTopN.offset(), is(0));
         assertThat(finalTopN.outputs().size(), is(2));
     }
+
+    @Test
+    public void testLeftSideIsBroadcastIfLeftTableIsSmaller() throws Exception {
+        NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
+                               "where users.name = u2.name " +
+                               "order by users.name, u2.name ");
+        assertThat(plan.left().resultPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+    }
+
 
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {

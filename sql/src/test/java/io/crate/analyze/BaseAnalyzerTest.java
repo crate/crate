@@ -59,8 +59,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
-    static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
 
+    public static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
 
     public static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, shardRouting)
             .add("id", DataTypes.LONG, null)
@@ -83,8 +83,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();
-    static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_multi_pk");
-    static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, shardRouting)
+    public static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_multi_pk");
+    public static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, shardRouting)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
