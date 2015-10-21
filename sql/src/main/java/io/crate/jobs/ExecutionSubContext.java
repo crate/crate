@@ -21,9 +21,36 @@
 
 package io.crate.jobs;
 
+import com.google.common.base.Predicate;
+
 import javax.annotation.Nullable;
 
 public interface ExecutionSubContext {
+
+    public static final Predicate<ExecutionSubContext> IS_ACTIVE_PREDICATE = new Predicate<ExecutionSubContext>() {
+        @Override
+        public boolean apply(@Nullable ExecutionSubContext input) {
+            return input != null && input.subContextMode() == SubContextMode.ACTIVE;
+        }
+    };
+
+    /**
+     * enum for the current mode of a ExecutionSubContext.
+     * Might be static or changing dynamically
+     * (e.g. becoming active when a data was received and is currently consumed).
+     */
+    public static enum SubContextMode {
+        /**
+         * an active subcontext is active itself,
+         * keeping its execution context alive.
+         */
+        ACTIVE,
+        /**
+         * a passive subcontext usually idles waiting for data.
+         * it might need external keep alives in order to not be shut down.
+         */
+        PASSIVE
+    }
 
     /**
      * Set the {@link KeepAliveListener} on this subcontext. This is required to be set before
@@ -58,4 +85,9 @@ public interface ExecutionSubContext {
     SubExecutionContextFuture future();
 
     int id();
+
+    /**
+     * get the current state in respect to keep-alive handling
+     */
+    SubContextMode subContextMode();
 }

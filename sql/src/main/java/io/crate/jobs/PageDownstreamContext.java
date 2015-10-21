@@ -40,6 +40,19 @@ import java.util.BitSet;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
+    private class SubContextModeResetListener implements PageResultListener {
+
+        @Override
+        public void needMore(boolean needMore) {
+            subContextMode = SubContextMode.PASSIVE;
+        }
+
+        @Override
+        public int buckedIdx() {
+            return 0;
+        }
+    }
+
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
     private final Object lock = new Object();
@@ -52,6 +65,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final BitSet allFuturesSet;
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
+
+    private volatile SubContextMode subContextMode = SubContextMode.PASSIVE;
+    private final SubContextModeResetListener resetListener = new SubContextModeResetListener();
 
     @Nullable
     private final FlatProjectorChain projectorChain;
@@ -96,8 +112,10 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
+        subContextMode = SubContextMode.ACTIVE;
         synchronized (listeners) {
             listeners.add(pageResultListener);
+            listeners.add(resetListener);
         }
         synchronized (lock) {
             LOGGER.trace("setBucket: {}", bucketIdx);
@@ -120,6 +138,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
             clearPageIfFull();
         }
+
     }
 
     public synchronized void failure(int bucketIdx, Throwable throwable) {
@@ -178,6 +197,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
         future.bytesUsed(ramAccountingContext.totalBytes());
         ramAccountingContext.close();
+        subContextMode = SubContextMode.PASSIVE;
     }
 
     @Override
@@ -202,6 +222,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     public PageDownstreamContext pageDownstreamContext(byte inputId) {
         assert inputId == 0 : "This downstream context only supports 1 input";
         return this;
+    }
+
+    @Override
+    public SubContextMode subContextMode() {
+        return subContextMode;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {

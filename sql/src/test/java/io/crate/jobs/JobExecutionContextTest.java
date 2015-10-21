@@ -46,6 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.core.Is.is;
@@ -201,5 +202,40 @@ public class JobExecutionContextTest extends CrateUnitTest {
         public String name() {
             return "SlowKilLExecutionSubContext";
         }
+    }
+
+    private static class KeepAliveSubContext extends AbstractExecutionSubContext {
+
+        final AtomicReference<SubContextMode> subContextMode = new AtomicReference<>(SubContextMode.PASSIVE);
+
+        protected KeepAliveSubContext() {
+            super(0);
+        }
+
+        @Override
+        public String name() {
+            return "keep-alive";
+        }
+
+        @Override
+        public SubContextMode subContextMode() {
+            return subContextMode.get();
+        }
+    }
+
+    @Test
+    public void testExternalKeepAlive() throws Exception {
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
+        KeepAliveSubContext subContext = new KeepAliveSubContext();
+        builder.addSubContext(subContext);
+        JobExecutionContext executionContext = spy(builder.build());
+        executionContext.externalKeepAlive();
+        verify(executionContext, times(1)).keepAlive();
+
+        subContext.subContextMode.set(ExecutionSubContext.SubContextMode.ACTIVE);
+        executionContext.externalKeepAlive();
+        // no further call done
+        verify(executionContext, times(1)).keepAlive();
     }
 }

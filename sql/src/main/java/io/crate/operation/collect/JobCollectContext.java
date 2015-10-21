@@ -196,4 +196,15 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
     }
+
+
+    /**
+     * active by default, because as long its operation is running
+     * it is keeping the local execution context alive itself
+     * and does not need external keep alives.
+     */
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.ACTIVE;
+    }
 }

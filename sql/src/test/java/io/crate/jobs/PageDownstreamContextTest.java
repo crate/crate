@@ -22,10 +22,15 @@
 package io.crate.jobs;
 
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
+import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -37,7 +42,9 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -95,5 +102,72 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.kill(null);
         assertThat(throwable.get(), Matchers.instanceOf(CancellationException.class));
         verify(downstream, times(1)).fail(any(CancellationException.class));
+    }
+
+    @Test
+    public void testActiveWhileProcessingPage() throws Exception {
+        PageDownstream downstream = mock(PageDownstream.class);
+        final SettableFuture<Void> pageCompleteFuture = SettableFuture.create();
+        final CountDownLatch pageConsumeLatch = new CountDownLatch(1);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                BucketPage bucketPage = (BucketPage)invocation.getArguments()[0];
+                final PageConsumeListener listener = (PageConsumeListener)invocation.getArguments()[1];
+                Futures.addCallback(
+                        Futures.allAsList(bucketPage.buckets()),
+                        new FutureCallback<List<Bucket>>() {
+                            @Override
+                            public void onSuccess(List<Bucket> result) {
+                                try {
+                                    pageConsumeLatch.await();
+                                    listener.finish();
+                                } catch (InterruptedException e) {
+                                    fail("interrupted while waiting on page result");
+                                }
+                                pageCompleteFuture.set(null);
+                            }
+
+                            @Override
+                            public void onFailure(Throwable t) {
+                                pageCompleteFuture.setException(t);
+                                listener.finish();
+                            }
+                        }
+                );
+                return null;
+            }
+        }).when(downstream).nextPage(any(BucketPage.class), any(PageConsumeListener.class));
+        final PageResultListener resultListener = mock(PageResultListener.class);
+        final PageDownstreamContext ctx = new PageDownstreamContext(1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 2, mock(FlatProjectorChain.class));
+
+
+        // check passive by default
+        assertThat(ctx.subContextMode(), is(ExecutionSubContext.SubContextMode.PASSIVE));
+
+        // set first bucket
+        ctx.setBucket(0, new SingleRowBucket(new Row1("foo")), false, resultListener);
+
+        // check active until page is set
+        assertThat(ctx.subContextMode(), is(ExecutionSubContext.SubContextMode.ACTIVE));
+
+        // set second bucket
+        // in a thread because we block in the consumelistener to check the state while consuming
+        Thread setBucketThread2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ctx.setBucket(1, new SingleRowBucket(new Row1("bar")), true, resultListener);
+            }
+        });
+        setBucketThread2.start();
+
+        // check active while page is processed
+        assertThat(ctx.subContextMode(), is(ExecutionSubContext.SubContextMode.ACTIVE));
+        pageConsumeLatch.countDown();
+
+        setBucketThread2.join(100);
+        Thread.sleep(100);
+        // check closed is back to passive
+        assertThat(ctx.subContextMode(), is(ExecutionSubContext.SubContextMode.PASSIVE));
     }
 }
