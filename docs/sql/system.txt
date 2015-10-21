@@ -841,7 +841,7 @@ Repositories
 ============
 
 The table ``sys.repositories`` lists all configured repositories that can be used to
-create, manage and restore snapshots (see :ref:`backup-restore`).
+create, manage and restore snapshots (see :ref:`snapshot-restore`).
 
 +---------------+-----------------------------------+-------------------+
 | Name          | Description                       | Return Type       |
@@ -883,7 +883,7 @@ Snapshots
 =========
 
 The table ``sys.snapshots`` lists all existing snapshots in all configured
-repositories (see :ref:`backup-restore`).
+repositories (see :ref:`snapshot-restore`).
 
 +----------------------+----------------------------------+-------------------+
 | Name                 | Description                      | Return Type       |

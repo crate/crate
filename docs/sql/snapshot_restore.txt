@@ -1,11 +1,11 @@
 .. highlight:: psql
-.. _backup-restore:
+.. _snapshot-restore:
 
-Backup and Restore
-==================
+Backup with Snapshot and Restore
+================================
 
-Backup
-------
+Snapshot
+--------
 
 In CRATE, backups are called *Snapshots*. They represent the state of the tables in a CRATE cluster
 at the time the *Snapshot* was created.
