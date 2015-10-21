@@ -577,27 +577,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.noOp()) {
             return new NoopPlan(context.jobId());
         }
-        TableIdent tableIdent = analysis.tableIdent();
-
-        CreateTableNode createTableNode;
-        if (analysis.isPartitioned()) {
-            createTableNode = CreateTableNode.createPartitionedTableNode(
-                    tableIdent,
-                    analysis.ifNotExists(),
-                    analysis.tableParameter().settings().getByPrefix("index."),
-                    analysis.mapping(),
-                    analysis.templateName(),
-                    analysis.templatePrefix()
-            );
-        } else {
-            createTableNode = CreateTableNode.createTableNode(
-                    tableIdent,
-                    analysis.ifNotExists(),
-                    analysis.tableParameter().settings(),
-                    analysis.mapping()
-            );
-        }
-        return new IterablePlan(context.jobId(), createTableNode);
+        return new GenericDDLPlan(context.jobId(), analysis);
     }
 
     @Override

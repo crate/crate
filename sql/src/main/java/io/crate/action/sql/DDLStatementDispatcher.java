@@ -43,6 +43,7 @@ import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TableCreator;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.PartitionName;
@@ -97,16 +98,19 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
     private final Provider<Executor> executorProvider;
     private final TransportActionProvider transportActionProvider;
     private final Planner planner;
+    private final TableCreator tableCreator;
 
     @Inject
     public DDLStatementDispatcher(ClusterService clusterService,
                                   BlobIndices blobIndices,
+                                  TableCreator tableCreator,
                                   Provider<Executor> executorProvider,
                                   TransportActionProvider transportActionProvider,
                                   Planner planner) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
         this.executorProvider = executorProvider;
+        this.tableCreator = tableCreator;
         this.transportActionProvider = transportActionProvider;
         this.planner = planner;
     }
@@ -126,6 +130,11 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<UUID, Liste
                 ),
                 1L
         );
+    }
+
+    @Override
+    public ListenableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, UUID jobId) {
+        return tableCreator.create(analysis);
     }
 
     @Override

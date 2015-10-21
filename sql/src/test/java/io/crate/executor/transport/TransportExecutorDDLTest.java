@@ -32,11 +32,9 @@ import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.ddl.CreateTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
@@ -122,27 +120,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
     }
 
-    @Test
-    public void testCreateTableTask() throws Exception {
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                new TableIdent(null, "test"),
-                false,
-                TEST_SETTINGS,
-                TEST_MAPPING
-        );
-        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
-
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket rows = listenableFuture.get().get(0).rows();
-        assertThat(rows, contains(isRow(1L)));
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("select count(*) from information_schema.columns where table_name = 'test'");
-        assertThat((Long)response.rows()[0][0], is(3L));
-    }
 
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
@@ -152,21 +129,10 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .setSettings(TEST_SETTINGS)
                 .execute().actionGet();
         ensureGreen();
-        CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                new TableIdent(null, "test"),
-                false,
-                TEST_SETTINGS,
-                TEST_MAPPING
-        );
-        Plan plan = new IterablePlan(UUID.randomUUID(), createTableNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(1L)));
-
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
+        execute("create table test (id integer, name string, names string) partitioned by (id)");
+        ensureYellow();
+        execute("select * from information_schema.tables where table_name = 'test'");
         assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from information_schema.columns where table_name = 'test'");
@@ -192,7 +158,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureGreen();
 
-        execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
+        execute("select * from information_schema.tables where table_name = 'test'");
         assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from information_schema.columns where table_name = 'test'");
