@@ -21,15 +21,21 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -45,12 +51,19 @@ import static org.mockito.Mockito.when;
 
 public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
+    private static final TableIdent ALIAS_IDENT = new TableIdent(DocSchemaInfo.NAME, "alias_table");
+    private static final TableInfo ALIAS_INFO = TestingTableInfo.builder(ALIAS_IDENT, shardRouting)
+            .add("col", DataTypes.STRING, ImmutableList.<String>of())
+            .isAlias(true)
+            .build();
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(ALIAS_IDENT.name())).thenReturn(ALIAS_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -68,23 +81,31 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    @Test( expected = TableUnknownException.class )
+    @Test
     public void testDropNonExistingTable() throws Exception {
+        expectedException.expect(TableUnknownException.class);
+        expectedException.expectMessage("Table 'doc.unknown' unknown");
         analyze("drop table unknown");
     }
 
-    @Test( expected = UnsupportedOperationException.class)
+    @Test
     public void testDropSystemTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The table sys.cluster is not dropable.");
         analyze("drop table sys.cluster");
     }
 
-    @Test( expected = UnsupportedOperationException.class )
+    @Test
     public void testDropInformationSchemaTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The table information_schema.tables is not dropable.");
         analyze("drop table information_schema.tables");
     }
 
-    @Test( expected = SchemaUnknownException.class )
+    @Test
     public void testDropUnknownSchema() throws Exception {
+        expectedException.expect(SchemaUnknownException.class);
+        expectedException.expectMessage("Schema 'unknown_schema' unknown");
         analyze("drop table unknown_schema.unknown");
     }
 
@@ -118,5 +139,19 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
         assertThat(dropTableAnalysis.dropIfExists(), is(true));
+    }
+
+    @Test
+    public void testDropAliasFails() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("doc.alias_table is an alias and hence not dropable.");
+        analyze("drop table alias_table");
+    }
+
+    @Test
+    public void testDropAliasIfExists() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("doc.alias_table is an alias and hence not dropable.");
+        analyze("drop table if exists alias_table");
     }
 }

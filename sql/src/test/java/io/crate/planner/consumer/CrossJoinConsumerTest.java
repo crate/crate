@@ -102,6 +102,11 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
             binder.bind(ClusterService.class).toInstance(new NoopClusterService());
             binder.bind(Schemas.class).toInstance(new Schemas() {
                 @Override
+                public DocTableInfo getDropableTable(TableIdent tableIdent) {
+                    return null;
+                }
+
+                @Override
                 public DocTableInfo getWritableTable(TableIdent tableIdent) {
                     return null;
                 }
@@ -116,6 +121,11 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
                 @Override
                 public boolean tableExists(TableIdent tableIdent) {
+                    return false;
+                }
+
+                @Override
+                public boolean isOrphanedAlias(DocTableInfo table) {
                     return false;
                 }
 

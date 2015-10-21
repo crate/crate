@@ -32,10 +32,14 @@ public interface Schemas extends Iterable<SchemaInfo> {
     Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
     String DEFAULT_SCHEMA_NAME = "doc";
 
+    DocTableInfo getDropableTable(TableIdent tableIdent);
+
     DocTableInfo getWritableTable(TableIdent tableIdent);
 
     TableInfo getTableInfo(TableIdent ident);
 
     boolean tableExists(TableIdent tableIdent);
+
+    boolean isOrphanedAlias(DocTableInfo table);
 
 }
