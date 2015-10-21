@@ -45,14 +45,18 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.*;
 
 
+@Singleton
 public class CrossJoinConsumer implements Consumer {
 
     private final Visitor visitor;
 
+    @Inject
     public CrossJoinConsumer(ClusterService clusterService,
                              AnalysisMetaData analysisMetaData) {
         visitor = new Visitor(clusterService, analysisMetaData);
