@@ -85,7 +85,7 @@ public class TransportKeepAliveAction implements NodeAction<KeepAliveRequest, Tr
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
         if (context != null) {
             LOGGER.trace("keeping JobExecutionContext {} alive ", context);
-            context.keepAlive();
+            context.externalKeepAlive();
         } else {
             LOGGER.trace("no JobExecutionContext found for jobId {}", request.jobId());
         }

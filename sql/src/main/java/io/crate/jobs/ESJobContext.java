@@ -120,6 +120,11 @@ public class ESJobContext implements ExecutionSubContext, ExecutionState {
         return iskilled;
     }
 
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.PASSIVE;
+    }
+
     private static class InternalActionListener implements ActionListener {
 
         private final ActionListener listener;

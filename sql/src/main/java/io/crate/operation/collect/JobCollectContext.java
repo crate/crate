@@ -220,4 +220,15 @@ public class JobCollectContext implements ExecutionSubContext, RowUpstream, Exec
     public KeepAliveListener keepAliveListener() {
         return contextCallback;
     }
+
+
+    /**
+     * active by default, because as long its operation is running
+     * it is keeping the local execution context alive itself
+     * and does not need external keep alives.
+     */
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.ACTIVE;
+    }
 }

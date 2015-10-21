@@ -41,6 +41,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PageDownstreamContext implements ExecutionSubContext, ExecutionState {
 
+    private class SubContextModeResetListener implements PageResultListener {
+
+        @Override
+        public void needMore(boolean needMore) {
+            subContextMode = SubContextMode.PASSIVE;
+        }
+
+        @Override
+        public int buckedIdx() {
+            return 0;
+        }
+    }
+
     private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
     private final Object lock = new Object();
@@ -57,6 +70,9 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     private final SettableFuture<Void> closeFuture = SettableFuture.create();
     private volatile boolean isKilled = false;
     private ContextCallback callback = ContextCallback.NO_OP;
+
+    private volatile SubContextMode subContextMode = SubContextMode.PASSIVE;
+    private final SubContextModeResetListener resetListener = new SubContextModeResetListener();
 
     @Nullable
     private final FlatProjectorChain projectorChain;
@@ -100,8 +116,10 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     }
 
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
+        subContextMode = SubContextMode.ACTIVE;
         synchronized (listeners) {
             listeners.add(pageResultListener);
+            listeners.add(resetListener);
         }
         synchronized (lock) {
             LOGGER.trace("setBucket: {}", bucketIdx);
@@ -124,6 +142,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
 
             clearPageIfFull();
         }
+
     }
 
     public synchronized void failure(int bucketIdx, Throwable throwable) {
@@ -199,7 +218,7 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
                 LOGGER.warn("Error while waiting for already running close {}", e);
             }
         }
-
+        subContextMode = SubContextMode.PASSIVE;
     }
 
     public void addCallback(ContextCallback contextCallback) {
@@ -233,6 +252,11 @@ public class PageDownstreamContext implements ExecutionSubContext, ExecutionStat
     @Override
     public boolean isKilled() {
         return isKilled;
+    }
+
+    @Override
+    public SubContextMode subContextMode() {
+        return subContextMode;
     }
 
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {

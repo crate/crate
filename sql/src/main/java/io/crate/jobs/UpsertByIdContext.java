@@ -142,4 +142,9 @@ public class UpsertByIdContext implements ExecutionSubContext {
     public String name() {
         return "upsert-by-id";
     }
+
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.PASSIVE;
+    }
 }

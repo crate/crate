@@ -94,4 +94,9 @@ public class SymbolBasedBulkShardProcessorContext implements ExecutionSubContext
     public String name() {
         return "bulk-update-by-id";
     }
+
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.PASSIVE;
+    }
 }

@@ -37,6 +37,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.core.Is.is;
@@ -161,5 +162,61 @@ public class JobExecutionContextTest extends CrateUnitTest {
         public String name() {
             return "SlowKilLExecutionSubContext";
         }
+
+        @Override
+        public SubContextMode subContextMode() {
+            return SubContextMode.PASSIVE;
+        }
+    }
+
+    private static class KeepAliveSubContext implements ExecutionSubContext {
+
+        private AtomicReference<SubContextMode> subContextMode = new AtomicReference<>(SubContextMode.PASSIVE);
+
+        @Override
+        public void addCallback(ContextCallback contextCallback) {
+
+        }
+
+        @Override
+        public void start() {
+
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void kill() {
+
+        }
+
+        @Override
+        public String name() {
+            return null;
+        }
+
+        @Override
+        public SubContextMode subContextMode() {
+            return subContextMode.get();
+        }
+    }
+
+    @Test
+    public void testExternalKeepAlive() throws Exception {
+        JobExecutionContext.Builder builder =
+                new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
+        KeepAliveSubContext subContext = new KeepAliveSubContext();
+        builder.addSubContext(0, subContext);
+        JobExecutionContext executionContext = spy(builder.build());
+        executionContext.externalKeepAlive();
+        verify(executionContext, times(1)).keepAlive();
+
+        subContext.subContextMode.set(ExecutionSubContext.SubContextMode.ACTIVE);
+        executionContext.externalKeepAlive();
+        // no further call done
+        verify(executionContext, times(1)).keepAlive();
     }
 }

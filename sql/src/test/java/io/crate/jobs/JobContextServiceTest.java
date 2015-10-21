@@ -36,7 +36,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,12 +43,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
@@ -311,6 +307,11 @@ public class JobContextServiceTest extends CrateUnitTest {
         @Override
         public String name() {
             return "dummy";
+        }
+
+        @Override
+        public SubContextMode subContextMode() {
+            return SubContextMode.PASSIVE;
         }
     }
 }

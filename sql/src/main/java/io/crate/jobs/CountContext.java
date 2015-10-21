@@ -124,4 +124,9 @@ public class CountContext implements RowUpstream, ExecutionSubContext {
             }
         }
     }
+
+    @Override
+    public SubContextMode subContextMode() {
+        return SubContextMode.PASSIVE;
+    }
 }
