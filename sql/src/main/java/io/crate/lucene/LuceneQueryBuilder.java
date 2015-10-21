@@ -184,20 +184,7 @@ public class LuceneQueryBuilder {
                 .build();
     }
 
-    public static String convertWildcardToRegex(String wildcardString) {
-        // lucene uses * and ? as wildcard characters
-        // but via SQL they are used as % and _
-        // here they are converted back.
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
-        wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
-        return wildcardString.replaceAll("\\\\_", "_");
-    }
-
-    public static String convertWildcard(String wildcardString) {
+    public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
@@ -356,8 +343,10 @@ public class LuceneQueryBuilder {
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                String notLike = negateWildcard(
-                        convertWildcardToRegex(BytesRefs.toString(literal.value())));
+                String regexString = LikeOperator.patternToRegex(BytesRefs.toString(literal.value()), LikeOperator.DEFAULT_ESCAPE, false);
+                regexString = regexString.substring(1, regexString.length() - 1);
+                String notLike = negateWildcard(regexString);
+
                 return new RegexpQuery(new Term(
                         arrayReference.info().ident().columnIdent().fqn(),
                         notLike),
