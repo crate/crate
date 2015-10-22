@@ -5,10 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: clean up file descriptors in case of exceptions when retrieving blobs
+   over the REST api
+
  - Updated crash to 0.14.2 which contains following changes:
 
    - Fixed an assertion error that could occur under python2.7
- 
+
  - Fixed an issue that was causing like queries to fail if using a special regex 
    character
 
