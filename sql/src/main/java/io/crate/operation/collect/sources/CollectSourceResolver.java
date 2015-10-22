@@ -76,7 +76,6 @@ public class CollectSourceResolver {
                                  ShardCollectSource shardCollectSource,
                                  FileCollectSource fileCollectSource,
                                  SingleRowSource singleRowSource,
-                                 InformationSchemaCollectSource informationSchemaCollectSource,
                                  SystemCollectSource systemCollectSource) {
 
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
@@ -98,15 +97,14 @@ public class CollectSourceResolver {
 
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
 
-        ProjectorSetupCollectSource isSource = new ProjectorSetupCollectSource(informationSchemaCollectSource, projectorFactory);
-        for (TableInfo tableInfo : informationSchemaInfo) {
-            nodeDocCollectSources.put(tableInfo.ident().fqn(), isSource);
-        }
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo) {
             if (tableInfo.rowGranularity().equals(RowGranularity.DOC)) {
                 nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
             }
+        }
+        for (TableInfo tableInfo : informationSchemaInfo) {
+            nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
     }
 

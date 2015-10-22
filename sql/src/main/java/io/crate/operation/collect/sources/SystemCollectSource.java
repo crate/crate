@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
 import io.crate.operation.collect.*;
@@ -50,16 +51,25 @@ public class SystemCollectSource implements CollectSource {
 
 
     @Inject
-    public SystemCollectSource(DiscoveryService discoveryService, Functions functions, StatsTables statsTables, SysChecker sysChecker) {
+    public SystemCollectSource(DiscoveryService discoveryService,
+                               Functions functions,
+                               StatsTables statsTables,
+                               InformationSchemaIterables informationSchemaIterables,
+                               SysChecker sysChecker) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
-        iterableGetters = ImmutableMap.of(
-                SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
-                SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter(),
-                SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter(),
-                SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter(),
-                SysChecksTableInfo.IDENT.fqn(), sysChecker
-        );
+        iterableGetters = ImmutableMap.<String, IterableGetter>builder()
+                .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
+                .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tablesGetter())
+                .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitionsGetter())
+                .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columnsGetter())
+                .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraintsGetter())
+                .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routinesGetter())
+                .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
+                .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
+                .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
+                .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
+                .put(SysChecksTableInfo.IDENT.fqn(), sysChecker).build();
         this.discoveryService = discoveryService;
     }
 

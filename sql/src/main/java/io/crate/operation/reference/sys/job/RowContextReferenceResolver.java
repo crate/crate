@@ -24,8 +24,10 @@ package io.crate.operation.reference.sys.job;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
 import io.crate.operation.reference.sys.check.checks.SysCheck;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
@@ -52,6 +54,13 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(SysOperationsTableInfo.IDENT, getSysOperationExpressions());
         tableFactories.put(SysOperationsLogTableInfo.IDENT, getSysOperationLogExpressions());
         tableFactories.put(SysChecksTableInfo.IDENT, getSysChecksExpressions());
+
+        tableFactories.put(InformationSchemataTableInfo.IDENT, InformationSchemaExpressionFactories.schemataFactories());
+        tableFactories.put(InformationRoutinesTableInfo.IDENT, InformationSchemaExpressionFactories.routineFactories());
+        tableFactories.put(InformationTableConstraintsTableInfo.IDENT, InformationSchemaExpressionFactories.tableConstraintFactories());
+        tableFactories.put(InformationPartitionsTableInfo.IDENT, InformationSchemaExpressionFactories.tablePartitionsFactories());
+        tableFactories.put(InformationColumnsTableInfo.IDENT, InformationSchemaExpressionFactories.columnsFactories());
+        tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {
