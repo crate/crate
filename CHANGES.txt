@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: clean up file descriptors in case of exceptions when retrieving blobs
+   over the REST api
+
  - Fixed an issue that caused orphaned partitions with an remaining alias to
    not be recognized correctly
 
