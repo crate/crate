@@ -207,19 +207,6 @@ public class RelationSplitter {
         }
     }
 
-
-    private static class FieldReplacingCtx {
-        Map<Symbol, Field> fieldMap;
-
-        public FieldReplacingCtx(Map<Symbol, Field> fieldMap) {
-            this.fieldMap = fieldMap;
-        }
-
-        public Field get(Symbol symbol) {
-            return fieldMap.get(symbol);
-        }
-    }
-
     public static class SplitContext {
         final AnalyzedRelation relation;
         final List<Symbol> directSplit = new ArrayList<>();
