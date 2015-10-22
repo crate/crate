@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/10/22 0.51.7
+=================
+
  - Fixed an issue that orphaned partitions with an remaining alias were
    not correctly recognized
 
