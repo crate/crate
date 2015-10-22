@@ -77,4 +77,9 @@ public class CreateRepository extends Statement{
                 .add("type", type)
                 .add("properties", properties).toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateRepository(this, context);
+    }
 }
