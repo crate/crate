@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.RepositoryUnknownException;
+import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.metadata.MetaDataModule;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
@@ -50,11 +50,14 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
     @Mock
     private RepositoriesMetaData repositoriesMetaData;
 
+
     private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
+
         @Override
         protected void configureMetaData(MetaData metaData) {
             when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
         }
+
     }
 
     @Override
@@ -62,8 +65,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
                         new MyMockedClusterServiceModule(),
-                        new MetaDataModule(),
-                        new OperatorModule())
+                        new MetaDataModule())
         );
         return modules;
     }
@@ -76,10 +78,19 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSimpleCreateRepository() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("cannot analyze statement: 'CreateRepository{repository=my_repository, type=fs, properties=Optional.absent()}'");
-        analyze("CREATE REPOSITORY my_repository TYPE fs");
+    public void testCreateRepository() throws Exception {
+        CreateRepositoryAnalyzedStatement statement = (CreateRepositoryAnalyzedStatement)analyze("CREATE REPOSITORY \"new_repository\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
+        assertThat(statement.repositoryName(), is("new_repository"));
+        assertThat(statement.repositoryType(), is("fs"));
+        assertThat(statement.settings().get("compress"), is("true"));
+        assertThat(statement.settings().get("location"), is("/mount/backups/my_backup"));
+    }
+
+    @Test
+    public void testCreateExistingRepository() throws Exception {
+        expectedException.expect(RepositoryAlreadyExistsException.class);
+        expectedException.expectMessage("Repository 'my_repo' already exists");
+        analyze("create repository my_repo TYPE fs");
     }
 
     @Test
