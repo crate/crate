@@ -32,7 +32,7 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
-import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;

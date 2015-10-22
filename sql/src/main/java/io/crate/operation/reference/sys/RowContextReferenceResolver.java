@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.job;
+package io.crate.operation.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
@@ -27,8 +27,11 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.*;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.check.checks.SysCheck;
+import io.crate.operation.reference.sys.job.JobContext;
+import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.operation.reference.sys.repositories.Repository;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -52,6 +55,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(SysOperationsTableInfo.IDENT, getSysOperationExpressions());
         tableFactories.put(SysOperationsLogTableInfo.IDENT, getSysOperationLogExpressions());
         tableFactories.put(SysChecksTableInfo.IDENT, getSysChecksExpressions());
+        tableFactories.put(SysRepositoriesTableInfo.IDENT, getSysRepositoriesExpressions());
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {
@@ -347,6 +351,44 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                             @Override
                             public Boolean value() {
                                 return row.validate();
+                            }
+                        };
+                    }
+                })
+                .build();
+    }
+
+    private ImmutableMap<ColumnIdent, RowCollectExpressionFactory> getSysRepositoriesExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(SysRepositoriesTableInfo.Columns.NAME, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<Repository, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return row.name();
+                            }
+                        };
+                    }
+                })
+                .put(SysRepositoriesTableInfo.Columns.TYPE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<Repository, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return row.type();
+                            }
+                        };
+                    }
+                })
+                .put(SysRepositoriesTableInfo.Columns.SETTINGS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<Repository, Map<String, Object>>() {
+                            @Override
+                            public Map<String, Object> value() {
+                                return row.settings();
                             }
                         };
                     }
