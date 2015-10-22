@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that orphaned partitions with an remaining alias were
+   not correctly recognized
+
  - Fixed an issue that was causing like queries to fail if using a special regex 
    character
 
