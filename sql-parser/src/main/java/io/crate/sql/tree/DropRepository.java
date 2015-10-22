@@ -55,4 +55,9 @@ public class DropRepository extends Statement {
                 .add("repository", repository)
                 .toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDropRepository(this, context);
+    }
 }
