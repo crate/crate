@@ -136,7 +136,7 @@ public class CrateClient {
             return null;
         }
 
-        if (uri != null && uri.getHost() != null) {
+        if (uri.getHost() != null) {
             return new InetSocketTransportAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300);
         }
         return null;
