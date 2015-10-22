@@ -28,12 +28,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.AlterTableOperation;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
-import io.crate.exceptions.AlterTableAliasException;
-import io.crate.executor.Executor;
-import io.crate.executor.Job;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.RepositoryDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.executor.transport.TransportActionProvider;
@@ -156,6 +150,11 @@ public class DDLStatementDispatcher {
 
         @Override
         public ListenableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, UUID jobId) {
+            return repositoryDDLDispatcher.dispatch(analysis, jobId);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, UUID jobId) {
             return repositoryDDLDispatcher.dispatch(analysis, jobId);
         }
     }

@@ -26,20 +26,18 @@ import com.google.common.io.Files;
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.repositories.fs.FsRepository;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
 
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
-
-    private static final String REPO_NAME = "existing_repo";
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -65,39 +63,17 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
         TEMP_FOLDER_ROOT.delete();
     }
 
-    @Before
-    public void prepare() throws Exception {
-        client().admin().cluster()
-                .preparePutRepository(REPO_NAME)
-                .setType(FsRepository.TYPE)
-                .setSettings(ImmutableSettings.builder()
-                        .put("location", new File(temporaryFolder.getRoot(), REPO_NAME)))
-                .execute().actionGet(TimeValue.timeValueSeconds(2));
-        waitNoPendingTasksOnAll();
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        try {
-            client().admin().cluster().prepareDeleteRepository(REPO_NAME)
-                    .execute().actionGet(TimeValue.timeValueSeconds(2));
-        } catch (RepositoryMissingException e) {
-            // ignore
-        }
-    }
-
     @Test
     public void testDropExistingRepository() throws Exception {
-        execute("DROP REPOSITORY " + REPO_NAME);
+        execute("CREATE REPOSITORY existing_repo TYPE \"fs\" with (location=?, compress=True)",
+                new Object[]{TEMP_FOLDER_ROOT.getAbsolutePath()});
+        waitNoPendingTasksOnAll();
+        execute("DROP REPOSITORY existing_repo");
         assertThat(response.rowCount(), is(1L));
 
         waitNoPendingTasksOnAll();
-
-        expectedException.expect(RepositoryMissingException.class);
-        expectedException.expectMessage("[existing_repo] missing");
-        client().admin().cluster()
-                .prepareGetRepositories(REPO_NAME)
-                .execute().actionGet(TimeValue.timeValueSeconds(2));
+        execute("select * from sys.repositories where name = ? ", new Object[]{"existing_repo"});
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -105,5 +81,30 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Repository 'does_not_exist' unknown");
         execute("DROP REPOSITORY does_not_exist");
+    }
+
+    @Test
+    public void testCreateRepository() throws Throwable {
+        execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+                new Object[]{TEMP_FOLDER_ROOT.getAbsolutePath()});
+        waitNoPendingTasksOnAll();
+        execute("select * from sys.repositories where name ='myRepo'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("myRepo"));
+        assertThat((String) response.rows()[0][1], is("fs"));
+        HashMap<String, String> settings = (HashMap)response.rows()[0][2];
+        assertThat(settings.get("compress"), is("true"));
+        assertThat(new File(settings.get("location")).getParent(), is(TEMP_DIR.getAbsolutePath()));
+    }
+
+    @Test
+    public void testCreateExistingRepository() throws Throwable {
+        execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+                new Object[]{TEMP_FOLDER_ROOT.getAbsolutePath()});
+        waitNoPendingTasksOnAll();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Repository 'myRepo' already exists");
+        execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+                new Object[]{TEMP_FOLDER_ROOT.getAbsolutePath()});
     }
 }
