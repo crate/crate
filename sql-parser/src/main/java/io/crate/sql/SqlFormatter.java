@@ -478,6 +478,12 @@ public final class SqlFormatter {
             return null;
         }
 
+        @Override
+        public Void visitDropRepository(DropRepository node, Integer context) {
+            builder.append("DROP REPOSITORY \"").append(node.repository()).append("\"");
+            return null;
+        }
+
         private String quoteIdentifierIfNeeded(String identifier) {
             List<String> quoted = new ArrayList<>();
             for (String part : Splitter.on(".").split(identifier)) {

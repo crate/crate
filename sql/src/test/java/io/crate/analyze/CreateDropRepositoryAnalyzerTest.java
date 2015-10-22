@@ -21,31 +21,58 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.Module;
-import org.junit.Rule;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
+
 public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    @Mock
+    private RepositoriesMetaData repositoriesMetaData;
+
+    private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
+        @Override
+        protected void configureMetaData(MetaData metaData) {
+            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
+        }
+    }
 
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MockedClusterServiceModule(),
+                        new MyMockedClusterServiceModule(),
                         new MetaDataModule(),
                         new OperatorModule())
         );
         return modules;
+    }
+
+    @Before
+    public void before() throws Exception {
+        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("my_repo", "fs", ImmutableSettings.EMPTY);
+        when(repositoriesMetaData.repository(anyString())).thenReturn(null);
+        when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);
     }
 
     @Test
@@ -56,9 +83,16 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSimpleDropRepository() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("cannot analyze statement: 'DropRepository{repository=my_repository}'");
-        analyze("DROP REPOSITORY my_repository");
+    public void testDropUnknownRepository() throws Exception {
+        expectedException.expect(RepositoryUnknownException.class);
+        expectedException.expectMessage("Repository 'unknown_repo' unknown");
+        analyze("DROP REPOSITORY \"unknown_repo\"");
+    }
+
+    @Test
+    public void testDropExistingRepo() throws Exception {
+        DropRepositoryAnalyzedStatement statement = (DropRepositoryAnalyzedStatement)analyze("DROP REPOSITORY my_repo");
+        assertThat(statement.repositoryName(), is("my_repo"));
+
     }
 }
