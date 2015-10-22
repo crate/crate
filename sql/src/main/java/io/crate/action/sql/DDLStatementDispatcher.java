@@ -28,6 +28,13 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.AlterTableOperation;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
+import io.crate.exceptions.AlterTableAliasException;
+import io.crate.executor.Executor;
+import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
+import io.crate.executor.transport.RepositoryDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.action.ActionListener;
@@ -53,18 +60,22 @@ public class DDLStatementDispatcher {
     private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
+    private final RepositoryDDLDispatcher repositoryDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
+
 
     @Inject
     public DDLStatementDispatcher(BlobIndices blobIndices,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
+                                  RepositoryDDLDispatcher repositoryDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
         this.blobIndices = blobIndices;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
+        this.repositoryDDLDispatcher = repositoryDDLDispatcher;
     }
 
     public ListenableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId) {
@@ -141,6 +152,11 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, UUID jobId) {
+            return repositoryDDLDispatcher.dispatch(analysis, jobId);
         }
     }
 
