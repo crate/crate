@@ -29,8 +29,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -110,7 +108,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
-                genericPropertyToSetting(builder,
+                GenericPropertiesConverter.genericPropertyToSetting(builder,
                         context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
                         tokenizerProperty.getValue(),
                         context.analysis.parameterContext());
@@ -124,7 +122,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
     @Override
     public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
-        genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
+        GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
                 context.statement.getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
                 property.value(),
                 context.analysis.parameterContext()
@@ -169,7 +167,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 name = String.format("%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
-                    genericPropertyToSetting(builder,
+                    GenericPropertiesConverter.genericPropertyToSetting(builder,
                             context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                             tokenFilterProperty.getValue(),
                             context.analysis.parameterContext());
@@ -210,7 +208,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 name = String.format("%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
-                    genericPropertyToSetting(builder,
+                    GenericPropertiesConverter.genericPropertyToSetting(builder,
                             context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                             charFilterProperty.getValue(),
                             context.analysis.parameterContext());
@@ -237,22 +235,4 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         return ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
     }
 
-    /**
-     * Put a genericProperty into a settings-structure
-     */
-    private void genericPropertyToSetting(ImmutableSettings.Builder builder,
-                                          String name,
-                                          Expression value,
-                                          ParameterContext parameterContext) {
-        if (value instanceof ArrayLiteral) {
-            ArrayLiteral array = (ArrayLiteral)value;
-            List<String> values = new ArrayList<>(array.values().size());
-            for (Expression expression : array.values()) {
-                values.add(ExpressionToStringVisitor.convert(expression, parameterContext.parameters()));
-            }
-            builder.putArray(name, values.toArray(new String[values.size()]));
-        } else  {
-            builder.put(name, ExpressionToStringVisitor.convert(value, parameterContext.parameters()));
-        }
-    }
 }
