@@ -71,7 +71,7 @@ snapshot and the persistent settings will be excluded.
     ...   id int,
     ...   value string,
     ...   date timestamp
-    ... ) clustered into 1 shard partitioned by (date) with (number_of_replicas=0);
+    ... ) clustered into 1 shards partitioned by (date) with (number_of_replicas=0);
     cr> INSERT INTO parted_table (id, value, date)
     ... VALUES (1, 'foo', '1970-01-01'), (2, 'bar', '2015-10-19');
     INSERT OK, 2 rows affected (... sec)
