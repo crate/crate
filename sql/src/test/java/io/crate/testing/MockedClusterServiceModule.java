@@ -76,5 +76,15 @@ public class MockedClusterServiceModule extends AbstractModule {
         when(clusterService.localNode()).thenReturn(node);
 
         bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
+
+        configureClusterService(clusterService);
+        configureClusterState(state);
+        configureMetaData(metaData);
     }
+
+    protected void configureClusterService(ClusterService clusterService) {}
+
+    protected void configureClusterState(ClusterState clusterState) {}
+
+    protected void configureMetaData(MetaData metaData) {}
 }
