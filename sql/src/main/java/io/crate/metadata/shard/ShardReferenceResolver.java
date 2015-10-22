@@ -27,7 +27,6 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -44,7 +43,6 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
     @Inject
     public ShardReferenceResolver(Index index,
                                   Schemas schemas,
-                                  ClusterService clusterService,
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();

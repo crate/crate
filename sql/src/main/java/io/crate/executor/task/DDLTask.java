@@ -51,7 +51,7 @@ public class DDLTask extends JobTask {
 
     @Override
     public void start() {
-        ListenableFuture<Long> future = ddlStatementDispatcher.process(analyzedStatement, jobId());
+        ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
         Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
             public void onSuccess(Long rowCount) {

@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
+import io.crate.action.sql.TransportSQLAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -47,7 +48,6 @@ import org.elasticsearch.common.inject.Provider;
 public class TransportActionProvider {
 
     private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
-    private final Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider;
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
@@ -71,9 +71,10 @@ public class TransportActionProvider {
     private final Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider;
     private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
 
+    private final Provider<TransportSQLAction> transportSQLActionProvider;
+
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
-                                   Provider<TransportCloseContextNodeAction> transportCloseContextNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportGetIndexTemplatesAction> transportGetIndexTemplatesActionProvider,
@@ -92,7 +93,8 @@ public class TransportActionProvider {
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
                                    Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider,
-                                   Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider) {
+                                   Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
+                                   Provider<TransportSQLAction> transportSQLActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -107,13 +109,13 @@ public class TransportActionProvider {
         this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
-        this.transportCloseContextNodeActionProvider = transportCloseContextNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
         this.transportJobInitActionProvider = transportJobInitActionProvider;
         this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
         this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
+        this.transportSQLActionProvider = transportSQLActionProvider;
     }
 
     public TransportCreateIndexAction transportCreateIndexAction() {
@@ -176,10 +178,6 @@ public class TransportActionProvider {
         return transportFetchNodeActionProvider.get();
     }
 
-    public TransportCloseContextNodeAction transportCloseContextNodeAction() {
-        return transportCloseContextNodeActionProvider.get();
-    }
-
     public TransportPutMappingAction transportPutMappingAction() {
         return transportPutMappingActionProvider.get();
     }
@@ -198,6 +196,10 @@ public class TransportActionProvider {
 
     public TransportKillJobsNodeAction transportKillJobsNodeAction() {
         return transportKillJobsNodeActionProvider.get();
+    }
+
+    public TransportSQLAction transportSQLAction() {
+        return transportSQLActionProvider.get();
     }
 
 }
