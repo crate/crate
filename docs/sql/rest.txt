@@ -291,6 +291,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4094  The used table alias contains tables with different schema.
     ----- ---------------------------------------------------------------------
+    4095  A repository with the same name exists already.
+    ----- ---------------------------------------------------------------------
     5000  Unhandled server error.
     ----- ---------------------------------------------------------------------
     5001  The execution of one or more tasks failed.

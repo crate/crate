@@ -24,11 +24,13 @@ package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -41,17 +43,18 @@ public class RepositoryDDLDispatcher {
 
     private static final ESLogger LOGGER = Loggers.getLogger(RepositoryDDLDispatcher.class);
 
-    private final TransportDeleteRepositoryAction transportDeleteRepositoryAction;
+    private final TransportActionProvider transportActionProvider;
 
     @Inject
-    public RepositoryDDLDispatcher(TransportDeleteRepositoryAction transportDeleteRepositoryAction) {
-        this.transportDeleteRepositoryAction = transportDeleteRepositoryAction;
+    public RepositoryDDLDispatcher(TransportActionProvider transportActionProvider) {
+        this.transportActionProvider = transportActionProvider;
+
     }
 
     public ListenableFuture<Long> dispatch(DropRepositoryAnalyzedStatement analyzedStatement, UUID jobId) {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
-        transportDeleteRepositoryAction.execute(
+        transportActionProvider.transportDeleteRepositoryAction().execute(
                 new DeleteRepositoryRequest(repoName),
                 new ActionListener<DeleteRepositoryResponse>() {
                     @Override
@@ -69,5 +72,25 @@ public class RepositoryDDLDispatcher {
                 }
         );
         return future;
+    }
+
+    public ListenableFuture<Long> dispatch(CreateRepositoryAnalyzedStatement statement, UUID jobId) {
+        final SettableFuture<Long> result = SettableFuture.create();
+
+        PutRepositoryRequest request = new PutRepositoryRequest(statement.repositoryName());
+        request.type(statement.repositoryType());
+        request.settings(statement.settings());
+        transportActionProvider.transportPutRepositoryAction().execute(request, new ActionListener<PutRepositoryResponse>() {
+            @Override
+            public void onResponse(PutRepositoryResponse putRepositoryResponse) {
+                result.set(1L);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
+        return result;
     }
 }
