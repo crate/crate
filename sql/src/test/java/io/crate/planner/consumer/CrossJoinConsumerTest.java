@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -43,6 +44,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -59,11 +61,13 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isFunction;
 import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -261,5 +265,14 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
         plan("select * from users u1, users u2 order by u1.id, u2.name");
 
+    }
+
+    @Test
+    public void testOrderByOnJoinCondition() throws Exception {
+        NestedLoop nl = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u1.name || u2.name");
+        List<Symbol> orderBy = ((TopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
+        assertThat(orderBy, notNullValue());
+        assertThat(orderBy.size(), is(1));
+        assertThat(orderBy.get(0), isFunction("concat"));
     }
 }

@@ -145,8 +145,8 @@ public class MultiSourceSelect implements QueriedRelation {
         if (toRemove.size() == 0) {
             return orderBy;
         }
-        int numRemaining = toRemove.size() - orderBy.orderBySymbols().size();
 
+        int numRemaining = orderBy.orderBySymbols().size() - toRemove.size();
         if (numRemaining == 0 ){
             return null;
         }
