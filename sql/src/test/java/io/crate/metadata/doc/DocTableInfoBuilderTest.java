@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
@@ -58,20 +57,12 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         executorService = MoreExecutors.newDirectExecutorService();
     }
 
-    private String randomSchema() {
-        if (randomBoolean()) {
-            return Schemas.DEFAULT_SCHEMA_NAME;
-        } else {
-            return randomAsciiOfLength(3);
-        }
-    }
-
     @Test
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         ClusterService clusterService = mock(ClusterService.class);
         ClusterState clusterState = mock(ClusterState.class);
         when(clusterService.state()).thenReturn(clusterState);
-        String schemaName = randomSchema();
+        String schemaName = randomAsciiOfLength(4);
         PartitionName partitionName = new PartitionName(schemaName, "test", Collections.singletonList(new BytesRef("boo")));
         IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(partitionName.stringValue())
                 .numberOfReplicas(0)
