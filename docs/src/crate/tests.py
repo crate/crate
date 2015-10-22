@@ -266,7 +266,7 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         docs_suite.addTest(s)
-    for fn in ('sql/backup_restore.txt',):
+    for fn in ('sql/snapshot_restore.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
