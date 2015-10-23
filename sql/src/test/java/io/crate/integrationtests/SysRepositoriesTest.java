@@ -42,19 +42,10 @@ import static org.hamcrest.Matchers.is;
 
 public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
-    private static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
+    @ClassRule
+    public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
 
     private List<String> repositories = new ArrayList<>();
-
-    @BeforeClass
-    public static void createFolder() throws Exception {
-        TEMP_FOLDER.create();
-    }
-
-    @AfterClass
-    public static void deleteFolder() throws Exception {
-        TEMP_FOLDER.delete();
-    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
