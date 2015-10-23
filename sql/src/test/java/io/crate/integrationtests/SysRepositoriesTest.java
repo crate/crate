@@ -111,14 +111,4 @@ public class SysRepositoriesTest extends SQLTransportIntegrationTest {
         assertThat((String) settings.get("chunk_size"), is("5k"));
         assertThat((String) settings.get("compress"), is("false"));
     }
-
-    @Test
-    public void testWhereClause() throws Exception {
-        String repoName = "test-repo-2";
-        createRepository(repoName);
-        execute("select name from sys.repositories where name = ?", new Object[]{repoName});
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is(repoName));
-    }
-
 }
