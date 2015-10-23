@@ -34,6 +34,7 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
+import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
@@ -57,7 +58,8 @@ public class SystemCollectSource implements CollectSource {
                                StatsTables statsTables,
                                InformationSchemaIterables informationSchemaIterables,
                                SysChecker sysChecker,
-                               SysRepositories sysRepositories) {
+                               SysRepositories sysRepositories,
+                               SysSnapshots sysSnapshots) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.<String, IterableGetter>builder()
@@ -73,6 +75,7 @@ public class SystemCollectSource implements CollectSource {
                 .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
                 .put(SysChecksTableInfo.IDENT.fqn(), sysChecker)
                 .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
+                .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
                 .build();
         this.discoveryService = discoveryService;
     }
