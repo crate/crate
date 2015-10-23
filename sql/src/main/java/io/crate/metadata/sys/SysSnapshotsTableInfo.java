@@ -28,6 +28,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -71,6 +73,8 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
         return info;
     }
 
+    private Random random = new Random();
+
     public SysSnapshotsTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
     }
@@ -101,9 +105,25 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
         tableLocation.put(IDENT.fqn(), null);
-        // route to master node, because RepositoriesService (and so snapshots info) is only available there
-        locations.put(clusterService.state().nodes().masterNodeId(), tableLocation);
+        // route to random master or data node,
+        // because RepositoriesService (and so snapshots info) is only available there
+        locations.put(randomMasterOrDataNode().id(), tableLocation);
         return new Routing(locations);
+    }
+
+    private DiscoveryNode randomMasterOrDataNode() {
+        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().masterAndDataNodes();
+        int randomIdx = random.nextInt(masterAndDataNodes.size());
+        Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
+        int currIdx = 0;
+        while (it.hasNext()) {
+            if (currIdx == randomIdx) {
+                return it.next();
+            }
+            currIdx++;
+        }
+        throw new AssertionError(String.format(Locale.ENGLISH,
+                "Cannot find a master or data node with given random index %d", randomIdx));
     }
 
     @Override
