@@ -148,7 +148,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     querySpec.limit(),
                     null
             );
-            if (orderBy == null || !orderBy.isSorted()) {
+            if (orderBy == null) {
                 localMergePhase = MergePhase.localMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),

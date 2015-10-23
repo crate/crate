@@ -104,11 +104,7 @@ public class QuerySpec {
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        if (orderBy == null || !orderBy.isSorted()) {
-            this.orderBy = null;
-        } else {
-            this.orderBy = orderBy;
-        }
+        this.orderBy = orderBy;
         return this;
     }
 

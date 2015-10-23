@@ -81,7 +81,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         outputTypes = Symbols.extractTypes(outputs);
 
         OrderBy orderBy = querySpec.orderBy();
-        if (orderBy != null && orderBy.isSorted()){
+        if (orderBy != null){
             this.sortSymbols = orderBy.orderBySymbols();
             this.reverseFlags = orderBy.reverseFlags();
             this.nullsFirst = orderBy.nullsFirst();

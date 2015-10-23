@@ -126,7 +126,7 @@ public class ShardCollectSource implements CollectSource {
 
         String localNodeId = clusterService.localNode().id();
         OrderBy orderBy = normalizedPhase.orderBy();
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null && orderBy.isSorted()) {
+        if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             FlatProjectorChain flatProjectorChain;
             if (normalizedPhase.hasProjections()) {
                 flatProjectorChain = FlatProjectorChain.withAttachedDownstream(

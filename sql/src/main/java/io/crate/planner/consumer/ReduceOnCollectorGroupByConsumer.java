@@ -181,7 +181,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
             MergePhase localMerge;
-            if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
+            if (!ignoreSorting && collectorTopN && orderBy != null) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
                 handlerProjections.add(

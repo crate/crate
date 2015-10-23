@@ -50,11 +50,14 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     }
 
     private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {
-        boolean[] reverseFlags = new boolean[orderBySymbols.size()];
-        Arrays.fill(reverseFlags, true);
-        Boolean[] nullsFirst = new Boolean[orderBySymbols.size()];
-        Arrays.fill(nullsFirst, Boolean.FALSE);
-        OrderBy orderBy = new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
+        OrderBy orderBy = null;
+        if (!orderBySymbols.isEmpty()){
+            boolean[] reverseFlags = new boolean[orderBySymbols.size()];
+            Arrays.fill(reverseFlags, true);
+            Boolean[] nullsFirst = new Boolean[orderBySymbols.size()];
+            Arrays.fill(nullsFirst, Boolean.FALSE);
+            orderBy = new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
+        }
         return new FetchRequiredVisitor.Context(orderBy);
     }
 

@@ -167,7 +167,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertNull(table.querySpec().limit());
 
         assertNull(table.querySpec().groupBy());
-        assertTrue(table.querySpec().orderBy().isSorted());
+        assertTrue(table.querySpec().orderBy() != null);
 
         assertEquals(1, table.querySpec().outputs().size());
         assertEquals(1, table.querySpec().orderBy().orderBySymbols().size());
@@ -362,7 +362,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(outputNames.size(), is(1));
         assertThat(outputNames.get(0), is("cluster_name"));
 
-        assertTrue(relation.querySpec().orderBy().isSorted());
+        assertTrue(relation.querySpec().orderBy() != null);
         assertThat(relation.querySpec().orderBy().orderBySymbols().size(), is(1));
         assertThat(relation.querySpec().orderBy().orderBySymbols().get(0), is(relation.querySpec().outputs().get(0)));
     }
@@ -989,7 +989,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     private void testDistanceOrderBy(String stmt) throws Exception {
         SelectAnalyzedStatement analysis = analyze(stmt);
-        assertTrue(analysis.relation().querySpec().orderBy().isSorted());
+        assertTrue(analysis.relation().querySpec().orderBy() != null);
         assertEquals(DistanceFunction.NAME, ((Function) analysis.relation().querySpec().orderBy().orderBySymbols().get(0)).info().ident().name());
     }
 

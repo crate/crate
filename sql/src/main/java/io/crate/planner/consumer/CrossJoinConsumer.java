@@ -197,7 +197,7 @@ public class CrossJoinConsumer implements Consumer {
             List<Symbol> previousOutputs = querySpec.outputs();
 
             MergePhase mergePhase;
-            if (OrderBy.isSorted(orderBy)) {
+            if (orderBy != null) {
                 mergePhase = MergePhase.sortedMerge(
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
@@ -233,14 +233,14 @@ public class CrossJoinConsumer implements Consumer {
          */
         private Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement) {
             OrderBy orderBy = statement.querySpec().orderBy();
-            if (orderBy == null || !orderBy.isSorted()) {
+            if (orderBy == null) {
                 return statement.sources().keySet();
             }
             final List<QualifiedName> orderByOrder = new ArrayList<>(statement.sources().size());
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
                 for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
                     OrderBy subOrderBy = entry.getValue().querySpec().orderBy();
-                    if (subOrderBy == null || !subOrderBy.isSorted() || orderByOrder.contains(entry.getKey())) {
+                    if (subOrderBy == null || orderByOrder.contains(entry.getKey())) {
                         continue;
                     }
                     if (orderBySymbol.equals(subOrderBy.orderBySymbols().get(0))) {

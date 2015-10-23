@@ -26,7 +26,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +37,7 @@ public class OrderBy implements Streamable {
     private Boolean[] nullsFirst;
 
     public OrderBy(List<Symbol> orderBySymbols, boolean[] reverseFlags, Boolean[] nullsFirst) {
+        assert !orderBySymbols.isEmpty(): "orderBySymbols must not be empty";
         assert orderBySymbols.size() == reverseFlags.length && reverseFlags.length == nullsFirst.length :
                 "size of symbols / reverseFlags / nullsFirst must match";
 
@@ -60,20 +60,12 @@ public class OrderBy implements Streamable {
         return nullsFirst;
     }
 
-    public boolean isSorted() {
-        return !orderBySymbols.isEmpty();
-    }
-
     public void normalize(EvaluatingNormalizer normalizer) {
         normalizer.normalizeInplace(orderBySymbols);
     }
 
     public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
         orderBy.writeTo(out);
-    }
-
-    public static boolean isSorted(@Nullable OrderBy orderBy) {
-        return orderBy != null && orderBy.isSorted();
     }
 
     public static OrderBy fromStream(StreamInput in) throws IOException {

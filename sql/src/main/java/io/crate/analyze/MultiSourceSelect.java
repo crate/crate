@@ -125,7 +125,7 @@ public class MultiSourceSelect implements QueriedRelation {
     @Nullable
     public OrderBy remainingOrderBy(){
         OrderBy orderBy = querySpec.orderBy();
-        if (orderBy == null || !orderBy.isSorted()){
+        if (orderBy == null){
             return null;
         }
         IntOpenHashSet toRemove = new IntOpenHashSet(orderBy.orderBySymbols().size());
@@ -133,7 +133,7 @@ public class MultiSourceSelect implements QueriedRelation {
             Symbol s = orderBy.orderBySymbols().get(i);
             for (MultiSourceSelect.Source source : sources.values()) {
                 OrderBy subOrderBy = source.querySpec().orderBy();
-                if (subOrderBy != null && subOrderBy.isSorted()){
+                if (subOrderBy != null){
                     for (Symbol specSymbol : subOrderBy.orderBySymbols()) {
                         if (s == specSymbol){
                             toRemove.add(i);
