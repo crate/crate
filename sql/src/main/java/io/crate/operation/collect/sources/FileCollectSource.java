@@ -64,6 +64,9 @@ public class FileCollectSource implements CollectSource {
         FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase);
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
 
+        // FileUriCollectPhase is only used in copy plans which never require ordering
+        assert fileUriCollectPhase.orderBy() == null : "FileReadingCollector doesn't support order by";
+
         String[] readers = fileUriCollectPhase.executionNodes().toArray(
                 new String[fileUriCollectPhase.executionNodes().size()]);
         Arrays.sort(readers);

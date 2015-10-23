@@ -23,6 +23,8 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
@@ -34,11 +36,13 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.Collection;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -73,26 +77,31 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
+    public CrateCollector getRowsCollector(CollectPhase collectPhase, RowReceiver rowReceiver, Iterable<?> iterable) {
+        WhereClause whereClause = collectPhase.whereClause();
+        if (whereClause.noMatch()){
+            return RowsCollector.empty(rowReceiver);
+        }
+
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
+        Input<Boolean> condition;
+        if (whereClause.hasQuery()) {
+            assert DataTypes.BOOLEAN.equals(whereClause.query().valueType());
+            //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
+            condition = (Input<Boolean>) docInputSymbolVisitor.process(whereClause.query(), ctx);
+        } else {
+            condition = Literal.BOOLEAN_TRUE;
+        }
+        return new RowsCollector<>(ctx.topLevelInputs(), ctx.docLevelExpressions(), rowReceiver, iterable, condition);
+    }
+
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        Set<String> tables = collectPhase.routing().locations().get(discoveryService.localNode().id()).keySet();
-        assert tables.size() == 1;
-        IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
-        assert iterableGetter != null;
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
-
-        Input<Boolean> condition;
-        if (collectPhase.whereClause().noMatch()){
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
-        }
-        if (collectPhase.whereClause().hasQuery()) {
-            // TODO: single arg method
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectPhase.whereClause().query(), ctx);
-        } else {
-            condition = Literal.newLiteral(true);
-        }
-
-        return ImmutableList.<CrateCollector>of(new RowsCollector<>(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterableGetter.getIterable(), condition));
+        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
+        assert locations != null : "routing must contain locations";
+        String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
+        IterableGetter iterableGetter = iterableGetters.get(table);
+        assert iterableGetter != null : "iterableGetter for " + table + " must exist";
+        return ImmutableList.of(getRowsCollector(collectPhase, downstream, iterableGetter.getIterable()));
     }
 }

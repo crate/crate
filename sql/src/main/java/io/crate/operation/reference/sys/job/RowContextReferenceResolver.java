@@ -31,6 +31,7 @@ import io.crate.operation.reference.information.InformationSchemaExpressionFacto
 import io.crate.operation.reference.sys.check.checks.SysCheck;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -61,6 +62,8 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(InformationPartitionsTableInfo.IDENT, InformationSchemaExpressionFactories.tablePartitionsFactories());
         tableFactories.put(InformationColumnsTableInfo.IDENT, InformationSchemaExpressionFactories.columnsFactories());
         tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
+
+        tableFactories.put(SysShardsTableInfo.IDENT, UnassignedShardsExpressionFactories.getSysShardsTableInfoFactories());
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {

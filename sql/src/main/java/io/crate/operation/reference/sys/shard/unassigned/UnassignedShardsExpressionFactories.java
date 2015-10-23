@@ -1,31 +1,22 @@
 package io.crate.operation.reference.sys.shard.unassigned;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.operation.reference.ReferenceResolver;
-import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
-public class UnassignedShardsReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
+public class UnassignedShardsExpressionFactories {
 
-    private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap;
+    private UnassignedShardsExpressionFactories() {}
 
-    @Inject
-    public UnassignedShardsReferenceResolver() {
-        ImmutableMap.Builder<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> builder = ImmutableMap.builder();
-        builder.put(SysShardsTableInfo.IDENT, getSysShardsTableInfoFactories());
-        factoryMap = builder.build();
-    }
-
-    private Map<ColumnIdent, RowCollectExpressionFactory> getSysShardsTableInfoFactories() {
+    public static Map<ColumnIdent, RowCollectExpressionFactory> getSysShardsTableInfoFactories() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
                 .put(SysShardsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
 
@@ -146,25 +137,14 @@ public class UnassignedShardsReferenceResolver implements ReferenceResolver<RowC
                             public Object value() {
                                 return null;
                             }
+
+                            @Override
+                            public ReferenceImplementation getChildImplementation(String name) {
+                                return this;
+                            }
                         };
                     }
                 })
                 .build();
-    }
-
-
-    @Nullable
-    @Override
-    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo refInfo) {
-        RowCollectExpression expression =  RowContextReferenceResolver.rowCollectExpressionFromFactoryMap(factoryMap, refInfo);
-        if (expression == null && refInfo.ident().columnIdent().name().equals(SysNodesTableInfo.SYS_COL_NAME)) {
-            return new RowContextCollectorExpression<UnassignedShard, Object>() {
-                @Override
-                public Object value() {
-                    return null;
-                }
-            };
-        }
-        return expression;
     }
 }

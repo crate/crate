@@ -63,7 +63,6 @@ public class CollectSourceResolver {
     private final CollectSource singleRowSource;
 
     @Inject
-    @SuppressWarnings("ForLoopReplaceableByForEach")
     public CollectSourceResolver(ClusterService clusterService,
                                  Functions functions,
                                  NestedReferenceResolver clusterReferenceResolver,

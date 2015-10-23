@@ -81,9 +81,9 @@ public class ShardCollectSource implements CollectSource {
     private final Functions functions;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
+    private final SystemCollectSource systemCollectSource;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private final UnassignedShardsCollectSource unassignedShardsCollectSource;
     private final NodeSysExpression nodeSysExpression;
     private final ListeningExecutorService executor;
 
@@ -95,17 +95,17 @@ public class ShardCollectSource implements CollectSource {
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                              UnassignedShardsCollectSource unassignedShardsCollectSource,
+                              SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression) {
         this.settings = settings;
         this.indicesService = indicesService;
         this.functions = functions;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.systemCollectSource = systemCollectSource;
         this.executor = MoreExecutors.listeningDecorator((ExecutorService) threadPool.executor(ThreadPool.Names.SEARCH));
         this.transportActionProvider = transportActionProvider;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
-        this.unassignedShardsCollectSource = unassignedShardsCollectSource;
         this.nodeSysExpression = nodeSysExpression;
     }
 
@@ -321,8 +321,8 @@ public class ShardCollectSource implements CollectSource {
         if (!unassignedShards.isEmpty()) {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
-            shardCollectors.addAll(unassignedShardsCollectSource.getCollectors(
-                    collectPhase, unassignedShards, projectorChain.newShardDownstreamProjector(projectorFactory)));
+            shardCollectors.add(systemCollectSource.getRowsCollector(
+                    collectPhase, projectorChain.newShardDownstreamProjector(projectorFactory), unassignedShards));
         }
         return shardCollectors;
     }
