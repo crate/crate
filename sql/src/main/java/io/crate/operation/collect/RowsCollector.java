@@ -21,8 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Literal;
@@ -35,65 +33,26 @@ import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 
-public class RowsCollector<R> implements CrateCollector, ExecutionState {
+public class RowsCollector implements CrateCollector, ExecutionState {
 
     private final IterableRowEmitter emitter;
     private volatile boolean killed;
 
-    public static <T> RowsCollector<T> empty(RowReceiver rowDownstream) {
-        return new RowsCollector<>(
-                ImmutableList.<Input<?>>of(),
-                ImmutableList.<CollectExpression<T, ?>>of(),
-                rowDownstream,
-                ImmutableList.<T>of(),
-                Literal.BOOLEAN_FALSE
-        );
+    public static RowsCollector empty(RowReceiver rowDownstream) {
+        return new RowsCollector(rowDownstream, ImmutableList.<Row>of(), Literal.BOOLEAN_FALSE);
     }
 
-    public static RowsCollector<Row> single(List<Input<?>> inputs, RowReceiver rowDownstream) {
-        return new RowsCollector<>(
-                inputs,
-                ImmutableList.<CollectExpression<Row, ?>>of(),
-                rowDownstream,
-                ImmutableList.<Row>of(new InputRow(inputs)),
-                Literal.BOOLEAN_TRUE
-        );
+    public static RowsCollector single(List<Input<?>> inputs, RowReceiver rowDownstream) {
+        return new RowsCollector(rowDownstream, ImmutableList.<Row>of(new InputRow(inputs)), Literal.BOOLEAN_TRUE);
     }
 
-    public RowsCollector(final List<Input<?>> inputs,
-                         final Collection<CollectExpression<R, ?>> collectExpressions,
-                         RowReceiver rowDownstream,
-                         Iterable<R> rows,
-                         final Input<Boolean> condition) {
-
+    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows, final Input<Boolean> condition) {
         this.emitter = new IterableRowEmitter(
                 rowDownstream,
                 this,
-                Iterables.filter(Iterables.transform(rows, new Function<R, Row>() {
-
-                            final Row row = new InputRow(inputs);
-
-                            @Nullable
-                            @Override
-                            public Row apply(@Nullable R input) {
-                                if (killed) {
-                                    throw new CancellationException();
-                                }
-                                for (CollectExpression<R, ?> collectExpression : collectExpressions) {
-                                    collectExpression.setNextRow(input);
-                                }
-                                if (InputCondition.matches(condition)) {
-                                    return row;
-                                }
-                                return null;
-                            }
-                        }
-
-                ), Predicates.notNull()));
+                Iterables.filter(rows, InputCondition.asPredicate(condition)));
     }
 
     @Override

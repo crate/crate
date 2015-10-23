@@ -21,16 +21,19 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
+import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
@@ -40,6 +43,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +96,24 @@ public class SystemCollectSource implements CollectSource {
         } else {
             condition = Literal.BOOLEAN_TRUE;
         }
-        return new RowsCollector<>(ctx.topLevelInputs(), ctx.docLevelExpressions(), rowReceiver, iterable, condition);
+
+        Iterable<Row> rows = toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions());
+        return new RowsCollector(rowReceiver, rows, condition);
+    }
+
+    private static Iterable<Row> toRowsIterable(
+            Iterable<?> iterable, List<Input<?>> inputs, final Iterable<CollectExpression<Object, ?>> expressions) {
+        final InputRow row = new InputRow(inputs);
+        return Iterables.transform(iterable, new Function<Object, Row>() {
+            @Nullable
+            @Override
+            public Row apply(Object input) {
+                for (CollectExpression<Object, ?> expression : expressions) {
+                    expression.setNextRow(input);
+                }
+                return row;
+            }
+        });
     }
 
     @Override

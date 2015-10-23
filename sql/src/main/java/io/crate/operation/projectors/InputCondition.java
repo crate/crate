@@ -21,11 +21,21 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Predicate;
 import io.crate.operation.Input;
 
 public class InputCondition {
 
     private InputCondition() {}
+
+    public static <T> Predicate<T> asPredicate(final Input<Boolean> condition) {
+        return new Predicate<T>() {
+            @Override
+            public boolean apply(Object input) {
+                return matches(condition);
+            }
+        };
+    }
 
     public static boolean matches(Input<Boolean> condition) {
         Boolean match = condition.value();
