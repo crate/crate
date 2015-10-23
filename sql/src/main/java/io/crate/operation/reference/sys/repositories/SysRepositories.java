@@ -36,12 +36,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class Repositories implements ClusterStateListener, IterableGetter {
+public class SysRepositories implements ClusterStateListener, IterableGetter {
 
-    protected Map<String, Repository> repositoriesTable = new HashMap<>();
+    protected Map<String, SysRepository> repositoriesTable = new HashMap<>();
 
     @Inject
-    public Repositories(ClusterService clusterService) {
+    public SysRepositories(ClusterService clusterService) {
         RepositoriesMetaData repositoriesMetaData = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
         addRepositories(repositoriesMetaData);
         clusterService.add(this);
@@ -52,7 +52,7 @@ public class Repositories implements ClusterStateListener, IterableGetter {
             return;
         }
         for (RepositoryMetaData repositoryMetaData : repositoriesMetaData.repositories()) {
-            Repository repository = new Repository(
+            SysRepository repository = new SysRepository(
                     repositoryMetaData.name(),
                     repositoryMetaData.type(),
                     repositoryMetaData.settings().getAsStructuredMap());

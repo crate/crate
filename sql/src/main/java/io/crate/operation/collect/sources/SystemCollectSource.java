@@ -31,9 +31,9 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
-import io.crate.operation.reference.sys.repositories.Repositories;
+import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
@@ -57,7 +57,7 @@ public class SystemCollectSource implements CollectSource {
                                StatsTables statsTables,
                                InformationSchemaIterables informationSchemaIterables,
                                SysChecker sysChecker,
-                               Repositories repositories) {
+                               SysRepositories sysRepositories) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.<String, IterableGetter>builder()
@@ -72,7 +72,7 @@ public class SystemCollectSource implements CollectSource {
                 .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
                 .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
                 .put(SysChecksTableInfo.IDENT.fqn(), sysChecker)
-                .put(SysRepositoriesTableInfo.IDENT.fqn(), repositories)
+                .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
                 .build();
         this.discoveryService = discoveryService;
     }

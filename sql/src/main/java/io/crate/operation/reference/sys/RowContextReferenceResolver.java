@@ -33,7 +33,7 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import io.crate.operation.reference.sys.repositories.Repository;
+import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -372,10 +372,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                 .put(SysRepositoriesTableInfo.Columns.NAME, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<Repository, BytesRef>() {
+                        return new RowContextCollectorExpression<SysRepository, BytesRef>() {
                             @Override
                             public BytesRef value() {
-                                return row.name();
+                                return new BytesRef(row.name());
                             }
                         };
                     }
@@ -383,10 +383,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                 .put(SysRepositoriesTableInfo.Columns.TYPE, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<Repository, BytesRef>() {
+                        return new RowContextCollectorExpression<SysRepository, BytesRef>() {
                             @Override
                             public BytesRef value() {
-                                return row.type();
+                                return new BytesRef(row.type());
                             }
                         };
                     }
@@ -394,7 +394,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                 .put(SysRepositoriesTableInfo.Columns.SETTINGS, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {
-                        return new RowContextCollectorExpression<Repository, Map<String, Object>>() {
+                        return new RowContextCollectorExpression<SysRepository, Map<String, Object>>() {
                             @Override
                             public Map<String, Object> value() {
                                 return row.settings();
