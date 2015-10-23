@@ -22,27 +22,25 @@
 package io.crate.operation.reference.sys.repositories;
 
 
-import org.apache.lucene.util.BytesRef;
-
 import java.util.Map;
 
-public class Repository {
+public class SysRepository {
 
-    private final BytesRef name;
-    private final BytesRef type;
+    private final String name;
+    private final String type;
     private final Map<String, Object> settings;
 
-    public Repository(String name, String type, Map<String, Object> settings) {
-        this.name = new BytesRef(name);
-        this.type = new BytesRef(type);
+    public SysRepository(String name, String type, Map<String, Object> settings) {
+        this.name = name;
+        this.type = type;
         this.settings = settings;
     }
 
-    public BytesRef name() {
+    public String name() {
         return name;
     }
 
-    public BytesRef type() {
+    public String type() {
         return type;
     }
 
