@@ -29,16 +29,22 @@ import java.util.Collection;
 
 public class FilterProjector extends AbstractProjector {
 
-    private final RowFilter<Row> rowFilter;
+    private final Collection<CollectExpression<Row, ?>> collectExpressions;
+    private final Input<Boolean> condition;
 
     public FilterProjector(Collection<CollectExpression<Row, ?>> collectExpressions, Input<Boolean> condition) {
-        rowFilter = new RowFilter<>(collectExpressions, condition);
+        this.collectExpressions = collectExpressions;
+        this.condition = condition;
     }
 
     @Override
     public boolean setNextRow(Row row) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
+        }
+
         //noinspection SimplifiableIfStatement
-        if (rowFilter.matches(row)) {
+        if (InputCondition.matches(condition)) {
             return downstream.setNextRow(row);
         }
         return true;

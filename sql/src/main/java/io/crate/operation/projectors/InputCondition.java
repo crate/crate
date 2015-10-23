@@ -22,29 +22,13 @@
 package io.crate.operation.projectors;
 
 import io.crate.operation.Input;
-import io.crate.operation.collect.CollectExpression;
 
-import java.util.Collection;
+public class InputCondition {
 
-public class RowFilter<TRow> {
+    private InputCondition() {}
 
-    private final Collection<CollectExpression<TRow, ?>> expressions;
-    private final Input<Boolean> condition;
-
-    public RowFilter(Collection<CollectExpression<TRow, ?>> expressions,
-                     Input<Boolean> condition) {
-        this.expressions = expressions;
-        this.condition = condition;
-    }
-
-    public boolean matches(TRow row) {
-        Boolean match;
-        synchronized (this) {
-            for (CollectExpression<TRow, ?> expression : expressions) {
-                expression.setNextRow(row);
-            }
-            match = condition.value();
-        }
+    public static boolean matches(Input<Boolean> condition) {
+        Boolean match = condition.value();
         return !(match == null) && match;
     }
 }

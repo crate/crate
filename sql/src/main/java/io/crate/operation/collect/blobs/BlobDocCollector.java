@@ -27,7 +27,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.RowFilter;
+import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
@@ -38,10 +38,11 @@ import java.util.concurrent.CancellationException;
 
 public class BlobDocCollector implements CrateCollector, RowUpstream {
 
-    private final RowFilter<File> rowFilter;
     private BlobContainer blobContainer;
     private final List<Input<?>> inputs;
+    private final List<CollectExpression<File, ?>> expressions;
 
+    private final Input<Boolean> condition;
     private RowReceiver downstream;
     private volatile boolean killed;
 
@@ -53,7 +54,8 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
             RowReceiver downstream) {
         this.blobContainer = blobContainer;
         this.inputs = inputs;
-        this.rowFilter = new RowFilter<>(expressions, condition);
+        this.expressions = expressions;
+        this.condition = condition;
         this.downstream = downstream;
         downstream.setUpstream(this);
     }
@@ -101,8 +103,11 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
             if (killed) {
                 throw new CancellationException();
             }
+            for (CollectExpression<File, ?> expression : expressions) {
+                expression.setNextRow(file);
+            }
             //noinspection SimplifiableIfStatement
-            if (rowFilter.matches(file)) {
+            if (InputCondition.matches(condition)) {
                 return downstream.setNextRow(row);
             }
             return true;

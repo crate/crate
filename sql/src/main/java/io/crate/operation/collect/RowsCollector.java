@@ -30,8 +30,8 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.IterableRowEmitter;
-import io.crate.operation.projectors.RowFilter;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
@@ -75,7 +75,6 @@ public class RowsCollector<R> implements CrateCollector, ExecutionState {
                 this,
                 Iterables.filter(Iterables.transform(rows, new Function<R, Row>() {
 
-                            final RowFilter<R> rowFilter = new RowFilter<>(collectExpressions, condition);
                             final Row row = new InputRow(inputs);
 
                             @Nullable
@@ -84,7 +83,10 @@ public class RowsCollector<R> implements CrateCollector, ExecutionState {
                                 if (killed) {
                                     throw new CancellationException();
                                 }
-                                if (rowFilter.matches(input)) {
+                                for (CollectExpression<R, ?> collectExpression : collectExpressions) {
+                                    collectExpression.setNextRow(input);
+                                }
+                                if (InputCondition.matches(condition)) {
                                     return row;
                                 }
                                 return null;
