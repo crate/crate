@@ -28,8 +28,6 @@ import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -68,24 +66,8 @@ public class ImplementationSymbolVisitor extends
         }
     }
 
-    protected final NestedReferenceResolver referenceResolver;
-    protected final RowGranularity rowGranularity;
-
-
-    public ImplementationSymbolVisitor(NestedReferenceResolver referenceResolver,
-                                       Functions functions,
-                                       RowGranularity rowGranularity) {
+    public ImplementationSymbolVisitor(Functions functions) {
         super(functions);
-        this.referenceResolver = referenceResolver;
-        this.rowGranularity = rowGranularity;
-    }
-
-    public NestedReferenceResolver referenceResolver() {
-        return referenceResolver;
-    }
-
-    public RowGranularity rowGranularity() {
-        return rowGranularity;
     }
 
     @Override

@@ -103,11 +103,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
                 new TestScalarFunctionModule()
         ).createInjector();
 
-        visitor = new ImplementationSymbolVisitor(
-                null,
-                injector.getInstance(Functions.class),
-                RowGranularity.DOC
-        );
+        visitor = new ImplementationSymbolVisitor(injector.getInstance(Functions.class));
     }
 
     @Test

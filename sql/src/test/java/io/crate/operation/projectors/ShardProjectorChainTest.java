@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
@@ -99,10 +100,8 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 new MetaDataModule());
         Injector injector = builder.createInjector();
 
-        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
-                injector.getInstance(NestedReferenceResolver.class),
-                injector.getInstance(Functions.class),
-                RowGranularity.CLUSTER);
+        Functions functions = injector.getInstance(Functions.class);
+        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
                 threadPool,
@@ -110,6 +109,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class),
                 implementationSymbolVisitor,
+                new EvaluatingNormalizer(functions, RowGranularity.DOC, injector.getInstance(NestedReferenceResolver.class)),
                 null
         );
     }

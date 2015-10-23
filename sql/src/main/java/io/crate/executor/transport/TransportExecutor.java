@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.*;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
@@ -106,15 +107,16 @@ public class TransportExecutor implements Executor, TaskExecutor {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         nodeVisitor = new NodeVisitor();
         planVisitor = new TaskCollectingVisitor();
-        ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver, functions, RowGranularity.CLUSTER);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
+        ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                globalImplementationSymbolVisitor);
+                globalImplementationSymbolVisitor,
+                normalizer);
     }
 
     @Override

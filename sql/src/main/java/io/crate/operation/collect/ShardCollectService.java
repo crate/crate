@@ -107,11 +107,7 @@ public class ShardCollectService {
         NestedReferenceResolver shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
         docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
 
-        this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                shardResolver,
-                functions,
-                RowGranularity.SHARD
-        );
+        this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,

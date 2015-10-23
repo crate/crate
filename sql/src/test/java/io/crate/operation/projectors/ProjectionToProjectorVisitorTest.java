@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
@@ -90,10 +91,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         return spare;
     }
 
-    private Row row(Object... cells) {
-        return new RowN(cells);
-    }
-
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
@@ -110,15 +107,16 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 .createInjector();
         functions = injector.getInstance(Functions.class);
         threadPool = new ThreadPool("testing");
-        ImplementationSymbolVisitor symbolvisitor =
-                new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
+        ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
                 threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
-                symbolvisitor);
+                symbolvisitor,
+                new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver)
+        );
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
         avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);

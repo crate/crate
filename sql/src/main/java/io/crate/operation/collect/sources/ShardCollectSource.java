@@ -112,11 +112,7 @@ public class ShardCollectSource implements CollectSource {
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
-        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver,
-                functions,
-                RowGranularity.NODE
-        );
+        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
                 RowGranularity.NODE,
                 referenceResolver);
@@ -128,7 +124,8 @@ public class ShardCollectSource implements CollectSource {
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                implementationSymbolVisitor
+                implementationSymbolVisitor,
+                nodeNormalizer
         );
 
         String localNodeId = clusterService.localNode().id();

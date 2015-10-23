@@ -23,14 +23,11 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,21 +38,15 @@ import java.util.Collection;
 public class SingleRowSource implements CollectSource {
 
     private final Functions functions;
-    private final NodeSysExpression nodeSysExpression;
 
     @Inject
-    public SingleRowSource(Functions functions, NodeSysExpression nodeSysExpression) {
+    public SingleRowSource(Functions functions) {
         this.functions = functions;
-        this.nodeSysExpression = nodeSysExpression;
     }
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                new NodeSysReferenceResolver(nodeSysExpression),
-                functions,
-                RowGranularity.NODE
-        );
+        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         if (collectPhase.whereClause().noMatch()){
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }

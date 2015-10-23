@@ -496,7 +496,7 @@ public class TransportShardUpsertAction
     static class SymbolToInputVisitor extends ImplementationSymbolVisitor {
 
         public SymbolToInputVisitor(Functions functions) {
-            super(null, functions, null);
+            super(functions);
         }
 
         @Override

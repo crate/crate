@@ -23,6 +23,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
@@ -77,18 +78,16 @@ public class CollectSourceResolver {
                                  SingleRowSource singleRowSource,
                                  SystemCollectSource systemCollectSource) {
 
-        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                clusterReferenceResolver,
-                functions,
-                RowGranularity.NODE
-        );
+        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
                 threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                nodeImplementationSymbolVisitor
+                nodeImplementationSymbolVisitor,
+                normalizer
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);

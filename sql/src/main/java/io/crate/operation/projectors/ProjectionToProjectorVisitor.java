@@ -85,20 +85,6 @@ public class ProjectionToProjectorVisitor
         this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
-    public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        ThreadPool threadPool,
-                                        Settings settings,
-                                        TransportActionProvider transportActionProvider,
-                                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                        ImplementationSymbolVisitor symbolVisitor) {
-        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor,
-                new EvaluatingNormalizer(
-                        symbolVisitor.functions(),
-                        symbolVisitor.rowGranularity(),
-                        symbolVisitor.referenceResolver())
-        );
-    }
-
     @Override
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
         Projector projector;
