@@ -32,6 +32,8 @@ import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.operation.reference.sys.repositories.SysRepositories;
+import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
@@ -59,7 +61,9 @@ public class SystemCollectSourceTest {
                 mock(Functions.class),
                 mock(StatsTables.class, Answers.RETURNS_MOCKS.get()),
                 mock(InformationSchemaIterables.class, Answers.RETURNS_MOCKS.get()),
-                mock(SysChecker.class));
+                mock(SysChecker.class),
+                mock(SysRepositories.class),
+                mock(SysSnapshots.class));
 
         Reference shardId = new Reference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER));
