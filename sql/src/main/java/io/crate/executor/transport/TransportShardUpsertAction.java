@@ -29,7 +29,6 @@ import com.google.common.collect.Multimaps;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
@@ -102,7 +101,7 @@ public class TransportShardUpsertAction
     private final IndicesService indicesService;
     private final Functions functions;
     private final AssignmentSymbolVisitor assignmentSymbolVisitor;
-    private final SymbolToInputVisitor symbolToInputVisitor;
+    private final ImplementationSymbolVisitor symbolToInputVisitor;
     private Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
 
@@ -123,7 +122,7 @@ public class TransportShardUpsertAction
         this.functions = functions;
         jobContextService.addListener(this);
         assignmentSymbolVisitor = new AssignmentSymbolVisitor();
-        symbolToInputVisitor = new SymbolToInputVisitor(functions);
+        symbolToInputVisitor = new ImplementationSymbolVisitor(functions);
     }
 
     @Override
@@ -492,17 +491,4 @@ public class TransportShardUpsertAction
             referenceInputMap = new HashMap<>(inputsSize);
         }
     }
-
-    static class SymbolToInputVisitor extends ImplementationSymbolVisitor {
-
-        public SymbolToInputVisitor(Functions functions) {
-            super(functions);
-        }
-
-        @Override
-        public Input<?> visitReference(Reference symbol, Context context) {
-            throw new IllegalArgumentException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
-        }
-    }
-
 }
