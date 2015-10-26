@@ -258,20 +258,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                             "Nodes of existing routing are not allocated, routing rebuild needed");
                 }
             }
-            tableRoutings.put(tableInfo.ident(), new TableRouting(tableInfo, where, preference, routing));
+            tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
             return routing;
         }
     }
 
     private static class TableRouting {
-        final TableInfo tableInfo;
         final WhereClause where;
         final String preference;
         final Routing routing;
         boolean nodesAllocated = false;
 
-        public TableRouting(TableInfo tableInfo, WhereClause where, String preference, Routing routing) {
-            this.tableInfo = tableInfo;
+        public TableRouting(WhereClause where, String preference, Routing routing) {
             this.where = where;
             this.preference = preference;
             this.routing = routing;

@@ -103,8 +103,4 @@ public class RowSender implements Runnable, RowUpstream {
     public int numResumes() {
         return numResumes;
     }
-
-    public boolean isPaused() {
-        return isPaused;
-    }
 }

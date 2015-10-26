@@ -28,7 +28,6 @@ import org.apache.lucene.util.BytesRef;
 
 public class BlobShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "schema_name";
     public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef(BlobSchemaInfo.NAME);
 
     @Override

@@ -31,8 +31,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 public class BlobShardTableNameExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "table_name";
-
     private final BytesRef tableName;
 
     @Inject

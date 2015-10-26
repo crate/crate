@@ -29,7 +29,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 public class ShardPartitionIdentExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "partition_ident";
     private static final BytesRef EMPTY = new BytesRef("");
     private final BytesRef value;
 

@@ -108,14 +108,6 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
         return right;
     }
 
-    public PlannedAnalyzedRelation inner() {
-        return leftOuterLoop() ? right : left;
-    }
-
-    public PlannedAnalyzedRelation outer() {
-        return leftOuterLoop() ? left : right;
-    }
-
     public boolean leftOuterLoop() {
         return leftOuterLoop;
     }

@@ -29,8 +29,6 @@ import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardRelocatingNodeExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "relocating_node";
-
     private final IndexShard indexShard;
 
     @Inject

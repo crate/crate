@@ -30,9 +30,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
 
-    private static final BytesRef EMPTY_BYTES_REF = new BytesRef();
-    public static final String NAME = "settings";
-
     public PartitionsSettingsExpression() {
         super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS);
         addChildImplementations();

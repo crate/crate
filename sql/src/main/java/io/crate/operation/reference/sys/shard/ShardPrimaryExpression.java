@@ -28,8 +28,6 @@ import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardPrimaryExpression extends SimpleObjectExpression<Boolean> implements ShardReferenceImplementation<Boolean> {
 
-    public static final String NAME = "primary";
-
     private final IndexShard indexShard;
 
     @Inject

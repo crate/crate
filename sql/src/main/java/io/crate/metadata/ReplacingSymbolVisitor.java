@@ -56,10 +56,6 @@ public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
         return copyFunction(symbol, context);
     }
 
-    public Symbol process(Symbol symbol) {
-        return process(symbol, null);
-    }
-
     public List<Symbol> process(Collection<Symbol> symbols, C context) {
         ArrayList<Symbol> copy = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {

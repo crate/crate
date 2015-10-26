@@ -42,11 +42,6 @@ public enum RowGranularity {
     SHARD,
     DOC;
 
-    public boolean finerThan(RowGranularity other) {
-        return ordinal() > other.ordinal();
-    }
-
-
     public static RowGranularity fromStream(StreamInput in) throws IOException {
         return RowGranularity.values()[in.readVInt()];
     }

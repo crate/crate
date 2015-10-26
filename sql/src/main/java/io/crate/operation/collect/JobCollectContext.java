@@ -101,13 +101,6 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         }
     }
 
-    @Nullable
-    public CrateSearchContext getContext(int jobSearchContextId) {
-        synchronized (subContextLock) {
-            return searchContexts.get(jobSearchContextId);
-        }
-    }
-
     public void closeDueToFailure(Throwable throwable) {
         close(throwable);
     }

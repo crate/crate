@@ -32,7 +32,6 @@ import java.util.regex.Matcher;
 
 public class ShardTableNameExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "table_name";
     private final BytesRef value;
 
     @Inject

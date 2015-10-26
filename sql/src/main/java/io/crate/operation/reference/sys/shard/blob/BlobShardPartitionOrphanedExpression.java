@@ -26,8 +26,6 @@ import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 
 public class BlobShardPartitionOrphanedExpression extends SimpleObjectExpression<Boolean> implements BlobShardReferenceImplementation<Boolean> {
 
-    public static final String NAME = "orphan_partition";
-
     @Override
     public Boolean value() {
         return false;

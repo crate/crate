@@ -32,7 +32,6 @@ import java.util.regex.Matcher;
 
 public class ShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "schema_name";
     private static final BytesRef DOC_SCHEMA_NAME = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
     private final BytesRef schemaName;
 

@@ -392,11 +392,6 @@ public class FetchProjector extends AbstractProjector {
             readerBucket.require(docId);
             return readerBucket;
         }
-
-        public Object[] get(long doc) {
-            return readerBuckets.get((int) (doc >> 32)).get((int) doc);
-        }
-
     }
 
     public static class ReaderBucket {

@@ -37,10 +37,6 @@ public class TableColumn {
         this.name = name;
     }
 
-    public String name(){
-        return name;
-    }
-
     public ReferenceInfo getReferenceInfo(TableIdent tableIdent, ColumnIdent columnIdent) {
         if (!name.equals(columnIdent.name())) {
             return null;
@@ -63,10 +59,4 @@ public class TableColumn {
         }
         return myColumnIdent;
     }
-
-    public ReferenceIdent getImplementationIdent(ReferenceIdent ident) {
-        assert ident.columnIdent().name().equals(name);
-        return new ReferenceIdent(tableInfo.ident(), getImplementationIdent(ident.columnIdent()));
-    }
-
 }

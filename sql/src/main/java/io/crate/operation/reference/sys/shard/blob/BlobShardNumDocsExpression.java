@@ -28,8 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 
 public class BlobShardNumDocsExpression extends SimpleObjectExpression<Long> implements BlobShardReferenceImplementation<Long> {
 
-    public static final String NAME = "num_docs";
-
     private final BlobShard blobShard;
 
     @Inject

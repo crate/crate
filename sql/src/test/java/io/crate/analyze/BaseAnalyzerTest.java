@@ -26,8 +26,6 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -214,18 +212,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     protected Injector injector;
     Analyzer analyzer;
 
-    static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
 
-    static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
     private ThreadPool threadPool;
-
-    static class ClusterNameExpression extends SimpleObjectExpression<BytesRef> {
-
-        @Override
-        public BytesRef value() {
-            return new BytesRef("testcluster");
-        }
-    }
 
     static class AbsFunction extends Scalar<Long, Number> {
 

@@ -28,8 +28,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 public class ShardIdExpression extends SimpleObjectExpression<Integer> implements ShardReferenceImplementation<Integer> {
 
-    public static final String NAME = "id";
-
     private final ShardId shardId;
 
     @Inject

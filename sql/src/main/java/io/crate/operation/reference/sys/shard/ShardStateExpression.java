@@ -29,7 +29,6 @@ import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardStateExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "state";
     private final IndexShard indexShard;
 
     @Inject

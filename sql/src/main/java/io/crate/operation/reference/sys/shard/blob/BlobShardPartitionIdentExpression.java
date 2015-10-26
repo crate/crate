@@ -27,7 +27,6 @@ import org.apache.lucene.util.BytesRef;
 
 public class BlobShardPartitionIdentExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
 
-    public static final String NAME = "partition_ident";
     private static final BytesRef VALUE = new BytesRef("");
 
     @Override

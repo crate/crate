@@ -209,10 +209,4 @@ public class ShardProjectorChain {
         }
         firstNodeProjector.fail(t);
     }
-
-    public void finish() {
-        if (firstNodeProjector != null) {
-            firstNodeProjector.finish();
-        }
-    }
 }

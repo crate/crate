@@ -32,8 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ShardSizeExpression extends SimpleObjectExpression<Long> implements ShardReferenceImplementation<Long> {
 
-    public static final String NAME = "size";
-
     private final Supplier<Long> sizeSupplier;
 
     @Inject

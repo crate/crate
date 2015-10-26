@@ -30,7 +30,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
-    public static final String NAME = "settings";
     public static final String REFRESH_INTERVAL = "refresh_interval";
 
     public TablesSettingsExpression() {

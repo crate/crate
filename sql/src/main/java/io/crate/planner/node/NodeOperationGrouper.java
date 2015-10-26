@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class NodeOperationGrouper {
 
-    public static final NodeOperationGrouper INSTANCE = new NodeOperationGrouper();
+    private NodeOperationGrouper() {}
 
     public static class Context {
 

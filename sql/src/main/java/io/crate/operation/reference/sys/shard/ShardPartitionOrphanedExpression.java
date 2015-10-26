@@ -30,7 +30,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boolean> implements ShardReferenceImplementation<Boolean> {
 
-    public static final String NAME = "orphan_partition";
     private final ClusterService clusterService;
     private final String aliasName;
     private final String templateName;

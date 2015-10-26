@@ -38,10 +38,6 @@ public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectEx
         this.info = info;
     }
 
-    @Deprecated
-    public ReferenceInfo info() {
-        return info;
-    }
 
     public void setNextRow(R row) {
         this.row = row;

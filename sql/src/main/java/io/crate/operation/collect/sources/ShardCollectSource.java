@@ -53,8 +53,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexShardMissingException;
@@ -73,8 +71,6 @@ import java.util.concurrent.ExecutorService;
 
 @Singleton
 public class ShardCollectSource implements CollectSource {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(ShardCollectSource.class);
 
     private final Settings settings;
     private final IndicesService indicesService;

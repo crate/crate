@@ -50,8 +50,6 @@ public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> ex
         return tableInfo.ident();
     }
 
-    public abstract void table(TableIdent tableIdent);
-
     public boolean noop(){
         return noop;
     }

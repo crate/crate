@@ -29,8 +29,6 @@ import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardNumDocsExpression extends SimpleObjectExpression<Long> implements ShardReferenceImplementation<Long> {
 
-    public static final String NAME = "num_docs";
-
     private final IndexShard indexShard;
 
     @Inject
