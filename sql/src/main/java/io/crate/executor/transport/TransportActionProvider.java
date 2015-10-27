@@ -29,6 +29,7 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDelet
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
+import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -77,6 +78,8 @@ public class TransportActionProvider {
     private final Provider<TransportDeleteRepositoryAction> transportDeleteRepositoryActionProvider;
     private final Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider;
 
+    private final Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider;
+
     private final Provider<TransportSQLAction> transportSQLActionProvider;
 
     @Inject
@@ -103,6 +106,7 @@ public class TransportActionProvider {
                                    Provider<TransportPutRepositoryAction> transportPutRepositoryActionProvider,
                                    Provider<TransportDeleteRepositoryAction> transportDeleteRepositoryActionProvider,
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
+                                   Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportSQLAction> transportSQLActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
@@ -127,6 +131,7 @@ public class TransportActionProvider {
         this.transportPutRepositoryActionProvider = transportPutRepositoryActionProvider;
         this.transportDeleteRepositoryActionProvider = transportDeleteRepositoryActionProvider;
         this.transportDeleteSnapshotActionProvider = transportDeleteSnapshotActionProvider;
+        this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportSQLActionProvider = transportSQLActionProvider;
     }
 
@@ -226,4 +231,7 @@ public class TransportActionProvider {
         return transportSQLActionProvider.get();
     }
 
+    public TransportCreateSnapshotAction transportCreateSnapshotAction() {
+        return transportCreateSnapshotActionProvider.get();
+    }
 }

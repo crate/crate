@@ -55,6 +55,14 @@ public class CreateSnapshot extends Statement {
         return this.name;
     }
 
+    public Optional<GenericProperties> properties() {
+        return properties;
+    }
+
+    public Optional<List<Table>> tableList() {
+        return tableList;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(name, tableList, properties);
@@ -79,5 +87,10 @@ public class CreateSnapshot extends Statement {
                 .add("properties", properties)
                 .add("tableList", tableList)
                 .toString();
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateSnapshot(this, context);
     }
 }

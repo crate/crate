@@ -21,46 +21,29 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.sql.tree.CreateRepository;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
-public class CreateRepositoryAnalyzer extends DefaultTraversalVisitor<CreateRepositoryAnalyzedStatement, Analysis> {
-
-    private final ClusterService clusterService;
+public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer<CreateRepositoryAnalyzedStatement, CreateRepository> {
 
     @Inject
     CreateRepositoryAnalyzer(ClusterService clusterService) {
-        this.clusterService = clusterService;
+        super(clusterService);
     }
 
     @Override
     public CreateRepositoryAnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
         String repositoryName = node.repository();
         // type and settings are validated upon execution
+
         failIfRepositoryExists(repositoryName);
         CreateRepositoryAnalyzedStatement analyzedStatement = new CreateRepositoryAnalyzedStatement(repositoryName, node.type());
         if (node.properties().isPresent()) {
             analyzedStatement.settings(GenericPropertiesConverter.genericPropertiesToSettings(node.properties().get(), context.parameterContext()));
         }
         return analyzedStatement;
-    }
-
-    private void failIfRepositoryExists(String repositoryName) {
-        RepositoriesMetaData repositories = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
-        if (repositories != null && repositories.repository(repositoryName) != null) {
-            throw new RepositoryAlreadyExistsException(repositoryName);
-        }
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return process(node, analysis);
     }
 }
