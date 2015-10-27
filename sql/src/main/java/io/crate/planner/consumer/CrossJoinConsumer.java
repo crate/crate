@@ -22,8 +22,10 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Field;
@@ -67,6 +69,13 @@ public class CrossJoinConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
+        private static final Predicate<MultiSourceSelect.Source> DOC_TABLE_RELATION = new Predicate<MultiSourceSelect.Source>() {
+            @Override
+            public boolean apply(MultiSourceSelect.Source input) {
+                AnalyzedRelation relation = input.relation();
+                return relation instanceof DocTableRelation || relation instanceof QueriedDocTable;
+            }
+        };
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
 
@@ -275,7 +284,7 @@ public class CrossJoinConsumer implements Consumer {
                 return true;
             }
 
-            if (hasOutputsToFetch(statement.querySpec())) {
+            if (Iterables.any(statement.sources().values(), DOC_TABLE_RELATION) && hasOutputsToFetch(statement.querySpec())) {
                 context.validationException(new ValidationException("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
                 return true;
             }

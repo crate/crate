@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
@@ -209,18 +210,37 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (name string) clustered into 3 shards with (number_of_replicas = 0)");
         ensureYellow();
 
-        execute("select s1.id, s2.id from sys.shards s1, sys.shards s2 order by s1.id asc, s2.id desc");
+        execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2 order by s1.id asc, s2.id desc");
         assertThat(response.rowCount(), is(9L));
         assertThat(printedTable(response.rows()), is("" +
-                "0| 2\n" +
-                "0| 1\n" +
-                "0| 0\n" +
-                "1| 2\n" +
-                "1| 1\n" +
-                "1| 0\n" +
-                "2| 2\n" +
-                "2| 1\n" +
-                "2| 0\n"));
+                "0| 2| t\n" +
+                "0| 1| t\n" +
+                "0| 0| t\n" +
+                "1| 2| t\n" +
+                "1| 1| t\n" +
+                "1| 0| t\n" +
+                "2| 2| t\n" +
+                "2| 1| t\n" +
+                "2| 0| t\n"));
+
+        execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2");
+        assertThat(response.rowCount(), is(9L));
+
+        List<Object[]> rows = Arrays.asList(response.rows());
+        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+                new int[] { 0, 1}, new boolean[] { false, true }, new Boolean[] { null, null }).reverse());
+
+        assertThat(printedTable(new CollectionBucket(rows)),
+                is("" +
+                   "0| 2| t\n" +
+                   "0| 1| t\n" +
+                   "0| 0| t\n" +
+                   "1| 2| t\n" +
+                   "1| 1| t\n" +
+                   "1| 0| t\n" +
+                   "2| 2| t\n" +
+                   "2| 1| t\n" +
+                   "2| 0| t\n"));
     }
 
     @Test
