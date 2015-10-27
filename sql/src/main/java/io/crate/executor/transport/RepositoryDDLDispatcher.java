@@ -36,8 +36,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.UUID;
-
 @Singleton
 public class RepositoryDDLDispatcher {
 
@@ -51,7 +49,7 @@ public class RepositoryDDLDispatcher {
 
     }
 
-    public ListenableFuture<Long> dispatch(DropRepositoryAnalyzedStatement analyzedStatement, UUID jobId) {
+    public ListenableFuture<Long> dispatch(DropRepositoryAnalyzedStatement analyzedStatement) {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
         transportActionProvider.transportDeleteRepositoryAction().execute(
@@ -74,7 +72,7 @@ public class RepositoryDDLDispatcher {
         return future;
     }
 
-    public ListenableFuture<Long> dispatch(CreateRepositoryAnalyzedStatement statement, UUID jobId) {
+    public ListenableFuture<Long> dispatch(CreateRepositoryAnalyzedStatement statement) {
         final SettableFuture<Long> result = SettableFuture.create();
 
         PutRepositoryRequest request = new PutRepositoryRequest(statement.repositoryName());
