@@ -44,7 +44,7 @@ task bench(type: Test, dependsOn: [':core:getVersion']) {
     }
 
 
-    def benchmark_dir = project.buildDir.path + '/reports/bench/'
+    def benchmark_dir = project.projectDir.path + '/reports/bench/'
 
     // Properties for JUnit Benchmarks
     systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
