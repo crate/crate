@@ -86,4 +86,8 @@ public class IterableRowEmitter implements Runnable {
             rowReceiver.fail(t);
         }
     }
+
+    public TopRowUpstream topRowUpstream() {
+        return topRowUpstream;
+    }
 }

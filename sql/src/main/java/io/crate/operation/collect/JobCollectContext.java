@@ -163,7 +163,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             if (LOGGER.isTraceEnabled()) {
                 measureCollectTime();
             }
-            collectOperation.launchCollectors(collectPhase, collectors);
+            collectOperation.launchCollectors(collectors);
         }
     }
 

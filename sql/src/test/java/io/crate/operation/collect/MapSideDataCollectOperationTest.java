@@ -133,7 +133,7 @@ public class MapSideDataCollectOperationTest {
         KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
         when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
-        collectOperation.launchCollectors(collectNode, collectors);
+        collectOperation.launchCollectors(collectors);
         assertThat(cd.result(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)

@@ -123,26 +123,12 @@ public class MapSideDataCollectOperation {
         return collectPhase;
     }
 
-    public void launchCollectors(CollectPhase collectPhase,
-                                 final Collection<CrateCollector> shardCollectors) throws RejectedExecutionException {
-        assert !shardCollectors.isEmpty();
-        if (collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            // run sequential to prevent sys.shards queries from using too many threads
-            // and overflowing the threadpool queues
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    for (CrateCollector collector : shardCollectors) {
-                        collector.doCollect();
-                    }
-                }
-            });
-        } else {
-            ThreadPools.runWithAvailableThreads(
-                    executor,
-                    poolSize,
-                    collectors2Runnables(shardCollectors));
-        }
+    public void launchCollectors(Collection<CrateCollector> shardCollectors) throws RejectedExecutionException {
+        assert !shardCollectors.isEmpty() : "must have at least one collector to launch";
+        ThreadPools.runWithAvailableThreads(
+                executor,
+                poolSize,
+                collectors2Runnables(shardCollectors));
     }
 
     private Collection<Runnable> collectors2Runnables(Collection<CrateCollector> collectors) {

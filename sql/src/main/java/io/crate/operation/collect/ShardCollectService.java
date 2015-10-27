@@ -27,6 +27,7 @@ import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Literal;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.Functions;
@@ -61,6 +62,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -126,18 +128,20 @@ public class ShardCollectService {
         );
     }
 
-    public CrateCollector getShardCollector(CollectPhase collectPhase, RowReceiver rowReceiver) {
+    @Nullable
+    public Row getRowForShard(CollectPhase collectPhase) {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
+
         collectPhase =  collectPhase.normalize(shardNormalizer);
         if (collectPhase.whereClause().noMatch()) {
-            return RowsCollector.empty(rowReceiver);
+            return null;
         }
         assert !collectPhase.whereClause().hasQuery()
                 : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
-        return RowsCollector.single(
-                new InputRow(shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs()),
-                rowReceiver
-        );
+
+        // at this point everything in toCollect should be a literal, there are no expressions anymore, so this
+        // row is "safe" to store in lists, etc.
+        return new InputRow(shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs());
     }
 
     /**

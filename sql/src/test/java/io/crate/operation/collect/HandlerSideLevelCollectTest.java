@@ -103,7 +103,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         collectingProjector.prepare(mock(ExecutionState.class));
         Collection<CrateCollector> collectors = operation.createCollectors(collectNode, collectingProjector, mock(JobCollectContext.class));
-        operation.launchCollectors(collectNode, collectors);
+        operation.launchCollectors(collectors);
         return collectingProjector.result();
     }
 

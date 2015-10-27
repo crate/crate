@@ -32,7 +32,6 @@ import javax.annotation.Nullable;
 public class RowsCollector implements CrateCollector, ExecutionState {
 
     private final IterableRowEmitter emitter;
-    private volatile boolean killed;
 
     public static RowsCollector empty(RowReceiver rowDownstream) {
         return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
@@ -53,11 +52,11 @@ public class RowsCollector implements CrateCollector, ExecutionState {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        killed = true;
+        emitter.topRowUpstream().kill(throwable);
     }
 
     @Override
     public boolean isKilled() {
-        return killed;
+        return emitter.topRowUpstream().isKilled();
     }
 }

@@ -22,12 +22,14 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
@@ -38,6 +40,7 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.ShardCollectService;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
@@ -166,8 +169,8 @@ public class ShardCollectSource implements CollectSource {
         final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
 
         if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            shardCollectors.addAll(
-                    getShardCollectors(collectPhase, normalizedPhase, projectorFactory, localNodeId, projectorChain));
+            shardCollectors.add(
+                    getShardsCollector(collectPhase, normalizedPhase, projectorFactory, localNodeId, projectorChain));
         } else {
             Map<String, List<Integer>> indexShards = locations.get(localNodeId);
             if (indexShards != null) {
@@ -269,15 +272,15 @@ public class ShardCollectSource implements CollectSource {
         return crateCollectors;
     }
 
-    private Collection<CrateCollector> getShardCollectors(CollectPhase collectPhase,
-                                                          CollectPhase normalizedPhase,
-                                                          ProjectorFactory projectorFactory,
-                                                          String localNodeId,
-                                                          ShardProjectorChain projectorChain) {
+    private CrateCollector getShardsCollector(CollectPhase collectPhase,
+                                              CollectPhase normalizedPhase,
+                                              ProjectorFactory projectorFactory,
+                                              String localNodeId,
+                                              ShardProjectorChain projectorChain) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         assert locations != null : "locations must not be null";
-        List<CrateCollector> shardCollectors = new ArrayList<>();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
+        List<Row> rows = new ArrayList<>();
         Map<String, List<Integer>> indexShardsMap = locations.get(localNodeId);
         for (Map.Entry<String, List<Integer>> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
@@ -299,10 +302,11 @@ public class ShardCollectSource implements CollectSource {
                 try {
                     ShardCollectService shardCollectService =
                             indexService.shardInjectorSafe(shard).getInstance(ShardCollectService.class);
-                    shardCollectors.add(
-                            shardCollectService.getShardCollector(
-                                    normalizedPhase,
-                                    projectorChain.newShardDownstreamProjector(projectorFactory)));
+
+                    Row row = shardCollectService.getRowForShard(normalizedPhase);
+                    if (row != null) {
+                        rows.add(row);
+                    }
                 } catch (IndexShardMissingException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, shard)));
                 } catch (Throwable t) {
@@ -314,10 +318,12 @@ public class ShardCollectSource implements CollectSource {
         if (!unassignedShards.isEmpty()) {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
-            shardCollectors.add(systemCollectSource.getRowsCollector(
-                    collectPhase, projectorChain.newShardDownstreamProjector(projectorFactory), unassignedShards));
+
+            return new RowsCollector(
+                    projectorChain.newShardDownstreamProjector(projectorFactory),
+                    Iterables.concat(rows, systemCollectSource.toRowsIterable(collectPhase, unassignedShards)));
         }
-        return shardCollectors;
+        return new RowsCollector(projectorChain.newShardDownstreamProjector(projectorFactory), rows);
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

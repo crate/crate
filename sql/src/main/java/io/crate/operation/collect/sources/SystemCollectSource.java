@@ -46,6 +46,7 @@ import org.elasticsearch.discovery.DiscoveryService;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -82,10 +83,10 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
-    public CrateCollector getRowsCollector(CollectPhase collectPhase, RowReceiver rowReceiver, Iterable<?> iterable) {
+    public Iterable<Row> toRowsIterable(CollectPhase collectPhase, Iterable<?> iterable) {
         WhereClause whereClause = collectPhase.whereClause();
         if (whereClause.noMatch()){
-            return RowsCollector.empty(rowReceiver);
+            return Collections.emptyList();
         }
 
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
@@ -98,11 +99,10 @@ public class SystemCollectSource implements CollectSource {
             condition = Literal.BOOLEAN_TRUE;
         }
 
-        Iterable<Row> rows = Iterables.filter(
+        return Iterables.filter(
                 toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions()),
                 InputCondition.asPredicate(condition)
         );
-        return new RowsCollector(rowReceiver, rows);
     }
 
     private static Iterable<Row> toRowsIterable(
@@ -127,6 +127,7 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         IterableGetter iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
-        return ImmutableList.of(getRowsCollector(collectPhase, downstream, iterableGetter.getIterable()));
+        return ImmutableList.<CrateCollector>of(
+                new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.getIterable())));
     }
 }
