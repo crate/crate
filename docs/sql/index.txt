@@ -20,9 +20,9 @@ see :doc:`sql`. For general information about SQL please refer to
    arithmetic
    occ
    partitioned_tables
-   rest
    analyzer
    information_schema
    system
-   sql
    kill
+   sql
+   rest
