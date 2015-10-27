@@ -35,7 +35,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
@@ -739,6 +738,26 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
     }
+
+    @Test
+    public void testJoinWithOrderBy() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select users.id from users, users_multi_pk order by users.id");
+        assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
+
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.requiredForQuery(), contains(isField("id")));
+    }
+
+    @Test
+    public void testJoinWithMultiRelationOrderBy() throws Exception {
+        SelectAnalyzedStatement analysis = analyze(
+                "select u1.id from users u1, users_multi_pk u2 order by u2.id, u1.name || u2.name");
+        assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
+
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.requiredForQuery(), containsInAnyOrder(isField("id"), isField("name"), isField("name")));
+    }
+
 
     @Test(expected = UnsupportedOperationException.class)
     public void testUnion() throws Exception {

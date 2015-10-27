@@ -33,6 +33,7 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
@@ -50,15 +51,15 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     }
 
     private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {
-        OrderBy orderBy = null;
         if (!orderBySymbols.isEmpty()){
             boolean[] reverseFlags = new boolean[orderBySymbols.size()];
             Arrays.fill(reverseFlags, true);
             Boolean[] nullsFirst = new Boolean[orderBySymbols.size()];
             Arrays.fill(nullsFirst, Boolean.FALSE);
-            orderBy = new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
+            OrderBy orderBy = new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
+            return new FetchRequiredVisitor.Context(new HashSet<>(orderBy.orderBySymbols()));
         }
-        return new FetchRequiredVisitor.Context(orderBy);
+        return new FetchRequiredVisitor.Context();
     }
 
     @Test

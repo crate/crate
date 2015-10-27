@@ -34,16 +34,20 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.is;
 
 public class OrderByTest extends CrateUnitTest {
 
+    private static final TableIdent TI =  new TableIdent("doc", "people");
+
+    private Reference ref(String name){
+        return new Reference(new ReferenceInfo(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING));
+    }
+
     @Test
     public void testStreaming() throws Exception {
-        ReferenceIdent nameIdent = new ReferenceIdent(new TableIdent("doc", "people"), "name");
-        Reference name = new Reference(new ReferenceInfo(nameIdent, RowGranularity.DOC, DataTypes.STRING));
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(name), new boolean[]{true}, new Boolean[]{true});
-
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(ref("name")), new boolean[]{true}, new Boolean[]{true});
         BytesStreamOutput out = new BytesStreamOutput();
         orderBy.writeTo(out);
 
@@ -55,5 +59,13 @@ public class OrderByTest extends CrateUnitTest {
         assertThat(orderBy2.reverseFlags()[0], is(true));
         assertThat(orderBy2.nullsFirst().length, is(1));
         assertThat(orderBy2.nullsFirst()[0], is(true));
+    }
+
+    @Test
+    public void testSubset() throws Exception {
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(
+                ref("a"), ref("b"), ref("c")), new boolean[]{true, false, true}, new Boolean[]{true, null, false});
+        assertThat(orderBy.subset(ImmutableList.of(0, 2)), isSQL("people.a DESC NULLS FIRST, people.c DESC NULLS LAST"));
+        assertThat(orderBy.subset(ImmutableList.of(1)), isSQL("people.b"));
     }
 }

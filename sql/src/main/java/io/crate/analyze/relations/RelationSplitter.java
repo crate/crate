@@ -1,311 +1,247 @@
 /*
- * Licensed to CRATE.IO GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
+import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.OutputName;
+import io.crate.analyze.fetch.FetchFieldExtractor;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.operation.operator.AndOperator;
+import org.elasticsearch.common.collect.IdentityHashSet;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class RelationSplitter {
 
-    private final static SplittingVisitor SPLITTING_VISITOR = new SplittingVisitor();
+    private final QuerySpec querySpec;
+    private final Set<Symbol> requiredForQuery = new HashSet<>();
 
-    public static SplitQuerySpecContext splitQuerySpec(AnalyzedRelation analyzedRelation,
-                                                       QuerySpec querySpec) {
-        QuerySpec splitQuerySpec = extractQuerySpecForRelation(analyzedRelation, querySpec);
-
-        List<OutputName> outputNames = new ArrayList<>(splitQuerySpec.outputs().size());
-        for (Symbol symbol : splitQuerySpec.outputs()) {
-            outputNames.add(new OutputName(SymbolFormatter.format(symbol)));
+    private static final Supplier<Set<Field>> FIELD_SET_SUPPLIER = new Supplier<Set<Field>>() {
+        @Override
+        public Set<Field> get() {
+            // a LinkedHashSet is required for deterministic output order
+            return new LinkedHashSet<>();
         }
+    };
 
-        return new SplitQuerySpecContext(splitQuerySpec, outputNames);
+    private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
+        @Override
+        public Set<Integer> get() {
+            return new HashSet<>();
+        }
+    };
+
+    private OrderBy remainingOrderBy;
+
+    private final Map<AnalyzedRelation, QuerySpec> specs;
+
+    public static RelationSplitter process(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
+        RelationSplitter splitter = new RelationSplitter(querySpec, relations);
+        splitter.process();
+        return splitter;
     }
 
-    /**
-     * Extracts a query specification of the given relation from a given upper level query specification
-     * @param relation the relation for which the query specification should be extracted for
-     * @param querySpec the source query specification
-     * @return the new query specification holding only fields from the given relation
-     */
-    public static QuerySpec extractQuerySpecForRelation(AnalyzedRelation relation, QuerySpec querySpec) {
-        QuerySpec splitQuerySpec = new QuerySpec();
-        List<Symbol> outputs = querySpec.outputs();
-        if (outputs == null || outputs.isEmpty()) {
-            throw new IllegalArgumentException("a querySpec needs to have some outputs in order to create a new sub-relation");
+    private RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
+        this.querySpec = querySpec;
+        specs = new IdentityHashMap<>(relations.size());
+        for (AnalyzedRelation relation : relations) {
+            specs.put(relation, new QuerySpec());
         }
-        List<Symbol> splitOutputs = Lists.newArrayList(RelationSplitter.splitForRelation(relation, outputs).splitSymbols());
+    }
 
-        Optional<OrderBy> orderBy = querySpec.orderBy();
-        if (orderBy.isPresent()) {
-            RelationSplitter.splitOrderBy(relation, querySpec, splitQuerySpec, splitOutputs, orderBy.get());
-        }
+    public OrderBy remainingOrderBy() {
+        return remainingOrderBy;
+    }
 
-        WhereClause where = querySpec.where();
-        if (where != null && where.hasQuery()) {
-            RelationSplitter.splitWhereClause(relation, querySpec, splitQuerySpec, splitOutputs, where);
+    public Set<Symbol> requiredForQuery() {
+        return requiredForQuery;
+    }
+
+    public QuerySpec getSpec(AnalyzedRelation relation) {
+        return specs.get(relation);
+    }
+
+    private static Symbol joinQueryParts(Iterator<Symbol> iter) {
+        Symbol first;
+        if (iter.hasNext()) {
+            first = iter.next();
         } else {
-            splitQuerySpec.where(WhereClause.MATCH_ALL);
+            return null;
         }
-
-        // pull down limit = limit + offset, offset=0 by default
-        if (querySpec.limit().isPresent()) {
-            splitQuerySpec.limit(querySpec.limit().get() + querySpec.offset());
-            splitQuerySpec.offset(0);
+        if (!iter.hasNext()) {
+            return first;
         }
-        splitQuerySpec.outputs(splitOutputs);
-        return splitQuerySpec;
+        return new Function(AndOperator.INFO,
+                Arrays.asList(first, joinQueryParts(iter)));
     }
 
-    public static Map<Symbol, Field> createFieldMap(Iterable<? extends QueriedRelation> subRelations) {
-        Map<Symbol, Field> fieldMap = new HashMap<>();
-        for (QueriedRelation subRelation : subRelations) {
-            List<Field> fields = subRelation.fields();
-            QuerySpec splitQuerySpec = subRelation.querySpec();
-            for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
-                fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
+    @Nullable
+    public static Symbol joinQueryParts(Iterable<Symbol> queryParts) {
+        Iterator<Symbol> iter = queryParts.iterator();
+        return joinQueryParts(iter);
+    }
+
+
+    private void process() {
+        processOrderBy();
+        processWhere();
+        processOutputs();
+    }
+
+    static class Context {
+        final Multimap<AnalyzedRelation, Field> fields;
+
+        public Context(int numRelations) {
+            fields = Multimaps.newSetMultimap(
+                    new IdentityHashMap<AnalyzedRelation, Collection<Field>>(numRelations),
+                    FIELD_SET_SUPPLIER);
+        }
+    }
+
+    private void processOutputs() {
+        Context context = new Context(specs.size());
+        if (remainingOrderBy != null) {
+            FieldCollectingVisitor.INSTANCE.process(remainingOrderBy.orderBySymbols(), context);
+        }
+        if (querySpec.where().hasQuery()) {
+            FieldCollectingVisitor.INSTANCE.process(querySpec.where().query(), context);
+        }
+
+        // set the limit and offset where possible
+        if (querySpec.limit().isPresent()) {
+            for (AnalyzedRelation rel : Sets.difference(specs.keySet(), context.fields.keySet())) {
+                QuerySpec spec = specs.get(rel);
+                spec.limit(querySpec.limit().get() + querySpec.offset());
             }
         }
-        return fieldMap;
-    }
 
-    public static void replaceFields(List<Symbol> symbols, Map<Symbol, Field> fieldMap) {
-        MappingSymbolVisitor.inPlace().processInplace(symbols, fieldMap);
-    }
-
-    public static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Field> fieldMap){
-        replaceFields(parentQuerySpec.outputs(), fieldMap);
-        WhereClause where = parentQuerySpec.where();
-        if (where != null && where.hasQuery()) {
-            parentQuerySpec.where(new WhereClause(
-                    MappingSymbolVisitor.inPlace().process(where.query(), fieldMap)
-                    ));
+        // add all order by symbols to outputs
+        for (QuerySpec spec : specs.values()) {
+            if (spec.orderBy().isPresent()) {
+                FieldCollectingVisitor.INSTANCE.process(spec.orderBy().get().orderBySymbols(), context);
+            }
         }
-        if (parentQuerySpec.orderBy().isPresent()) {
-            replaceFields(parentQuerySpec.orderBy().get().orderBySymbols(), fieldMap);
+
+        // everything except the actual outputs is required for query
+        requiredForQuery.addAll(context.fields.values());
+
+        // capture items from the outputs
+        FetchFieldExtractor.extract(querySpec.outputs(), requiredForQuery);
+
+        // add all outputs to the sub queries
+        FieldCollectingVisitor.INSTANCE.process(querySpec.outputs(), context);
+
+        // generate the outputs of the subSpecs
+        for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
+            Collection<Field> fields = context.fields.get(entry.getKey());
+            assert entry.getValue().outputs() == null;
+            entry.getValue().outputs(new ArrayList<Symbol>(fields));
         }
     }
 
-    public static void replaceFields(QueriedRelation subRelation,
-                                     QuerySpec parentQuerySpec) {
-        QuerySpec splitQuerySpec = subRelation.querySpec();
-        Map<Symbol, Field> fieldMap = new HashMap<>();
-        List<Field> fields = subRelation.fields();
-        for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
-            fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
+    private void processWhere() {
+        if (!querySpec.where().hasQuery()) {
+            return;
         }
-        replaceFields(parentQuerySpec, fieldMap);
+        Symbol query = querySpec.where().query();
+        assert query != null;
+        QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query());
+        querySpec.where(new WhereClause(context.query()));
+        for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
+            getSpec(entry.getKey()).where(new WhereClause(joinQueryParts(entry.getValue())));
+        }
     }
 
-    private static void splitWhereClause(AnalyzedRelation analyzedRelation,
-                                         QuerySpec querySpec,
-                                         QuerySpec splitQuerySpec,
-                                         List<Symbol> splitOutputs,
-                                         WhereClause where) {
-        QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(analyzedRelation, where.query());
-        if (splitQueries.relationQuery() != null) {
-            splitQuerySpec.where(new WhereClause(splitQueries.relationQuery()));
-            querySpec.where(new WhereClause(splitQueries.remainingQuery()));
-        } else {
-            splitQuerySpec.where(WhereClause.MATCH_ALL);
+    private void processOrderBy() {
+        if (!querySpec.orderBy().isPresent()) {
+            return;
         }
-        SplitContext splitContext = splitForRelation(analyzedRelation, splitQueries.remainingQuery());
-        assert splitContext.directSplit.isEmpty();
-        splitOutputs.addAll(splitContext.mixedSplit);
-    }
-
-    private static void splitOrderBy(AnalyzedRelation analyzedRelation,
-                                     QuerySpec querySpec,
-                                     QuerySpec splitQuerySpec,
-                                     List<Symbol> splitOutputs,
-                                     OrderBy orderBy) {
-        SplitContext splitContext = splitForRelation(analyzedRelation, orderBy.orderBySymbols());
-        addAllNew(splitOutputs, splitContext.mixedSplit);
-
-        if (!splitContext.directSplit.isEmpty()) {
-            rewriteOrderBy(querySpec, splitQuerySpec, splitContext);
-        }
-        addAllNew(splitOutputs, splitContext.directSplit);
-    }
-
-    /**
-     * sets the (rewritten) orderBy to the parent querySpec and to the splitQuerySpec.
-     * E.g. in a query like:
-     *
-     *  select * from t1, t2 order by t1.x, t2.y
-     *
-     * Assuming t1 is the current relation for which the QueriedTable is being built.
-     *
-     * SplitContext will contain 1 directSplit symbol (t1.x)
-     *
-     * The parent OrderBy is rewritten:
-     *
-     *  orderBy:      [t1.x, t2.y]      - [t2.y]
-     *  reverseFlags: [false, false]    - [false]
-     *  nullsFirst:   [null, null]      - [null]
-     *
-     * The split OrderBy will be set as:
-     *
-     *  [t1.x]
-     *  [false]
-     *  [null]
-     */
-    private static void rewriteOrderBy(QuerySpec querySpec,
-                                       QuerySpec splitQuerySpec,
-                                       SplitContext splitContext) {
         OrderBy orderBy = querySpec.orderBy().get();
-
-        boolean[] reverseFlags = new boolean[splitContext.directSplit.size()];
-        Boolean[] nullsFirst = new Boolean[splitContext.directSplit.size()];
-
-        int idx = 0;
+        Set<AnalyzedRelation> relations = new IdentityHashSet<>();
+        Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
+                new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
+                INT_SET_SUPPLIER);
+        Integer idx = 0;
         for (Symbol symbol : orderBy.orderBySymbols()) {
-            int splitIdx = splitContext.directSplit.indexOf(symbol);
-            if (splitIdx >= 0 ) {
-                reverseFlags[splitIdx] = orderBy.reverseFlags()[idx];
-                nullsFirst[splitIdx] = orderBy.nullsFirst()[idx];
+            relations.clear();
+            RelationCounter.INSTANCE.process(symbol, relations);
+            if (relations.size() == 1) {
+                splits.put(Iterables.getOnlyElement(relations), idx);
+            } else {
+                // not pushed down
+                splits.put(null, idx);
             }
             idx++;
         }
-        splitQuerySpec.orderBy(new OrderBy(splitContext.directSplit, reverseFlags, nullsFirst));
-    }
-
-    private static void addAllNew(List<Symbol> list, Collection<? extends Symbol> collectionToAdd) {
-        for (Symbol symbolToAdd : collectionToAdd) {
-            if (list.contains(symbolToAdd)) {
-                continue;
-            }
-            list.add(symbolToAdd);
-        }
-    }
-
-    public static class SplitContext {
-        final AnalyzedRelation relation;
-        final List<Symbol> directSplit = new ArrayList<>();
-        final List<Symbol> mixedSplit = new ArrayList<>();
-        final Stack<Symbol> parents = new Stack<>();
-
-        public SplitContext(AnalyzedRelation relation) {
-            this.relation = relation;
-        }
-
-        public Iterable<Symbol> splitSymbols() {
-            return FluentIterable.from(directSplit).append(mixedSplit);
-        }
-    }
-
-    private static SplitContext splitForRelation(AnalyzedRelation relation, Symbol symbol) {
-        SplitContext context = new SplitContext(relation);
-        SPLITTING_VISITOR.process(symbol, context);
-        return context;
-    }
-
-    private static SplitContext splitForRelation(AnalyzedRelation relation, Collection<? extends Symbol> symbols) {
-        SplitContext context = new SplitContext(relation);
-        for (Symbol symbol : symbols) {
-            SPLITTING_VISITOR.process(symbol, context);
-        }
-        return context;
-    }
-
-    private static class SplittingVisitor extends SymbolVisitor<SplitContext, Symbol> {
-
-        @Override
-        public Symbol visitFunction(Function function, SplitContext context) {
-            List<Symbol> newArgs = new ArrayList<>(function.arguments().size());
-            context.parents.push(function);
-            for (Symbol argument : function.arguments()) {
-                Symbol processed = process(argument, context);
-                if (processed == null) {
-                    continue;
-                }
-                newArgs.add(processed);
-            }
-            context.parents.pop();
-
-            if (newArgs.size() == function.arguments().size()) {
-                Function newFunction = new Function(function.info(), newArgs);
-                if (context.parents.isEmpty()) {
-                    context.directSplit.add(newFunction);
-                }
-                return newFunction;
+        for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
+            OrderBy newOrderBy = orderBy.subset(entry.getValue());
+            AnalyzedRelation relation = entry.getKey();
+            if (relation == null) {
+                remainingOrderBy = newOrderBy;
             } else {
-                newArg:
-                for (Symbol newArg : newArgs) {
-                    if ( !(newArg instanceof Function)) {
-                        //if ( !(newArg instanceof Function) || ((Function) newArg).info().deterministic()) {
-                        for (Symbol symbol : context.splitSymbols()) {
-                            if (symbol.equals(newArg)) {
-                                break newArg;
-                            }
-                        }
-                    }
-                    if (!newArg.symbolType().isValueSymbol()) {
-                        context.mixedSplit.add(newArg);
-                    }
-                }
+                QuerySpec spec = getSpec(relation);
+                assert !spec.orderBy().isPresent();
+                spec.orderBy(newOrderBy);
+                requiredForQuery.addAll(newOrderBy.orderBySymbols());
             }
-            return null;
-        }
-
-        @Override
-        public Symbol visitLiteral(Literal symbol, SplitContext context) {
-            return symbol;
-        }
-
-        @Override
-        public Symbol visitField(Field field, SplitContext context) {
-            if (field.relation() == context.relation) {
-                if (context.parents.isEmpty()) {
-                    context.directSplit.add(field);
-                }
-                return field;
-            }
-            return null;
         }
     }
 
-    public static class SplitQuerySpecContext {
-        private QuerySpec querySpec;
-        private List<OutputName> outputNames;
+    static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
 
-        public SplitQuerySpecContext(QuerySpec querySpec, List<OutputName> outputNames) {
-            this.querySpec = querySpec;
-            this.outputNames = outputNames;
+        public static final RelationCounter INSTANCE = new RelationCounter();
+
+        @Override
+        public Void visitField(Field field, Set<AnalyzedRelation> context) {
+            context.add(field.relation());
+            return super.visitField(field, context);
+        }
+    }
+
+    static class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<Context, Void> {
+
+        public static final FieldCollectingVisitor INSTANCE = new FieldCollectingVisitor();
+
+        public void process(Iterable<? extends Symbol> symbols, Context context) {
+            for (Symbol symbol : symbols) {
+                process(symbol, context);
+            }
         }
 
-        public QuerySpec querySpec() {
-            return querySpec;
-        }
-
-        public List<OutputName> outputNames() {
-            return outputNames;
+        @Override
+        public Void visitField(Field field, Context context) {
+            context.fields.put(field.relation(), field);
+            return null;
         }
     }
 }

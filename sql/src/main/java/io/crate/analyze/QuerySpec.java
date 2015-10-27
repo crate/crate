@@ -39,7 +39,7 @@ public class QuerySpec {
     private Optional<OrderBy> orderBy = Optional.absent();
     private Optional<HavingClause> having = Optional.absent();
     private List<Symbol> outputs;
-    private WhereClause where;
+    private WhereClause where = WhereClause.MATCH_ALL;
     private Optional<Integer> limit = Optional.absent();
     private int offset = 0;
     private boolean hasAggregates = false;

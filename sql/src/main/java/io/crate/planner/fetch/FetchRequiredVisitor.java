@@ -22,13 +22,12 @@
 
 package io.crate.planner.fetch;
 
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.doc.DocSysColumns;
 
-import javax.annotation.Nullable;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Context, Boolean> {
 
@@ -39,14 +38,12 @@ public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Con
 
     public static class Context {
 
-        private LinkedHashSet<Symbol> querySymbols;
+        private Set<Symbol> querySymbols;
 
-        // TODO: extract query symbols from join condition as well
-        public Context(@Nullable OrderBy orderBy) {
-            if (orderBy != null) {
-                querySymbols = new LinkedHashSet<>(orderBy.orderBySymbols().size() + 1);
-                querySymbols.addAll(orderBy.orderBySymbols());
-            }
+        public Context(){};
+
+        public Context(Set<Symbol> querySymbols) {
+            this.querySymbols = querySymbols;
         }
 
         boolean isQuerySymbol(Symbol symbol) {
@@ -55,12 +52,12 @@ public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Con
 
         void allocateQuerySymbol(Symbol symbol) {
             if (querySymbols == null) {
-                querySymbols = new LinkedHashSet<>(1);
+                querySymbols = new HashSet<>(1);
             }
             querySymbols.add(symbol);
         }
 
-        public LinkedHashSet<Symbol> querySymbols() {
+        public Set<Symbol> querySymbols() {
             return querySymbols;
         }
 

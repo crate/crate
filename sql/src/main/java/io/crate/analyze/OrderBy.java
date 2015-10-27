@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class OrderBy implements Streamable {
@@ -46,7 +47,7 @@ public class OrderBy implements Streamable {
         this.nullsFirst = nullsFirst;
     }
 
-    private OrderBy() {};
+    private OrderBy() {}
 
     public List<Symbol> orderBySymbols() {
         return orderBySymbols;
@@ -64,6 +65,21 @@ public class OrderBy implements Streamable {
         normalizer.normalizeInplace(orderBySymbols);
     }
 
+
+    public OrderBy subset(Collection<Integer> positions){
+        List<Symbol> orderBySymbols = new ArrayList<>(positions.size());
+        Boolean[] nullsFirst = new Boolean[positions.size()];
+        boolean[] reverseFlags = new boolean[positions.size()];
+        int pos = 0;
+        for (Integer i : positions) {
+            orderBySymbols.add(this.orderBySymbols.get(i));
+            nullsFirst[pos] = this.nullsFirst[i];
+            reverseFlags[pos] = this.reverseFlags[i];
+            pos++;
+        }
+        return new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
+    }
+
     public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
         orderBy.writeTo(out);
     }
@@ -79,12 +95,12 @@ public class OrderBy implements Streamable {
         int numOrderBy = in.readVInt();
         reverseFlags = new boolean[numOrderBy];
 
-        for (int i = 0; i < reverseFlags.length; i++) {
+        for (int i = 0; i <  numOrderBy; i++) {
             reverseFlags[i] = in.readBoolean();
         }
 
         orderBySymbols = new ArrayList<>(numOrderBy);
-        for (int i = 0; i < reverseFlags.length; i++) {
+        for (int i = 0; i < numOrderBy; i++) {
             orderBySymbols.add(Symbol.fromStream(in));
         }
 

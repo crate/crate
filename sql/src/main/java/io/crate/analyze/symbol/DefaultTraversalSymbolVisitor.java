@@ -28,6 +28,21 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
         }
-        return null;
+        return super.visitFunction(symbol, context);
+    }
+
+    @Override
+    public R visitFetchReference(FetchReference fetchReference, C context) {
+        process(fetchReference.docId(), context);
+        process(fetchReference.ref(), context);
+        return super.visitFetchReference(fetchReference, context);
+    }
+
+    @Override
+    public R visitMatchPredicate(MatchPredicate matchPredicate, C context) {
+        for (Field field : matchPredicate.identBoostMap().keySet()) {
+            process(field, context);
+        }
+        return super.visitMatchPredicate(matchPredicate, context);
     }
 }

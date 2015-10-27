@@ -30,10 +30,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.TableStatsService;
@@ -73,6 +70,31 @@ public class CrossJoinConsumer implements Consumer {
     @Override
     public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
+    }
+
+    private static Map<Symbol, Field> getFieldMap(Iterable<? extends QueriedRelation> subRelations) {
+        Map<Symbol, Field> fieldMap = new HashMap<>();
+        for (QueriedRelation subRelation : subRelations) {
+            List<Field> fields = subRelation.fields();
+            QuerySpec splitQuerySpec = subRelation.querySpec();
+            for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
+                fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
+            }
+        }
+        return fieldMap;
+    }
+
+    private static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Field> fieldMap) {
+        MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), fieldMap);
+        WhereClause where = parentQuerySpec.where();
+        if (where != null && where.hasQuery()) {
+            parentQuerySpec.where(new WhereClause(
+                    MappingSymbolVisitor.inPlace().process(where.query(), fieldMap)
+            ));
+        }
+        if (parentQuerySpec.orderBy().isPresent()) {
+            MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.orderBy().get().orderBySymbols(), fieldMap);
+        }
     }
 
     private static class Visitor extends RelationPlanningVisitor {
@@ -126,11 +148,11 @@ public class CrossJoinConsumer implements Consumer {
             OrderBy remainingOrderBy = statement.remainingOrderBy();
 
             // replace all the fields in the root query spec
-            Map<Symbol, Field> fieldMap = RelationSplitter.createFieldMap(queriedTables);
-            RelationSplitter.replaceFields(querySpec, fieldMap);
+            Map<Symbol, Field> fieldMap = getFieldMap(queriedTables);
+            replaceFields(statement.querySpec(), fieldMap);
             if (remainingOrderBy != null) {
                 querySpec.orderBy(remainingOrderBy);
-                RelationSplitter.replaceFields(remainingOrderBy.orderBySymbols(), fieldMap);
+                MappingSymbolVisitor.inPlace().processInplace(remainingOrderBy.orderBySymbols(), fieldMap);
             }
 
             WhereClause where = querySpec.where();
@@ -380,16 +402,16 @@ public class CrossJoinConsumer implements Consumer {
                 context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
                 return true;
             }
-            if (hasDocTables && hasOutputsToFetch(statement.querySpec())) {
-                context.validationException(new ValidationException("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
-                return true;
-            }
-            return false;
-        }
 
-        private boolean hasOutputsToFetch(QuerySpec querySpec) {
-            FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(querySpec.orderBy().orNull());
-            return FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), ctx);
+            if (hasDocTables) {
+                FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(statement.requiredForQuery());
+                if (FetchRequiredVisitor.INSTANCE.process(statement.querySpec().outputs(), ctx)) {
+                    context.validationException(new ValidationException("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 

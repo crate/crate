@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
@@ -52,7 +51,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class TableStatsServiceTest extends CrateUnitTest  {

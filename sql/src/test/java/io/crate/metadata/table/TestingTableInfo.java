@@ -143,6 +143,9 @@ public class TestingTableInfo extends DocTableInfo {
             }
         }
 
+        public Builder add(String column, DataType type) {
+            return add(column, type, null);
+        }
         public Builder add(String column, DataType type, List<String> path) {
             return add(column, type, path, ColumnPolicy.DYNAMIC);
         }

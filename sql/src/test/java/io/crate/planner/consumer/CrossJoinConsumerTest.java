@@ -64,6 +64,7 @@ import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -171,13 +172,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(plan.nestedLoopPhase().projections().size(), is(2));
         FilterProjection fp = ((FilterProjection) plan.nestedLoopPhase().projections().get(0));
 
-        assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
-        assertThat(((CollectPhase) plan.left().resultPhase()).outputTypes().size(), is(2));
-        assertThat(plan.right().resultPhase(), instanceOf(CollectPhase.class));
-        assertThat(((CollectPhase) plan.right().resultPhase()).outputTypes().size(), is(2));
-
         assertThat(((Function)fp.query()).arguments().size(), is(2));
-        assertThat(fp.outputs().size(), is(4));
+        assertThat(fp.outputs().size(), is(3));
 
         TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(1));
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
@@ -336,8 +332,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public void testRefsAreNotConvertedToSourceLookups() throws Exception {
         NestedLoop nl = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
         CollectPhase cpLeft = ((CollectAndMerge) nl.left().plan()).collectPhase();
-        assertThat(cpLeft.toCollect().get(1), isReference("id"));
+        assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
         CollectPhase cpRight = ((CollectAndMerge) nl.right().plan()).collectPhase();
-        assertThat(cpRight.toCollect().get(0), isReference("id"));
+        assertThat(cpRight.toCollect(), contains(isReference("id")));
     }
 }

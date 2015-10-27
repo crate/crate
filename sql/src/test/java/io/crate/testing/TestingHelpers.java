@@ -683,6 +683,25 @@ public class TestingHelpers {
         return new ReferenceInfo(refIdent, rowGranularity, dataType);
     }
 
+    public static Matcher<? super Object> isSQL(final String stmt) {
+        return new BaseMatcher<Object>() {
+            @Override
+            public boolean matches(Object item) {
+                return SQLPrinter.print(item).equals(stmt);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText(stmt);
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                description.appendText(SQLPrinter.print(item));
+            }
+        };
+    }
+
     private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
 
         private final Class<? extends Throwable> type;

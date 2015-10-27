@@ -83,7 +83,14 @@ public class FetchPushDown {
         assert !querySpec.groupBy().isPresent() && !querySpec.having().isPresent() && !querySpec.hasAggregates();
 
         Optional<OrderBy> orderBy = querySpec.orderBy();
-        FetchRequiredVisitor.Context context = new FetchRequiredVisitor.Context(orderBy.orNull());
+
+        FetchRequiredVisitor.Context context;
+        if (orderBy.isPresent()){
+            context = new FetchRequiredVisitor.Context(new LinkedHashSet<>(querySpec.orderBy().get().orderBySymbols()));
+        } else {
+            context = new FetchRequiredVisitor.Context();
+
+        }
 
         boolean fetchRequired = FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), context);
         if (!fetchRequired) return null;
