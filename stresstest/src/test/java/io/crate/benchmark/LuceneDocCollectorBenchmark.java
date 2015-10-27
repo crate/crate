@@ -183,8 +183,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
 
-    private CrateCollector createCollector(String stmt, RowReceiver downstream, Object ... args) {
-        return Iterables.getOnlyElement(collectorProvider.createCollectors(stmt, downstream, args));
+    private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object ... args) {
+        return Iterables.getOnlyElement(collectorProvider.createCollectors(stmt, downstream, pageSizeHint, args));
     }
 
 
@@ -194,7 +194,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         collectingRowReceiver.rows.clear();
         CrateCollector docCollector = createCollector(
                 "SELECT continent FROM countries ORDER by continent",
-                collectingRowReceiver
+                collectingRowReceiver,
+                NUMBER_OF_DOCUMENTS / 2
         );
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
@@ -206,7 +207,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
         CrateCollector docCollector = createCollector(
                 "SELECT continent FROM countries ORDER BY continent",
-                rowReceiver
+                rowReceiver,
+                NUMBER_OF_DOCUMENTS / 2
         );
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
@@ -246,7 +248,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
-        CrateCollector docCollector = createCollector("SELECT continent FROM countries", collectingRowReceiver);
+        CrateCollector docCollector = createCollector("SELECT continent FROM countries", collectingRowReceiver, NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
     }
@@ -255,7 +257,7 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     @Test
     public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception{
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        CrateCollector docCollector = createCollector("SELECT continent FROM countries", rowReceiver);
+        CrateCollector docCollector = createCollector("SELECT continent FROM countries", rowReceiver, NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
             rowReceiver.resumeUpstream(false);

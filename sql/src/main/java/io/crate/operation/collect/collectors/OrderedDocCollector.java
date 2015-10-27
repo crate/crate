@@ -32,6 +32,8 @@ import io.crate.operation.Input;
 import io.crate.operation.merge.NumberedIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
+import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -63,9 +65,12 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
     private final DummyScorer scorer;
     private final ContextIndexSearcher searcher;
 
+    private final Object[] missingValues;
+
 
     @Nullable
     private volatile FieldDoc lastDoc = null;
+
     volatile boolean exhausted = false;
 
 
@@ -94,6 +99,10 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                 scorer
         );
         empty = new NumberedIterable<>(shardId, Collections.<Row>emptyList());
+        missingValues = new Object[orderBy.orderBySymbols().size()];
+        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
+            missingValues[i] = LuceneMissingValue.missingValue(orderBy, i);
+        }
     }
 
     /**
@@ -152,7 +161,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
     }
 
     private Query query(FieldDoc lastDoc) {
-        Query query = nextPageQuery(lastDoc);
+        Query query = nextPageQuery(lastDoc, orderBy, missingValues);
         if (query == null) {
             return searchContext.query();
         }
@@ -163,20 +172,39 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
     }
 
     @Nullable
-    private Query nextPageQuery(FieldDoc lastCollected) {
+    public static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
         BooleanQuery query = new BooleanQuery();
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
-            // only filter for null values if nulls last
-            if (order instanceof Reference && (value != null || !orderBy.nullsFirst()[i])) {
+            if (order instanceof Reference) {
+                boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
+                value = value.equals(missingValues[i]) ? null : value;
+                if (nullsFirst && value == null) {
+                   // no filter needed
+                   continue;
+                }
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
                 String columnName = ((Reference) order).info().ident().columnIdent().fqn();
-                if (orderBy.reverseFlags()[i]) {
-                    query.add(helper.rangeQuery(columnName, value, null, false, false), BooleanClause.Occur.MUST);
+
+                Query orderQuery;
+                // nulls already gone, so they should be excluded
+                if (nullsFirst && value != null) {
+                    BooleanFilter booleanFilter = new BooleanFilter();
+                    if (orderBy.reverseFlags()[i]) {
+                        booleanFilter.add(helper.rangeFilter(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                    } else {
+                        booleanFilter.add(helper.rangeFilter(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                    }
+                    orderQuery = new FilteredQuery(new MatchAllDocsQuery(), booleanFilter);
                 } else {
-                    query.add(helper.rangeQuery(columnName, null, value, false, false), BooleanClause.Occur.MUST);
+                    if (orderBy.reverseFlags()[i]) {
+                        orderQuery = helper.rangeQuery(columnName, value, null, false, false);
+                    } else {
+                        orderQuery = helper.rangeQuery(columnName, null, value, false, false);
+                    }
                 }
+                query.add(orderQuery, BooleanClause.Occur.MUST);
             }
         }
         if (query.clauses().size() > 0) {

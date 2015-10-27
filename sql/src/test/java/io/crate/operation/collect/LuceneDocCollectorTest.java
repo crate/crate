@@ -21,16 +21,40 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SQLBulkRequest;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.Paging;
+import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.*;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Version;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
@@ -38,7 +62,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 
@@ -49,7 +77,7 @@ import static org.hamcrest.core.Is.is;
 @ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
-    private final static Integer PAGE_SIZE = 20;
+    private final static Integer NODE_PAGE_SIZE_HINT = 20;
     private final static String INDEX_NAME = "countries";
     // use higher value here to be sure multiple segment reader exists during collect (not only 1)
     private final static Integer NUMBER_OF_DOCS = 10_000;
@@ -61,11 +89,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
     private int originalPageSize;
+    private TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void prepare() throws Exception{
         originalPageSize = Paging.PAGE_SIZE;
-        Paging.PAGE_SIZE = PAGE_SIZE;
+        Paging.PAGE_SIZE = NODE_PAGE_SIZE_HINT;
         execute("create table \"" + INDEX_NAME + "\" (" +
                 " continent string, " +
                 " \"countryName\" string," +
@@ -98,7 +127,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object ... args) {
-        return Iterables.getOnlyElement(collectorProvider.createCollectors(statement, rowReceiver, args));
+        return Iterables.getOnlyElement(collectorProvider.createCollectors(statement, rowReceiver, NODE_PAGE_SIZE_HINT, args));
     }
 
 
@@ -228,13 +257,29 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedWithLimitHigherThanPageSize() throws Exception{
-        CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 limit ?", rowReceiver, PAGE_SIZE + 5);
+        CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 limit ?", rowReceiver, NODE_PAGE_SIZE_HINT + 5);
         docCollector.doCollect();
-        assertThat(rowReceiver.rows.size(), is(PAGE_SIZE + 5));
-        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria") );
+        assertThat(rowReceiver.rows.size(), is(NODE_PAGE_SIZE_HINT + 5));
+        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany"));
         assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
         assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("USA"));
+    }
+
+    @Test
+    public void testOrderedWithNullsGtNodePageSize() throws Exception {
+        execute("create table nulls_table (foo integer) clustered into 1 shards with (number_of_replicas=0)");
+        Object[][] args = new Object[NODE_PAGE_SIZE_HINT * 2][];
+        for (int i = 0; i < NODE_PAGE_SIZE_HINT * 2; i++) {
+            args[i] = new Object[]{null};
+        }
+        sqlExecutor.execBulk("insert into nulls_table (foo) values (?)", args,
+                TimeValue.timeValueSeconds(1));
+        execute("insert into nulls_table (foo) values (1)");
+        refresh();
+        CrateCollector docCollector = createDocCollector("select * from nulls_table order by foo desc nulls last limit ?", rowReceiver, NODE_PAGE_SIZE_HINT + 5);
+        docCollector.doCollect();
+        assertThat(rowReceiver.rows.size(), is(NODE_PAGE_SIZE_HINT + 5));
     }
 
     @Test
@@ -242,9 +287,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
-        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria") );
+        assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany"));
-        assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS -1)[0], is(nullValue()));
     }
 
@@ -256,7 +301,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(0)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(1)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(2)[0], is(nullValue()));
-        assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("Austria") );
+        assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(4)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef) rowReceiver.rows.get(5)[0]).utf8ToString(), is("USA") );
     }
@@ -270,7 +315,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0], is(nullValue()));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 4)[0]).utf8ToString(), is("Austria") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 4)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 5)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 6)[0]).utf8ToString(), is("USA") );
     }
@@ -284,7 +329,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(0)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(1)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(2)[0], is(nullValue()));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Austria") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Germany") );
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0]).utf8ToString(), is("USA") );
     }
@@ -300,8 +345,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 5)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 4)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0], is(nullValue()));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Austria") );
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Germany") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Austria"));
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Germany"));
     }
 
     @Test
@@ -411,5 +456,143 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(result), is(
                 "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1000}| 1000\n" +
                 "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1001}| 1001\n"));
+    }
+
+    private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
+        Document doc = new Document();
+        if (value != null) {
+            doc.add(new LongField("value", value, Field.Store.NO));
+        } else {
+            // Create a placeholder field
+            doc.add(new StringField("null_value", "null", Field.Store.NO));
+        }
+        w.addDocument(doc);
+    }
+
+    private Directory createLuceneIndex() throws IOException {
+        File tmpDir = temporaryFolder.newFolder();
+        Directory index = FSDirectory.open(tmpDir);
+        StandardAnalyzer analyzer = new StandardAnalyzer();
+        IndexWriterConfig cfg = new IndexWriterConfig(Version.LATEST, analyzer);
+        IndexWriter w = new IndexWriter(index, cfg);
+        for (Long i = 0L; i < 4; i++) {
+            if ( i < 2) {
+                addDocToLucene(w, i + 1);
+            } else {
+                addDocToLucene(w, null);
+            }
+            w.commit();
+        }
+        w.close();
+        return index;
+    }
+
+    private TopFieldDocs search(IndexReader reader, Query query, Sort sort) throws IOException {
+        IndexSearcher searcher = new IndexSearcher(reader);
+
+        BooleanQuery searchQuery = new BooleanQuery();
+        searchQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+        if (query != null) {
+            searchQuery.add(query, BooleanClause.Occur.MUST_NOT);
+        }
+        TopFieldDocs docs = searcher.search(searchQuery, 10, sort);
+        return docs;
+    }
+
+    private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(new Reference(info)),
+                new boolean[]{reverseFlag},
+                new Boolean[]{nullFirst});
+
+        SortField sortField = new SortField("value", SortField.Type.LONG, reverseFlag);
+        Long missingValue = (Long)LuceneMissingValue.missingValue(orderBy, 0);
+        sortField.setMissingValue(missingValue);
+        Sort sort = new Sort(sortField);
+
+        Query nextPageQuery = OrderedDocCollector.nextPageQuery(lastCollected, orderBy, new Object[]{missingValue});
+        TopFieldDocs result = search(reader, nextPageQuery, sort);
+        Long results[] = new Long[result.scoreDocs.length];
+        for (int i = 0; i < result.scoreDocs.length; i++) {
+            Long value = (Long)((FieldDoc)result.scoreDocs[i]).fields[0];
+            results[i] = value.equals(missingValue) ? null : value;
+        }
+        return results;
+    }
+
+    private static ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+
+    // search after queries
+    @Test
+    public void testSearchAfterQueriesNullsLast() throws Exception {
+        Directory index = createLuceneIndex();
+        IndexReader reader = DirectoryReader.open(index);
+
+        // reverseOrdering = false, nulls First = false
+        // 1  2  null null
+        //    ^  (lastCollected = 2)
+
+        FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
+        Long[] result = nextPageQuery(reader, afterDoc, false, null);
+        assertThat(result, is(new Long[]{2L, null, null}));
+
+        // reverseOrdering = false, nulls First = false
+        // 1  2  null null
+        //       ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, null, SortField.Type.LONG)});
+        result = nextPageQuery(reader, afterDoc, false, null);
+        assertThat(result, is(new Long[]{null, null}));
+
+        // reverseOrdering = true, nulls First = false
+        // 2  1  null null
+        //    ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{1L});
+        result = nextPageQuery(reader, afterDoc, true, null);
+        assertThat(result, is(new Long[]{null, null, 1L}));
+
+        // reverseOrdering = true, nulls First = false
+        // 2  1  null null
+        //       ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, null, SortField.Type.LONG)});
+        result = nextPageQuery(reader, afterDoc, true, null);
+        assertThat(result, is(new Long[]{null, null}));
+
+        reader.close();
+    }
+
+    @Test
+    public void testSearchAfterQueriesNullsFirst() throws Exception {
+        Directory index = createLuceneIndex();
+        IndexReader reader = DirectoryReader.open(index);
+
+        // reverseOrdering = false, nulls First = true
+        // null, null, 1, 2
+        //                ^  (lastCollected = 2L)
+
+        FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
+        Long[] result = nextPageQuery(reader, afterDoc, false, true);
+        assertThat(result, is(new Long[]{2L}));
+
+        // reverseOrdering = false, nulls First = true
+        // null, null, 1, 2
+        //       ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, true, SortField.Type.LONG)});
+        result = nextPageQuery(reader, afterDoc, false, true);
+        assertThat(result, is(new Long[]{null, null, 1L, 2L}));
+
+        // reverseOrdering = true, nulls First = true
+        // null, null, 2, 1
+        //                ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{1L});
+        result = nextPageQuery(reader, afterDoc, true, true);
+        assertThat(result, is(new Long[]{1L}));
+
+        // reverseOrdering = true, nulls First = true
+        // null, null, 2, 1
+        //       ^
+        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, true, SortField.Type.LONG)});
+        result = nextPageQuery(reader, afterDoc, true, true);
+        assertThat(result, is(new Long[]{null, null, 2L, 1L}));
+
+        reader.close();
     }
 }
