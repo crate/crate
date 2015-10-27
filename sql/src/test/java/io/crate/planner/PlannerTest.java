@@ -495,18 +495,18 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testShardSelectWithOrderBy() throws Exception {
-        CollectAndMerge planNode = (CollectAndMerge) plan("select id from sys.shards order by id limit 10");
+        CollectAndMerge planNode = plan("select id from sys.shards order by id limit 10");
         CollectPhase collectPhase = planNode.collectPhase();
 
         assertEquals(DataTypes.INTEGER, collectPhase.outputTypes().get(0));
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.SHARD));
 
-        assertThat(collectPhase.orderBy(), nullValue());
-        assertThat(collectPhase.nodePageSizeHint(), nullValue());
+        assertThat(collectPhase.orderBy(), notNullValue());
 
         List<Projection> projections = collectPhase.projections();
         assertThat(projections.size(), is(1));
         assertThat(projections.get(0), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection) projections.get(0)).isOrdered(), is(false));
 
         MergePhase mergeNode = planNode.localMerge();
 

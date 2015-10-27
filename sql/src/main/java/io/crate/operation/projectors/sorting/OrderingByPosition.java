@@ -22,7 +22,10 @@
 package io.crate.operation.projectors.sorting;
 
 import com.google.common.collect.Ordering;
+import io.crate.analyze.OrderBy;
 import io.crate.core.collections.Row;
+import io.crate.planner.consumer.OrderByPositionVisitor;
+import io.crate.planner.node.dql.CollectPhase;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -30,6 +33,16 @@ import java.util.Comparator;
 import java.util.List;
 
 public abstract class OrderingByPosition<T> extends Ordering<T> {
+
+    public static Ordering<Object[]> arrayOrdering(CollectPhase collectPhase) {
+        OrderBy orderBy = collectPhase.orderBy();
+        assert orderBy != null : "collectPhase must have an orderBy clause to generate an ordering";
+        return arrayOrdering(
+                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+        );
+    }
 
     public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {
         List<Comparator<Row>> comparators = new ArrayList<>(positions.length);

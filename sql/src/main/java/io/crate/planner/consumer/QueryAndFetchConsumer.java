@@ -29,7 +29,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
@@ -56,8 +55,6 @@ import java.util.List;
 @Singleton
 public class QueryAndFetchConsumer implements Consumer {
 
-    private static final CollectPhaseOrderedProjectionBuilder ORDERED_PROJECTION_BUILDER =
-            new CollectPhaseOrderedProjectionBuilder();
     private final Visitor visitor;
 
     @Inject
@@ -84,7 +81,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 return null;
             }
             List<Symbol> orderBySymbols;
-            if (table.querySpec().orderBy().isPresent()){
+            if (table.querySpec().orderBy().isPresent()) {
                 orderBySymbols = table.querySpec().orderBy().get().orderBySymbols();
             } else {
                 orderBySymbols = Collections.emptyList();
@@ -152,7 +149,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
-                if (orderBy.isPresent()){
+                if (orderBy.isPresent()) {
                     List<Symbol> orderBySymbols = orderBy.get().orderBySymbols();
                     toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
                     toCollect.addAll(outputSymbols);
@@ -175,24 +172,20 @@ public class QueryAndFetchConsumer implements Consumer {
                 List<Symbol> finalOutputs = toInputColumns(outputSymbols);
 
 
-                CollectPhaseOrderedProjectionBuilderContext projectionBuilderContext =
-                        new CollectPhaseOrderedProjectionBuilderContext(querySpec, orderByInputColumns, allOutputs);
-
-                List<Projection> collectPhaseProjections = ORDERED_PROJECTION_BUILDER.process(table, projectionBuilderContext);
+                int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
+                TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
+                topNProjection.outputs(allOutputs);
                 collectPhase = CollectPhase.forQueriedTable(
                         plannerContext,
                         table,
                         toCollect,
-                        collectPhaseProjections
+                        ImmutableList.<Projection>of(topNProjection)
                 );
-                if (projectionBuilderContext.limit != null) {
-                    collectPhase.nodePageSizeHint(projectionBuilderContext.limit + projectionBuilderContext.offset);
-                }
-                collectPhase.orderBy(projectionBuilderContext.orderBy);
+                collectPhase.orderBy(orderBy.orNull());
+                collectPhase.nodePageSizeHint(limit + querySpec.offset());
 
                 // MERGE
                 if (context.rootRelation() == table) {
-                    Integer limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
                     TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
@@ -251,64 +244,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
             }
             return inputColumns;
-        }
-    }
-
-    private static class CollectPhaseOrderedProjectionBuilderContext {
-        OrderBy orderBy;
-        int offset;
-        Integer limit;
-        List<Symbol> orderByInputColumns;
-        List<Symbol> allOutputs;
-
-        public CollectPhaseOrderedProjectionBuilderContext(QuerySpec querySpec,
-                                                           List<Symbol> orderByInputColumns,
-                                                           List<Symbol> allOutputs) {
-            this.orderByInputColumns = orderByInputColumns;
-            this.allOutputs = allOutputs;
-            this.orderBy = querySpec.orderBy().orNull();
-            this.offset = querySpec.offset();
-            this.limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
-        }
-    }
-
-    private static class CollectPhaseOrderedProjectionBuilder extends AnalyzedRelationVisitor<CollectPhaseOrderedProjectionBuilderContext, List<Projection>> {
-
-        @Override
-        public List<Projection> visitQueriedTable(QueriedTable table,
-                                            CollectPhaseOrderedProjectionBuilderContext context) {
-            // if we have an offset we have to get as much docs from every node as we have offset+limit
-            // otherwise results will be wrong
-            TopNProjection topNProjection;
-            if (context.orderBy == null) {
-                topNProjection = new TopNProjection(context.offset + context.limit, 0);
-            } else {
-                topNProjection = new TopNProjection(context.offset + context.limit, 0,
-                        context.orderByInputColumns,
-                        context.orderBy.reverseFlags(),
-                        context.orderBy.nullsFirst()
-                );
-            }
-            topNProjection.outputs(context.allOutputs);
-            // this values are passed to the CollectPhase,a QueriedTable does not support these
-            // at CollectPhase so null it
-            context.orderBy = null;
-            context.limit = null;
-            return ImmutableList.<Projection>of(topNProjection);
-        }
-
-        @Override
-        public List<Projection> visitQueriedDocTable(QueriedDocTable table,
-                                                     CollectPhaseOrderedProjectionBuilderContext context) {
-            TopNProjection topNProjection = new TopNProjection(context.offset + context.limit, 0);
-            topNProjection.outputs(context.allOutputs);
-            return ImmutableList.<Projection>of(topNProjection);
-        }
-
-        @Override
-        protected List<Projection> visitAnalyzedRelation(AnalyzedRelation relation,
-                                                     CollectPhaseOrderedProjectionBuilderContext context) {
-            throw new UnsupportedOperationException("relation not supported");
         }
     }
 }

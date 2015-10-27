@@ -21,7 +21,19 @@
 
 package io.crate.core.collections;
 
+import com.google.common.base.Function;
+
 public interface Row {
+
+    Function<Row, Object[]> MATERIALIZE = new Function<Row, Object[]>() {
+        @Override
+        public Object[] apply(Row input) {
+            if (input == null) {
+                return null;
+            }
+            return input.materialize();
+        }
+    };
 
     int size();
 

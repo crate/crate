@@ -22,11 +22,12 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.*;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
@@ -37,6 +38,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -45,10 +47,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -89,7 +88,14 @@ public class SystemCollectSource implements CollectSource {
             return Collections.emptyList();
         }
 
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
+        OrderBy orderBy = collectPhase.orderBy();
+        if (orderBy != null) {
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                ctx.add(docInputSymbolVisitor.process(symbol, ctx));
+            }
+        }
+
         Input<Boolean> condition;
         if (whereClause.hasQuery()) {
             assert DataTypes.BOOLEAN.equals(whereClause.query().valueType());
@@ -99,10 +105,23 @@ public class SystemCollectSource implements CollectSource {
             condition = Literal.BOOLEAN_TRUE;
         }
 
-        return Iterables.filter(
+        @SuppressWarnings("unchecked")
+        Iterable<Row> rows = Iterables.filter(
                 toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions()),
                 InputCondition.asPredicate(condition)
         );
+
+        if (orderBy == null) {
+            return rows;
+        }
+        return sortRows(Iterables.transform(rows, Row.MATERIALIZE), collectPhase);
+    }
+
+    private static Iterable<Row> sortRows(Iterable<Object[]> rows, CollectPhase collectPhase) {
+        ArrayList<Object[]> objects = Lists.newArrayList(rows);
+        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
+        Collections.sort(objects, ordering.reverse());
+        return Iterables.transform(objects, Buckets.arrayToRowFunction());
     }
 
     private static Iterable<Row> toRowsIterable(

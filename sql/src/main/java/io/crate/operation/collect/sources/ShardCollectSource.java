@@ -29,6 +29,7 @@ import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
+import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -65,10 +66,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 
@@ -280,15 +278,14 @@ public class ShardCollectSource implements CollectSource {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         assert locations != null : "locations must not be null";
         List<UnassignedShard> unassignedShards = new ArrayList<>();
-        List<Row> rows = new ArrayList<>();
+        List<Object[]> rows = new ArrayList<>();
         Map<String, List<Integer>> indexShardsMap = locations.get(localNodeId);
+
         for (Map.Entry<String, List<Integer>> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
             List<Integer> shards = indexShards.getValue();
-            IndexService indexService;
-            try {
-                indexService = indicesService.indexServiceSafe(indexName);
-            } catch (IndexMissingException e) {
+            IndexService indexService = indicesService.indexService(indexName);
+            if (indexService == null) {
                 for (Integer shard : shards) {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
                 }
@@ -299,11 +296,12 @@ public class ShardCollectSource implements CollectSource {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
                     continue;
                 }
+
                 try {
                     ShardCollectService shardCollectService =
                             indexService.shardInjectorSafe(shard).getInstance(ShardCollectService.class);
 
-                    Row row = shardCollectService.getRowForShard(normalizedPhase);
+                    Object[] row = shardCollectService.getRowForShard(normalizedPhase);
                     if (row != null) {
                         rows.add(row);
                     }
@@ -319,11 +317,19 @@ public class ShardCollectSource implements CollectSource {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
 
-            return new RowsCollector(
-                    projectorChain.newShardDownstreamProjector(projectorFactory),
-                    Iterables.concat(rows, systemCollectSource.toRowsIterable(collectPhase, unassignedShards)));
+
+            for (Object[] objects : Iterables.transform(
+                    systemCollectSource.toRowsIterable(collectPhase, unassignedShards), Row.MATERIALIZE)) {
+                rows.add(objects);
+            }
         }
-        return new RowsCollector(projectorChain.newShardDownstreamProjector(projectorFactory), rows);
+
+        if (collectPhase.orderBy() != null) {
+            Collections.sort(rows, OrderingByPosition.arrayOrdering(collectPhase).reverse());
+        }
+        return new RowsCollector(
+                projectorChain.newShardDownstreamProjector(projectorFactory),
+                Iterables.transform(rows, Buckets.arrayToRowFunction()));
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

@@ -27,7 +27,6 @@ import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Literal;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.Functions;
@@ -38,7 +37,6 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
@@ -63,6 +61,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -129,7 +128,7 @@ public class ShardCollectService {
     }
 
     @Nullable
-    public Row getRowForShard(CollectPhase collectPhase) {
+    public Object[] getRowForShard(CollectPhase collectPhase) {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
 
         collectPhase =  collectPhase.normalize(shardNormalizer);
@@ -139,9 +138,12 @@ public class ShardCollectService {
         assert !collectPhase.whereClause().hasQuery()
                 : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
 
-        // at this point everything in toCollect should be a literal, there are no expressions anymore, so this
-        // row is "safe" to store in lists, etc.
-        return new InputRow(shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs());
+        List<Input<?>> inputs = shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs();
+        Object[] row = new Object[inputs.size()];
+        for (int i = 0; i < row.length; i++) {
+            row[i] = inputs.get(i).value();
+        }
+        return row;
     }
 
     /**
