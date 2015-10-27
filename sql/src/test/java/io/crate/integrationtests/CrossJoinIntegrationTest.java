@@ -206,6 +206,24 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testJoinOnSysTables() throws Exception {
+        execute("select column_policy, column_name from information_schema.tables, information_schema.columns " +
+                "where " +
+                "tables.schema_name = 'sys' " +
+                "and tables.table_name = 'shards' " +
+                "and tables.schema_name = columns.schema_name " +
+                "and tables.table_name = columns.table_name " +
+                "order by columns.column_name " +
+                "limit 4");
+        assertThat(response.rowCount(), is(4L));
+        assertThat(printedTable(response.rows()),
+                is("strict| id\n" +
+                   "strict| num_docs\n" +
+                   "strict| orphan_partition\n" +
+                   "strict| partition_ident\n"));
+    }
+
+    @Test
     public void testCrossJoinSysTablesOnly() throws Exception {
         execute("create table t (name string) clustered into 3 shards with (number_of_replicas = 0)");
         ensureYellow();

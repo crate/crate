@@ -40,6 +40,7 @@ import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -86,7 +87,8 @@ public class CrossJoinConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
-            if (isUnsupportedStatement(statement, context)) return null;
+            boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
+            if (isUnsupportedStatement(statement, context, hasDocTables)) return null;
             if (statement.querySpec().where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
@@ -94,8 +96,6 @@ public class CrossJoinConsumer implements Consumer {
             final Collection<QualifiedName> relationNames = getOrderedRelationNames(statement);
 
             // TODO: replace references with docIds.. and add fetch projection
-
-
 
             List<QueriedTableRelation> queriedTables = new ArrayList<>(relationNames.size());
             for (QualifiedName relationName : relationNames) {
@@ -111,9 +111,7 @@ public class CrossJoinConsumer implements Consumer {
             }
 
             WhereClause where = statement.querySpec().where();
-            if (where.hasQuery() && !(where.query() instanceof Literal)) {
-                throw new UnsupportedOperationException("JOIN condition in the WHERE clause is not supported");
-            }
+            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
 
             // for nested loops we are fine to remove pushed down orders
             OrderBy remainingOrderBy = statement.remainingOrderBy();
@@ -122,21 +120,19 @@ public class CrossJoinConsumer implements Consumer {
             // replace all the fields in the root query spec
             RelationSplitter.replaceFields(queriedTables, statement.querySpec());
 
-
             //TODO: queriedTable.normalize(analysisMetaData);
-
 
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
 
-            if (remainingOrderBy != null) {
+            if (filterNeeded || remainingOrderBy != null) {
                 for (QueriedTableRelation queriedTable : queriedTables) {
                     queriedTable.querySpec().limit(null);
                     queriedTable.querySpec().offset(TopN.NO_OFFSET);
                 }
             }
 
-            if (statement.querySpec().limit().isPresent()) {
+            if (!filterNeeded && statement.querySpec().limit().isPresent()) {
                 context.requiredPageSize(statement.querySpec().limit().get() + statement.querySpec().offset());
             }
 
@@ -164,19 +160,31 @@ public class CrossJoinConsumer implements Consumer {
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
 
+            List<Projection> projections = new ArrayList<>();
+            List<Field> inputs = concatFields(left, right);
+            if (filterNeeded) {
+                if (hasDocTables) {
+                    throw new UnsupportedOperationException(
+                            "JOIN condition in the WHERE clause is not supported if the statement contains user tables");
+                }
+                FilterProjection filterProjection = projectionBuilder.filterProjection(inputs, where.query());
+                projections.add(filterProjection);
+            }
+
             TopNProjection topN = projectionBuilder.topNProjection(
-                    concatFields(left, right),
+                    inputs,
                     statement.querySpec().orderBy().orNull(),
                     statement.querySpec().offset(),
                     statement.querySpec().limit().orNull(),
                     statement.querySpec().outputs()
             );
+            projections.add(topN);
 
             NestedLoopPhase nl = new NestedLoopPhase(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     "nested-loop",
-                    ImmutableList.<Projection>of(topN),
+                    projections,
                     leftMerge,
                     rightMerge,
                     localExecutionNodes
@@ -269,7 +277,7 @@ public class CrossJoinConsumer implements Consumer {
             return orderByOrder;
         }
 
-        private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
+        private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context, boolean hasDocTables) {
             if (statement.sources().size() != 2) {
                 context.validationException(new ValidationException("Joining more than 2 relations is not supported"));
                 return true;
@@ -283,8 +291,7 @@ public class CrossJoinConsumer implements Consumer {
                 context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
                 return true;
             }
-
-            if (Iterables.any(statement.sources().values(), DOC_TABLE_RELATION) && hasOutputsToFetch(statement.querySpec())) {
+            if (hasDocTables && hasOutputsToFetch(statement.querySpec())) {
                 context.validationException(new ValidationException("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
                 return true;
             }

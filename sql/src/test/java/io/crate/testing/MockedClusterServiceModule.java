@@ -71,7 +71,9 @@ public class MockedClusterServiceModule extends AbstractModule {
         DiscoveryNode node = mock(DiscoveryNode.class);
         when(discovery.localNode()).thenReturn(node);
         when(node.getId()).thenReturn("node-id-1");
+        when(node.id()).thenReturn("node-id-1");
         when(node.getName()).thenReturn("node 1");
+        when(clusterService.localNode()).thenReturn(node);
 
         bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
     }

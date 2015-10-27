@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for join conditions for queries that involve only system
+   tables.
+
  - Fix: clean up file descriptors in case of exceptions when retrieving blobs
    over the REST api
 
