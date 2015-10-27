@@ -150,12 +150,12 @@ public class DDLStatementDispatcher {
 
         @Override
         public ListenableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, UUID jobId) {
-            return repositoryDDLDispatcher.dispatch(analysis, jobId);
+            return repositoryDDLDispatcher.dispatch(analysis);
         }
 
         @Override
         public ListenableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, UUID jobId) {
-            return repositoryDDLDispatcher.dispatch(analysis, jobId);
+            return repositoryDDLDispatcher.dispatch(analysis);
         }
     }
 
