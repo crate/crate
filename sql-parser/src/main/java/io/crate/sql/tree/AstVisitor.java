@@ -604,4 +604,8 @@ public abstract class AstVisitor<R, C>
     public R visitCreateSnapshot(CreateSnapshot node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitRestoreSnapshot(RestoreSnapshot node, C context) {
+        return visitStatement(node, context);
+    }
 }

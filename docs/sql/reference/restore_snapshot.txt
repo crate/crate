@@ -59,6 +59,11 @@ restored to the cluster:
                      is given that does not exist in the snapshot. If set to ``true`` those
                      missing tables are ignored.
 
+:wait_for_completion: (Default: ``false``) By default the request returns once the restore
+                      operation started. If set to ``true`` the request returns after all
+                      selected tables from the snapshot are restored or an error occurred.
+                      This can take a serious amount of time.
+
 :target_schema: an expression that evaluates to the ``schema_name`` of the table to restore.
                 The expression given here can take references like ``table_name``
                 and ``schema_name`` as inputs and e.g. apply a function on it.
