@@ -33,7 +33,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.BoolSetting;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.Expression;
@@ -50,45 +49,13 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
+import static io.crate.analyze.SnapshotSettings.*;
+
 @Singleton
 public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer<CreateSnapshotAnalyzedStatement, CreateSnapshot> {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotStatementAnalyzer.class);
     private final Schemas schemas;
-
-    public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting() {
-        @Override
-        public String name() {
-            return "ignore_unavailable";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
-        }
-    };
-    public static final BoolSetting WAIT_FOR_COMPLETION = new BoolSetting() {
-        @Override
-        public String name() {
-            return "wait_for_completion";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
-        }
-    };
-
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
@@ -117,21 +84,23 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         SnapshotId snapshotId = new SnapshotId(repositoryName.get().toString(), snapshotName);
 
         // validate and extract settings
-        Settings settings = ImmutableSettings.EMPTY;
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        // apply defaults
+        for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {
+            builder.put(entry.getValue().getDefault());
+        }
         if (node.properties().isPresent()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
-            // apply defaults
-            for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {
-                builder.put(entry.getValue().getDefault());
-            }
             // apply given config
             for (Map.Entry<String, Expression> entry : node.properties().get().properties().entrySet()) {
                 SettingsApplier settingsApplier = SETTINGS.get(entry.getKey());
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
+                }
                 settingsApplier.apply(builder, analysis.parameterContext().parameters(), entry.getValue());
             }
-            settings = builder.build();
         }
+        Settings settings = builder.build();
 
         boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 

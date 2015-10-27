@@ -89,12 +89,8 @@ deleted but it should be possible to restore them if needed::
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    locations,
     ...    parted_table PARTITION (date='1970-01-01')
-    ... WITH (wait_for_completion=true, ignore_unavailable=true);
+    ... WITH (wait_for_completion=true);
     CREATE OK (... sec)
-
-When creating single partitions the partitioned table and its metadata
-is not included in the snapshot. Thus the partition can only be restored
-into an existing partitioned table or turned into a *regular* table.
 
 Snapshots are **incremental**. Snapshots of the same cluster that were
 created later only store the data that is not already contained in the
@@ -132,26 +128,34 @@ It is not possible to restore tables that exist in the current cluster::
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
     ERROR
 
-In order to restore to different tables it is possible to use the
-``target_schema`` and ``target_table`` configuration parameters. They
-can contain arbitrary expressions that result in a string and can
-operate on ``table_name`` and ``schema_name`` expressions that will
-evaluate to the respective ``table_name`` and ``schema_name`` of the
-table currently restored::
+Single partitions can be either imported into an existing partitioned
+table the partition belongs to::
 
-    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes
-    ... WITH (schema_name='restored');
-    RESTORE OK (... sec)cra
+.. Hidden: drop partition::
+
+    cr> DELETE FROM parted_table WHERE data = '1970-01-01';
 
 ::
 
-    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 ALL
-    ... WITH (schema_name=regexp_replace(schema_name, '(.*)', 'restored_$1'), table_name=table_name || '_restored') ;
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
+    ...    parted_table PARTITION (date='1970-01-01')
+    ... WITH (wait_for_completion=true);
     RESTORE OK (... sec)
 
-.. note::
 
-    It is not possible to rename single partitions during RESTORE.
+Or if no matching partition table exists, it will be implicitly
+created during restore.
+
+::
+
+    cr> DROP TABLE parted_table;
+    DROP OK (... sec)
+
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
+    ...    parted_table PARTITION (date='1970-01-01')
+    ... WITH (wait_for_completion=true);
+    RESTORE OK (... sec)
+
 
 Cleanup
 -------

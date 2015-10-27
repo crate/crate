@@ -297,6 +297,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4096  A snapshot with the same name already exists in the repository.
     ----- ---------------------------------------------------------------------
+    4097  A partition for the same values already exists in this table.
+    ----- ---------------------------------------------------------------------
     5000  Unhandled server error.
     ----- ---------------------------------------------------------------------
     5001  The execution of one or more tasks failed.
