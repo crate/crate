@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to CRATE.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,44 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.exceptions;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import org.elasticsearch.cluster.metadata.SnapshotId;
 
-public class DropSnapshot extends Statement {
+import java.util.Locale;
 
-    private final QualifiedName name;
+public class SnapshotUnknownException extends ResourceUnknownException {
 
-    public DropSnapshot(QualifiedName name) {
-        this.name = name;
+    public SnapshotUnknownException(SnapshotId snapshotId) {
+        super(errorMsg(snapshotId));
     }
 
-    public QualifiedName name() {
-        return name;
+    public SnapshotUnknownException(SnapshotId snapshotId, Throwable cause) {
+        super(errorMsg(snapshotId), cause);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(name);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return name.equals(((DropSnapshot) obj).name);
+    private static String errorMsg(SnapshotId snapshotId) {
+        return String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown",
+                snapshotId.getRepository(), snapshotId.getSnapshot());
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropSnapshot(this, context);
+    public int errorCode() {
+        return 8;
     }
 }

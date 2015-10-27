@@ -597,4 +597,7 @@ public abstract class AstVisitor<R, C>
         return visitStatement(node, context);
     }
 
+    public R visitDropSnapshot(DropSnapshot node, C context) {
+        return visitStatement(node, context);
+    }
 }
