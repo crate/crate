@@ -20,26 +20,21 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.exceptions;
 
-import io.crate.sql.tree.DropRepository;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.cluster.metadata.SnapshotId;
 
-@Singleton
-public class DropRepositoryStatementAnalyzer extends AbstractRepositoryDDLAnalyzer<DropRepositoryAnalyzedStatement, DropRepository> {
+import java.util.Locale;
 
-    @Inject
-    public DropRepositoryStatementAnalyzer(ClusterService clusterService) {
-        super(clusterService);
+public class SnapShotAlreadyExistsExeption extends ConflictException {
+
+    public SnapShotAlreadyExistsExeption(SnapshotId snapshotId) {
+        super(String.format(Locale.ENGLISH, "Snapshot \"%s\".\"%s\" already exists",
+                snapshotId.getRepository(), snapshotId.getSnapshot()));
     }
 
     @Override
-    public DropRepositoryAnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
-        String repositoryName = node.repository();
-        failIfRepositoryDoesNotExist(repositoryName);
-        return new DropRepositoryAnalyzedStatement(repositoryName);
+    public int errorCode() {
+        return 6;
     }
-
 }

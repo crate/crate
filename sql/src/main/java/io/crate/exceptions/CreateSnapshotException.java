@@ -20,26 +20,21 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.exceptions;
 
-import io.crate.sql.tree.DropRepository;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.cluster.metadata.SnapshotId;
 
-@Singleton
-public class DropRepositoryStatementAnalyzer extends AbstractRepositoryDDLAnalyzer<DropRepositoryAnalyzedStatement, DropRepository> {
+import java.util.Locale;
 
-    @Inject
-    public DropRepositoryStatementAnalyzer(ClusterService clusterService) {
-        super(clusterService);
+public class CreateSnapshotException extends UnhandledServerException {
+
+    public CreateSnapshotException(SnapshotId snapshotId, String message) {
+        super(String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
+                        snapshotId.getRepository(), snapshotId.getSnapshot(), message));
     }
 
     @Override
-    public DropRepositoryAnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
-        String repositoryName = node.repository();
-        failIfRepositoryDoesNotExist(repositoryName);
-        return new DropRepositoryAnalyzedStatement(repositoryName);
+    public int errorCode() {
+        return 4;
     }
-
 }

@@ -31,6 +31,13 @@ A snapshot is fully qualified by its ``snapshot_name`` and the name of the repos
 it should be created in (``repository_name``). A ``snapshot_name`` must be unique
 per repository.
 
+.. note::
+
+    For snapshot names the same :ref:`restrictions <sql_ddl_naming_restrictions>` as for table names apply.
+
+    This is mainly because snapshot names will likely become stored as file or directory on disc
+    and hence must be valid filenames.
+
 Creating the snapshot operates on primary shards which are not currently relocated.
 If a shard is being relocated the snapshot of the shard is created
 when the relocation is completed.
