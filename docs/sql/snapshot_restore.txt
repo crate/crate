@@ -92,6 +92,10 @@ deleted but it should be possible to restore them if needed::
     ... WITH (wait_for_completion=true, partial=true, ignore_unavailable=true);
     CREATE OK (... sec)
 
+When creating single partitions the partitioned table and its metadata
+is not included in the snapshot. Thus the partition can only be restored
+into an existing partitioned table or turned into a *regular* table.
+
 Snapshots are **incremental**. Snapshots of the same cluster that were
 created later only store the data that is not already contained in the
 repository.

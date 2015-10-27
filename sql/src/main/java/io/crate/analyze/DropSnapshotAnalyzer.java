@@ -22,25 +22,30 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.DropSnapshot;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
 
 @Singleton
-public class DropSnapshotAnalyzer extends AstVisitor<DropSnapshotAnalyzedStatement, Analysis> {
+public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer<DropSnapshotAnalyzedStatement, DropSnapshot> {
+
+    @Inject
+    public DropSnapshotAnalyzer(ClusterService clusterService) {
+        super(clusterService);
+    }
 
     @Override
     public DropSnapshotAnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
         List<String> parts = node.name().getParts();
         Preconditions.checkArgument(parts.size() == 2,
                 "Snapshot name not supported, only <repository>.<snapshot> works.");
-        return new DropSnapshotAnalyzedStatement(parts.get(0), parts.get(1));
-    }
 
-    public AnalyzedStatement analyze(DropSnapshot node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return process(node, analysis);
+        String repositoryName = parts.get(0);
+        failIfRepositoryDoesNotExist(repositoryName);
+
+        return new DropSnapshotAnalyzedStatement(repositoryName, parts.get(1));
     }
 }

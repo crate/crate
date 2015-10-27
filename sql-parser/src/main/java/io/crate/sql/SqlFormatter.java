@@ -479,8 +479,30 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropRepository(DropRepository node, Integer context) {
-            builder.append("DROP REPOSITORY \"").append(node.repository()).append("\"");
+        public Void visitDropRepository(DropRepository node, Integer indent) {
+            builder.append("DROP REPOSITORY ")
+                    .append(quoteIdentifierIfNeeded(node.repository()));
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
+            builder.append("CREATE SNAPSHOT ")
+                    .append(quoteIdentifierIfNeeded(node.name().toString()));
+            if (node.tableList().isPresent()) {
+                builder.append(" TABLE ");
+                int count = 0, max = node.tableList().get().size();
+                for (Table table : node.tableList().get()) {
+                    table.accept(this, indent);
+                    if (++count < max) builder.append(",");
+                }
+            } else {
+                builder.append(" ALL");
+            }
+            if (node.properties().isPresent()) {
+                builder.append(' ');
+                node.properties().get().accept(this, indent);
+            }
             return null;
         }
 

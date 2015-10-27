@@ -162,6 +162,10 @@ public class DDLStatementDispatcher {
         public ListenableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, UUID jobId) {
             return snapshotDDLDispatcher.dispatch(analysis);
         }
+
+        public ListenableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, UUID jobId) {
+            return snapshotDDLDispatcher.dispatch(analysis);
+        }
     }
 
     private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
