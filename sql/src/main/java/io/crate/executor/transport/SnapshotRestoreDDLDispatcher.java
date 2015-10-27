@@ -26,12 +26,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
+import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -39,18 +42,18 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotState;
 
-import static io.crate.analyze.CreateSnapshotStatementAnalyzer.*;
+import static io.crate.analyze.SnapshotSettings.*;
 
 
 
 @Singleton
-public class SnapshotDDLDispatcher {
+public class SnapshotRestoreDDLDispatcher {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SnapshotDDLDispatcher.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(SnapshotRestoreDDLDispatcher.class);
     private final TransportActionProvider transportActionProvider;
 
     @Inject
-    public SnapshotDDLDispatcher(TransportActionProvider transportActionProvider) {
+    public SnapshotRestoreDDLDispatcher(TransportActionProvider transportActionProvider) {
         this.transportActionProvider = transportActionProvider;
     }
 
@@ -89,7 +92,6 @@ public class SnapshotDDLDispatcher {
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
-
         CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
                 .includeGlobalState(statement.includeMetadata())
                 .waitForCompletion(waitForCompletion)
@@ -113,6 +115,36 @@ public class SnapshotDDLDispatcher {
                 } else {
                     resultFuture.set(1L);
                 }
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                resultFuture.setException(e);
+            }
+        });
+        return resultFuture;
+    }
+
+    public ListenableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
+        final SettableFuture<Long> resultFuture = SettableFuture.create();
+
+        boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
+        boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
+
+        // ignore_unavailable as set by statement
+        IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
+
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
+                .indices(analysis.indices())
+                .indicesOptions(indicesOptions)
+                .settings(analysis.settings())
+                .waitForCompletion(waitForCompletion)
+                .includeGlobalState(false)
+                .includeAliases(true);
+        transportActionProvider.transportRestoreSnapshotAction().execute(request, new ActionListener<RestoreSnapshotResponse>() {
+            @Override
+            public void onResponse(RestoreSnapshotResponse restoreSnapshotResponse) {
+                resultFuture.set(1L);
             }
 
             @Override
