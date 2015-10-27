@@ -27,10 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.executor.transport.AlterTableOperation;
-import io.crate.executor.transport.RepositoryDDLDispatcher;
-import io.crate.executor.transport.TableCreator;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -55,6 +52,7 @@ public class DDLStatementDispatcher {
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
     private final RepositoryDDLDispatcher repositoryDDLDispatcher;
+    private final SnapshotDDLDispatcher snapshotDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
 
@@ -64,12 +62,14 @@ public class DDLStatementDispatcher {
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
                                   RepositoryDDLDispatcher repositoryDDLDispatcher,
+                                  SnapshotDDLDispatcher snapshotDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
         this.blobIndices = blobIndices;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
         this.repositoryDDLDispatcher = repositoryDDLDispatcher;
+        this.snapshotDDLDispatcher = snapshotDDLDispatcher;
     }
 
     public ListenableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId) {
@@ -156,6 +156,11 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, UUID jobId) {
             return repositoryDDLDispatcher.dispatch(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, UUID jobId) {
+            return snapshotDDLDispatcher.dispatch(analysis);
         }
     }
 
