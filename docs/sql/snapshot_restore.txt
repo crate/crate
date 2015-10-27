@@ -9,7 +9,7 @@ Snapshot
 
 In CRATE, backups are called *Snapshots*. They represent the state of
 the tables in a CRATE cluster at the time the *Snapshot* was
-created. A *Snapshots* is always stored in a *Repository* which has to
+created. A *Snapshot* is always stored in a *Repository* which has to
 be created up front.
 
 Creating a Repository
@@ -200,3 +200,110 @@ repository in the cluster state, so it is not accessible any more.
     cr> DROP TABLE restored.quotes;
     DROP OK (... sec)
 
+.. _snapshot-restore_hfs-requirements:
+
+Requirements for using repositories of type 'hdfs'
+--------------------------------------------------
+
+Crate supports repositories of type
+:ref:`ref-create-repository-types-hdfs` type by default, but required
+`Hadoop`_ java client libraries are not included in any Crate
+distribution. Therefore they needed to be installed into Crate's
+CLASSPATH on every node. The default CLASSPATH of Crate is ``$CRATE_HOME/lib/``.
+
+Because some libraries `Hadoop`_ depends on are also depended (and so
+deployed) by Crate, we please you to only installed `Hadoop`_
+libraries listed below for the concrete `Hadoop`_ version.
+
+.. warning::
+
+   Do not just copy over all libraries which the `Hadoop`_ java client
+   depends on as this will result in un-expected behaviour of crate
+   through possible version conflicts.
+
+.. note::
+
+   After installing all needed libraries, every node must be restarted.
+
+Hadoop 1.x required libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using `Hadoop (1.x)`_ version 1.x, please install only following
+libraries into Crate's CLASSPATH:
+
+ - commons-collections-3.2.1.jar
+ - commons-configuration-1.6.jar
+ - commons-digester-1.8.jar
+ - commons-el-1.0.jar
+ - commons-httpclient-3.1.jar
+ - commons-io-2.1.jar
+ - commons-lang-2.4.jar
+ - commons-net-1.4.1.jar
+ - hadoop-core-1.2.1.jar
+ - jackson-core-asl-1.8.8.jar
+ - jackson-mapper-asl-1.8.8.jar
+ - jets3t-0.6.1.jar
+ - oro-2.0.8.jar
+ - xmlenc-0.52.jar
+
+.. note::
+
+   As of writing this documentation, the latest stable `Hadoop 1.x`
+   version is **1.2.1**. Required libraries may differ for other
+   versions.
+
+Hadoop 2.x required libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using `Hadoop (YARN)`_ version 2.x, please install only following
+libraries into Crate's CLASSPATH:
+
+ - apacheds-i18n-2.0.0-M15.jar
+ - apacheds-kerberos-codec-2.0.0-M15.jar
+ - api-asn1-api-1.0.0-M20.jar
+ - api-util-1.0.0-M20.jar
+ - avro-1.7.4.jar
+ - commons-collections-3.2.1.jar
+ - commons-compress-1.4.1.jar
+ - commons-configuration-1.6.jar
+ - commons-beanutils-core-1.8.0.jar
+ - commons-digester-1.8.jar
+ - commons-httpclient-3.1.jar
+ - commons-io-2.4.jar
+ - commons-lang-2.6.jar
+ - commons-net-3.1.jar
+ - curator-client-2.7.1.jar
+ - curator-framework-2.7.1.jar
+ - curator-recipes-2.7.1.jar
+ - gson-2.2.4.jar
+ - hadoop-annotations-2.7.1.jar
+ - hadoop-auth-2.7.1.jar
+ - hadoop-client-2.7.1.jar
+ - hadoop-common-2.7.1.jar
+ - hadoop-hdfs-2.7.1.jar
+ - htrace-core-3.1.0-incubating.jar
+ - jackson-core-asl-1.9.13.jar
+ - jackson-mapper-asl-1.9.13.jar
+ - jline-0.9.94.jar
+ - jsp-api-2.1.jar
+ - jsr305-3.0.0.jar
+ - leveldbjni-all-1.8.jar
+ - protobuf-java-2.5.0.jar
+ - paranamer-2.3.jar
+ - snappy-java-1.0.4.1.jar
+ - xercesImpl-2.9.1.jar
+ - xmlenc-0.52.jar
+ - xml-apis-1.3.04.jar
+ - xz-1.0.jar
+ - zookeeper-3.4.6.jar
+
+.. note::
+
+   As of writing this documentation, the latest stable `Hadoop
+   (YARN)` version is **2.7.1**. Required libraries may differ for other
+   versions.
+
+
+.. _Hadoop: https://hadoop.apache.org/
+.. _Hadoop (1.x): https://hadoop.apache.org/
+.. _Hadoop (YARN): https://hadoop.apache.org/
