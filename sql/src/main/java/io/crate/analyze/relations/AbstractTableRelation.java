@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -247,7 +248,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         }
     }
 
-    public void validateOrderBy(@Nullable OrderBy orderBy) {
+    public void validateOrderBy(Optional<OrderBy> orderBy) {
         return;
     }
 }

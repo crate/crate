@@ -101,6 +101,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (node.getSelect().isDistinct() && groupBy.isEmpty()) {
             groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
         }
+        if (groupBy != null && groupBy.isEmpty()){
+            groupBy = null;
+        }
 
         QuerySpec querySpec = new QuerySpec()
                 .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context))
@@ -136,6 +139,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         );
     }
 
+    @Nullable
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
@@ -238,7 +242,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private HavingClause analyzeHaving(Optional<Expression> having, List<Symbol> groupBy, RelationAnalysisContext context) {
         if (having.isPresent()) {
-            if (!context.expressionAnalysisContext().hasAggregates && groupBy.isEmpty()) {
+            if (!context.expressionAnalysisContext().hasAggregates && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = context.expressionAnalyzer().convert(having.get(), context.expressionAnalysisContext());

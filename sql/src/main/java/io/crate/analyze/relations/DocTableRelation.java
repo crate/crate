@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
@@ -109,9 +110,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         return allocate(ci, new Reference(referenceInfo));
     }
 
-    public void validateOrderBy(@Nullable OrderBy orderBy) {
-        if (orderBy != null) {
-            for (Symbol symbol : orderBy.orderBySymbols()) {
+    public void validateOrderBy(Optional<OrderBy> orderBy) {
+        if (orderBy.isPresent()) {
+            for (Symbol symbol : orderBy.get().orderBySymbols()) {
                 SORT_VALIDATOR.process(symbol, this);
             }
         }

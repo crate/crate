@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
+import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
@@ -124,17 +125,17 @@ public class MultiSourceSelect implements QueriedRelation {
      */
     @Nullable
     public OrderBy remainingOrderBy(){
-        OrderBy orderBy = querySpec.orderBy();
-        if (orderBy == null){
+        if (!querySpec().orderBy().isPresent()){
             return null;
         }
+        OrderBy orderBy = querySpec.orderBy().get();
         IntOpenHashSet toRemove = new IntOpenHashSet(orderBy.orderBySymbols().size());
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol s = orderBy.orderBySymbols().get(i);
             for (MultiSourceSelect.Source source : sources.values()) {
-                OrderBy subOrderBy = source.querySpec().orderBy();
-                if (subOrderBy != null){
-                    for (Symbol specSymbol : subOrderBy.orderBySymbols()) {
+                Optional<OrderBy> subOrderBy = source.querySpec().orderBy();
+                if (subOrderBy.isPresent()){
+                    for (Symbol specSymbol : subOrderBy.get().orderBySymbols()) {
                         if (s == specSymbol){
                             toRemove.add(i);
                         }

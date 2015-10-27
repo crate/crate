@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -76,7 +75,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
             QuerySpec querySpec = table.querySpec();
-            if (querySpec.hasAggregates() || querySpec.groupBy()!=null) {
+            if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return null;
             }
             if(querySpec.where().hasVersions()){
@@ -89,10 +88,8 @@ public class QueryThenFetchConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
             }
 
-            OrderBy orderBy = querySpec.orderBy();
-            if (orderBy != null) {
-                table.tableRelation().validateOrderBy(orderBy);
-            }
+            table.tableRelation().validateOrderBy(querySpec.orderBy());
+
             FetchPushDown fetchPushDown = new FetchPushDown(querySpec, table.tableRelation());
             QueriedDocTable subRelation = fetchPushDown.pushDown();
             if (subRelation == null) {
@@ -145,10 +142,10 @@ public class QueryThenFetchConsumer implements Consumer {
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit(),
+                    querySpec.limit().orNull(),
                     null
             );
-            if (orderBy == null) {
+            if (!querySpec.orderBy().isPresent()) {
                 localMergePhase = MergePhase.localMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
@@ -160,7 +157,7 @@ public class QueryThenFetchConsumer implements Consumer {
                 localMergePhase = MergePhase.sortedMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
-                        orderBy,
+                        querySpec.orderBy().get(),
                         collectPhase.toCollect(),
                         null,
                         ImmutableList.of(topN, fp),
@@ -173,7 +170,8 @@ public class QueryThenFetchConsumer implements Consumer {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }
             SimpleSelect.enablePagingIfApplicable(
-                    collectPhase, localMergePhase, querySpec.limit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
+                    collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
+                    plannerContext.clusterService().localNode().id());
             return new QueryThenFetch(collectPhase, fetchPhase, localMergePhase, context.plannerContext().jobId());
         }
 

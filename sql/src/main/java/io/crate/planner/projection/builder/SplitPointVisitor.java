@@ -21,8 +21,6 @@
 
 package io.crate.planner.projection.builder;
 
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
@@ -31,7 +29,6 @@ import io.crate.metadata.FunctionInfo;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 class SplitPointVisitor extends DefaultTraversalSymbolVisitor<
         SplitPointVisitor.Context, Void> {
@@ -75,17 +72,14 @@ class SplitPointVisitor extends DefaultTraversalSymbolVisitor<
     public void process(SplitPoints splitContext){
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
         process(splitContext.querySpec().outputs(), context);
-        OrderBy orderBy = splitContext.querySpec().orderBy();
-        if (orderBy != null){
-            process(orderBy.orderBySymbols(), context);
+        if (splitContext.querySpec().orderBy().isPresent()){
+            process(splitContext.querySpec().orderBy().get().orderBySymbols(), context);
         }
-        HavingClause havingClause = splitContext.querySpec().having();
-        if (havingClause != null && havingClause.query() != null){
-            process(havingClause.query(), context);
+        if (splitContext.querySpec().having().isPresent() && splitContext.querySpec().having().get().query() != null){
+            process(splitContext.querySpec().having().get().query(), context);
         }
-        List<Symbol> groupBy = splitContext.querySpec().groupBy();
-        if (groupBy != null){
-            process(groupBy, context);
+        if (splitContext.querySpec().groupBy().isPresent()){
+            process(splitContext.querySpec().groupBy().get(), context);
         }
     }
 

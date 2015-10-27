@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
@@ -34,22 +35,22 @@ import java.util.List;
 
 public class QuerySpec {
 
-    private List<Symbol> groupBy;
-    private OrderBy orderBy;
-    private HavingClause having;
+    private Optional<List<Symbol>> groupBy = Optional.absent();
+    private Optional<OrderBy> orderBy = Optional.absent();
+    private Optional<HavingClause> having = Optional.absent();
     private List<Symbol> outputs;
     private WhereClause where;
-    private Integer limit;
+    private Optional<Integer> limit = Optional.absent();
     private int offset = 0;
     private boolean hasAggregates = false;
 
-    @Nullable
-    public List<Symbol> groupBy() {
+    public Optional<List<Symbol>> groupBy() {
         return groupBy;
     }
 
     public QuerySpec groupBy(@Nullable List<Symbol> groupBy) {
-        this.groupBy = groupBy != null && groupBy.size() > 0 ? groupBy : null;
+        assert groupBy == null || groupBy.size() > 0 : "groupBy must not be empty";
+        this.groupBy = Optional.fromNullable(groupBy);
         return this;
     }
 
@@ -66,13 +67,12 @@ public class QuerySpec {
         return this;
     }
 
-    @Nullable
-    public Integer limit() {
+    public Optional<Integer> limit() {
         return limit;
     }
 
     public QuerySpec limit(@Nullable Integer limit) {
-        this.limit = limit;
+        this.limit = Optional.fromNullable(limit);
         return this;
     }
 
@@ -85,26 +85,25 @@ public class QuerySpec {
         return this;
     }
 
-    @Nullable
-    public HavingClause having() {
+    public Optional<HavingClause> having() {
         return having;
     }
 
     public QuerySpec having(@Nullable HavingClause having) {
-        if (having == null || !having.hasQuery() && !having.noMatch()){
-            this.having = null;
+        if (having == null || !having.hasQuery() && !having.noMatch()) {
+            this.having = Optional.absent();
+        } else {
+            this.having = Optional.of(having);
         }
-        this.having = having;
         return this;
     }
 
-    @Nullable
-    public OrderBy orderBy() {
+    public Optional<OrderBy> orderBy() {
         return orderBy;
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        this.orderBy = orderBy;
+        this.orderBy = Optional.fromNullable(orderBy);
         return this;
     }
 
@@ -127,15 +126,15 @@ public class QuerySpec {
     }
 
     public boolean isLimited() {
-        return limit != null || offset > 0;
+        return limit.isPresent() || offset > 0;
     }
 
     public void normalize(EvaluatingNormalizer normalizer) {
-        if (groupBy != null) {
-            normalizer.normalizeInplace(groupBy);
+        if (groupBy.isPresent()) {
+            normalizer.normalizeInplace(groupBy.get());
         }
-        if (orderBy != null) {
-            orderBy.normalize(normalizer);
+        if (orderBy.isPresent()) {
+            orderBy.get().normalize(normalizer);
         }
         if (outputs != null) {
             normalizer.normalizeInplace(outputs);
@@ -143,8 +142,8 @@ public class QuerySpec {
         if (where != null && where != WhereClause.MATCH_ALL) {
             this.where(where.normalize(normalizer));
         }
-        if (having != null) {
-            having = having.normalize(normalizer);
+        if (having.isPresent()) {
+            Optional.of(having.get().normalize(normalizer));
         }
     }
 
@@ -167,11 +166,11 @@ public class QuerySpec {
                         Function castFunction = new Function(
                                 CastFunctionResolver.functionInfo(sourceType, targetType, false),
                                 Arrays.asList(output));
-                        if (groupBy() != null) {
-                            Collections.replaceAll(groupBy(), output, castFunction);
+                        if (groupBy().isPresent()) {
+                            Collections.replaceAll(groupBy().get(), output, castFunction);
                         }
-                        if (orderBy() != null) {
-                            Collections.replaceAll(orderBy().orderBySymbols(), output, castFunction);
+                        if (orderBy().isPresent()) {
+                            Collections.replaceAll(orderBy().get().orderBySymbols(), output, castFunction);
                         }
                         outputs.set(i, castFunction);
                     } else {

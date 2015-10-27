@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
@@ -61,9 +62,9 @@ public class RelationSplitter {
         }
         List<Symbol> splitOutputs = Lists.newArrayList(RelationSplitter.splitForRelation(relation, outputs).splitSymbols());
 
-        OrderBy orderBy = querySpec.orderBy();
-        if (orderBy != null) {
-            RelationSplitter.splitOrderBy(relation, querySpec, splitQuerySpec, splitOutputs, orderBy);
+        Optional<OrderBy> orderBy = querySpec.orderBy();
+        if (orderBy.isPresent()) {
+            RelationSplitter.splitOrderBy(relation, querySpec, splitQuerySpec, splitOutputs, orderBy.get());
         }
 
         WhereClause where = querySpec.where();
@@ -74,9 +75,8 @@ public class RelationSplitter {
         }
 
         // pull down limit = limit + offset, offset=0 by default
-        Integer limit = querySpec.limit();
-        if (limit != null) {
-            splitQuerySpec.limit(limit + querySpec.offset());
+        if (querySpec.limit().isPresent()) {
+            splitQuerySpec.limit(querySpec.limit().get() + querySpec.offset());
             splitQuerySpec.offset(0);
         }
         splitQuerySpec.outputs(splitOutputs);
@@ -97,20 +97,16 @@ public class RelationSplitter {
     }
 
     public static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Field> fieldMap){
-        WhereClause where;
-        OrderBy orderBy;
         MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), fieldMap);
-        where = parentQuerySpec.where();
+        WhereClause where = parentQuerySpec.where();
         if (where != null && where.hasQuery()) {
             parentQuerySpec.where(new WhereClause(
                     MappingSymbolVisitor.inPlace().process(where.query(), fieldMap)
                     ));
         }
-        orderBy = parentQuerySpec.orderBy();
-        if (orderBy != null) {
-            MappingSymbolVisitor.inPlace().processInplace(orderBy.orderBySymbols(), fieldMap);
+        if (parentQuerySpec.orderBy().isPresent()) {
+            MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.orderBy().get().orderBySymbols(), fieldMap);
         }
-
     }
 
     public static void replaceFields(QueriedRelation subRelation,
@@ -180,8 +176,7 @@ public class RelationSplitter {
     private static void rewriteOrderBy(QuerySpec querySpec,
                                        QuerySpec splitQuerySpec,
                                        SplitContext splitContext) {
-        OrderBy orderBy = querySpec.orderBy();
-        assert orderBy != null;
+        OrderBy orderBy = querySpec.orderBy().get();
 
         boolean[] reverseFlags = new boolean[splitContext.directSplit.size()];
         Boolean[] nullsFirst = new Boolean[splitContext.directSplit.size()];

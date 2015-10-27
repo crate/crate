@@ -22,10 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
@@ -73,6 +70,12 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
     @Override
     public Void visitInputColumn(InputColumn inputColumn, Context context) {
         context.orderByPositions.add(inputColumn.index());
+        return null;
+    }
+
+    @Override
+    public Void visitField(Field field, Context context) {
+        context.orderByPositions.add(field.index());
         return null;
     }
 

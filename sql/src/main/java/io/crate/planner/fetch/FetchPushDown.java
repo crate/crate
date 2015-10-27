@@ -21,7 +21,7 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -80,11 +80,10 @@ public class FetchPushDown {
 
     @Nullable
     public QueriedDocTable pushDown() {
-        assert querySpec.groupBy() == null && querySpec.having() == null && !querySpec.hasAggregates();
+        assert !querySpec.groupBy().isPresent() && !querySpec.having().isPresent() && !querySpec.hasAggregates();
 
-        OrderBy orderBy = querySpec.orderBy();
-
-        FetchRequiredVisitor.Context context = new FetchRequiredVisitor.Context(orderBy);
+        Optional<OrderBy> orderBy = querySpec.orderBy();
+        FetchRequiredVisitor.Context context = new FetchRequiredVisitor.Context(orderBy.orNull());
 
         boolean fetchRequired = FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), context);
         if (!fetchRequired) return null;
@@ -94,8 +93,8 @@ public class FetchPushDown {
         Reference docIdReference = new Reference(DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.DOCID));
 
         List<Symbol> outputs = new ArrayList<>();
-        if (orderBy != null) {
-            sub.orderBy(querySpec.orderBy());
+        if (orderBy.isPresent()) {
+            sub.orderBy(orderBy.get());
             outputs.add(docIdReference);
             outputs.addAll(context.querySymbols());
         } else {
@@ -126,19 +125,19 @@ public class FetchPushDown {
         ToFetchReferenceVisitor toFetchReferenceVisitor = new ToFetchReferenceVisitor(fieldMap);
         toFetchReferenceVisitor.processInplace(querySpec.outputs(), null);
 
-        if (orderBy != null) {
+        if (orderBy.isPresent()) {
             // replace order by symbols with fields, we need to copy the order by since it was pushed down to the
             // subquery before
-            ArrayList<Symbol> newOrderBySymbols = new ArrayList<>(orderBy.orderBySymbols().size());
-            for (Symbol symbol : orderBy.orderBySymbols()) {
+            ArrayList<Symbol> newOrderBySymbols = new ArrayList<>(orderBy.get().orderBySymbols().size());
+            for (Symbol symbol : orderBy.get().orderBySymbols()) {
                 Field queryField = fieldMap.get(symbol);
                 assert queryField != null;
                 newOrderBySymbols.add(queryField);
             }
-            querySpec.orderBy(new OrderBy(newOrderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
+            querySpec.orderBy(new OrderBy(newOrderBySymbols, orderBy.get().reverseFlags(), orderBy.get().nullsFirst()));
         }
 
-        sub.limit(MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset());
+        sub.limit(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset());
         return subRelation;
     }
 

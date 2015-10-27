@@ -164,41 +164,41 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testOrderedSelect() throws Exception {
         QueriedTable table = (QueriedTable) analyze("select load['1'] from sys.nodes order by load['5'] desc").relation();
-        assertNull(table.querySpec().limit());
+        assertFalse(table.querySpec().limit().isPresent());
 
-        assertNull(table.querySpec().groupBy());
-        assertTrue(table.querySpec().orderBy() != null);
+        assertFalse(table.querySpec().groupBy().isPresent());
+        assertTrue(table.querySpec().orderBy().isPresent());
 
         assertEquals(1, table.querySpec().outputs().size());
-        assertEquals(1, table.querySpec().orderBy().orderBySymbols().size());
-        assertEquals(1, table.querySpec().orderBy().reverseFlags().length);
+        assertEquals(1, table.querySpec().orderBy().get().orderBySymbols().size());
+        assertEquals(1, table.querySpec().orderBy().get().reverseFlags().length);
 
-        assertThat(table.querySpec().orderBy().orderBySymbols().get(0), isReference("load['5']"));
+        assertThat(table.querySpec().orderBy().get().orderBySymbols().get(0), isReference("load['5']"));
     }
 
     @Test
     public void testGroupKeyNotInResultColumnList() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes group by name");
-        assertThat(analysis.relation().querySpec().groupBy().size(), is(1));
+        assertThat(analysis.relation().querySpec().groupBy().get().size(), is(1));
         assertThat(analysis.relation().fields().get(0).path().outputName(), is("count(*)"));
     }
 
     @Test
     public void testGroupByOnAlias() throws Exception {
         QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by n").relation();
-        assertThat(relation.querySpec().groupBy().size(), is(1));
+        assertThat(relation.querySpec().groupBy().get().size(), is(1));
         assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
         assertThat(relation.fields().get(1).path().outputName(), is("n"));
 
-        assertEquals(relation.querySpec().groupBy().get(0), relation.querySpec().outputs().get(1));
+        assertEquals(relation.querySpec().groupBy().get().get(0), relation.querySpec().outputs().get(1));
     }
 
     @Test
     public void testGroupByOnOrdinal() throws Exception {
         // just like in postgres access by ordinal starts with 1
         QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by 2").relation();
-        assertThat(relation.querySpec().groupBy().size(), is(1));
-        assertEquals(relation.querySpec().groupBy().get(0), relation.querySpec().outputs().get(1));
+        assertThat(relation.querySpec().groupBy().get().size(), is(1));
+        assertEquals(relation.querySpec().groupBy().get().get(0), relation.querySpec().outputs().get(1));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -222,21 +222,21 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupedSelect() throws Exception {
         QueriedRelation relation = analyze("select load['1'], count(*) from sys.nodes group by load['1']").relation();
-        assertNull(relation.querySpec().limit());
+        assertFalse(relation.querySpec().limit().isPresent());
 
         assertNotNull(relation.querySpec().groupBy());
         assertEquals(2, relation.querySpec().outputs().size());
-        assertEquals(1, relation.querySpec().groupBy().size());
-        assertThat(relation.querySpec().groupBy().get(0), isReference("load['1']"));
+        assertEquals(1, relation.querySpec().groupBy().get().size());
+        assertThat(relation.querySpec().groupBy().get().get(0), isReference("load['1']"));
 
     }
 
     @Test
     public void testSimpleSelect() throws Exception {
         QueriedRelation relation = analyze("select load['5'] from sys.nodes limit 2").relation();
-        assertEquals(new Integer(2), relation.querySpec().limit());
+        assertEquals(new Integer(2), relation.querySpec().limit().get());
 
-        assertNull(relation.querySpec().groupBy());
+        assertFalse(relation.querySpec().groupBy().isPresent());
         assertEquals(1, relation.querySpec().outputs().size());
         assertThat(relation.querySpec().outputs().get(0), isReference("load['5']"));
     }
@@ -244,7 +244,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAggregationSelect() throws Exception {
         QueriedRelation relation = analyze("select avg(load['5']) from sys.nodes").relation();
-        assertNull(relation.querySpec().groupBy());
+        assertFalse(relation.querySpec().groupBy().isPresent());
         assertEquals(1, relation.querySpec().outputs().size());
         Function col1 = (Function) relation.querySpec().outputs().get(0);
         assertEquals(FunctionInfo.Type.AGGREGATE, col1.info().type());
@@ -285,7 +285,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         QueriedRelation relation = analyze("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1 >= load['5']").relation();
 
-        assertNull(relation.querySpec().groupBy());
+        assertFalse(relation.querySpec().groupBy().isPresent());
 
         Function whereClause = (Function) relation.querySpec().where().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
@@ -362,9 +362,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(outputNames.size(), is(1));
         assertThat(outputNames.get(0), is("cluster_name"));
 
-        assertTrue(relation.querySpec().orderBy() != null);
-        assertThat(relation.querySpec().orderBy().orderBySymbols().size(), is(1));
-        assertThat(relation.querySpec().orderBy().orderBySymbols().get(0), is(relation.querySpec().outputs().get(0)));
+        assertTrue(relation.querySpec().orderBy().isPresent());
+        assertThat(relation.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(relation.querySpec().orderBy().get().orderBySymbols().get(0), is(relation.querySpec().outputs().get(0)));
     }
 
     @Test(expected = AmbiguousColumnAliasException.class)
@@ -555,7 +555,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectGlobalDistinctAggregate() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct count(*) from users");
-        assertNull(distinctAnalysis.relation().querySpec().groupBy());
+        assertFalse(distinctAnalysis.relation().querySpec().groupBy().isPresent());
     }
 
     @Test
@@ -580,9 +580,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                         "select id, sender, recipient, amount, timestamp " +
                                 "from transactions " +
                                 "group by id, sender, recipient, amount, timestamp");
-        assertEquals(groupByAnalysis.relation().querySpec().groupBy().size(), distinctAnalysis.relation().querySpec().groupBy().size());
-        for (Symbol s : distinctAnalysis.relation().querySpec().groupBy()) {
-            assertTrue(distinctAnalysis.relation().querySpec().groupBy().contains(s));
+        assertEquals(groupByAnalysis.relation().querySpec().groupBy().get().size(), distinctAnalysis.relation().querySpec().groupBy().get().size());
+        for (Symbol s : distinctAnalysis.relation().querySpec().groupBy().get()) {
+            assertTrue(distinctAnalysis.relation().querySpec().groupBy().get().contains(s));
         }
     }
 
@@ -866,14 +866,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testOrderByWithOrdinal() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select name from users u order by 1");
-        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().orderBy().orderBySymbols().get(0));
+        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0));
     }
 
     @Test
     public void testGroupWithIdx() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select name from users u group by 1");
-        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().groupBy().get(0));
+        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().groupBy().get().get(0));
     }
 
 
@@ -989,8 +989,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     private void testDistanceOrderBy(String stmt) throws Exception {
         SelectAnalyzedStatement analysis = analyze(stmt);
-        assertTrue(analysis.relation().querySpec().orderBy() != null);
-        assertEquals(DistanceFunction.NAME, ((Function) analysis.relation().querySpec().orderBy().orderBySymbols().get(0)).info().ident().name());
+        assertTrue(analysis.relation().querySpec().orderBy().isPresent());
+        assertEquals(DistanceFunction.NAME, ((Function) analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0)).info().ident().name());
     }
 
 
@@ -1206,8 +1206,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_like"));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
@@ -1217,7 +1217,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testGroupByHavingNormalize() throws Exception {
         HavingClause having = analyze(
                 "select sum(floats) from users group by name having 1 > 4")
-                .relation().querySpec().having();
+                .relation().querySpec().having().get();
         assertTrue(having.noMatch());
         assertNull(having.query());
     }
@@ -1225,8 +1225,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_="));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_="));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function) havingFunction.arguments().get(0);
@@ -1256,8 +1256,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testGroupByHavingByGroupKey() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_like"));
+        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
@@ -1268,8 +1268,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testGroupByHavingComplex() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
                 "group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
-        assertTrue(analysis.relation().querySpec().having().hasQuery());
-        Function andFunction = (Function) analysis.relation().querySpec().having().query();
+        assertTrue(analysis.relation().querySpec().having().get().hasQuery());
+        Function andFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(andFunction, is(notNullValue()));
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
@@ -1288,7 +1288,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGlobalAggregateHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
 
         // assert that the in was converted to or
         assertThat(havingFunction.info().ident().name(), is(AnyEqOperator.NAME));
@@ -1421,7 +1421,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testSubscriptArrayOnScalarResult() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
         assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(SubscriptFunction.NAME));
-        assertThat(analysis.relation().querySpec().orderBy().orderBySymbols().get(0), is(analysis.relation().querySpec().outputs().get(0)));
+        assertThat(analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0), is(analysis.relation().querySpec().outputs().get(0)));
         List<Symbol> arguments = ((Function) analysis.relation().querySpec().outputs().get(0)).arguments();
         assertThat(arguments.size(), is(2));
 
@@ -1550,7 +1550,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         // name exists in the table but isn't selected so not ambiguous
         SelectAnalyzedStatement analysis = analyze("select other_id as name from users order by name");
         assertThat(analysis.relation().querySpec().outputs().get(0), isReference("other_id"));
-        List<Symbol> sortSymbols = analysis.relation().querySpec().orderBy().orderBySymbols();
+        List<Symbol> sortSymbols = analysis.relation().querySpec().orderBy().get().orderBySymbols();
         assert sortSymbols != null;
         assertThat(sortSymbols.get(0), isReference("other_id"));
     }
@@ -1559,7 +1559,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectPartitionedTableOrderBy() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select id from multi_parted order by id, abs(num)");
-        List<Symbol> symbols = analysis.relation().querySpec().orderBy().orderBySymbols();
+        List<Symbol> symbols = analysis.relation().querySpec().orderBy().get().orderBySymbols();
         assert symbols != null;
         assertThat(symbols.size(), is(2));
         assertThat(symbols.get(0), isReference("id"));
@@ -1618,7 +1618,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 "where sleep(1) = true " +
                 "order by 1, sleep(1), sleep(id)");
         List<Symbol> outputs = stmt.relation().querySpec().outputs();
-        List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().orderBySymbols();
+        List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().get().orderBySymbols();
 
         // non deterministic, all equal
         assertThat(outputs.get(0),

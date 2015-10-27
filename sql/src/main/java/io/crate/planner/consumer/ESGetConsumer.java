@@ -22,7 +22,7 @@
 package io.crate.planner.consumer;
 
 
-import io.crate.analyze.OrderBy;
+import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -49,7 +49,7 @@ public class ESGetConsumer implements Consumer {
             }
 
             if (table.querySpec().hasAggregates()
-                    || table.querySpec().groupBy() != null
+                    || table.querySpec().groupBy().isPresent()
                     || !table.querySpec().where().docKeys().isPresent()) {
                 return null;
             }
@@ -63,17 +63,13 @@ public class ESGetConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            Integer limit = table.querySpec().limit();
-            if (limit != null){
-                if (limit == 0){
-                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
-                }
+            Optional<Integer> limit = table.querySpec().limit();
+            if (limit.isPresent() && limit.get() == 0){
+                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
-            OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy != null){
-                table.tableRelation().validateOrderBy(orderBy);
-            }
+            table.tableRelation().validateOrderBy(table.querySpec().orderBy());
+
             return new ESGetNode(context.plannerContext().nextExecutionPhaseId(), tableInfo, table.querySpec(), context.plannerContext().jobId());
         }
     }

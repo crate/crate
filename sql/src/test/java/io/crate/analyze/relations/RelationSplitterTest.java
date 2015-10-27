@@ -181,9 +181,9 @@ public class RelationSplitterTest extends CrateUnitTest {
         QueriedTableRelation queriedTable2 = newSubRelation(tr2, querySpec);
 
          // limit pushed down by default
-        assertThat(queriedTable1.querySpec().limit(), is(30));
-        assertThat(queriedTable2.querySpec().limit(), is(30));
-        assertThat(querySpec.limit(), is(30));
+        assertThat(queriedTable1.querySpec().limit().get(), is(30));
+        assertThat(queriedTable2.querySpec().limit().get(), is(30));
+        assertThat(querySpec.limit().get(), is(30));
 
         assertThat(queriedTable1.querySpec().outputs().size(), is(2));
         assertThat(queriedTable1.querySpec().outputs().get(0), isField("x"));
@@ -358,16 +358,16 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(qt1.querySpec().outputs().get(0), isField("x"));
         assertThat(qt1.querySpec().outputs().get(1), isField("z"));
         assertThat(qt1.querySpec().orderBy(), Matchers.notNullValue());
-        assertThat(qt1.querySpec().orderBy().orderBySymbols().size(), is(1));
-        assertThat(qt1.querySpec().orderBy().orderBySymbols().get(0), isField("x"));
-        assertThat(qt1.querySpec().orderBy().reverseFlags()[0], is(true));
+        assertThat(qt1.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(qt1.querySpec().orderBy().get().orderBySymbols().get(0), isField("x"));
+        assertThat(qt1.querySpec().orderBy().get().reverseFlags()[0], is(true));
 
         // the oderBy should not be replaced when pushed down
-        assertThat(querySpec.orderBy().orderBySymbols().size(), is(2));
+        assertThat(querySpec.orderBy().get().orderBySymbols().size(), is(2));
 
         assertThat(qt2.querySpec().outputs().size(), is(1));
         assertThat(qt2.querySpec().outputs().get(0), isField("y"));
-        assertThat(qt2.querySpec().orderBy(), nullValue());
+        assertFalse(qt2.querySpec().orderBy().isPresent());
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -395,19 +395,19 @@ public class RelationSplitterTest extends CrateUnitTest {
         QueriedTableRelation qt3 = newSubRelation(tr3, querySpec);
 
         // no join condition in order by.. limit can be pushed down
-        assertThat(qt1.querySpec().limit(), is(20));
-        assertThat(qt2.querySpec().limit(), is(20));
-        assertThat(qt3.querySpec().limit(), is(20));
+        assertThat(qt1.querySpec().limit().get(), is(20));
+        assertThat(qt2.querySpec().limit().get(), is(20));
+        assertThat(qt3.querySpec().limit().get(), is(20));
 
-        assertThat(qt1.querySpec().orderBy().orderBySymbols().size(), is(1));
-        assertThat(qt1.querySpec().orderBy().orderBySymbols().get(0), isField("x", DataTypes.INTEGER));
+        assertThat(qt1.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(qt1.querySpec().orderBy().get().orderBySymbols().get(0), isField("x", DataTypes.INTEGER));
 
-        assertThat(qt2.querySpec().orderBy().orderBySymbols().size(), is(1));
-        assertThat(qt2.querySpec().orderBy().orderBySymbols().get(0), isField("y", DataTypes.LONG));
+        assertThat(qt2.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(qt2.querySpec().orderBy().get().orderBySymbols().get(0), isField("y", DataTypes.LONG));
 
-        assertThat(qt3.querySpec().orderBy().orderBySymbols().size(), is(1));
-        assertThat(qt3.querySpec().orderBy().orderBySymbols().get(0), isField("x", DataTypes.SHORT));
+        assertThat(qt3.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(qt3.querySpec().orderBy().get().orderBySymbols().get(0), isField("x", DataTypes.SHORT));
 
-        assertThat(querySpec.orderBy().orderBySymbols(), hasSize(3));
+        assertThat(querySpec.orderBy().get().orderBySymbols(), hasSize(3));
     }
 }

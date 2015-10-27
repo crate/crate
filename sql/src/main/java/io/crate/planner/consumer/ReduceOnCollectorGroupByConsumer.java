@@ -21,10 +21,10 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -34,7 +34,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -51,8 +50,6 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
 public class ReduceOnCollectorGroupByConsumer implements Consumer {
@@ -79,12 +76,12 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (table.querySpec().groupBy() == null) {
+            if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
             DocTableRelation tableRelation = table.tableRelation();
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                    tableRelation, table.querySpec().where(), table.querySpec().groupBy())) {
+                    tableRelation, table.querySpec().where(), table.querySpec().groupBy().get())) {
                 return null;
             }
 
@@ -107,13 +104,12 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
          */
         private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                    tableRelation, table.querySpec().where(), table.querySpec().groupBy()) : "not grouped by clustered column or primary keys";
-            TableInfo tableInfo = tableRelation.tableInfo();
-            GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy());
-            List<Symbol> groupBy = table.querySpec().groupBy();
+                    tableRelation, table.querySpec().where(), table.querySpec().groupBy().get()) : "not grouped by clustered column or primary keys";
+            GroupByConsumer.validateGroupBySymbols(tableRelation, table.querySpec().groupBy().get());
+            List<Symbol> groupBy = table.querySpec().groupBy().get();
 
             boolean ignoreSorting = context.rootRelation() != table
-                    && table.querySpec().limit() == null
+                    && !table.querySpec().limit().isPresent()
                     && table.querySpec().offset() == TopN.NO_OFFSET;
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -126,15 +122,12 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
-            OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy != null) {
-                table.tableRelation().validateOrderBy(orderBy);
-            }
+            table.tableRelation().validateOrderBy(table.querySpec().orderBy());
 
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
-                    table.querySpec().groupBy(),
+                    table.querySpec().groupBy().get(),
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.FINAL
@@ -142,14 +135,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
             projections.add(groupProjection);
 
-            HavingClause havingClause = table.querySpec().having();
-            if (havingClause != null) {
-                if (havingClause.noMatch()) {
+            Optional<HavingClause> havingClause = table.querySpec().having();
+            if (havingClause.isPresent()) {
+                if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
-                } else if (havingClause.hasQuery()) {
+                } else if (havingClause.get().hasQuery()) {
                     FilterProjection fp = projectionBuilder.filterProjection(
                             collectOutputs,
-                            havingClause.query()
+                            havingClause.get().query()
                     );
                     fp.requiredGranularity(RowGranularity.SHARD);
                     projections.add(fp);
@@ -159,14 +152,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             // use topN on collector if needed
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                     collectOutputs.containsAll(table.querySpec().outputs());
-            boolean collectorTopN = table.querySpec().limit() != null || table.querySpec().offset() > 0 || !outputsMatch;
+            boolean collectorTopN = table.querySpec().limit().isPresent() || table.querySpec().offset() > 0 || !outputsMatch;
 
             if (collectorTopN) {
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
-                        orderBy,
+                        table.querySpec().orderBy().orNull(),
                         0, // no offset
-                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
+                        table.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
                         table.querySpec().outputs()
                 ));
             }
@@ -181,7 +174,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
             MergePhase localMerge;
-            if (!ignoreSorting && collectorTopN && orderBy != null) {
+            if (!ignoreSorting && collectorTopN && table.querySpec().orderBy().isPresent()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
                 handlerProjections.add(
@@ -189,14 +182,14 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                                 table.querySpec().outputs(),
                                 null, // omit order by
                                 table.querySpec().offset(),
-                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                table.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT),
                                 table.querySpec().outputs()
                         )
                 );
                 localMerge = MergePhase.sortedMerge(
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
-                        orderBy,
+                        table.querySpec().orderBy().get(),
                         table.querySpec().outputs(),
                         null,
                         handlerProjections,
@@ -207,9 +200,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 handlerProjections.add(
                         projectionBuilder.topNProjection(
                                 collectorTopN ? table.querySpec().outputs() : collectOutputs,
-                                orderBy,
+                                table.querySpec().orderBy().orNull(),
                                 table.querySpec().offset(),
-                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                table.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT),
                                 table.querySpec().outputs()
                         )
                 );

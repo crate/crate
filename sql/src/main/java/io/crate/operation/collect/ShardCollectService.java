@@ -142,16 +142,16 @@ public class ShardCollectService {
     /**
      * get a collector
      *
-     * @param collectNode describes the collectOperation
+     * @param collectPhase describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
      * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
      * collecting with this collector
      */
-    public CrateCollector getDocCollector(CollectPhase collectNode,
+    public CrateCollector getDocCollector(CollectPhase collectPhase,
                                           ShardProjectorChain projectorChain,
                                           JobCollectContext jobCollectContext) throws Exception {
-        assert collectNode.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
-        CollectPhase normalizedCollectNode = collectNode.normalize(shardNormalizer);
+        assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
+        CollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);

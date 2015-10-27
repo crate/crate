@@ -24,7 +24,6 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -77,14 +76,12 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         this.executionPhaseId = executionPhaseId;
         this.jobId = jobId;
 
-
         outputTypes = Symbols.extractTypes(outputs);
 
-        OrderBy orderBy = querySpec.orderBy();
-        if (orderBy != null){
-            this.sortSymbols = orderBy.orderBySymbols();
-            this.reverseFlags = orderBy.reverseFlags();
-            this.nullsFirst = orderBy.nullsFirst();
+        if (querySpec.orderBy().isPresent()){
+            this.sortSymbols = querySpec.orderBy().get().orderBySymbols();
+            this.reverseFlags = querySpec.orderBy().get().reverseFlags();
+            this.nullsFirst = querySpec.orderBy().get().nullsFirst();
         } else {
             this.sortSymbols = ImmutableList.<Symbol>of();
             this.reverseFlags = EMPTY_REVERSE_FLAGS;
@@ -116,7 +113,7 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
     @Nullable
     public Integer limit() {
-        return querySpec().limit();
+        return querySpec().limit().orNull();
     }
 
     public int offset() {

@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
@@ -126,9 +127,8 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
-            Integer limit = statement.querySpec().limit();
-            if (limit != null) {
-                context.requiredPageSize(limit + statement.querySpec().offset());
+            if (statement.querySpec().limit().isPresent()) {
+                context.requiredPageSize(statement.querySpec().limit().get() + statement.querySpec().offset());
             }
 
             // this normalization is required to replace fields of the table relations
@@ -157,9 +157,9 @@ public class CrossJoinConsumer implements Consumer {
 
             TopNProjection topN = projectionBuilder.topNProjection(
                     concatFields(left, right),
-                    statement.querySpec().orderBy(),
+                    statement.querySpec().orderBy().orNull(),
                     statement.querySpec().offset(),
-                    statement.querySpec().limit(),
+                    statement.querySpec().limit().orNull(),
                     statement.querySpec().outputs()
             );
 
@@ -193,17 +193,16 @@ public class CrossJoinConsumer implements Consumer {
                 return null;
             }
 
-            OrderBy orderBy = querySpec.orderBy();
             List<Symbol> previousOutputs = querySpec.outputs();
 
             MergePhase mergePhase;
-            if (orderBy != null) {
+            if (querySpec.orderBy().isPresent()) {
                 mergePhase = MergePhase.sortedMerge(
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
-                        orderBy,
+                        querySpec.orderBy().get(),
                         previousOutputs,
-                        orderBy.orderBySymbols(),
+                        querySpec.orderBy().get().orderBySymbols(),
                         ImmutableList.<Projection>of(),
                         upstreamPhase.executionNodes().size(),
                         Symbols.extractTypes(previousOutputs)
@@ -232,18 +231,18 @@ public class CrossJoinConsumer implements Consumer {
          * }
          */
         private Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement) {
-            OrderBy orderBy = statement.querySpec().orderBy();
-            if (orderBy == null) {
+            if (!statement.querySpec().orderBy().isPresent()) {
                 return statement.sources().keySet();
             }
+            Optional<OrderBy> orderBy = statement.querySpec().orderBy();
             final List<QualifiedName> orderByOrder = new ArrayList<>(statement.sources().size());
-            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+            for (Symbol orderBySymbol : orderBy.get().orderBySymbols()) {
                 for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
-                    OrderBy subOrderBy = entry.getValue().querySpec().orderBy();
-                    if (subOrderBy == null || orderByOrder.contains(entry.getKey())) {
+                    Optional<OrderBy> subOrderBy = entry.getValue().querySpec().orderBy();
+                    if (!subOrderBy.isPresent() || orderByOrder.contains(entry.getKey())) {
                         continue;
                     }
-                    if (orderBySymbol.equals(subOrderBy.orderBySymbols().get(0))) {
+                    if (orderBySymbol.equals(subOrderBy.get().orderBySymbols().get(0))) {
                         orderByOrder.add(entry.getKey());
                         break;
                     }
@@ -267,8 +266,7 @@ public class CrossJoinConsumer implements Consumer {
                 return true;
             }
 
-            List<Symbol> groupBy = statement.querySpec().groupBy();
-            if (groupBy != null && !groupBy.isEmpty()) {
+            if (statement.querySpec().groupBy().isPresent()) {
                 context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
                 return true;
             }
@@ -285,7 +283,7 @@ public class CrossJoinConsumer implements Consumer {
         }
 
         private boolean hasOutputsToFetch(QuerySpec querySpec) {
-            FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(querySpec.orderBy());
+            FetchRequiredVisitor.Context ctx = new FetchRequiredVisitor.Context(querySpec.orderBy().orNull());
             return FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), ctx);
         }
     }

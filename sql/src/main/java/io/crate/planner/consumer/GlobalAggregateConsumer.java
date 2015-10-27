@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
@@ -50,8 +51,6 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 
 @Singleton
@@ -98,12 +97,12 @@ public class GlobalAggregateConsumer implements Consumer {
     private static PlannedAnalyzedRelation globalAggregates(Functions functions,
                                                             QueriedTableRelation table,
                                                             ConsumerContext context) {
-        if (table.querySpec().groupBy()!=null || !table.querySpec().hasAggregates()) {
+        if (table.querySpec().groupBy().isPresent() || !table.querySpec().hasAggregates()) {
             return null;
         }
 
         Planner.Context plannerContext = context.plannerContext();
-        if (firstNonNull(table.querySpec().limit(), 1) < 1 || table.querySpec().offset() > 0){
+        if (table.querySpec().limit().or(1) < 1 || table.querySpec().offset() > 0){
             return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
         }
 
@@ -135,14 +134,14 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.PARTIAL,
                 Aggregation.Step.FINAL));
 
-        HavingClause havingClause = table.querySpec().having();
-        if(havingClause != null){
-            if (havingClause.noMatch()) {
+        Optional<HavingClause> havingClause = table.querySpec().having();
+        if(havingClause.isPresent()){
+            if (havingClause.get().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
-            } else if (havingClause.hasQuery()){
+            } else if (havingClause.get().hasQuery()){
                 projections.add(projectionBuilder.filterProjection(
                         splitPoints.aggregates(),
-                        havingClause.query()
+                        havingClause.get().query()
                 ));
             }
         }

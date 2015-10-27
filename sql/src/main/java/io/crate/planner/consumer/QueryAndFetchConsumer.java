@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
@@ -52,8 +53,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 @Singleton
 public class QueryAndFetchConsumer implements Consumer {
 
@@ -84,12 +83,11 @@ public class QueryAndFetchConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            OrderBy orderBy = table.querySpec().orderBy();
             List<Symbol> orderBySymbols;
-            if (orderBy == null) {
-                orderBySymbols = Collections.emptyList();
+            if (table.querySpec().orderBy().isPresent()){
+                orderBySymbols = table.querySpec().orderBy().get().orderBySymbols();
             } else {
-                orderBySymbols = orderBy.orderBySymbols();
+                orderBySymbols = Collections.emptyList();
             }
             List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
             for (Symbol symbol : table.querySpec().outputs()) {
@@ -140,9 +138,9 @@ public class QueryAndFetchConsumer implements Consumer {
 
             CollectPhase collectPhase;
             MergePhase mergeNode = null;
-            OrderBy orderBy = querySpec.orderBy();
+            Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
-            if (querySpec.isLimited() || orderBy != null) {
+            if (querySpec.isLimited() || orderBy.isPresent()) {
                 /**
                  * select id, name, order by id, date
                  *
@@ -154,8 +152,8 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 List<Symbol> toCollect;
                 List<Symbol> orderByInputColumns = null;
-                if (orderBy != null){
-                    List<Symbol> orderBySymbols = orderBy.orderBySymbols();
+                if (orderBy.isPresent()){
+                    List<Symbol> orderBySymbols = orderBy.get().orderBySymbols();
                     toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
                     toCollect.addAll(outputSymbols);
                     // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
@@ -194,10 +192,10 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.rootRelation() == table) {
-                    int limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
+                    Integer limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
                     TopNProjection tnp = new TopNProjection(limit, querySpec.offset());
                     tnp.outputs(finalOutputs);
-                    if (orderBy == null) {
+                    if (!orderBy.isPresent()) {
                         // no sorting needed
                         mergeNode = MergePhase.localMerge(
                                 plannerContext.jobId(),
@@ -212,7 +210,7 @@ public class QueryAndFetchConsumer implements Consumer {
                         mergeNode = MergePhase.sortedMerge(
                                 plannerContext.jobId(),
                                 plannerContext.nextExecutionPhaseId(),
-                                orderBy,
+                                orderBy.get(),
                                 allOutputs,
                                 orderByInputColumns,
                                 ImmutableList.<Projection>of(tnp),
@@ -243,7 +241,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }
             SimpleSelect.enablePagingIfApplicable(
-                    collectPhase, mergeNode, querySpec.limit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
+                    collectPhase, mergeNode, querySpec.limit().orNull(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());
         }
 
@@ -268,9 +266,9 @@ public class QueryAndFetchConsumer implements Consumer {
                                                            List<Symbol> allOutputs) {
             this.orderByInputColumns = orderByInputColumns;
             this.allOutputs = allOutputs;
-            this.orderBy = querySpec.orderBy();
+            this.orderBy = querySpec.orderBy().orNull();
             this.offset = querySpec.offset();
-            this.limit = firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
+            this.limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
         }
     }
 

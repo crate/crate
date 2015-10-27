@@ -21,13 +21,12 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -82,26 +81,25 @@ public class DistributedGroupByConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            QuerySpec querySpec = table.querySpec();
-            List<Symbol> groupBy = querySpec.groupBy();
-            if (groupBy == null) {
+            if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
-
+            QuerySpec querySpec = table.querySpec();
+            List<Symbol> groupBy = querySpec.groupBy().get();
             DocTableInfo tableInfo = table.tableRelation().tableInfo();
             if(querySpec.where().hasVersions()){
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), querySpec.groupBy());
+            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), groupBy);
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // start: Map/Collect side
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
-                    querySpec.groupBy(),
+                    groupBy,
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
@@ -131,25 +129,22 @@ public class DistributedGroupByConsumer implements Consumer {
             List<Projection> reducerProjections = new LinkedList<>();
             reducerProjections.add(projectionBuilder.groupProjection(
                     collectOutputs,
-                    querySpec.groupBy(),
+                    groupBy,
                     splitPoints.aggregates(),
                     Aggregation.Step.PARTIAL,
                     Aggregation.Step.FINAL)
             );
 
-            OrderBy orderBy = querySpec.orderBy();
-            if (orderBy != null) {
-                table.tableRelation().validateOrderBy(orderBy);
-            }
+            table.tableRelation().validateOrderBy(querySpec.orderBy());
 
-            HavingClause havingClause = querySpec.having();
-            if (havingClause != null) {
-                if (havingClause.noMatch()) {
+            Optional<HavingClause> havingClause = querySpec.having();
+            if (havingClause.isPresent()) {
+                if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
-                } else if (havingClause.hasQuery()) {
+                } else if (havingClause.get().hasQuery()) {
                     reducerProjections.add(projectionBuilder.filterProjection(
                             collectOutputs,
-                            havingClause.query()
+                            havingClause.get().query()
                     ));
                 }
             }
@@ -158,10 +153,9 @@ public class DistributedGroupByConsumer implements Consumer {
             if (isRootRelation) {
                 reducerProjections.add(projectionBuilder.topNProjection(
                         collectOutputs,
-                        orderBy,
+                        querySpec.orderBy().orNull(),
                         0,
-                        MoreObjects.firstNonNull(querySpec.limit(),
-                                Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset(),
+                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset(),
                         querySpec.outputs()));
             }
 
@@ -182,9 +176,9 @@ public class DistributedGroupByConsumer implements Consumer {
             if(isRootRelation) {
                 TopNProjection topN = projectionBuilder.topNProjection(
                         querySpec.outputs(),
-                        orderBy,
+                        querySpec.orderBy().orNull(),
                         querySpec.offset(),
-                        querySpec.limit(),
+                        querySpec.limit().orNull(),
                         null);
                 localMergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),

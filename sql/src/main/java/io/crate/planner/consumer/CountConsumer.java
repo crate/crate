@@ -43,8 +43,6 @@ import io.crate.types.DataTypes;
 import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 public class CountConsumer implements Consumer {
 
     private static final Visitor VISITOR = new Visitor();
@@ -59,7 +57,7 @@ public class CountConsumer implements Consumer {
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
-            if (!querySpec.hasAggregates() || querySpec.groupBy()!=null) {
+            if (!querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return null;
             }
             if (!hasOnlyGlobalCount(querySpec.outputs())) {
@@ -70,8 +68,7 @@ public class CountConsumer implements Consumer {
                 return null;
             }
 
-            if (firstNonNull(querySpec.limit(), 1) < 1 ||
-                    querySpec.offset() > 0){
+            if (querySpec.limit().or(1) < 1 || querySpec.offset() > 0){
                 return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 

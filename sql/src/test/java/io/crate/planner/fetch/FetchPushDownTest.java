@@ -77,10 +77,10 @@ public class FetchPushDownTest {
 
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(sub.querySpec().limit(), is(110));
+        assertThat(sub.querySpec().limit().get(), is(110));
         assertThat(sub.querySpec().offset(), is(0));
 
-        assertThat(qs.limit(), is(10));
+        assertThat(qs.limit().get(), is(10));
         assertThat(qs.offset(), is(100));
     }
 
@@ -157,7 +157,7 @@ public class FetchPushDownTest {
                 isFetchRef(0, "_doc['i']")
         ));
 
-        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
 
         assertThat(sub.querySpec().outputs(), hasSize(2));
         assertThat(sub.querySpec().outputs(), contains(
@@ -184,14 +184,14 @@ public class FetchPushDownTest {
                 isField(1)
         ));
 
-        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
 
         assertThat(sub.querySpec().outputs(), hasSize(2));
         assertThat(sub.querySpec().outputs(), contains(
                 isReference("_docid"),
                 isFunction("abs")));
 
-        assertThat(sub.querySpec().orderBy().orderBySymbols(), contains(
+        assertThat(sub.querySpec().orderBy().get().orderBySymbols(), contains(
                 isFunction("abs", isReference("i"))));
     }
 
@@ -215,7 +215,7 @@ public class FetchPushDownTest {
                 isFunction("abs")
         ));
 
-        assertThat(qs.orderBy().orderBySymbols().get(0), isField(1));
+        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
 
         assertThat(sub.querySpec().outputs(), hasSize(2));
         assertThat(sub.querySpec().outputs(), contains(

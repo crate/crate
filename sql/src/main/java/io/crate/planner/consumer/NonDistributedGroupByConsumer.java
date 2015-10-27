@@ -20,9 +20,9 @@
  */
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -74,7 +74,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (table.querySpec().groupBy() == null) {
+            if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
             DocTableInfo tableInfo = table.tableRelation().tableInfo();
@@ -88,13 +88,13 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if (routing.hasLocations() && routing.locations().size()>1) {
                 return null;
             }
-            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy());
+            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy().get());
             return nonDistributedGroupBy(table, routing, context);
         }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (table.querySpec().groupBy() == null) {
+            if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
             Routing routing = context.plannerContext().allocateRouting(table.tableRelation().tableInfo(), table.querySpec().where(), null);
@@ -113,7 +113,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
          *
          */
         private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, Routing routing, ConsumerContext context) {
-            List<Symbol> groupBy = table.querySpec().groupBy();
+            List<Symbol> groupBy = table.querySpec().groupBy().get();
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
@@ -121,7 +121,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                     splitPoints.leaves(),
-                    table.querySpec().groupBy(),
+                    table.querySpec().groupBy().get(),
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
@@ -141,28 +141,25 @@ public class NonDistributedGroupByConsumer implements Consumer {
             collectOutputs.addAll(splitPoints.aggregates());
 
 
-            OrderBy orderBy = table.querySpec().orderBy();
-            if (orderBy != null) {
-                table.tableRelation().validateOrderBy(orderBy);
-            }
+            table.tableRelation().validateOrderBy(table.querySpec().orderBy());
 
             List<Projection> projections = new ArrayList<>();
             projections.add(projectionBuilder.groupProjection(
                     collectOutputs,
-                    table.querySpec().groupBy(),
+                    table.querySpec().groupBy().get(),
                     splitPoints.aggregates(),
                     Aggregation.Step.PARTIAL,
                     Aggregation.Step.FINAL
             ));
 
-            HavingClause havingClause = table.querySpec().having();
-            if (havingClause != null) {
-                if (havingClause.noMatch()) {
+            Optional<HavingClause> havingClause = table.querySpec().having();
+            if (havingClause.isPresent()) {
+                if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
-                } else if (havingClause.hasQuery()){
+                } else if (havingClause.get().hasQuery()){
                     projections.add(projectionBuilder.filterProjection(
                             collectOutputs,
-                            havingClause.query()
+                            havingClause.get().query()
                     ));
                 }
             }
@@ -180,9 +177,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if (context.rootRelation() == table || !outputsMatch){
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
-                        orderBy,
+                        table.querySpec().orderBy().orNull(),
                         table.querySpec().offset(),
-                        table.querySpec().limit(),
+                        table.querySpec().limit().orNull(),
                         table.querySpec().outputs()
                 ));
             }
