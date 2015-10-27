@@ -37,6 +37,7 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
@@ -134,7 +135,7 @@ public class ShardCollectService {
         assert !collectPhase.whereClause().hasQuery()
                 : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
         return RowsCollector.single(
-                shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs(),
+                new InputRow(shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs()),
                 rowReceiver
         );
     }

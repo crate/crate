@@ -35,6 +35,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.*;
+import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.job.RowContextReferenceResolver;
@@ -97,8 +98,11 @@ public class SystemCollectSource implements CollectSource {
             condition = Literal.BOOLEAN_TRUE;
         }
 
-        Iterable<Row> rows = toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions());
-        return new RowsCollector(rowReceiver, rows, condition);
+        Iterable<Row> rows = Iterables.filter(
+                toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions()),
+                InputCondition.asPredicate(condition)
+        );
+        return new RowsCollector(rowReceiver, rows);
     }
 
     private static Iterable<Row> toRowsIterable(

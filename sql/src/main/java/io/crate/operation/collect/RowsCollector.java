@@ -22,18 +22,12 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.Literal;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.operation.Input;
-import io.crate.operation.InputRow;
-import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class RowsCollector implements CrateCollector, ExecutionState {
 
@@ -41,18 +35,15 @@ public class RowsCollector implements CrateCollector, ExecutionState {
     private volatile boolean killed;
 
     public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of(), Literal.BOOLEAN_FALSE);
+        return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
     }
 
-    public static RowsCollector single(List<Input<?>> inputs, RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of(new InputRow(inputs)), Literal.BOOLEAN_TRUE);
+    public static RowsCollector single(Row row, RowReceiver rowDownstream) {
+        return new RowsCollector(rowDownstream, ImmutableList.of(row));
     }
 
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows, final Input<Boolean> condition) {
-        this.emitter = new IterableRowEmitter(
-                rowDownstream,
-                this,
-                Iterables.filter(rows, InputCondition.asPredicate(condition)));
+    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
+        this.emitter = new IterableRowEmitter(rowDownstream, this, rows);
     }
 
     @Override

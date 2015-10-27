@@ -24,6 +24,7 @@ package io.crate.operation.collect.sources;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
@@ -51,6 +52,6 @@ public class SingleRowSource implements CollectSource {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
         ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect());
-        return ImmutableList.<CrateCollector>of(RowsCollector.single(ctx.topLevelInputs(), downstream));
+        return ImmutableList.<CrateCollector>of(RowsCollector.single(new InputRow(ctx.topLevelInputs()), downstream));
     }
 }
