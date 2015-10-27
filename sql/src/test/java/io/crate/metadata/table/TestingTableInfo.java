@@ -21,8 +21,10 @@
 
 package io.crate.metadata.table;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -81,6 +83,20 @@ public class TestingTableInfo extends DocTableInfo {
         public DocTableInfo build() {
             addDocSysColumns();
             ImmutableList<ColumnIdent> pk = primaryKey.build();
+            ImmutableList<PartitionName> partitionsList = partitions.build();
+            String[] concreteIndices;
+            if (partitionsList.isEmpty()) {
+                concreteIndices = new String[]{ident.indexName()};
+            } else {
+                concreteIndices = Lists.transform(partitionsList, new Function<PartitionName, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable PartitionName input) {
+                        assert input != null;
+                        return input.asIndexName();
+                    }
+                }).toArray(new String[partitionsList.size()]);
+            }
             return new TestingTableInfo(
                     schemaInfo,
                     ident,
@@ -92,12 +108,12 @@ public class TestingTableInfo extends DocTableInfo {
                     clusteredBy,
                     isAlias,
                     pk.isEmpty(),
-                    new String[]{ident.indexName()},
+                    concreteIndices,
                     numberOfShards,
                     numberOfReplicas,
                     null, // tableParameters
                     partitionedBy.build(),
-                    partitions.build(),
+                    partitionsList,
                     columnPolicy,
                     routing
                     );

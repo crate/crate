@@ -124,4 +124,9 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, C context) {
         return visitDDLAnalyzedStatement(analysis, context);
     }
+
+    public R visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
 }
