@@ -32,6 +32,8 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
+
 public class SnapshotAnalyzerTest extends BaseAnalyzerTest {
 
     @Rule
@@ -56,10 +58,10 @@ public class SnapshotAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSimpleDropSnapshot() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("cannot analyze statement: 'DropSnapshot{name=my_repo.my_snapshot}'");
-        analyze("DROP SNAPSHOT my_repo.my_snapshot");
+    public void testDropSnapshot() throws Exception {
+        DropSnapshotAnalyzedStatement statement = (DropSnapshotAnalyzedStatement) analyze("drop snapshot my_repo.my_snap_1");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snap_1"));
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to CRATE.IO GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
@@ -19,44 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+public class DropSnapshotAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-public class DropSnapshot extends Statement {
+    private final String repository;
+    private final String snapshot;
 
-    private final QualifiedName name;
-
-    public DropSnapshot(QualifiedName name) {
-        this.name = name;
+    public DropSnapshotAnalyzedStatement(String repository, String snapshot) {
+        this.repository = repository;
+        this.snapshot = snapshot;
     }
 
-    public QualifiedName name() {
-        return name;
+    public String repository() {
+        return repository;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(name);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return name.equals(((DropSnapshot) obj).name);
+    public String snapshot() {
+        return snapshot;
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropSnapshot(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDropSnapshotAnalyzedStatement(this, context);
     }
 }
