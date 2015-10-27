@@ -282,6 +282,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4047  Unknown Repository.
     ----- ---------------------------------------------------------------------
+    4048  Unknown Snapshot.
+    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update
