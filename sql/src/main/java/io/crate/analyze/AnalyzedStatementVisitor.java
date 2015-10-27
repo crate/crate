@@ -120,4 +120,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, C context) {
         return visitDDLAnalyzedStatement(analysis, context);
     }
+
+    public R visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
 }
