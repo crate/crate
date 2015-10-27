@@ -129,4 +129,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLAnalyzedStatement(analysis, context);
     }
 
+    public R visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
 }

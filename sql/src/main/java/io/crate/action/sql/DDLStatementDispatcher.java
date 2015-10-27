@@ -52,7 +52,7 @@ public class DDLStatementDispatcher {
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
     private final RepositoryDDLDispatcher repositoryDDLDispatcher;
-    private final SnapshotDDLDispatcher snapshotDDLDispatcher;
+    private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
 
@@ -62,14 +62,14 @@ public class DDLStatementDispatcher {
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
                                   RepositoryDDLDispatcher repositoryDDLDispatcher,
-                                  SnapshotDDLDispatcher snapshotDDLDispatcher,
+                                  SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
         this.blobIndices = blobIndices;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
         this.repositoryDDLDispatcher = repositoryDDLDispatcher;
-        this.snapshotDDLDispatcher = snapshotDDLDispatcher;
+        this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
     }
 
     public ListenableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId) {
@@ -160,11 +160,16 @@ public class DDLStatementDispatcher {
 
         @Override
         public ListenableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, UUID jobId) {
-            return snapshotDDLDispatcher.dispatch(analysis);
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         public ListenableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, UUID jobId) {
-            return snapshotDDLDispatcher.dispatch(analysis);
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, UUID context) {
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
     }
 
