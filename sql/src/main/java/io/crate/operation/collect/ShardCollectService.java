@@ -134,7 +134,7 @@ public class ShardCollectService {
         assert !collectPhase.whereClause().hasQuery()
                 : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
         return RowsCollector.single(
-                shardImplementationSymbolVisitor.extractImplementations(collectPhase).topLevelInputs(),
+                shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs(),
                 rowReceiver
         );
     }

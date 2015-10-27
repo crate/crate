@@ -70,7 +70,6 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         this.referenceResolver = referenceResolver;
     }
 
-    @Override
     public Context extractImplementations(CollectPhase node) {
         Context context = newContext();
         context.orderBy(node.orderBy());

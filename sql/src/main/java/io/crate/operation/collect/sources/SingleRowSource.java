@@ -50,7 +50,7 @@ public class SingleRowSource implements CollectSource {
         if (collectPhase.whereClause().noMatch()){
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
-        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase);
+        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect());
         return ImmutableList.<CrateCollector>of(RowsCollector.single(ctx.topLevelInputs(), downstream));
     }
 }

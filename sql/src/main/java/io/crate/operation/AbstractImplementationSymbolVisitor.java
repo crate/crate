@@ -23,7 +23,6 @@ package io.crate.operation;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,21 +47,9 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
 
     protected abstract C newContext();
 
-    public C extractImplementations(CollectPhase node) {
+    public C extractImplementations(Symbol symbol) {
         C context = newContext();
-        if (node.toCollect() != null) {
-            for (Symbol symbol : node.toCollect()) {
-                context.add(process(symbol, context));
-            }
-        }
-        return context;
-    }
-
-    public C extractImplementations(Symbol... symbols) {
-        C context = newContext();
-        for (Symbol symbol : symbols) {
-            context.add(process(symbol, context));
-        }
+        context.add(process(symbol, context));
         return context;
     }
 

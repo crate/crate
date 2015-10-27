@@ -61,7 +61,7 @@ public class FileCollectSource implements CollectSource {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
 
-        FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase);
+        FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
 
         // FileUriCollectPhase is only used in copy plans which never require ordering
