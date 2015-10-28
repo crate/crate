@@ -324,6 +324,16 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 "Ford Perfect| Hobbit House\n"));
     }
 
+    @Test
+    public void testJoinWithFunctionInOutputAndOrderBy() throws Exception {
+        createColorsAndSizes();
+        execute("select substr(colors.name, 0, 1), sizes.name from colors, sizes order by colors.name, sizes.name limit 3");
+        assertThat(printedTable(response.rows()),
+                is("b| large\n" +
+                   "b| small\n" +
+                   "g| large\n"));
+    }
+
     private void createColorsAndSizes() {
         execute("create table colors (name string) ");
         execute("create table sizes (name string) ");

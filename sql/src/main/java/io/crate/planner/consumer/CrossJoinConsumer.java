@@ -98,13 +98,12 @@ public class CrossJoinConsumer implements Consumer {
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
             boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
             if (isUnsupportedStatement(statement, context, hasDocTables)) return null;
-            if (statement.querySpec().where().noMatch()) {
+            QuerySpec querySpec = statement.querySpec();
+            if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
             final Collection<QualifiedName> relationNames = getOrderedRelationNames(statement);
-
-            // TODO: replace references with docIds.. and add fetch projection
 
             List<QueriedTableRelation> queriedTables = new ArrayList<>(relationNames.size());
             for (QualifiedName relationName : relationNames) {
@@ -119,18 +118,21 @@ public class CrossJoinConsumer implements Consumer {
                 queriedTables.add(queriedTable);
             }
 
-            WhereClause where = statement.querySpec().where();
-            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
-            boolean isDistributed = hasDocTables && filterNeeded;
-
             // for nested loops we are fine to remove pushed down orders
+            OrderBy orderByBeforeSplit = querySpec.orderBy().orNull();
             OrderBy remainingOrderBy = statement.remainingOrderBy();
-            OrderBy orderByBeforeSplit = statement.querySpec().orderBy().orNull();
 
             // replace all the fields in the root query spec
-            RelationSplitter.replaceFields(queriedTables, statement.querySpec());
+            Map<Symbol, Field> fieldMap = RelationSplitter.createFieldMap(queriedTables);
+            RelationSplitter.replaceFields(querySpec, fieldMap);
+            if (remainingOrderBy != null) {
+                querySpec.orderBy(remainingOrderBy);
+                RelationSplitter.replaceFields(remainingOrderBy.orderBySymbols(), fieldMap);
+            }
 
-            //TODO: queriedTable.normalize(analysisMetaData);
+            WhereClause where = querySpec.where();
+            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
+            boolean isDistributed = hasDocTables && filterNeeded;
 
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
@@ -142,8 +144,8 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
-            if (!filterNeeded && statement.querySpec().limit().isPresent()) {
-                context.requiredPageSize(statement.querySpec().limit().get() + statement.querySpec().offset());
+            if (!filterNeeded && querySpec.limit().isPresent()) {
+                context.requiredPageSize(querySpec.limit().get() + querySpec.offset());
             }
 
             // this normalization is required to replace fields of the table relations
@@ -229,7 +231,7 @@ public class CrossJoinConsumer implements Consumer {
                 projections.add(filterProjection);
             }
 
-            List<Symbol> postNLOutputs = Lists.newArrayList(statement.querySpec().outputs());
+            List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
             if (orderByBeforeSplit != null && isDistributed) {
                 for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
                     if (postNLOutputs.indexOf(symbol) == -1) {
@@ -238,12 +240,12 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
-            int topNLimit = statement.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT);
+            int topNLimit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     inputs,
                     remainingOrderBy,
-                    isDistributed ? 0 : statement.querySpec().offset(),
-                    isDistributed ? topNLimit + statement.querySpec().offset() : topNLimit,
+                    isDistributed ? 0 : querySpec.offset(),
+                    isDistributed ? topNLimit + querySpec.offset() : topNLimit,
                     postNLOutputs
             );
             projections.add(topN);
@@ -267,9 +269,9 @@ public class CrossJoinConsumer implements Consumer {
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                         postNLOutputs,
                         orderByBeforeSplit,
-                        statement.querySpec().offset(),
-                        statement.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT),
-                        statement.querySpec().outputs()
+                        querySpec.offset(),
+                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                        querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);
             }
