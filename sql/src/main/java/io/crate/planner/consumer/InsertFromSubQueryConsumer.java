@@ -26,8 +26,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.DocReferenceConverter;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
@@ -36,6 +40,8 @@ import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.settings.ImmutableSettings;
+
+import java.util.List;
 
 
 public class InsertFromSubQueryConsumer implements Consumer {
@@ -48,6 +54,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
     }
 
     private static class Visitor extends RelationPlanningVisitor {
+
+        private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
 
         @Override
         public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
@@ -68,8 +76,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
             );
 
             Planner.Context plannerContext = context.plannerContext();
-            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(
-                    statement.subQueryRelation(), context);
+            SOURCE_LOOKUP_CONVERTER.process(statement.subQueryRelation(), null);
+            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(statement.subQueryRelation(), context);
             if (plannedSubQuery == null) {
                 return null;
             }
@@ -89,6 +97,28 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
             return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());
+        }
+    }
+
+    private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {
+
+        @Override
+        public Void visitQueriedDocTable(QueriedDocTable table, Void context) {
+            if (table.querySpec().hasAggregates() || table.querySpec().groupBy().isPresent()) {
+                return null;
+            }
+
+            List<Symbol> outputs = table.querySpec().outputs();
+            assert !table.querySpec().orderBy().isPresent() : "insert from subquery with order by is not supported";
+            for (int i = 0; i < outputs.size(); i++) {
+                outputs.set(i, DocReferenceConverter.convertIfPossible(outputs.get(i), table.tableRelation().tableInfo()));
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            return null;
         }
     }
 }

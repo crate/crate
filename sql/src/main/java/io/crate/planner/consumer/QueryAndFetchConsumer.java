@@ -37,7 +37,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.DocReferenceConverter;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -49,7 +48,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Singleton
@@ -80,23 +78,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            List<Symbol> orderBySymbols;
-            if (table.querySpec().orderBy().isPresent()) {
-                orderBySymbols = table.querySpec().orderBy().get().orderBySymbols();
-            } else {
-                orderBySymbols = Collections.emptyList();
-            }
-            List<Symbol> outputSymbols = new ArrayList<>(table.querySpec().outputs().size());
-            for (Symbol symbol : table.querySpec().outputs()) {
-                if (!orderBySymbols.contains(symbol)) {
-                    outputSymbols.add(DocReferenceConverter.convertIfPossible(symbol, table.tableRelation().tableInfo()));
-                } else {
-                    // if symbol is used in orderBy, field must be loaded to cache anyway,
-                    // so do not rewrite it to source lookup
-                    outputSymbols.add(symbol);
-                }
-            }
-            return normalSelect(table, context, outputSymbols);
+            return normalSelect(table, context, table.querySpec().outputs());
         }
 
         @Override
