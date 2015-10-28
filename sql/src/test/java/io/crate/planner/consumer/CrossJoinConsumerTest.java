@@ -62,9 +62,7 @@ import org.junit.rules.ExpectedException;
 import java.util.List;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isReference;
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.eq;
@@ -332,5 +330,14 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         TopNProjection localTopN = (TopNProjection) nl.localMerge().projections().get(0);
         assertThat(localTopN.limit(), is(15));
         assertThat(localTopN.offset(), is(10));
+    }
+
+    @Test
+    public void testRefsAreNotConvertedToSourceLookups() throws Exception {
+        NestedLoop nl = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
+        CollectPhase cpLeft = ((CollectAndMerge) nl.left().plan()).collectPhase();
+        assertThat(cpLeft.toCollect().get(1), isReference("id"));
+        CollectPhase cpRight = ((CollectAndMerge) nl.right().plan()).collectPhase();
+        assertThat(cpRight.toCollect().get(0), isReference("id"));
     }
 }
