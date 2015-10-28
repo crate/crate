@@ -142,7 +142,7 @@ public class DistributedGroupByConsumer implements Consumer {
                 if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
                 } else if (havingClause.get().hasQuery()) {
-                    reducerProjections.add(projectionBuilder.filterProjection(
+                    reducerProjections.add(ProjectionBuilder.filterProjection(
                             collectOutputs,
                             havingClause.get().query()
                     ));
@@ -151,7 +151,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
-                reducerProjections.add(projectionBuilder.topNProjection(
+                reducerProjections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         querySpec.orderBy().orNull(),
                         0,
@@ -174,7 +174,7 @@ public class DistributedGroupByConsumer implements Consumer {
             MergePhase localMergeNode = null;
             String localNodeId = plannerContext.clusterService().state().nodes().localNodeId();
             if(isRootRelation) {
-                TopNProjection topN = projectionBuilder.topNProjection(
+                TopNProjection topN = ProjectionBuilder.topNProjection(
                         querySpec.outputs(),
                         querySpec.orderBy().orNull(),
                         querySpec.offset(),

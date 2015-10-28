@@ -100,7 +100,6 @@ public class QueryThenFetchConsumer implements Consumer {
                 return null;
             }
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             CollectPhase collectPhase = qaf.collectPhase();
             if (collectPhase.nodePageSizeHint() == null) {
@@ -138,7 +137,7 @@ public class QueryThenFetchConsumer implements Consumer {
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
 
-            TopNProjection topN = projectionBuilder.topNProjection(
+            TopNProjection topN = ProjectionBuilder.topNProjection(
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),

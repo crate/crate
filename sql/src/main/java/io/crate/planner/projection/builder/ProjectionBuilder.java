@@ -117,16 +117,14 @@ public class ProjectionBuilder {
         return aggregations;
     }
 
-    public FilterProjection filterProjection(
-            Collection<? extends Symbol> inputs,
-            Symbol query) {
+    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         query = inputVisitor.process(query, context);
         List<Symbol> outputs = inputVisitor.process(inputs, context);
         return new FilterProjection(query, outputs);
     }
 
-    public TopNProjection topNProjection(
+    public static TopNProjection topNProjection(
             Collection<? extends Symbol> inputs,
             @Nullable OrderBy orderBy,
             int offset,

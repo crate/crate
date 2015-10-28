@@ -158,8 +158,6 @@ public class CrossJoinConsumer implements Consumer {
                     rightPlan.resultPhase(),
                     right.querySpec());
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(analysisMetaData.functions(), statement.querySpec());
-
             List<Projection> projections = new ArrayList<>();
             List<Field> inputs = concatFields(left, right);
             if (filterNeeded) {
@@ -167,11 +165,11 @@ public class CrossJoinConsumer implements Consumer {
                     throw new UnsupportedOperationException(
                             "JOIN condition in the WHERE clause is not supported if the statement contains user tables");
                 }
-                FilterProjection filterProjection = projectionBuilder.filterProjection(inputs, where.query());
+                FilterProjection filterProjection = ProjectionBuilder.filterProjection(inputs, where.query());
                 projections.add(filterProjection);
             }
 
-            TopNProjection topN = projectionBuilder.topNProjection(
+            TopNProjection topN = ProjectionBuilder.topNProjection(
                     inputs,
                     statement.querySpec().orderBy().orNull(),
                     statement.querySpec().offset(),

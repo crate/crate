@@ -157,7 +157,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                 if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.get().hasQuery()){
-                    projections.add(projectionBuilder.filterProjection(
+                    projections.add(ProjectionBuilder.filterProjection(
                             collectOutputs,
                             havingClause.get().query()
                     ));
@@ -175,7 +175,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                                     collectOutputs.containsAll(table.querySpec().outputs());
             if (context.rootRelation() == table || !outputsMatch){
-                projections.add(projectionBuilder.topNProjection(
+                projections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         table.querySpec().orderBy().orNull(),
                         table.querySpec().offset(),

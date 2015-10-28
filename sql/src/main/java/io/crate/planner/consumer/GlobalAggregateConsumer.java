@@ -139,14 +139,14 @@ public class GlobalAggregateConsumer implements Consumer {
             if (havingClause.get().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
             } else if (havingClause.get().hasQuery()){
-                projections.add(projectionBuilder.filterProjection(
+                projections.add(ProjectionBuilder.filterProjection(
                         splitPoints.aggregates(),
                         havingClause.get().query()
                 ));
             }
         }
 
-        TopNProjection topNProjection = projectionBuilder.topNProjection(
+        TopNProjection topNProjection = ProjectionBuilder.topNProjection(
                 splitPoints.aggregates(),
                 null, 0, 1,
                 table.querySpec().outputs()

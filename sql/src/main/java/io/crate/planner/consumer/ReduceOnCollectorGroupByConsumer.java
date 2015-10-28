@@ -140,7 +140,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.get().hasQuery()) {
-                    FilterProjection fp = projectionBuilder.filterProjection(
+                    FilterProjection fp = ProjectionBuilder.filterProjection(
                             collectOutputs,
                             havingClause.get().query()
                     );
@@ -155,7 +155,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             boolean collectorTopN = table.querySpec().limit().isPresent() || table.querySpec().offset() > 0 || !outputsMatch;
 
             if (collectorTopN) {
-                projections.add(projectionBuilder.topNProjection(
+                projections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         table.querySpec().orderBy().orNull(),
                         0, // no offset
@@ -178,7 +178,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
                 handlerProjections.add(
-                        projectionBuilder.topNProjection(
+                        ProjectionBuilder.topNProjection(
                                 table.querySpec().outputs(),
                                 null, // omit order by
                                 table.querySpec().offset(),
@@ -198,7 +198,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 );
             } else {
                 handlerProjections.add(
-                        projectionBuilder.topNProjection(
+                        ProjectionBuilder.topNProjection(
                                 collectorTopN ? table.querySpec().outputs() : collectOutputs,
                                 table.querySpec().orderBy().orNull(),
                                 table.querySpec().offset(),
