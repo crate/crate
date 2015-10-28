@@ -50,7 +50,7 @@ of tables. The :ref:`ref-create-snapshot` statement is used to create
 a snapshots::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot1 ALL
-    ... WITH (wait_for_completion=true, partial=true, ignore_unavailable=true);
+    ... WITH (wait_for_completion=true, ignore_unavailable=true);
     CREATE OK (... sec)
 
 A snapshot is referenced by the name of the repository and the
@@ -66,7 +66,7 @@ included in the snapshot and the persistent settings will be excluded.
 ::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes, doc.locations
-    ... WITH (wait_for_completion=true, partial=true, ignore_unavailable=true);
+    ... WITH (wait_for_completion=true, ignore_unavailable=true);
     CREATE OK (... sec)
 
 .. Hidden: create partitioned table
@@ -89,7 +89,7 @@ deleted but it should be possible to restore them if needed::
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    locations,
     ...    parted_table PARTITION (date='1970-01-01')
-    ... WITH (wait_for_completion=true, partial=true, ignore_unavailable=true);
+    ... WITH (wait_for_completion=true, ignore_unavailable=true);
     CREATE OK (... sec)
 
 When creating single partitions the partitioned table and its metadata

@@ -81,8 +81,5 @@ created:
                       whole snapshot was created or an error occurred.
                       This can take a serious amount of time.
 
-:partial: (Default ``false``) if a table has unavailable primary shards the snapshot creation will fail.
-          If set to ``true`` creation will continue and leave out the unavailable shards.
-
 :ignore_unavailable: (Default ``false``) if a given table does not exist the command will fail by default.
                      If set to ``true`` these tables are ignored and not included in the snapshot.
