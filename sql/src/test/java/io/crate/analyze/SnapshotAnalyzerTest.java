@@ -111,7 +111,6 @@ public class SnapshotAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.snapshotSettings().getAsMap(),
                 allOf(
                         hasEntry("wait_for_completion", "true"),
-                        hasEntry("partial", "false"),
                         hasEntry("ignore_unavailable", "false")
                 ));
     }
@@ -185,11 +184,10 @@ public class SnapshotAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.isAllSnapshot(), is(false));
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
         assertThat(statement.includeMetadata(), is(false));
-        assertThat(statement.snapshotSettings().getAsMap().size(), is(3));
+        assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),
                 allOf(
                         hasEntry("wait_for_completion", "true"),
-                        hasEntry("partial", "false"),
                         hasEntry("ignore_unavailable", "false")
                 ));
     }

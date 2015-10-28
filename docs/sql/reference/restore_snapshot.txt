@@ -55,10 +55,6 @@ WITH Clause
 The following configuration parameters can be used to modify how the snapshot is
 restored to the cluster:
 
-:partial: (Default ``false``) Per default a table does not have all shards in the snapshot
-          to restore from the restore command fails. If set to ``true`` the command
-          will ignore missing shards in the snapshot.
-
 :ignore_unavailable: (Default ``false``) Per default the restore command fails if a table
                      is given that does not exist in the snapshot. If set to ``true`` those
                      missing tables are ignored.

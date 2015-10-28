@@ -198,22 +198,6 @@ public class SnapshotIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testPartial() throws Exception {
-        execute("set global cluster.routing.allocation.enable=none");
-        execute("CREATE TABLE backmeup (" +
-                "  id long primary key, " +
-                "  name string" +
-                ") with (number_of_replicas=0)");
-
-
-        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true, partial=true)");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_snapshot| my_repo| [backmeup]| PARTIAL\n"));
-    }
-
-    @Test
     public void testCreateSnapshotInURLRepoFails() throws Exception {
         execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
                 new Object[]{ TEMPORARY_FOLDER.newFolder().toURI().toString() });
@@ -244,7 +228,6 @@ public class SnapshotIntegrationTest extends SQLTransportIntegrationTest {
 
         client().admin().cluster().prepareRestoreSnapshot(REPOSITORY_NAME, SNAPSHOT_NAME)
                 .setIncludeAliases(true)
-                .setPartial(false)
                 .setRestoreGlobalState(true)
                 .execute().actionGet();
         waitNoPendingTasksOnAll();

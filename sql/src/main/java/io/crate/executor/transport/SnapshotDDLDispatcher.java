@@ -84,7 +84,6 @@ public class SnapshotDDLDispatcher {
         final SettableFuture<Long> resultFuture = SettableFuture.create();
 
         boolean waitForCompletion = statement.snapshotSettings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
-        boolean partial = statement.snapshotSettings().getAsBoolean(PARTIAL.settingName(), PARTIAL.defaultValue());
         boolean ignoreUnavailable = statement.snapshotSettings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
 
         // ignore_unavailable as set by statement
@@ -93,7 +92,6 @@ public class SnapshotDDLDispatcher {
 
         CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
                 .includeGlobalState(statement.includeMetadata())
-                .partial(partial)
                 .waitForCompletion(waitForCompletion)
                 .indices(statement.indices())
                 .indicesOptions(indicesOptions)

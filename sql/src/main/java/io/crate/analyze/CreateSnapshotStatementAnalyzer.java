@@ -56,22 +56,6 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
     private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotStatementAnalyzer.class);
     private final Schemas schemas;
 
-    public static final BoolSetting PARTIAL = new BoolSetting() {
-        @Override
-        public String name() {
-            return "partial";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
-        }
-    };
     public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting() {
         @Override
         public String name() {
@@ -107,7 +91,6 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
 
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-            .put(PARTIAL.name(), new SettingsAppliers.BooleanSettingsApplier(PARTIAL))
             .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
             .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
             .build();
