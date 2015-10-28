@@ -92,7 +92,7 @@ public class SystemCollectSource implements CollectSource {
         OrderBy orderBy = collectPhase.orderBy();
         if (orderBy != null) {
             for (Symbol symbol : orderBy.orderBySymbols()) {
-                ctx.add(docInputSymbolVisitor.process(symbol, ctx));
+                docInputSymbolVisitor.process(symbol, ctx);
             }
         }
 
