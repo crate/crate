@@ -37,10 +37,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
 
@@ -51,7 +48,7 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
         }
     };
 
-    private Set<String> executionNodes;
+    private Collection<String> executionNodes;
     private MergePhase leftMergePhase;
     private MergePhase rightMergePhase;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_SAME_NODE;
@@ -64,7 +61,7 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
                            List<Projection> projections,
                            @Nullable MergePhase leftMergePhase,
                            @Nullable MergePhase rightMergePhase,
-                           Set<String> executionNodes) {
+                           Collection<String> executionNodes) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
         assert lastProjection != null;
@@ -80,7 +77,7 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
     }
 
     @Override
-    public Set<String> executionNodes() {
+    public Collection<String> executionNodes() {
         if (executionNodes == null) {
             return ImmutableSet.of();
         } else {

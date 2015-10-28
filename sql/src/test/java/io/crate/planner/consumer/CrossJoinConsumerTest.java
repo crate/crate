@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
@@ -37,8 +38,11 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStatsService;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -59,8 +63,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -73,9 +78,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private final CrossJoinConsumer consumer =
-            new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class));
+    private CrossJoinConsumer consumer;
     private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+    private TableStatsService statsService;
 
     @Before
     public void initPlanner() throws Exception {
@@ -90,6 +95,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
 
@@ -99,6 +105,10 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         protected void configure() {
             super.configure();
             bind(ThreadPool.class).toInstance(newMockedThreadPool());
+            statsService = mock(TableStatsService.class);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT))).thenReturn(10L);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            bind(TableStatsService.class).toInstance(statsService);
         }
 
         @Override
@@ -106,6 +116,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo("users")).thenReturn(BaseAnalyzerTest.userTableInfo);
+            when(schemaInfo.getTableInfo("users_multi_pk")).thenReturn(BaseAnalyzerTest.userTableInfoMultiPk);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -145,13 +156,53 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNoLimitPushDownWithJoinConditionOnDocTables() throws Exception {
+        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 where u1.name = u2.name  order by 1, 2 limit 10");
+        assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
+        assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
+    }
+
+    @Test
     public void testJoinConditionInWhereClause() throws Exception {
         // TODO: once fetch is supported for cross joins, reset query to:
         // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("JOIN condition in the WHERE clause is not supported");
-        plan("select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.name, u2.name");
+        NestedLoop plan = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.floats, u2.name");
+
+        assertThat(plan.nestedLoopPhase().projections().size(), is(2));
+        FilterProjection fp = ((FilterProjection) plan.nestedLoopPhase().projections().get(0));
+
+        assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
+        assertThat(((CollectPhase) plan.left().resultPhase()).outputTypes().size(), is(2));
+        assertThat(plan.right().resultPhase(), instanceOf(CollectPhase.class));
+        assertThat(((CollectPhase) plan.right().resultPhase()).outputTypes().size(), is(2));
+
+        assertThat(((Function)fp.query()).arguments().size(), is(2));
+        assertThat(fp.outputs().size(), is(4));
+
+        TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(1));
+        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.offset(), is(0));
+        // TODO: once fetch is supported and query is changed, output size will be 4 here
+        assertThat(topN.outputs().size(), is(2));
+
+        assertThat(plan.resultPhase(), instanceOf(MergePhase.class));
+        MergePhase localMergePhase = (MergePhase) plan.resultPhase();
+        assertThat(localMergePhase.projections().size(), is(1));
+
+        TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
+        assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(finalTopN.offset(), is(0));
+        assertThat(finalTopN.outputs().size(), is(2));
     }
+
+    @Test
+    public void testLeftSideIsBroadcastIfLeftTableIsSmaller() throws Exception {
+        NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
+                               "where users.name = u2.name " +
+                               "order by users.name, u2.name ");
+        assertThat(plan.left().resultPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+    }
+
 
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
@@ -213,12 +264,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
-        TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(0);
-        assertThat(topNProjection.isOrdered(), is(false));
-        assertThat(topNProjection.offset(), is(0));
-        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test
@@ -270,5 +317,27 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(orderBy, notNullValue());
         assertThat(orderBy.size(), is(1));
         assertThat(orderBy.get(0), isFunction("concat"));
+    }
+
+    @Test
+    public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
+        NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
+        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
+
+        assertThat(distTopN.limit(), is(25));
+        assertThat(distTopN.offset(), is(0));
+
+        TopNProjection localTopN = (TopNProjection) nl.localMerge().projections().get(0);
+        assertThat(localTopN.limit(), is(15));
+        assertThat(localTopN.offset(), is(10));
+    }
+
+    @Test
+    public void testRefsAreNotConvertedToSourceLookups() throws Exception {
+        NestedLoop nl = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
+        CollectPhase cpLeft = ((CollectAndMerge) nl.left().plan()).collectPhase();
+        assertThat(cpLeft.toCollect().get(1), isReference("id"));
+        CollectPhase cpRight = ((CollectAndMerge) nl.right().plan()).collectPhase();
+        assertThat(cpRight.toCollect().get(0), isReference("id"));
     }
 }

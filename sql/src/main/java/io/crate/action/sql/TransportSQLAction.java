@@ -41,6 +41,7 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
@@ -51,6 +52,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 
+@Singleton
 public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
 
     @Inject

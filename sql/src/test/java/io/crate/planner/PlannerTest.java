@@ -125,6 +125,7 @@ public class PlannerTest extends CrateUnitTest {
 
         @Override
         protected void configure() {
+            bind(TableStatsService.class).toInstance(mock(TableStatsService.class));
             bind(ThreadPool.class).toInstance(threadPool);
             clusterService = mock(ClusterService.class);
             DiscoveryNode localNode = mock(DiscoveryNode.class);

@@ -26,6 +26,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Field;
@@ -34,6 +36,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.ValidationException;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.TableStatsService;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchRequiredVisitor;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -48,7 +52,10 @@ import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -56,11 +63,11 @@ import java.util.*;
 public class CrossJoinConsumer implements Consumer {
 
     private final Visitor visitor;
+    private final static ESLogger LOGGER = Loggers.getLogger(CrossJoinConsumer.class);
 
     @Inject
-    public CrossJoinConsumer(ClusterService clusterService,
-                             AnalysisMetaData analysisMetaData) {
-        visitor = new Visitor(clusterService, analysisMetaData);
+    public CrossJoinConsumer(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
+        visitor = new Visitor(clusterService, analysisMetaData, tableStatsService);
     }
 
     @Override
@@ -79,23 +86,24 @@ public class CrossJoinConsumer implements Consumer {
         };
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
+        private final TableStatsService tableStatsService;
 
-        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
+        public Visitor(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
             this.clusterService = clusterService;
             this.analysisMetaData = analysisMetaData;
+            this.tableStatsService = tableStatsService;
         }
 
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
             boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
             if (isUnsupportedStatement(statement, context, hasDocTables)) return null;
-            if (statement.querySpec().where().noMatch()) {
+            QuerySpec querySpec = statement.querySpec();
+            if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
             final Collection<QualifiedName> relationNames = getOrderedRelationNames(statement);
-
-            // TODO: replace references with docIds.. and add fetch projection
 
             List<QueriedTableRelation> queriedTables = new ArrayList<>(relationNames.size());
             for (QualifiedName relationName : relationNames) {
@@ -110,17 +118,21 @@ public class CrossJoinConsumer implements Consumer {
                 queriedTables.add(queriedTable);
             }
 
-            WhereClause where = statement.querySpec().where();
-            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
-
             // for nested loops we are fine to remove pushed down orders
+            OrderBy orderByBeforeSplit = querySpec.orderBy().orNull();
             OrderBy remainingOrderBy = statement.remainingOrderBy();
-            statement.querySpec().orderBy(remainingOrderBy);
 
             // replace all the fields in the root query spec
-            RelationSplitter.replaceFields(queriedTables, statement.querySpec());
+            Map<Symbol, Field> fieldMap = RelationSplitter.createFieldMap(queriedTables);
+            RelationSplitter.replaceFields(querySpec, fieldMap);
+            if (remainingOrderBy != null) {
+                querySpec.orderBy(remainingOrderBy);
+                RelationSplitter.replaceFields(remainingOrderBy.orderBySymbols(), fieldMap);
+            }
 
-            //TODO: queriedTable.normalize(analysisMetaData);
+            WhereClause where = querySpec.where();
+            boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
+            boolean isDistributed = hasDocTables && filterNeeded;
 
             QueriedTableRelation<?> left = queriedTables.get(0);
             QueriedTableRelation<?> right = queriedTables.get(1);
@@ -132,62 +144,138 @@ public class CrossJoinConsumer implements Consumer {
                 }
             }
 
-            if (!filterNeeded && statement.querySpec().limit().isPresent()) {
-                context.requiredPageSize(statement.querySpec().limit().get() + statement.querySpec().offset());
+            if (!filterNeeded && querySpec.limit().isPresent()) {
+                context.requiredPageSize(querySpec.limit().get() + querySpec.offset());
             }
 
             // this normalization is required to replace fields of the table relations
             left.normalize(analysisMetaData);
             right.normalize(analysisMetaData);
 
-            // plan the subRelations
+            boolean broadcastLeftTable = false;
+            if (isDistributed) {
+                long leftNumDocs = tableStatsService.numDocs(left.tableRelation().tableInfo().ident());
+                long rightNumDocs = tableStatsService.numDocs(right.tableRelation().tableInfo().ident());
+
+                if (rightNumDocs > leftNumDocs) {
+                    broadcastLeftTable = true;
+                    LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
+                            rightNumDocs, leftNumDocs);
+                }
+            }
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
 
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
+            Collection<String> nlExecutionNodes = localExecutionNodes;
 
-            MergePhase leftMerge = mergePhase(
-                    context,
-                    localExecutionNodes,
-                    leftPlan.resultPhase(),
-                    left.querySpec());
-            MergePhase rightMerge = mergePhase(
-                    context,
-                    localExecutionNodes,
-                    rightPlan.resultPhase(),
-                    right.querySpec());
+
+            MergePhase leftMerge = null;
+            MergePhase rightMerge = null;
+            if (isDistributed && broadcastLeftTable) {
+                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = rightPlan.resultPhase().executionNodes();
+
+                if (nlExecutionNodes.size() == 1
+                    && nlExecutionNodes.equals(leftPlan.resultPhase().executionNodes())) {
+                    // if the left and the right plan are executed on the same single node the mergePhase
+                    // should be omitted. This is the case if the left and right table have only one shards which
+                    // are on the same node
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                } else {
+                    leftMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            leftPlan.resultPhase(),
+                            left.querySpec().orderBy().orNull(),
+                            left.querySpec().outputs(),
+                            true);
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                }
+            } else {
+                if (isDistributed) {
+                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                    nlExecutionNodes = leftPlan.resultPhase().executionNodes();
+                } else {
+                    leftMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            leftPlan.resultPhase(),
+                            left.querySpec().orderBy().orNull(),
+                            left.querySpec().outputs(),
+                            false);
+                }
+                if (nlExecutionNodes.size() == 1
+                    && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
+                    // if the left and the right plan are executed on the same single node the mergePhase
+                    // should be omitted. This is the case if the left and right table have only one shards which
+                    // are on the same node
+                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                } else {
+                    rightMerge = mergePhase(
+                            context,
+                            nlExecutionNodes,
+                            rightPlan.resultPhase(),
+                            right.querySpec().orderBy().orNull(),
+                            right.querySpec().outputs(),
+                            isDistributed);
+                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                }
+            }
 
             List<Projection> projections = new ArrayList<>();
             List<Field> inputs = concatFields(left, right);
             if (filterNeeded) {
-                if (hasDocTables) {
-                    throw new UnsupportedOperationException(
-                            "JOIN condition in the WHERE clause is not supported if the statement contains user tables");
-                }
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(inputs, where.query());
                 projections.add(filterProjection);
             }
 
+            List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
+            if (orderByBeforeSplit != null && isDistributed) {
+                for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
+                    if (postNLOutputs.indexOf(symbol) == -1) {
+                        postNLOutputs.add(symbol);
+                    }
+                }
+            }
+
+            int topNLimit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     inputs,
-                    statement.querySpec().orderBy().orNull(),
-                    statement.querySpec().offset(),
-                    statement.querySpec().limit().orNull(),
-                    statement.querySpec().outputs()
+                    remainingOrderBy,
+                    isDistributed ? 0 : querySpec.offset(),
+                    isDistributed ? topNLimit + querySpec.offset() : topNLimit,
+                    postNLOutputs
             );
             projections.add(topN);
 
             NestedLoopPhase nl = new NestedLoopPhase(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
-                    "nested-loop",
+                    isDistributed ? "distributed-nested-loop" : "nested-loop",
                     projections,
                     leftMerge,
                     rightMerge,
-                    localExecutionNodes
+                    nlExecutionNodes
             );
-            return new NestedLoop(nl, leftPlan, rightPlan, true);
+            if (isDistributed) {
+                nl.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            }
+            MergePhase localMergePhase = null;
+            if (isDistributed && context.rootRelation() == statement) {
+                localMergePhase = mergePhase(context, localExecutionNodes, nl, orderByBeforeSplit, postNLOutputs, true);
+                assert localMergePhase != null : "local merge phase must not be null";
+                TopNProjection finalTopN = ProjectionBuilder.topNProjection(
+                        postNLOutputs,
+                        orderByBeforeSplit,
+                        querySpec.offset(),
+                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                        querySpec.outputs()
+                );
+                localMergePhase.addProjection(finalTopN);
+            }
+            return new NestedLoop(nl, leftPlan, rightPlan, true, localMergePhase);
         }
 
         private static List<Field> concatFields(QueriedTableRelation<?> left, QueriedTableRelation<?> right) {
@@ -198,26 +286,26 @@ public class CrossJoinConsumer implements Consumer {
         }
 
         private MergePhase mergePhase(ConsumerContext context,
-                                      Set<String> localExecutionNodes,
+                                      Collection<String> executionNodes,
                                       UpstreamPhase upstreamPhase,
-                                      QuerySpec querySpec) {
+                                      @Nullable OrderBy orderBy,
+                                      List<Symbol> previousOutputs,
+                                      boolean isDistributed) {
             assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
-            if (upstreamPhase.executionNodes().equals(localExecutionNodes)) {
+            if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
                 return null;
             }
 
-            List<Symbol> previousOutputs = querySpec.outputs();
-
             MergePhase mergePhase;
-            if (querySpec.orderBy().isPresent()) {
+            if (orderBy != null) {
                 mergePhase = MergePhase.sortedMerge(
                         context.plannerContext().jobId(),
                         context.plannerContext().nextExecutionPhaseId(),
-                        querySpec.orderBy().get(),
+                        orderBy,
                         previousOutputs,
-                        querySpec.orderBy().get().orderBySymbols(),
+                        orderBy.orderBySymbols(),
                         ImmutableList.<Projection>of(),
                         upstreamPhase.executionNodes().size(),
                         Symbols.extractTypes(previousOutputs)
@@ -231,7 +319,7 @@ public class CrossJoinConsumer implements Consumer {
                         Symbols.extractTypes(previousOutputs)
                 );
             }
-            mergePhase.executionNodes(localExecutionNodes);
+            mergePhase.executionNodes(executionNodes);
             return mergePhase;
         }
 

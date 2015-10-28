@@ -83,8 +83,7 @@ public class RelationSplitter {
         return splitQuerySpec;
     }
 
-    public static void replaceFields(Iterable<? extends QueriedRelation> subRelations,
-                                     QuerySpec parentQuerySpec) {
+    public static Map<Symbol, Field> createFieldMap(Iterable<? extends QueriedRelation> subRelations) {
         Map<Symbol, Field> fieldMap = new HashMap<>();
         for (QueriedRelation subRelation : subRelations) {
             List<Field> fields = subRelation.fields();
@@ -93,11 +92,15 @@ public class RelationSplitter {
                 fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
             }
         }
-        replaceFields(parentQuerySpec, fieldMap);
+        return fieldMap;
+    }
+
+    public static void replaceFields(List<Symbol> symbols, Map<Symbol, Field> fieldMap) {
+        MappingSymbolVisitor.inPlace().processInplace(symbols, fieldMap);
     }
 
     public static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Field> fieldMap){
-        MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), fieldMap);
+        replaceFields(parentQuerySpec.outputs(), fieldMap);
         WhereClause where = parentQuerySpec.where();
         if (where != null && where.hasQuery()) {
             parentQuerySpec.where(new WhereClause(
@@ -105,7 +108,7 @@ public class RelationSplitter {
                     ));
         }
         if (parentQuerySpec.orderBy().isPresent()) {
-            MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.orderBy().get().orderBySymbols(), fieldMap);
+            replaceFields(parentQuerySpec.orderBy().get().orderBySymbols(), fieldMap);
         }
     }
 
