@@ -29,13 +29,14 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.operator.*;
@@ -92,6 +93,17 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
+            DocSchemaInfo fooSchema = mock(DocSchemaInfo.class);
+            when(fooSchema.name()).thenReturn("foo");
+            DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), shardRouting)
+                    .add("id", DataTypes.LONG, null)
+                    .add("name", DataTypes.STRING, null)
+                    .schemaInfo(fooSchema)
+                    .addPrimaryKey("id")
+                    .build();
+            when(fooSchema.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
+            schemaBinder.addBinding("foo").toInstance(fooSchema);
+            
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
@@ -1705,5 +1717,55 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column _docid unknown");
         analyze("select count(*) from users group by id having _docid > 0");
+    }
+
+    @Test
+    public void testStarToFieldsInMultiSelect() throws Exception {
+        SelectAnalyzedStatement statement = analyze(
+                "select jobs.stmt, operations.* from sys.jobs, sys.operations where jobs.id = operations.job_id");
+        List<Symbol> joinOutputs = statement.relation().querySpec().outputs();
+
+        SelectAnalyzedStatement operations = analyze("select * from sys.operations");
+        List<Symbol> operationOutputs = operations.relation().querySpec().outputs();
+        assertThat(joinOutputs.size(), is(operationOutputs.size() + 1));
+    }
+
+    @Test
+    public void testSelectStarWithInvalidPrefix() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("relation \"foo\" is not in the FROM clause");
+        analyze("select foo.* from sys.operations");
+    }
+
+    @Test
+    public void testFullQualifiedStarPrefix() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select sys.jobs.* from sys.jobs");
+        List<Symbol> outputs = statement.relation().querySpec().outputs();
+        assertThat(outputs.size(), is(3));
+        //noinspection unchecked
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("stmt"), isReference("started")));
+    }
+
+    @Test
+    public void testFullQualifiedStarPrefixWithAliasForTable() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("relation \"sys.operations\" is not in the FROM clause");
+        analyze("select sys.operations.* from sys.operations t1");
+    }
+
+    @Test
+    public void testSelectStarWithTableAliasAsPrefix() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select t1.* from sys.jobs t1");
+        List<Symbol> outputs = statement.relation().querySpec().outputs();
+        assertThat(outputs.size(), is(3));
+        //noinspection unchecked
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("stmt"), isReference("started")));
+    }
+
+    @Test
+    public void testAmbiguousStarPrefix() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("referenced relation \"users\" is ambiguous");
+        analyze("select users.* from doc.users, foo.users");
     }
 }

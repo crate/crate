@@ -108,12 +108,52 @@ public class SelectAnalyzer {
 
         @Override
         protected Void visitAllColumns(AllColumns node, SelectAnalysis context) {
-            for (AnalyzedRelation relation : context.sources.values()) {
-                for (Field field : relation.fields()) {
-                    context.add(field.path().outputName(), field);
+            if (node.getPrefix().isPresent()) {
+                // prefix is either: <tableOrAlias>.* or <schema>.<table>
+
+                QualifiedName prefix = node.getPrefix().get();
+                AnalyzedRelation relation = context.sources.get(prefix);
+                if (relation != null) {
+                    addAllFieldsFromRelation(context, relation);
+                    return null;
+                }
+
+                int matches = 0;
+                if (prefix.getParts().size() == 1) {
+                    // e.g.  select mytable.* from foo.mytable; prefix is mytable, source is [foo, mytable]
+                    // if prefix matches second part of qualified name this is okay
+                    String prefixName = prefix.getParts().get(0);
+                    for (Map.Entry<QualifiedName, AnalyzedRelation> entry : context.sources.entrySet()) {
+                        List<String> parts = entry.getKey().getParts();
+                        // schema.table
+                        if (parts.size() == 2 && prefixName.equals(parts.get(1))) {
+                            addAllFieldsFromRelation(context, entry.getValue());
+                            matches++;
+                        }
+                    }
+                }
+                switch (matches) {
+                    case 0:
+                        throw new IllegalArgumentException(String.format("relation \"%s\" is not in the FROM clause", prefix));
+                    case 1:
+                        return null; // yay found something
+                    default:
+                        // e.g. select mytable.* from foo.mytable, bar.mytable
+                        throw new IllegalArgumentException(String.format("referenced relation \"%s\" is ambiguous", prefix));
+
+                }
+            } else {
+                for (AnalyzedRelation relation : context.sources.values()) {
+                    addAllFieldsFromRelation(context, relation);
                 }
             }
             return null;
+        }
+
+        private void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
+            for (Field field : relation.fields()) {
+                context.add(field.path().outputName(), field);
+            }
         }
     }
 }
