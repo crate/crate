@@ -910,8 +910,8 @@ repositories (see :ref:`snapshot-restore`).
 +----------------------+----------------------------------+-------------------+
 | ``state``            | The current state of the         | ``String``        |
 |                      | snapshot. One of:                |                   |
-|                      | ``IN_PROGRESS``, ``SUCCESS``,    |                   |
-|                      | ``FAILED`` or ``PARTIAL``        |                   |
+|                      | ``IN_PROGRESS``, ``SUCCESS`` or  |                   |
+|                      | ``FAILED``.                      |                   |
 +----------------------+----------------------------------+-------------------+
 | ``version``          | The Crate version this snapshot  | ``String``        |
 |                      | was created with.                |                   |
