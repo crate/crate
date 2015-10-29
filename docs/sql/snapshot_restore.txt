@@ -27,14 +27,14 @@ Repositories are uniquely identified by their name. Every repository
 has a specific type which determines how snapshots are stored.
 
 CRATE supports different repository types:
-:ref:`ref-create-repository-types-fs`,:ref:`ref-create-repository-types-hdfs`,
+:ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
 and :ref:`ref-create-repository-types-url`. Support for further types
 might be added using :ref:`plugins`.
 
 The creation of a repository simply configures it inside the crate
 cluster. In general no data is written, no snapshots inside
 repositories are changed or deleted. This way you can tell the CRATE
-cluster about repositories that already contain snapshots.
+cluster about repositories that already contains snapshots.
 
 Creating a repository with the same name will result in an error::
 
@@ -66,7 +66,7 @@ included in the snapshot and the persistent settings will be excluded.
 ::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes, doc.locations
-    ... WITH (wait_for_completion=true, ignore_unavailable=true);
+    ... WITH (wait_for_completion=true);
     CREATE OK (... sec)
 
 .. Hidden: create partitioned table
@@ -96,6 +96,15 @@ deleted but it should be possible to restore them if needed::
 Snapshots are **incremental**. Snapshots of the same cluster that were
 created later only store the data that is not already contained in the
 repository.
+
+All examples above are used with the argument ``wait_for_completion``
+set to *true*. As also described at the :ref:`ref-create-repository`
+reference documentation, by doing this, the statement will only respond
+(either sucessfully or not) when the snapshot is fully
+created. Otherwise the snapshot will be created in the background and
+the statement will immediately respond successfully. The status of a
+created snapshot can be retrieved by querying the :ref:`sys.snapshots
+<sys-snapshots>` system table.
 
 Restore
 -------
@@ -303,6 +312,7 @@ libraries into Crate's CLASSPATH:
  - protobuf-java-2.5.0.jar
  - paranamer-2.3.jar
  - snappy-java-1.0.4.1.jar
+ - servlet-api-2.5.jar
  - xercesImpl-2.9.1.jar
  - xmlenc-0.52.jar
  - xml-apis-1.3.04.jar
