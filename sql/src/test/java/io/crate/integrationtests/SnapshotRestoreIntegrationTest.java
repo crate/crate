@@ -300,6 +300,21 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
+    public void testRestoreOnlyOneTable() throws Exception {
+        createTable("my_table_1", false);
+        createTable("my_table_2", false);
+        createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
+
+        execute("drop table my_table_1");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 with (" +
+                "wait_for_completion=true)");
+
+        execute("select schema_name || '.' || table_name from information_schema.tables where schema_name='doc'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table_1\ndoc.my_table_2\n"));
+    }
+
+    @Test
     public void testRestoreOnlyOnePartitionedTable() throws Exception {
         createTable("my_parted_1", true);
         createTable("my_parted_2", true);
