@@ -40,9 +40,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 
-import static io.crate.analyze.SnapshotSettings.*;
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 
 
@@ -104,7 +106,11 @@ public class SnapshotRestoreDDLDispatcher {
         transportActionProvider.transportCreateSnapshotAction().execute(request, new ActionListener<CreateSnapshotResponse>() {
             @Override
             public void onResponse(CreateSnapshotResponse createSnapshotResponse) {
-                if (createSnapshotResponse.getSnapshotInfo().state() == SnapshotState.FAILED) {
+                SnapshotInfo snapshotInfo = createSnapshotResponse.getSnapshotInfo();
+                if (snapshotInfo == null) {
+                    // if wait_for_completion is false the snapshotInfo is null
+                    resultFuture.set(1L);
+                } else if (snapshotInfo.state() == SnapshotState.FAILED) {
                     // fail request if snapshot creation failed
                     String reason = createSnapshotResponse.getSnapshotInfo().reason()
                             .replaceAll("Index", "Table")
