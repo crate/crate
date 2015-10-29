@@ -105,11 +105,11 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
                     docTableInfo = (DocTableInfo) tableInfo;
                 } catch (SchemaUnknownException | TableUnknownException e) {
                     if (table.partitionProperties().isEmpty()) {
-                        // add index name
-                        restoreIndices.add(tableIdent.indexName());
-                        // also add a partitions wildcard
+                        // add a partitions wildcard
                         // to match all partitions if a partitioned table was meant
                         restoreIndices.add(PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*");
+                        // add index name
+                        restoreIndices.add(tableIdent.indexName());
                         continue;
                     }
                 }
