@@ -141,13 +141,28 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testCreateSnapshot() throws Exception {
         createTable("backmeup", false);
-
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("my_snapshot| my_repo| [backmeup]| SUCCESS\n"));
+    }
+
+    @Test
+    public void testCreateSnapshotWithoutWaitForCompletion() throws Exception {
+        // this test just verifies that no exception is thrown if wait_for_completion is false
+        execute("CREATE SNAPSHOT my_repo.snapshot_no_wait ALL WITH (wait_for_completion=false)");
+        assertThat(response.rowCount(), is(1L));
+
+        // wait for success so that @after dropRepository doesn't fail
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                execute("select count(*) from sys.snapshots where state = 'SUCCESS' and name = 'snapshot_no_wait'");
+                assertThat(response.rowCount(), is(1L));
+            }
+        });
     }
 
     @Test
