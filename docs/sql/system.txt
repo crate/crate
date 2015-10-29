@@ -519,9 +519,9 @@ process
 | ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
 +------------------------------------------+------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might differ from the actual values 
-at query time. Use the probe timestamp to get the time of the collect. When analyzing the 
-cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference 
+The cpu information values are cached for 1s. They might differ from the actual values
+at query time. Use the probe timestamp to get the time of the collect. When analyzing the
+cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference
 between 2 probes.
 
 .. _sys-shards:
@@ -870,11 +870,11 @@ create, manage and restore snapshots (see :ref:`snapshot-restore`).
 
     cr> SELECT * FROM sys.repositories
     ... ORDER BY name;
-    +---------+-----------------------------------------------------------+------+
-    | name    | settings                                                  | type |
-    +=========+===========================================================+======+
-    | my_repo | {..., "compress": true, "location": 'repo_location', ...} | fs   |
-    +---------+-----------------------------------------------------------+------+
+    +---------+------+---------------------------------------------------...--+
+    | name    | type | settings                                               |
+    +---------+------+---------------------------------------------------...--+
+    | my_repo | fs   | {"compress": "true", "location": "repo_location", ...} |
+    +---------+------+---------------------------------------------------...--+
     SELECT 1 row in set (... sec)
 
 .. _sys-snapshots:
@@ -913,9 +913,8 @@ repositories (see :ref:`snapshot-restore`).
 |                      | ``IN_PROGRESS``, ``SUCCESS``,    |                   |
 |                      | ``FAILED`` or ``PARTIAL``        |                   |
 +----------------------+----------------------------------+-------------------+
-| ``error_message``    | The textual reason for a         | ``String``        |
-|                      | ``FAILED`` snapshot. Is ``null`` |                   |
-|                      | for all other snapshot states.   |                   |
+| ``version``          | The Crate version this snapshot  | ``String``        |
+|                      | was created with.                |                   |
 +----------------------+----------------------------------+-------------------+
 
 The ``concrete_indices`` column contains the names of all Elasticsearch indices
@@ -939,30 +938,23 @@ The mapping follows the following pattern:
 .. Hidden: create snapshots
 
    cr> CREATE SNAPSHOT "my_repo"."my_snapshot" ALL
-   ... WITH (partial=true, ignore_unavailable=true, wait_for_completion=true);
-   CREATE OK (... sec)
-   cr> CREATE SNAPSHOT "my_repo"."failed_snapshot" "does_not_exist"
-   ... WITH (partial=false, ignore_unavailable=false, wait_for_completion=true);
+   ... WITH (ignore_unavailable=true, wait_for_completion=true);
    CREATE OK (... sec)
 
 ::
 
-    cr> SELECT repository, name, state, concrete_indices, error_message
-    ... FROM sys.snapshots order by repository, name;
-    +-------------+-----------------+---------+------------------+---------------+
-    | repository  | name            | state   | concrete_indices | error_message |
-    +=============+=================+=========+==================+===============+
-    | my_repo     | my_snapshot     | SUCCESS | ["abc", "def"]   | NULL          |
-    +-------------+-----------------+---------+------------------+---------------+
-    | my_repo     | failed_snapshot | FAILED  | []               | "bla"         |
-    +-------------+-----------------+---------+------------------+---------------+
-    SELECT 2 rows in set (... sec)
+    cr> SELECT "repository", name, state, concrete_indices
+    ... FROM sys.snapshots order by "repository", name;
+    +------------+-------------+---------+-----------------...-+
+    | repository | name        | state   | concrete_indices    |
+    +------------+-------------+---------+-----------------...-+
+    | my_repo    | my_snapshot | SUCCESS | [...]               |
+    +------------+-------------+---------+-----------------...-+
+    SELECT 1 row in set (... sec)
 
 .. Hidden: drop snapshot
 
     cr> DROP SNAPSHOT "my_repo"."my_snapshot";
-    DROP OK (... sec)
-    cr> DROP SNAPSHOT "my_repo"."failed_snapshot";
     DROP OK (... sec)
 
 .. Hidden: drop repository
