@@ -549,6 +549,8 @@ Blobs
   By default blobs will be stored under the same path as normal data.
   A relative path value is interpreted as relative to ``CRATE_HOME``.
 
+.. _ref-configuration-repositories:
+
 Repositories
 ------------
 

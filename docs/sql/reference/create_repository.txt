@@ -26,11 +26,6 @@ CREATE REPOSITORY will register a new repository in the cluster.
     If the repository configuration points to a location with existing snapshots,
     these are made available to the cluster.
 
-In contrast do :ref:`ref-create-table` the CREATE REPOSITORY command does not
-complain if a repository with the given ``repository_name`` already exists.
-The existing repository will be overridden with the given configuration.
-But, again, the storage location of the repository remains unchanged.
-
 Repositories are declared using a ``repository_name`` and ``type``.
 Further configuration parameters are given in the WITH Clause.
 
@@ -186,8 +181,13 @@ A read-only repository that points to the location of
 a :ref:`ref-create-repository-types-fs` repository via "http", "https", "ftp",
 "file" and "jar" urls. It only allows for :ref:`ref-restore-snapshot` operations.
 
+
 url
 ~~~
 
 This url must point to the root of the shared :ref:`ref-create-repository-types-fs`
 repository.
+
+Due to security reasons only URLs that are whitelisted can be used. URLs can be
+whitelisted in the ``crate.yml`` configuration file. See
+:ref:`ref-configuration-repositories`.
