@@ -21,19 +21,21 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
 public class CreateRepositoryAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final String repositoryName;
     private final String repositoryType;
-    private Settings settings = ImmutableSettings.EMPTY;
+    private final Settings settings;
 
-    public CreateRepositoryAnalyzedStatement(String repositoryName, String repositoryType) {
+    public CreateRepositoryAnalyzedStatement(String repositoryName, String repositoryType, Settings settings) {
         this.repositoryName = repositoryName;
         this.repositoryType = repositoryType;
+        this.settings = settings;
     }
 
     public String repositoryName() {
@@ -44,13 +46,8 @@ public class CreateRepositoryAnalyzedStatement extends AbstractDDLAnalyzedStatem
         return repositoryType;
     }
 
-    @Nullable
     public Settings settings() {
         return settings;
-    }
-
-    public void settings(Settings settings) {
-        this.settings = settings;
     }
 
     @Override
