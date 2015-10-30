@@ -25,6 +25,8 @@ import io.crate.sql.tree.CreateRepository;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 @Singleton
 public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer<CreateRepositoryAnalyzedStatement, CreateRepository> {
@@ -40,10 +42,11 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer<Crea
         // type and settings are validated upon execution
 
         failIfRepositoryExists(repositoryName);
-        CreateRepositoryAnalyzedStatement analyzedStatement = new CreateRepositoryAnalyzedStatement(repositoryName, node.type());
+
+        Settings settings = ImmutableSettings.EMPTY;
         if (node.properties().isPresent()) {
-            analyzedStatement.settings(GenericPropertiesConverter.genericPropertiesToSettings(node.properties().get(), context.parameterContext()));
+            settings = GenericPropertiesConverter.genericPropertiesToSettings(node.properties().get(), context.parameterContext());
         }
-        return analyzedStatement;
+        return new CreateRepositoryAnalyzedStatement(repositoryName, node.type(), settings);
     }
 }
