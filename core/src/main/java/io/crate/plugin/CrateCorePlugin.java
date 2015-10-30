@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.crate.core.CrateComponentLoader;
 import io.crate.module.CrateCoreModule;
@@ -50,7 +51,8 @@ public class CrateCorePlugin extends AbstractPlugin {
 
     private final Settings settings;
     private final CrateComponentLoader crateComponentLoader;
-    private final PluginLoader pluginLoader;
+    @VisibleForTesting
+    final PluginLoader pluginLoader;
 
     private static final ESLogger LOGGER = Loggers.getLogger(CrateCorePlugin.class);
 

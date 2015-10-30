@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -28,6 +29,7 @@ import com.google.common.collect.Lists;
 import io.crate.Plugin;
 import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
+import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -54,9 +56,11 @@ public class PluginLoader {
 
     private final Settings settings;
     private final Environment environment;
-    private final List<Plugin> plugins;
     private final ImmutableMap<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
+
+    @VisibleForTesting
+    final List<Plugin> plugins;
 
     public PluginLoader(Settings settings) {
         this.settings = settings;
@@ -144,10 +148,17 @@ public class PluginLoader {
 
             logger.trace("--- adding plugin [{}]", plugin.getAbsolutePath());
 
-
             try {
+                URL pluginURL = plugin.toURI().toURL();
+                // jar-hell check the plugin against the parent classloader
+                try {
+                    checkJarHell(pluginURL);
+                } catch (Exception e) {
+                    throw new IllegalStateException("failed to load plugin " + pluginURL + " due to jar hell", e);
+                }
+
                 // add the root
-                addURL.invoke(classLoader, plugin.toURI().toURL());
+                addURL.invoke(classLoader, pluginURL);
                 if (plugin.isFile()) {
                     continue;
                 }
@@ -171,7 +182,14 @@ public class PluginLoader {
                     if (!(libFile.getName().endsWith(".jar") || libFile.getName().endsWith(".zip"))) {
                         continue;
                     }
-                    addURL.invoke(classLoader, libFile.toURI().toURL());
+                    URL libURL = libFile.toURI().toURL();
+                    // jar-hell check the plugin lib against the parent classloader
+                    try {
+                        checkJarHell(libURL);
+                        addURL.invoke(classLoader, libURL);
+                    } catch (Exception e) {
+                        logger.warn("Library " + libURL + " of plugin " + pluginURL + " already loaded, will ignore");
+                    }
                 }
             } catch (Throwable e) {
                 logger.warn("failed to add plugin [" + plugin + "]", e);
@@ -303,5 +321,9 @@ public class PluginLoader {
         }
     }
 
-
+    private void checkJarHell(URL url) throws Exception {
+        final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
+        loadedJars.add(url);
+        JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
+    }
 }
