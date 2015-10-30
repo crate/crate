@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.15.3 which includes following changes:
+
+   - fix: REPLICATED DATA at the overview page showed incorrect percentage of
+     of replicated data when number of undereplicated records was higher than
+     number of total records
+
  - Added support for join conditions
 
  - Fix: clean up file descriptors in case of exceptions when retrieving blobs
