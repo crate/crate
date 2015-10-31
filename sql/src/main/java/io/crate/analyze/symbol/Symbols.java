@@ -36,7 +36,8 @@ public class Symbols {
             new com.google.common.base.Function<Symbol, DataType>() {
                 @Nullable
                 @Override
-                public DataType apply(Symbol input) {
+                public DataType apply(@Nullable Symbol input) {
+                    assert input != null : "can't convert null symbol to dataType";
                     return input.valueType();
                 }
             };

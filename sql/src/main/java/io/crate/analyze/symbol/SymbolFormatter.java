@@ -38,7 +38,10 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
         @Nullable
         @Override
-        public String apply(Symbol input) {
+        public String apply(@Nullable Symbol input) {
+            if (input == null) {
+                return null;
+            }
             return INSTANCE.process(input, null);
         }
     };

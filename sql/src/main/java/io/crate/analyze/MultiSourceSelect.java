@@ -41,7 +41,7 @@ import java.util.Map;
 
 public class MultiSourceSelect implements QueriedRelation {
 
-    public class Source {
+    public static class Source {
         private final AnalyzedRelation relation;
         private final QuerySpec querySpec;
 

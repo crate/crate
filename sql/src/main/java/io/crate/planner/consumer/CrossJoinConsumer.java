@@ -79,7 +79,10 @@ public class CrossJoinConsumer implements Consumer {
 
         private static final Predicate<MultiSourceSelect.Source> DOC_TABLE_RELATION = new Predicate<MultiSourceSelect.Source>() {
             @Override
-            public boolean apply(MultiSourceSelect.Source input) {
+            public boolean apply(@Nullable MultiSourceSelect.Source input) {
+                if (input == null) {
+                    return false;
+                }
                 AnalyzedRelation relation = input.relation();
                 return relation instanceof DocTableRelation || relation instanceof QueriedDocTable;
             }
