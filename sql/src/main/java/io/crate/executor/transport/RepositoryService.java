@@ -22,7 +22,9 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
@@ -100,49 +102,66 @@ public class RepositoryService {
 
     public ListenableFuture<Long> execute(CreateRepositoryAnalyzedStatement statement) {
         final SettableFuture<Long> result = SettableFuture.create();
+        final String repoName = statement.repositoryName();
 
-        PutRepositoryRequest request = new PutRepositoryRequest(statement.repositoryName());
+        PutRepositoryRequest request = new PutRepositoryRequest(repoName);
         request.type(statement.repositoryType());
         request.settings(statement.settings());
-        transportActionProvider.transportPutRepositoryAction().execute(request, new PutRepositoryResponseActionListener(result));
+        transportActionProvider.transportPutRepositoryAction().execute(request, new ActionListener<PutRepositoryResponse>() {
+            @Override
+            public void onResponse(PutRepositoryResponse putRepositoryResponse) {
+                result.set(1L);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                final Throwable t = convertRepositoryException(e);
+
+                // in case the put repo action fails in the verificationPhase the repository got already created
+                // but an exception is raised anyway.
+                // --> remove the repo and then return the exception to the user
+                dropIfExists(repoName, new Runnable() {
+                    @Override
+                    public void run() {
+                        result.setException(t);
+                    }
+                });
+            }
+        });
         return result;
     }
 
-    static class PutRepositoryResponseActionListener implements ActionListener<PutRepositoryResponse> {
-        private final SettableFuture<Long> result;
-
-        public PutRepositoryResponseActionListener(SettableFuture<Long> result) {
-            this.result = result;
+    private void dropIfExists(String repoName, Runnable callback) {
+        RepositoryMetaData repository = getRepository(repoName);
+        if (repository == null) {
+            callback.run();
+        } else {
+            execute(new DropRepositoryAnalyzedStatement(repoName)).addListener(callback, MoreExecutors.directExecutor());
         }
+    }
 
-        @Override
-        public void onResponse(PutRepositoryResponse putRepositoryResponse) {
-            result.set(1L);
-        }
+    @VisibleForTesting
+    static Throwable convertRepositoryException(Throwable e) {
+        e = Exceptions.unwrap(e);
+        Throwable cause = e.getCause();
 
-        @Override
-        public void onFailure(Throwable e) {
-            e = Exceptions.unwrap(e);
-            Throwable cause = e.getCause();
-
-            /**
-             * usually the exception looks like:
-             *      RepositoryException
-             *          cause: CreationException (from guice)
-             *                      cause: RepositoryException (with a message that includes the real failure reason
-             *
-             * results in something like: [foo] failed to create repository: [foo] missing location
-             * instead of just: [foo] failed to create repository
-             */
-            if (e instanceof RepositoryException && cause != null) {
-                String msg = e.getMessage();
-                if (cause instanceof CreationException && cause.getCause() != null) {
-                    msg += ": " + cause.getCause().getMessage();
-                }
-                result.setException(new RepositoryException("", msg, e));
-            } else {
-                result.setException(e);
+        /**
+         * usually the exception looks like:
+         *      RepositoryException
+         *          cause: CreationException (from guice)
+         *                      cause: RepositoryException (with a message that includes the real failure reason
+         *
+         * results in something like: [foo] failed to create repository: [foo] missing location
+         * instead of just: [foo] failed to create repository
+         */
+        if (e instanceof RepositoryException && cause != null) {
+            String msg = e.getMessage();
+            if (cause instanceof CreationException && cause.getCause() != null) {
+                msg += ": " + cause.getCause().getMessage();
             }
+            return new RepositoryException("", msg, e);
+        } else {
+            return e;
         }
     }
 }
