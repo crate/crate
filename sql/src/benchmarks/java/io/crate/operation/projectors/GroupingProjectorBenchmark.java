@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.benchmark;
+package io.crate.operation.projectors;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import io.crate.analyze.symbol.Aggregation;

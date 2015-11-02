@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.benchmark;
+package io.crate.operation.join;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -51,7 +51,7 @@ import static org.hamcrest.Matchers.is;
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-nl-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-nl")
-public class NestedLoopStressTest {
+public class NestedLoopOperationBenchmark {
 
     private ThreadPoolExecutor executor;
 

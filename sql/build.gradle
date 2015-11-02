@@ -47,7 +47,6 @@ test {
     jacoco.excludes = ["*Test*"]
 }
 
-
 sourceSets {
     test {
         resources {
@@ -60,10 +59,34 @@ sourceSets {
             include '**/*.jsonp'
         }
     }
+    benchmarks {
+        java {
+            srcDir 'src/benchmarks/java'
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+        }
+
+        dependencies {
+            benchmarksCompile configurations.testCompile
+            benchmarksRuntime configurations.testRuntime
+            benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
+        }
+    }
     shared {
         java {
             srcDir "src/main/java/"
             include "io/crate/action/sql/SQL*"
         }
+    }
+}
+
+task benchmarks(type: Test) {
+    description = "Run internal benchmarks"
+
+    testClassesDir = project.sourceSets.benchmarks.output.classesDir
+    classpath = project.sourceSets.benchmarks.runtimeClasspath
+
+    jacoco {
+        enabled = false
     }
 }
