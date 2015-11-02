@@ -19,7 +19,7 @@ Synopsis
 Description
 ===========
 
-CREATE REPOSITORY will register a new repository in the cluster.
+``CREATE REPOSITORY`` will register a new repository in the cluster.
 
 .. note::
 
@@ -79,38 +79,30 @@ by all master and data nodes in the cluster.
     the possible locations for repositories inside the ``crate.yml`` file
     under ``path.repo`` as list of strings.
 
-Configuration parameters:
+Parameters
+~~~~~~~~~~
 
 .. _ref-create-repository-types-fs-location:
 
-location
-~~~~~~~~
+location  (**Required**)  
+  An absolute or relative path to the directory where snapshots get stored.
+  If the path is relative, it will be appended to the first entry in the
+  :ref:`path.repo <conf-path-repo>` setting.
 
-**Required**
+  Windows UNC paths are allowed as well, given server name and share are specified
+  and backslashes are properly escaped.
 
-An absolute or relative path to the directory where snapshots get stored.
-If the path is relative, it will be appended to the first entry in the
-:ref:`path.repo <conf-path-repo>` setting.
-
-Windows UNC paths are allowed as well, given server name and share are specified
-and backslashes are properly escaped.
-
-Only paths starting with an entry from :ref:`path.repo <conf-path-repo>` are possible.
+  Only paths starting with an entry from :ref:`path.repo <conf-path-repo>` are possible.
 
 compress
-~~~~~~~~
+  ``true`` (Default) or ``false``.
 
-``true`` (Default) or ``false``.
-
-Whether the metadata part of the snapshot should be compressed or not.
-The actual table data is not compressed.
+  Whether the metadata part of the snapshot should be compressed or not.
+  The actual table data is not compressed.
 
 chunk_size
-~~~~~~~~~~
-
-Defines the maximum size of a single file that gets created during snapshot creation.
-Defaults to ``null``. So big files will not be split up into smaller chunks.
-
+  Defines the maximum size of a single file that gets created during snapshot creation.
+  Defaults to ``null``. So big files will not be split up into smaller chunks.
 
 .. _ref-create-repository-types-hdfs:
 
@@ -119,58 +111,44 @@ hdfs
 
 A repository that stores its snapshot inside an HDFS file-system.
 
-uri
-~~~
+Parameters
+~~~~~~~~~~
 
-HDFS uri of the form ``hdfs:// <host>:<port>/`` (Optional).
-If not given, the default filesystem URI for the given Hadoop HDFS configuration
-is used.
+uri
+  HDFS uri of the form ``hdfs:// <host>:<port>/`` (optional).
+  
+  If not given, the default filesystem URI for the given Hadoop HDFS configuration
+  is used.
 
 user
-~~~~
-
-The HDFS user as string (Optional).
+  The HDFS user as string (optional).  
 
 path
-~~~~
-
-HDFS filesystem path to where the data gets stored.
-
+  HDFS filesystem path to where the data gets stored.  
+  
 load_defaults
-~~~~~~~~~~~~~
-
-``true`` (Default) or ``false``
-
-Whether or not to load the default Hadoop Configuration.
-
+  ``true`` (Default) or ``false``.  
+  
+  Whether or not to load the default Hadoop Configuration.  
+  
 conf_location
-~~~~~~~~~~~~~
-
-Comma separated string of files to Hadoop XML configuration files to load.
-
+  Comma separated string of files to Hadoop XML configuration files to load.  
+  
 conf.<key>
-~~~~~~~~~~
-
-dynamic config values added to the Hadoop configuration.
-
+  dynamic config values added to the Hadoop configuration.  
+  
 concurrent_streams
-~~~~~~~~~~~~~~~~~~
-
-The number of concurrent streams to use for backup and restore (Default: 5).
-
+  The number of concurrent streams to use for backup and restore (Default: 5).  
+  
 compress
-~~~~~~~~
-
-``true`` (Default) or ``false``.
-
-Whether the metadata part of the snapshot should be compressed or not.
-The actual table data is not compressed.
-
+  ``true`` (Default) or ``false``.  
+  
+  Whether the metadata part of the snapshot should be compressed or not.
+  The actual table data is not compressed.
+  
 chunk_size
-~~~~~~~~~~
-
-Defines the maximum size of a single file that gets created during snapshot creation.
-Defaults to ``null``. So big files will not be split up into smaller chunks.
+  Defines the maximum size of a single file that gets created during snapshot creation.
+  Defaults to ``null``. So big files will not be split up into smaller chunks.
 
 .. _ref-create-repository-types-url:
 
@@ -181,13 +159,13 @@ A read-only repository that points to the location of
 a :ref:`ref-create-repository-types-fs` repository via "http", "https", "ftp",
 "file" and "jar" urls. It only allows for :ref:`ref-restore-snapshot` operations.
 
+Parameters
+~~~~~~~~~~
 
 url
-~~~
+  This url must point to the root of the shared :ref:`ref-create-repository-types-fs`
+  repository.
 
-This url must point to the root of the shared :ref:`ref-create-repository-types-fs`
-repository.
-
-Due to security reasons only URLs that are whitelisted can be used. URLs can be
-whitelisted in the ``crate.yml`` configuration file. See
-:ref:`ref-configuration-repositories`.
+  Due to security reasons only URLs that are whitelisted can be used. URLs can be
+  whitelisted in the ``crate.yml`` configuration file. See
+  :ref:`ref-configuration-repositories`.
