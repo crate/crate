@@ -39,35 +39,6 @@ dependencies {
 }
 
 test {
-    testLogging {
-        exceptionFormat = 'full'
-    }
-
-    jacoco {
-        excludes = [ "*Test*" ]
-    }
-}
-
-
-sourceSets {
-    main {
-        resources {
-            srcDir 'src/main/java'
-            include '**/*.py'
-        }
-    }
-    test {
-        resources {
-            srcDir 'src/test/java'
-            include '**/*.txt'
-            include '**/*.rst'
-            include '**/*.json'
-        }
-        resources {
-            srcDir 'src/test/resources'
-            include '**/*.txt'
-            include '**/*.rst'
-            include '**/*.json'
-        }
-    }
+    testLogging.exceptionFormat = 'full'
+    jacoco.enabled = false
 }
