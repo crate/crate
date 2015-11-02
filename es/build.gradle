@@ -5,17 +5,6 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    lucenetest
-    testOutput.extendsFrom (testCompile, lucenetest)
-}
-
-idea {
-    module {
-        scopes.TEST.plus.add(0, configurations.lucenetest)
-    }
-}
-
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-XDignore.symbol.file'
     options.fork = true // may not needed on 1.8
@@ -70,8 +59,6 @@ dependencies {
     compile 'org.apache.lucene:lucene-spatial:4.10.4'
     compile 'org.apache.lucene:lucene-suggest:4.10.4'
 
-    // keep sigar out, see below
-    testCompile 'org.fusesource:sigar:1.6.4'
     // we add the sigar libs as system dep since it is checked in
     compile fileTree(dir: 'upstream/lib/sigar/', include: '*.jar')
 
@@ -84,32 +71,21 @@ dependencies {
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile 'com.google.jimfs:jimfs:1.0'
 
-    lucenetest ('junit:junit:4.11') {
+    testCompile ('junit:junit:4.11') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-    lucenetest ('org.apache.lucene:lucene-test-framework:4.10.4') {
+    testCompile ('org.apache.lucene:lucene-test-framework:4.10.4') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('org.apache.lucene:lucene-codecs:4.10.4') {
+    testCompile ('org.apache.lucene:lucene-codecs:4.10.4') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.11') {
+    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.11') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest 'com.carrotsearch.randomizedtesting:junit4-ant:2.1.6'
+    testCompile 'com.carrotsearch.randomizedtesting:junit4-ant:2.1.6'
 }
 
-sourceSets.test.compileClasspath = configurations.lucenetest + sourceSets.test.compileClasspath
-sourceSets.test.runtimeClasspath = configurations.lucenetest + sourceSets.test.runtimeClasspath
-
-task testJar (type: Jar, dependsOn: testClasses) {
-    from sourceSets.test.output
-    classifier = 'test'
-}
-
-artifacts {
-    testOutput testJar
-}
 
 test {
     enabled = false

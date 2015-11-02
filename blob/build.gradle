@@ -7,8 +7,6 @@ configurations {
     all*.exclude group: 'org.elasticsearch'
 }
 
-evaluationDependsOn(':testing')
-
 dependencies {
     compile project(':es')
     compile project(':core')
@@ -17,17 +15,5 @@ dependencies {
 
 test {
     testLogging.exceptionFormat = 'full'
-
-    jacoco {
-        excludes = [ "*Test*" ]
-    }
-}
-
-sourceSets {
-    test {
-        resources {
-            srcDir 'src/test/java'
-            include '**/*.rst'
-        }
-    }
+    jacoco.excludes = ["*Test*"]
 }

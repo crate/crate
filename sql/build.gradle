@@ -29,7 +29,6 @@ dependencies {
         exclude group: 'junit', module: 'junit'
         exclude group: 'org.mockito', module: 'mockito-all'
     }
-    testCompile 'org.javassist:javassist:3.19.0-GA'
 }
 
 buildscript {
@@ -40,18 +39,12 @@ buildscript {
 
 test {
     testLogging.exceptionFormat = 'full'
-    exclude('io/crate/benchmark/**')
 
     // fix powermock issue - causing VerifyErrors being thrown
     // see: https://issues.jboss.org/browse/JASSIST-228
     jvmArgs '-XX:-UseSplitVerifier'
 
-    jacoco {
-        excludes = [
-            "*Test*",
-            "*Benchmark*"
-        ]
-    }
+    jacoco.excludes = ["*Test*"]
 }
 
 
