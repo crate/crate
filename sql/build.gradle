@@ -81,7 +81,7 @@ sourceSets {
 }
 
 task benchmarks(type: Test) {
-    description = "Run unit benchmarks"
+    description = "Run internal benchmarks"
 
     testClassesDir = project.sourceSets.benchmarks.output.classesDir
     classpath = project.sourceSets.benchmarks.runtimeClasspath

@@ -19,16 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.benchmark;
+package lucene;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
-import io.crate.operation.Paging;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
@@ -36,17 +37,13 @@ import io.crate.testing.LuceneDocCollectorProvider;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -59,7 +56,8 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
-public class LuceneDocCollectorBenchmark extends BenchmarkBase {
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
@@ -82,9 +80,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         }
     }
 
-    @Override
-    public byte[] generateRowSource() throws IOException {
-        Random random = getRandom();
+    private byte[] generateRowSource() throws IOException {
+        Random random = RandomizedTest.getRandom();
         byte[] buffer = new byte[32];
         random.nextBytes(buffer);
         return XContentFactory.jsonBuilder()
@@ -99,16 +96,12 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
     }
 
     @Override
-    public boolean generateData() {
-        return true;
-    }
-
-
-    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        collectorProvider = new LuceneDocCollectorProvider(CLUSTER);
+        collectorProvider = new LuceneDocCollectorProvider(internalCluster());
+        createTable();
+        doGenerateData();
     }
 
     @After
@@ -116,9 +109,8 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
         collectorProvider.close();
     }
 
-    @Override
-    protected void createTable() {
-        execute("create table \"" + INDEX_NAME + "\" (" +
+    private void createTable() {
+        execute("create table countries (" +
                 " \"areaInSqKm\" float," +
                 " capital string," +
                 " continent string," +
@@ -135,51 +127,47 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
                 " \"isoAlpha3\" string," +
                 " \"isoNumeric\" string," +
                 " population integer" +
-                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
-        client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
+                ") clustered into 1 shards with (number_of_replicas=0)");
+        client().admin().cluster().prepareHealth("countries").setWaitForGreenStatus().execute().actionGet();
     }
 
-    @Override
-    protected void doGenerateData() throws Exception {
-        if (!dataGenerated) {
+    private void doGenerateData() throws Exception {
+        logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        for (int i=0; i<4; i++) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
+                    logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
+                    Client client = internalCluster().client();
+                    BulkRequest bulkRequest = new BulkRequest();
 
-            logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
-            ExecutorService executor = Executors.newFixedThreadPool(4);
-            for (int i=0; i<4; i++) {
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
-                        logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
-                        Client client = getClient(false);
-                        BulkRequest bulkRequest = new BulkRequest();
-
-                        for (int i=0; i < numDocsToCreate; i+=1000) {
-                            bulkRequest.requests().clear();
-                            try {
-                                byte[] source = generateRowSource();
-                                for (int j=0; j<1000;j++) {
-                                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME, "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
-                                    indexRequest.source(source);
-                                    bulkRequest.add(indexRequest);
-                                }
-                                BulkResponse response = client.bulk(bulkRequest).actionGet();
-                                assertFalse(response.hasFailures());
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                    for (int i=0; i < numDocsToCreate; i+=1000) {
+                        bulkRequest.requests().clear();
+                        try {
+                            byte[] source = generateRowSource();
+                            for (int j=0; j<1000;j++) {
+                                IndexRequest indexRequest = new IndexRequest("countries", "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
+                                indexRequest.source(source);
+                                bulkRequest.add(indexRequest);
                             }
+                            BulkResponse response = client.bulk(bulkRequest).actionGet();
+                            Assert.assertFalse(response.hasFailures());
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                });
-            }
-            executor.shutdown();
-            executor.awaitTermination(2L, TimeUnit.MINUTES);
-            executor.shutdownNow();
-            getClient(true).admin().indices().prepareFlush(INDEX_NAME).execute().actionGet();
-            refresh(client());
-            dataGenerated = true;
-            logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
+                }
+            });
         }
+        executor.shutdown();
+        executor.awaitTermination(2L, TimeUnit.MINUTES);
+        executor.shutdownNow();
+        internalCluster().client().admin().indices().prepareFlush("countries").execute().actionGet();
+        refresh();
+        dataGenerated = true;
+        logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
     }
 
 
@@ -263,41 +251,5 @@ public class LuceneDocCollectorBenchmark extends BenchmarkBase {
             rowReceiver.resumeUpstream(false);
         }
         rowReceiver.result();
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testElasticsearchOrderedWithScrollingPerformance() throws Exception{
-        int totalHits = 0;
-        SearchResponse response = getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
-                                    .addField("continent")
-                                    .addSort(SortBuilders.fieldSort("continent").missing("_last"))
-                                    .setScroll("1m")
-                                    .setSize(Paging.PAGE_SIZE)
-                                    .execute().actionGet();
-        totalHits += response.getHits().hits().length;
-        while ( totalHits < NUMBER_OF_DOCUMENTS) {
-            response = getClient(true).prepareSearchScroll(response.getScrollId()).setScroll("1m").execute().actionGet();
-            totalHits += response.getHits().hits().length;
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testElasticsearchOrderedWithoutScrollingPerformance() throws Exception{
-        getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
-                .addField("continent")
-                .addSort(SortBuilders.fieldSort("continent").missing("_last"))
-                .setSize(NUMBER_OF_DOCUMENTS)
-                .execute().actionGet();
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testElasticsearchUnorderedWithoutScrollingPerformance() throws Exception{
-        getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
-                .addField("continent")
-                .setSize(NUMBER_OF_DOCUMENTS)
-                .execute().actionGet();
     }
 }

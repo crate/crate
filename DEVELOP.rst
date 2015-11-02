@@ -262,21 +262,23 @@ Benchmark
 
 There are two types of benchmarks within the project:
 
-Integration Benchmarks
+External Benchmarks
 ----------------------
 
-Integration benchmarks which start a full node and benchmark full SQL queries.
+External benchmarks only require a crate client and execute SQL statements
+against one or more crate nodes.
+
 Those benchmarks can be run using::
 
-  $ ./gradlew integrationBenchmarks
+  $ ./gradlew externalBenchmarks
 
 It will output some results to stdout (read between the lines) and finally you
 will receive information where more detailed benchmark-results got stored.
 
-Unit benchmarks
----------------
+internal benchmarks
+-------------------
 
-Unit benchmarks are part of the SQL module and test a specific component or
+Internal benchmarks are part of the SQL module and test a specific component or
 unit and can be run using::
 
     $ ./gradlew benchmarks
