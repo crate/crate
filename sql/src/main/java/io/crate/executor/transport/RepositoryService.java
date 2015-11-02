@@ -27,11 +27,15 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.RepositoryUnknownException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -39,20 +43,39 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.repositories.RepositoryException;
 
+import javax.annotation.Nullable;
+
 @Singleton
-public class RepositoryDDLDispatcher {
+public class RepositoryService {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(RepositoryDDLDispatcher.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(RepositoryService.class);
 
+    private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
 
     @Inject
-    public RepositoryDDLDispatcher(TransportActionProvider transportActionProvider) {
+    public RepositoryService(ClusterService clusterService,
+                             TransportActionProvider transportActionProvider) {
+        this.clusterService = clusterService;
         this.transportActionProvider = transportActionProvider;
-
     }
 
-    public ListenableFuture<Long> dispatch(DropRepositoryAnalyzedStatement analyzedStatement) {
+    @Nullable
+    public RepositoryMetaData getRepository(String repositoryName) {
+        RepositoriesMetaData repositories = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
+        if (repositories != null) {
+            return repositories.repository(repositoryName);
+        }
+        return null;
+    }
+
+    public void failIfRepositoryDoesNotExist(String repositoryName) {
+        if (getRepository(repositoryName) == null) {
+            throw new RepositoryUnknownException(repositoryName);
+        }
+    }
+
+    public ListenableFuture<Long> execute(DropRepositoryAnalyzedStatement analyzedStatement) {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
         transportActionProvider.transportDeleteRepositoryAction().execute(
@@ -75,7 +98,7 @@ public class RepositoryDDLDispatcher {
         return future;
     }
 
-    public ListenableFuture<Long> dispatch(CreateRepositoryAnalyzedStatement statement) {
+    public ListenableFuture<Long> execute(CreateRepositoryAnalyzedStatement statement) {
         final SettableFuture<Long> result = SettableFuture.create();
 
         PutRepositoryRequest request = new PutRepositoryRequest(statement.repositoryName());

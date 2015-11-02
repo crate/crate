@@ -25,8 +25,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -37,20 +38,23 @@ import java.util.Locale;
 import java.util.Set;
 
 @Singleton
-public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer<CreateRepositoryAnalyzedStatement, CreateRepository> {
+public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
 
     private final ParamValidator paramValidator;
+    private final RepositoryService repositoryService;
 
     @Inject
-    CreateRepositoryAnalyzer(ClusterService clusterService) {
-        super(clusterService);
+    CreateRepositoryAnalyzer(RepositoryService repositoryService) {
+        this.repositoryService = repositoryService;
         this.paramValidator = new ParamValidator();
     }
 
     @Override
     public CreateRepositoryAnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
         String repositoryName = node.repository();
-        failIfRepositoryExists(repositoryName);
+        if (repositoryService.getRepository(repositoryName) != null) {
+            throw new RepositoryAlreadyExistsException(repositoryName);
+        }
 
         Settings settings = ImmutableSettings.EMPTY;
         if (node.properties().isPresent()) {

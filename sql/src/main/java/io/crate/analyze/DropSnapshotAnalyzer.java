@@ -22,19 +22,21 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.DropSnapshot;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
 
 @Singleton
-public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer<DropSnapshotAnalyzedStatement, DropSnapshot> {
+public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer {
+
+    private final RepositoryService repositoryService;
 
     @Inject
-    public DropSnapshotAnalyzer(ClusterService clusterService) {
-        super(clusterService);
+    public DropSnapshotAnalyzer(RepositoryService repositoryService) {
+        this.repositoryService = repositoryService;
     }
 
     @Override
@@ -44,7 +46,7 @@ public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer<DropSnap
                 "Snapshot name not supported, only <repository>.<snapshot> works.");
 
         String repositoryName = parts.get(0);
-        failIfRepositoryDoesNotExist(repositoryName);
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         return new DropSnapshotAnalyzedStatement(repositoryName, parts.get(1));
     }
