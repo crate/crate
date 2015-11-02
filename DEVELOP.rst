@@ -260,12 +260,26 @@ the findbugs check will also be executed when running::
 Benchmark
 =========
 
-A Benchmark for our SQL Interface can be run by calling::
+There are two types of benchmarks within the project:
 
-  $ ./gradlew bench
+Integration Benchmarks
+----------------------
+
+Integration benchmarks which start a full node and benchmark full SQL queries.
+Those benchmarks can be run using::
+
+  $ ./gradlew integrationBenchmarks
 
 It will output some results to stdout (read between the lines) and finally you
 will receive information where more detailed benchmark-results got stored.
+
+Unit benchmarks
+---------------
+
+Unit benchmarks are part of the SQL module and test a specific component or
+unit and can be run using::
+
+    $ ./gradlew benchmarks
 
 Preparing a new Release
 =======================

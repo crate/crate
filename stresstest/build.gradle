@@ -34,8 +34,8 @@ task stress(type: Test) {
     }
 }
 
-task bench(type: Test, dependsOn: [':core:getVersion']) {
-    description = 'Run the Crate JUnit Benchmarks'
+task integrationBenchmarks(type: Test, dependsOn: [':core:getVersion']) {
+    description = 'Run the Crate Integration Benchmarks'
     group = 'crate'
 
     doFirst {

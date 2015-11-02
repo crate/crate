@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.benchmark;
+package io.crate.operation.merge;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
