@@ -29,16 +29,13 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.CreateSnapshot;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.ClusterService;
+import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -49,12 +46,14 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
-import static io.crate.analyze.SnapshotSettings.*;
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 @Singleton
-public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer<CreateSnapshotAnalyzedStatement, CreateSnapshot> {
+public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotStatementAnalyzer.class);
+    private final RepositoryService repositoryService;
     private final Schemas schemas;
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
@@ -65,8 +64,8 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
 
 
     @Inject
-    public CreateSnapshotStatementAnalyzer(ClusterService clusterService, Schemas schemas) {
-        super(clusterService);
+    public CreateSnapshotStatementAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+        this.repositoryService = repositoryService;
         this.schemas = schemas;
     }
 
@@ -77,7 +76,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         Preconditions.checkArgument(repositoryName.isPresent(), "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");
         Preconditions.checkArgument(repositoryName.get().getParts().size() == 1,
                 String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName.get()));
-        failIfRepositoryDoesNotExist(repositoryName.get().toString());
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName.get().toString());
 
         // snapshot existence in repo is validated upon execution
         String snapshotName = node.name().getSuffix();

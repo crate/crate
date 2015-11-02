@@ -22,49 +22,12 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.RepositoryAlreadyExistsException;
-import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Node;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
-import org.elasticsearch.common.Nullable;
 
-public class AbstractRepositoryDDLAnalyzer<R extends AbstractDDLAnalyzedStatement, N extends Node> extends DefaultTraversalVisitor<R, Analysis> {
+public class AbstractRepositoryDDLAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
-    private final ClusterService clusterService;
-
-    public AbstractRepositoryDDLAnalyzer(ClusterService clusterService) {
-        this.clusterService = clusterService;
-    }
-
-    @Nullable
-    protected RepositoryMetaData repository(String repositoryName) {
-        RepositoriesMetaData repositories = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
-        if (repositories != null) {
-            return repositories.repository(repositoryName);
-        }
-        return null;
-    }
-
-    protected boolean repositoryExists(String repositoryName) {
-        return repository(repositoryName) != null;
-    }
-
-    protected void failIfRepositoryDoesNotExist(String repositoryName) {
-        if (!repositoryExists(repositoryName)) {
-            throw new RepositoryUnknownException(repositoryName);
-        }
-    }
-
-    protected void failIfRepositoryExists(String repositoryName) {
-        if (repositoryExists(repositoryName)) {
-            throw new RepositoryAlreadyExistsException(repositoryName);
-        }
-    }
-
-    public AnalyzedStatement analyze(N node, Analysis analysis) {
+    public AnalyzedStatement analyze(Node node, Analysis analysis) {
         analysis.expectsAffectedRows(true);
         return process(node, analysis);
     }

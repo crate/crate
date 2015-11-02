@@ -28,6 +28,7 @@ import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -36,7 +37,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -48,19 +48,19 @@ import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 @Singleton
-public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer<RestoreSnapshotAnalyzedStatement, RestoreSnapshot> {
+public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
             .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
             .build();
 
+    private final RepositoryService repositoryService;
     private final Schemas schemas;
 
     @Inject
-    public RestoreSnapshotStatementAnalyzer(ClusterService clusterService,
-                                            Schemas schemas) {
-        super(clusterService);
+    public RestoreSnapshotStatementAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+        this.repositoryService = repositoryService;
         this.schemas = schemas;
     }
 
@@ -69,7 +69,7 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
         List<String> nameParts = node.name().getParts();
         Preconditions.checkArgument(nameParts.size() == 2, "Snapshot name not supported, only <repository>.<snapshot> works.");
         String repositoryName = nameParts.get(0);
-        failIfRepositoryDoesNotExist(repositoryName);
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
