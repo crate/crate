@@ -43,8 +43,8 @@ public class PutRepositoryResponseActionListenerTest extends CrateUnitTest {
         expectedException.expectMessage("[foo] failed: [foo] missing location");
 
         SettableFuture<Long> future = SettableFuture.create();
-        RepositoryDDLDispatcher.PutRepositoryResponseActionListener listener =
-                new RepositoryDDLDispatcher.PutRepositoryResponseActionListener(future);
+        RepositoryService.PutRepositoryResponseActionListener listener =
+                new RepositoryService.PutRepositoryResponseActionListener(future);
 
         listener.onFailure(new RepositoryException("foo", "failed", new CreationException(ImmutableList.of(
                 new Message(Collections.<Object>singletonList(10),

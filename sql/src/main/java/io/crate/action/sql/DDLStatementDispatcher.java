@@ -51,7 +51,7 @@ public class DDLStatementDispatcher {
     private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
-    private final RepositoryDDLDispatcher repositoryDDLDispatcher;
+    private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
@@ -61,14 +61,14 @@ public class DDLStatementDispatcher {
     public DDLStatementDispatcher(BlobIndices blobIndices,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
-                                  RepositoryDDLDispatcher repositoryDDLDispatcher,
+                                  RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
         this.blobIndices = blobIndices;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
-        this.repositoryDDLDispatcher = repositoryDDLDispatcher;
+        this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
     }
 
@@ -150,12 +150,12 @@ public class DDLStatementDispatcher {
 
         @Override
         public ListenableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, UUID jobId) {
-            return repositoryDDLDispatcher.dispatch(analysis);
+            return repositoryService.execute(analysis);
         }
 
         @Override
         public ListenableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, UUID jobId) {
-            return repositoryDDLDispatcher.dispatch(analysis);
+            return repositoryService.execute(analysis);
         }
 
         @Override

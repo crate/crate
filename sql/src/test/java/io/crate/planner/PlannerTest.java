@@ -14,6 +14,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.*;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -125,6 +126,7 @@ public class PlannerTest extends CrateUnitTest {
 
         @Override
         protected void configure() {
+            bind(RepositoryService.class).toInstance(mock(RepositoryService.class));
             bind(TableStatsService.class).toInstance(mock(TableStatsService.class));
             bind(ThreadPool.class).toInstance(threadPool);
             clusterService = mock(ClusterService.class);
