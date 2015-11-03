@@ -37,7 +37,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class PluginLoaderTest extends ElasticsearchIntegrationTest {
 
     @Test

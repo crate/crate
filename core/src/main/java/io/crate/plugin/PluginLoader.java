@@ -30,6 +30,7 @@ import io.crate.Plugin;
 import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -43,10 +44,8 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.net.URLClassLoader;
+import java.util.*;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
@@ -67,9 +66,10 @@ public class PluginLoader {
         environment = new Environment(settings);
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
 
-        loadPluginsIntoClassLoader();
-
-        ResourceFinder finder = new ResourceFinder(RESOURCE_PATH);
+        List<URL> pluginUrls = getPluginUrls();
+        URL[] urls = pluginUrls.toArray(new URL[pluginUrls.size()]);
+        ClassLoader loader = URLClassLoader.newInstance(urls, getClass().getClassLoader());
+        ResourceFinder finder = new ResourceFinder(RESOURCE_PATH, loader, urls);
         List<Class<? extends Plugin>> implementations = null;
         try {
             implementations = finder.findAllImplementations(Plugin.class);
@@ -77,8 +77,8 @@ public class PluginLoader {
             logger.error("plugin does implement io.crate.Plugin interface", e);
         } catch (ClassNotFoundException e) {
             logger.error("error while loading plugin, misconfigured plugin", e);
-        } catch (Exception e) {
-            logger.error("error while loading plugins", e);
+        } catch (Throwable t) {
+            logger.error("error while loading plugins", t);
         }
 
         if (implementations == null) {
@@ -90,12 +90,23 @@ public class PluginLoader {
         MapBuilder<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
         ImmutableList.Builder<Plugin> builder = ImmutableList.builder();
         for (Class<? extends Plugin> pluginClass : implementations) {
-            Plugin plugin = loadPlugin(pluginClass);
-            builder.add(plugin);
-            List<CrateComponentLoader.OnModuleReference> onModuleReferenceList = loadModuleReferences(plugin);
-            if (!onModuleReferenceList.isEmpty()) {
-                onModuleReferences.put(plugin, onModuleReferenceList);
+            Plugin plugin;
+            try {
+                plugin = loadPlugin(pluginClass);
+            } catch (Throwable t) {
+                logger.error("error loading plugin:  " + pluginClass.getSimpleName(), t);
+                continue;
             }
+            try {
+                List<CrateComponentLoader.OnModuleReference> onModuleReferenceList = loadModuleReferences(plugin);
+                if (!onModuleReferenceList.isEmpty()) {
+                    onModuleReferences.put(plugin, onModuleReferenceList);
+                }
+            } catch (Throwable t) {
+                logger.error("error loading moduleReferences from plugin: " + plugin.name(), t);
+                continue;
+            }
+            builder.add(plugin);
         }
         plugins = builder.build();
         this.onModuleReferences = onModuleReferences.immutableMap();
@@ -110,36 +121,19 @@ public class PluginLoader {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void loadPluginsIntoClassLoader() {
+    @Nullable
+    private List<URL> getPluginUrls() {
         File pluginsDirectory = environment.pluginsFile();
         if (!isAccessibleDirectory(pluginsDirectory, logger)) {
-            return;
-        }
-
-        ClassLoader classLoader = settings.getClassLoader();
-        Class classLoaderClass = classLoader.getClass();
-        Method addURL = null;
-        while (!classLoaderClass.equals(Object.class)) {
-            try {
-                addURL = classLoaderClass.getDeclaredMethod("addURL", URL.class);
-                addURL.setAccessible(true);
-                break;
-            } catch (NoSuchMethodException e) {
-                // no method, try the parent
-                classLoaderClass = classLoaderClass.getSuperclass();
-            }
-        }
-        if (addURL == null) {
-            logger.debug("failed to find addURL method on classLoader [" + classLoader + "] to add methods");
-            return;
+            return Collections.emptyList();
         }
 
         File[] plugins = pluginsDirectory.listFiles();
         if (plugins == null) {
-            return;
+            return Collections.emptyList();
         }
 
+        List<URL> pluginUrls = new ArrayList<>();
         for (File plugin : plugins) {
             if (!plugin.canRead()) {
                 logger.debug("[{}] is not readable.", plugin.getAbsolutePath());
@@ -157,8 +151,7 @@ public class PluginLoader {
                     throw new IllegalStateException("failed to load plugin " + pluginURL + " due to jar hell", e);
                 }
 
-                // add the root
-                addURL.invoke(classLoader, pluginURL);
+                pluginUrls.add(pluginURL);
                 if (plugin.isFile()) {
                     continue;
                 }
@@ -186,7 +179,7 @@ public class PluginLoader {
                     // jar-hell check the plugin lib against the parent classloader
                     try {
                         checkJarHell(libURL);
-                        addURL.invoke(classLoader, libURL);
+                        pluginUrls.add(libURL);
                     } catch (Exception e) {
                         logger.warn("Library " + libURL + " of plugin " + pluginURL + " already loaded, will ignore");
                     }
@@ -195,6 +188,7 @@ public class PluginLoader {
                 logger.warn("failed to add plugin [" + plugin + "]", e);
             }
         }
+        return pluginUrls;
     }
 
 
