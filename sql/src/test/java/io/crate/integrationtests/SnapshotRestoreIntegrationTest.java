@@ -325,7 +325,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 with (" +
                 "wait_for_completion=true)");
 
-        execute("select schema_name || '.' || table_name from information_schema.tables where schema_name='doc'");
+        execute("select schema_name || '.' || table_name from information_schema.tables where schema_name='doc' order by 1");
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table_1\ndoc.my_table_2\n"));
     }
 
