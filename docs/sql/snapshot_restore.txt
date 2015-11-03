@@ -229,18 +229,13 @@ Requirements for using repositories of type 'hdfs'
 Crate supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required
 `Hadoop`_ java client libraries are not included in any Crate
-distribution. Therefore they needed to be installed into Crate's
-CLASSPATH on every node. The default CLASSPATH of Crate is ``$CRATE_HOME/lib/``.
+distribution. Therefore they needed to be added to Crate's hdfs plugin lib
+folder. As default it's ``$CRATE_HOME/plugins/hdfs/lib``
 
 Because some libraries `Hadoop`_ depends on are also depended (and so
-deployed) by Crate, we please you to only installed `Hadoop`_
-libraries listed below for the concrete `Hadoop`_ version.
-
-.. warning::
-
-   Do not just copy over all libraries which the `Hadoop`_ java client
-   depends on as this will result in un-expected behaviour of crate
-   through possible version conflicts.
+deployed) by Crate, only the `Hadoop`_
+libraries listed below for the concrete `Hadoop`_ version must be
+copied, other libraries will be ignored.
 
 .. note::
 
