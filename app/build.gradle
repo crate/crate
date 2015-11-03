@@ -307,7 +307,9 @@ distributions {
                 from jar
             }
             into('plugins') {
-                from 'plugins'
+                from ('plugins') {
+                    includeEmptyDirs = true
+                }
             }
             into('bin') {
                 from ("${downloadDir}/crash_standalone") {
@@ -390,9 +392,11 @@ task downloadPlugins << {
             "https://bintray.com/artifact/download/crate/crate/io/crate/crate-repository-hdfs/${plugin_repository_hdfs_version}/crate-repository-hdfs-${plugin_repository_hdfs_version}.jar",
             "crate-repository-hdfs-${plugin_repository_hdfs_version}.jar"
     )
+    def hdfsLib = new File(project.projectDir, 'plugins/hdfs/lib')
+    hdfsLib.mkdirs()
     copy {
         from dest
-        into 'plugins'
+        into 'plugins/hdfs'
     }
 }
 
