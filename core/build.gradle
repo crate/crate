@@ -11,7 +11,9 @@ configurations {
 dependencies {
     compile project(':es')
     compile 'commons-codec:commons-codec:1.9'
-    compile 'org.apache.xbean:xbean-finder:4.2'
+    compile ('org.apache.xbean:xbean-finder:4.2') {
+        exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
+    }
 
     testCompile project(':testing')
 }

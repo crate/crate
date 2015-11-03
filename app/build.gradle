@@ -62,8 +62,6 @@ dependencies {
     compileNotTransitive project(':client')
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':ec2-discovery')
-
-    compileNotTransitive fileTree(dir: '../es/upstream/lib/sigar/', include: '*.jar')
 }
 
 task release(dependsOn: 'distTar') << {
@@ -290,15 +288,8 @@ distributions {
             }
             into("lib") {
                 from project.configurations.runtime
-                // sigar gets included from the checked in runtime dependency in :es:
                 exclude 'sigar-*.jar'
-
-                exclude 'crate-blob.jar'
-                exclude 'crate-core.jar'
-                exclude 'crate-sql-parser.jar'
-                exclude 'crate-sql.jar'
-                exclude 'crate-udc.jar'
-                exclude 'crate-client.jar'
+                exclude 'crate-*.jar'
                 exclude 'es.jar'
             }
             into("lib") {
