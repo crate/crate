@@ -84,7 +84,7 @@ Arguments
              if not stated otherwise using the ``operator`` option, so only
              one of the resulting tokens has to match to include a row.
 
-:match_type: Optional. Defaults to ``best_fields``. For details see :ref:`predicates_match_types`.
+:match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For details see :ref:`predicates_match_types`.
 
 
 .. _predicates_match_types:
@@ -94,7 +94,7 @@ Match Types
 
 The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_ddl_system_column_score>`
 is created, thus it influences which documents are considered more relevant.
-The default ``match_type`` is ``best_fields``.
+The default ``match_type`` for fulltext indices is ``best_fields``.
 
 :best_fields: Use the :ref:`_score <sql_ddl_system_column_score>` of the column that matched best.
               For example if a column contains all the tokens of the ``query_term``
