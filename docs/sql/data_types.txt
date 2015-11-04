@@ -612,15 +612,6 @@ Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
     +---------------------------+
     SELECT 1 row in set (... sec)
 
-However since there is no casting function available for ``object``,
-``geopoint``, and ``geoshape``, a ``try_cast`` to and from one of these types
-will result in an exception:
-
-::
-
-    cr> select try_cast(name as object) from sys.nodes limit 1;
-    SQLActionException[No cast function found for return type object]
-
 
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
