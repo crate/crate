@@ -9,16 +9,12 @@ Scalar functions return a single data value (not a table).
 
 .. note::
 
-    In UPDATE and DELETE statements scalar functions cannot be used in the WHERE
+    In DELETE statements scalar functions cannot be used in the WHERE
     clause unless otherwise described in the function description below.
 
     In the case it is stated below that the scalar function can always be used
     in a WHERE clause it is still not possible to compare one scalar function
-    with another in UPDATE and DELETE statements.
-
-.. note::
-
-    Scalar functions cannot be used in the SET clause of an UPDATE statement.
+    with another in DELETE statements.
 
 See below for a list of available scalar functions.
 
