@@ -152,6 +152,8 @@ Id's of all currently available data types:
     ----- -------------------
     13    GeoPoint (Double[])
     ----- -------------------
+    14    GeoShape
+    ----- -------------------
     100   Array
     ----- -------------------
     101   Set
