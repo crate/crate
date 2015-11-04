@@ -14,6 +14,51 @@ records are queried.
 Data type names are reserved words and need to be escaped
 when used as column names.
 
+Classification
+==============
+
+.. _sql_ddl_datatypes_primitives:
+
+Primitive types
+---------------
+
+Primitive types represent primitive values.
+These are values that are atomic, not composed of separate parts,
+no containers or collections.
+
+* `boolean`_
+* `byte <numeric types>`_
+* `short <numeric types>`_
+* `integer <numeric types>`_
+* `long <numeric types>`_
+* `float <numeric types>`_
+* `double <numeric types>`_
+* `string`_
+* `ip`_
+* `timestamp`_
+
+.. _sql_ddl_datatypes_geographic:
+
+Geographic Types
+----------------
+
+Geographic types represent points or shapes in a 2d world:
+
+* `geo_point`_
+* `geo_shape`_
+
+.. _sql_ddl_datatypes_compound:
+
+Compound Types
+--------------
+
+Compound types represent values that are composed out of
+distinct parts like containers or collections:
+
+* `object`_
+* `array`_
+
+
 boolean
 =======
 
@@ -29,6 +74,8 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
     cr> drop table my_bool_table;
     DROP OK (... sec)
 
+
+.. _data-type-string:
 
 string
 ======
@@ -410,6 +457,8 @@ New columns added to ``ignored`` objects can be retrieved as result column in a 
 but one cannot order by them or use them in a where clause. They are simply there for fetching,
 nothing else.
 
+.. _data-type-object-literals:
+
 Object Literals
 ---------------
 
@@ -611,7 +660,6 @@ Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
     | NULL                      |
     +---------------------------+
     SELECT 1 row in set (... sec)
-
 
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
