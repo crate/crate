@@ -271,8 +271,8 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_crateadmin_version = '0.15.2'
-    crash_version = '0.14.1'
+    plugin_crateadmin_version = '0.15.3'
+    crash_version = '0.14.2'
 }
 
 def rootDir = project.parent.projectDir
