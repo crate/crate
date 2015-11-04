@@ -402,6 +402,8 @@ The ``timezone`` will be ``UTC`` if not provided::
 Geo Functions
 =============
 
+.. _scalar_distance:
+
 distance(geo_point1, geo_point2) returns double
 -----------------------------------------------
 
@@ -437,6 +439,8 @@ the other argument must be a column reference.
     `where distance(...) = 0` might not yield anything at all due to the
     precision difference.
 
+.. _scalar_within:
+
 within(shape1, shape2) returns boolean
 --------------------------------------
 
@@ -460,8 +464,39 @@ casting from strings to geo point and geo shapes::
     +--------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-This function can always be used within a ``WHERE`` clause.
+This function can always be used within the ``WHERE`` clause.
 
+.. _scalar_intersect:
+
+intersect(geo_shape, geo_shape) returns boolean
+-----------------------------------------------
+
+The ``intersect`` function returns true if both argument shapes
+share some points or area, they *overlap*. This also includes two shapes
+where one lies :ref:`within <scalar_within>` the other.
+If ``false`` is returned both shapes are *disjoint*.
+
+Example::
+
+    cr> select
+    ... intersect(
+    ...   {type='Polygon', coordinates=[[[13.4252, 52.7096],[13.9416, 52.0997],[12.7221, 52.1334],[13.4252, 52.7096]]]}
+    ...   'LINESTRING(13.9636 52.6763, 13.2275 51.9578, 12.9199 52.5830, 11.9970 52.6830'
+    ... ) as intersect
+    ... intersect(
+    ...   {type='Polygon', coordinates=[[[13.4252, 52.7096],[13.9416, 52.0997],[12.7221, 52.1334],[13.4252, 52.7096]]]},
+    ...   'LINESTRING (11.0742 49.453842594330744, 11.5686 48.1367)'
+    ... ) as disjoint
+    ... from sys.cluster;
+    +----------------------+
+    | intersect | disjoint |
+    +----------------------+
+    | TRUE      | FALSE    |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+Due to a limitation on the :ref:`geo_shape_data_type` datatype
+this function cannot be used in the :ref:`sql_reference_order_by`.
 
 Mathematical Functions
 ======================
