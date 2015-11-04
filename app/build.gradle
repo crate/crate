@@ -1,3 +1,6 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+
 buildscript {
     repositories {
         jcenter()
@@ -88,7 +91,7 @@ fatJar {
 }
 
 
-task writeBuildInfo << {
+task writeBuildInfo (dependsOn: [':core:getVersion']) << {
     def stdout = new ByteArrayOutputStream()
     def hash = "git rev-parse HEAD".execute().in.text.trim()
 
@@ -99,6 +102,13 @@ task writeBuildInfo << {
             parentDir.mkdirs();
         }
         file.createNewFile();
+    }
+
+    copy {
+        into('src/main/dist/bin')
+        from('src/bin') {
+            filter(ReplaceTokens,tokens: [version: project(':core').getVersion.version])
+        }
     }
 
     ant.propertyfile(file:file.path, comment:'Build Properties') {
