@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/11/04 0.52.1
+=================
+
  - Fix: clean up file descriptors in case of exceptions when retrieving blobs
    over the REST api
 
