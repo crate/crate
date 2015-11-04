@@ -63,7 +63,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class TransportExecutor implements Executor, TaskExecutor {
+public class TransportExecutor implements Executor {
 
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
@@ -134,13 +134,7 @@ public class TransportExecutor implements Executor, TaskExecutor {
 
     }
 
-    @Override
-    public List<Task> newTasks(PlanNode planNode, UUID jobId) {
-        return planNode.accept(nodeVisitor, jobId);
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+    private List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {

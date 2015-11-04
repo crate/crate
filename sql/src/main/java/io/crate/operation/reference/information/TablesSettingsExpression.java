@@ -23,7 +23,6 @@ package io.crate.operation.reference.information;
 
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.metadata.information.InformationTablesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -33,7 +32,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     public static final String REFRESH_INTERVAL = "refresh_interval";
 
     public TablesSettingsExpression() {
-        super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS);
         addChildImplementations();
     }
 
@@ -82,7 +80,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "blocks";
 
         public TablesSettingsBlocksExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS);
             addChildImplementations();
         }
 
@@ -104,7 +101,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "routing";
 
         public TablesSettingsRoutingExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING);
             addChildImplementations();
         }
 
@@ -118,7 +114,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "allocation";
 
         public TablesSettingsRoutingAllocationExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
             addChildImplementations();
         }
 
@@ -136,7 +131,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "recovery";
 
         public TablesSettingsRecoveryExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY);
             addChildImplementations();
         }
 
@@ -152,7 +146,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "warmer";
 
         public TablesSettingsWarmerExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER);
             addChildImplementations();
         }
 
@@ -168,7 +161,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "gateway";
 
         public TablesSettingsGatewayExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY);
             addChildImplementations();
         }
 
@@ -184,7 +176,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "local";
 
         public TablesSettingsGatewayLocalExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL);
             addChildImplementations();
         }
 
@@ -200,7 +191,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "translog";
 
         public TablesSettingsTranslogExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
             addChildImplementations();
         }
 
@@ -224,7 +214,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "unassigned";
 
         public TablesSettingsUnassignedExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
             addChildImplementations();
         }
 
@@ -239,7 +228,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "node_left";
 
         public TablesSettingsNodeLeftExpression() {
-            super(InformationTablesTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
             addChildImplementations();
         }
 

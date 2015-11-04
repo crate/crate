@@ -22,14 +22,8 @@
 package io.crate.operation.reference.partitioned;
 
 import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
 public abstract class AbstractPartitionsSettingsExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
-
-    public AbstractPartitionsSettingsExpression(ReferenceInfo info) {
-        super(info);
-    }
-
 }
 

@@ -24,14 +24,12 @@ package io.crate.operation.reference.partitioned;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.metadata.information.InformationPartitionsTableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
 
     public PartitionsSettingsExpression() {
-        super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS);
         addChildImplementations();
     }
 
@@ -79,7 +77,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "blocks";
 
         public PartitionsSettingsBlocksExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_BLOCKS);
             addChildImplementations();
         }
 
@@ -101,7 +98,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "routing";
 
         public PartitionsSettingsRoutingExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING);
             addChildImplementations();
         }
 
@@ -115,7 +111,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "allocation";
 
         public PartitionsSettingsRoutingAllocationExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
             addChildImplementations();
         }
 
@@ -133,7 +128,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "recovery";
 
         public PartitionsSettingsRecoveryExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_RECOVERY);
             addChildImplementations();
         }
 
@@ -149,7 +143,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "warmer";
 
         public PartitionsSettingsWarmerExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_WARMER);
             addChildImplementations();
         }
 
@@ -165,7 +158,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "gateway";
 
         public PartitionsSettingsGatewayExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY);
             addChildImplementations();
         }
 
@@ -180,7 +172,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "local";
 
         public PartitionsSettingsGatewayLocalExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL);
             addChildImplementations();
         }
 
@@ -196,7 +187,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "translog";
 
         public PartitionsSettingsTranslogExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
             addChildImplementations();
         }
 
@@ -220,7 +210,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "unassigned";
 
         public PartitionsSettingsUnassignedExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
             addChildImplementations();
         }
 
@@ -235,7 +224,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String NAME = "node_left";
 
         public PartitionsSettingsNodeLeftExpression() {
-            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
             addChildImplementations();
         }
 

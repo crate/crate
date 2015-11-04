@@ -22,10 +22,10 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.RowCountPlanNode;
 
-public class DropTableNode extends RowCountPlanNode {
+public class DropTableNode implements PlanNode {
 
     private final DocTableInfo table;
     private final boolean ifExists;

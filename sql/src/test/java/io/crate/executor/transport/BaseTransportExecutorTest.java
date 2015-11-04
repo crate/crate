@@ -37,7 +37,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 
@@ -56,10 +55,8 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
-    ClusterService clusterService;
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
-    TableIdent booksIdent = new TableIdent(null, "books");
 
     Reference idRef = new Reference(new ReferenceInfo(
             new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
@@ -67,13 +64,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
 
-    TableIdent partedTable = new TableIdent("doc", "parted");
-    Reference partedIdRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataTypes.INTEGER));
-    Reference partedNameRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataTypes.STRING));
-    Reference partedDateRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP));
 
     public static ESGetNode newGetNode(DocTableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();
@@ -93,7 +83,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         String handlerNodeName = nodeNames[randomIntBetween(0, nodeNames.length-1)];
         executor = internalCluster().getInstance(TransportExecutor.class, handlerNodeName);
         docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class, handlerNodeName);
-        clusterService = internalCluster().getInstance(ClusterService.class, handlerNodeName);
     }
 
     @After

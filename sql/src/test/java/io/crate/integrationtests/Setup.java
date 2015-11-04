@@ -313,17 +313,4 @@ public class Setup {
         );
         transportExecutor.refresh("characters");
     }
-
-    public void setUpPartitionedTableWithName() {
-        transportExecutor.exec("create table parted (id int, name string, date timestamp) partitioned by (date)");
-        transportExecutor.ensureGreen();
-        transportExecutor.execBulk("insert into parted (id, name, date) values (?, ?, ?)",
-                new Object[][]{
-                        {1, "Trillian", null},
-                        {2, null, 0L},
-                        {3, "Ford", 1396388720242L}
-                });
-        transportExecutor.ensureGreen();
-        transportExecutor.refresh("parted");
-    }
 }

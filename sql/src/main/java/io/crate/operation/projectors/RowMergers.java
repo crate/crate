@@ -60,8 +60,6 @@ public class RowMergers {
         protected final Queue<Object[]> pauseFifo = new LinkedList<>();
         protected final ArrayRow sharedRow = new ArrayRow();
 
-        ExecutionState executionState;
-
         volatile boolean paused = false;
 
         public MultiUpstreamRowReceiver(RowReceiver delegate) {
@@ -139,7 +137,6 @@ public class RowMergers {
         public void prepare(ExecutionState executionState) {
             if (prepared.compareAndSet(false, true)) {
                 delegate.prepare(executionState);
-                this.executionState = executionState;
             }
         }
 

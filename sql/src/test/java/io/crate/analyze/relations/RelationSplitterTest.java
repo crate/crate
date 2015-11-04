@@ -59,7 +59,6 @@ public class RelationSplitterTest extends CrateUnitTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private EvaluatingNormalizer normalizer;
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext context;
 
@@ -95,7 +94,6 @@ public class RelationSplitterTest extends CrateUnitTest {
                 throw new AssertionError("getImplementation should never be called in this test");
             }
         };
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                 new QualifiedName("t1"), tr1,
                 new QualifiedName("t2"), tr2,

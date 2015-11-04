@@ -36,7 +36,6 @@ public class RowSender implements Runnable, RowUpstream {
 
     private volatile int numPauses = 0;
     private volatile int numResumes = 0;
-    private volatile boolean isPaused;
     private Iterator<Row> iterator;
 
     public RowSender(final Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
@@ -72,7 +71,6 @@ public class RowSender implements Runnable, RowUpstream {
 
     private boolean processPause() {
         if (topRowUpstream.shouldPause()) {
-            isPaused = true;
             numPauses++;
             topRowUpstream.pauseProcessed();
             return true;
@@ -87,7 +85,6 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void resume(boolean async) {
-        isPaused = false;
         topRowUpstream.resume(async);
     }
 

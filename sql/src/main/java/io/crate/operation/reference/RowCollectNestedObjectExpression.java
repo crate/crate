@@ -22,7 +22,6 @@
 package io.crate.operation.reference;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -31,13 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectExpression implements RowCollectExpression<R, Map<String,Object>> {
-    protected final ReferenceInfo info;
     protected R row;
-
-    public RowCollectNestedObjectExpression(ReferenceInfo info) {
-        this.info = info;
-    }
-
 
     public void setNextRow(R row) {
         this.row = row;

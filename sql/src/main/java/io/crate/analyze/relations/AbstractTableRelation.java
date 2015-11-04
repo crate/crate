@@ -179,16 +179,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return whereClause;
     }
 
-
-    @Deprecated
-    public List<Symbol> resolve(Collection<? extends Symbol> symbols) {
-        List<Symbol> result = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            result.add(resolve(symbol));
-        }
-        return result;
-    }
-
     @Override
     @Nullable
     public Reference resolveField(Field field) {

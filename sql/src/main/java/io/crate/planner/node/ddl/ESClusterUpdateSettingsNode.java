@@ -21,15 +21,15 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.RowCountPlanNode;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Set;
 
-public class ESClusterUpdateSettingsNode extends RowCountPlanNode {
+public class ESClusterUpdateSettingsNode implements PlanNode {
 
     private final Settings persistentSettings;
     private final Settings transientSettings;

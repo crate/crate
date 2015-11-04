@@ -61,15 +61,13 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     private final PlannedAnalyzedRelation right;
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
+
     @Nullable
     private final MergePhase localMerge;
-
-    private boolean leftOuterLoop = true;
 
     /**
      * create a new NestedLoop
      *
-     * @param leftOuterLoop if true, indicating that we have to iterate the left
      * side in the outer loop, the right in the inner.
      * Resulting in rows like:
      *
@@ -96,10 +94,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     public NestedLoop(NestedLoopPhase nestedLoopPhase,
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
-                      boolean leftOuterLoop,
                       @Nullable MergePhase localMerge) {
         this.jobId = nestedLoopPhase.jobId();
-        this.leftOuterLoop = leftOuterLoop;
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
@@ -112,10 +108,6 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     public PlannedAnalyzedRelation right() {
         return right;
-    }
-
-    public boolean leftOuterLoop() {
-        return leftOuterLoop;
     }
 
     public NestedLoopPhase nestedLoopPhase() {

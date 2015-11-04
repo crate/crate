@@ -53,10 +53,6 @@ public class NodeFetchRequest extends TransportRequest {
         }
     }
 
-    public void jobId(UUID jobId) {
-        this.jobId = jobId;
-    }
-
     public UUID jobId() {
         return jobId;
     }

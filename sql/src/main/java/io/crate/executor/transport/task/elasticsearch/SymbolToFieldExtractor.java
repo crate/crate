@@ -21,12 +21,10 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,19 +58,6 @@ public class SymbolToFieldExtractor<T> {
 
         public void addReference(Reference reference) {
             references.add(reference);
-        }
-
-        public String[] referenceNames() {
-            if (referenceNames == null) {
-                referenceNames = Lists.transform(references, new com.google.common.base.Function<Reference, String>() {
-                    @Nullable
-                    @Override
-                    public String apply(Reference input) {
-                        return input.info().ident().columnIdent().fqn();
-                    }
-                }).toArray(new String[references.size()]);
-            }
-            return referenceNames;
         }
 
         public List<Reference> references() {

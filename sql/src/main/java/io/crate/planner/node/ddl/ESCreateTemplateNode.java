@@ -21,14 +21,14 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.RowCountPlanNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class ESCreateTemplateNode extends RowCountPlanNode {
+public class ESCreateTemplateNode implements PlanNode {
 
     private final String templateName;
     private final String indexMatch;

@@ -69,10 +69,6 @@ public class StreamBucket implements Bucket, Streamable {
             }
         }
 
-        public int size() {
-            return size;
-        }
-
         public void writeToStream(StreamOutput output) throws IOException {
             output.writeVInt(size);
             if (size > 0) {

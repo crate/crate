@@ -80,7 +80,6 @@ public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, E
         return projections;
     }
 
-    @Override
     public void addProjection(Projection projection) {
         List<Projection> projections = new ArrayList<>(this.projections);
         projections.add(projection);

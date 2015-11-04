@@ -23,7 +23,6 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -43,7 +42,6 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 
@@ -94,7 +92,6 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
         return visitor.visitESGetNode(this, context);
     }
 
-    @Override
     public List<DataType> outputTypes() {
         return outputTypes;
     }
@@ -177,11 +174,6 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
     public UpstreamPhase resultPhase() {
         //return this;
         throw new UnsupportedOperationException("resultPhase is not supported");
-    }
-
-    @Override
-    public Set<String> executionNodes() {
-        return ImmutableSet.of();
     }
 
     @Override

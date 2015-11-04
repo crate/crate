@@ -300,7 +300,7 @@ public class CrossJoinConsumer implements Consumer {
                 );
                 localMergePhase.addProjection(finalTopN);
             }
-            return new NestedLoop(nl, leftPlan, rightPlan, true, localMergePhase);
+            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase);
         }
 
         private static List<Field> concatFields(QueriedTableRelation<?> left, QueriedTableRelation<?> right) {

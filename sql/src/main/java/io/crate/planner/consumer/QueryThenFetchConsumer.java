@@ -28,7 +28,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.Functions;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -52,8 +51,8 @@ public class QueryThenFetchConsumer implements Consumer {
     private final Visitor visitor;
 
     @Inject
-    public QueryThenFetchConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    public QueryThenFetchConsumer() {
+        visitor = new Visitor();
     }
 
     @Override
@@ -62,12 +61,6 @@ public class QueryThenFetchConsumer implements Consumer {
     }
 
     private static class Visitor extends RelationPlanningVisitor {
-
-        private final Functions functions;
-
-        public Visitor(Functions functions) {
-            this.functions = functions;
-        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
