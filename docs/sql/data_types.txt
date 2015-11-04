@@ -170,6 +170,106 @@ Create table example::
     CREATE OK (... sec)
 
 
+.. _geo_shape_data_type:
+
+geo_shape
+=========
+
+The ``geo_shape`` type is used to store geometric shapes as defined in
+`GeoJSON geometry objects`_.
+
+A geo_shape column can store different kinds of `GeoJSON geometry objects`_.
+Thus it is possible to store e.g. ``LineString`` and ``MultiPolygon`` shapes
+into the same column.
+
+Definition
+----------
+
+When defining a geo_shape column as is::
+
+    <columnName> geo_shape
+
+a geographical index with default parameters is created implicitly in order to allow for
+geographical queries.
+The implicit default can be defined explicitly as::
+
+    <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
+
+There are two geographic index types: ``geohash`` (the default) and ``quadtree``.
+These indices are only allowed on geo_shape columns.
+For more information on them, see :ref:`geo_shape_data_type_index`.
+
+Both of these index types accept the following parameters:
+
+:precision: (Default: ``50m``) Define the precision of the indexed shape used for querying.
+            Given as string containing a number and an optional distance unit (defaults to ``m``).
+
+            Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles`` (``mi``),
+            ``kilometers`` (``km``), ``meters``(``m``), ``centimeters`` (``cm``), ``millimeters`` (``mm``).
+
+:distance_error_pct: (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
+                     stored in this column expressed as a percentage value
+                     with an allowed maximum of ``0.5`` (50%). Shapes with higher
+                     ``distance_error_pct`` will be indexed with a smaller precision.
+
+                     This will have the effect of increasing the indexed shape internally, so
+                     e.g. points that are not exactly inside this shape will end up inside it
+                     when it comes to querying as the shape has grown when indexed.
+
+.. _geo_shape_data_type_index:
+
+Geo Shape Index Structure
+-------------------------
+
+Computations on very complex polygons and geometry collections are exact but very expensive.
+In order to provide fast queries even on quite complex shapes, Crate uses a different approach
+to store, analyze and query geo shapes.
+
+The surface of the earth is represented as a number of grid layers each with higher precision.
+While the upper layer has one grid cell, the layer below contains many cells for the equivalent space.
+Each grid cell on each layer is addressed in 2d space either by a `Geohash`_ for ``geohash`` trees
+or by tightly packed coordinates in a `Quadtree`_.
+Those addresses have the neat attribute that grid cells of lower layers inside a cell of an upper layer
+share the same address-prefix. So we are able to use a `Trie`_ to represent our grids.
+And `Tries <Trie>`_ can be queried very efficiently.
+Their complexity is determined by the tree depth only.
+
+A geo shape is transformed into these grid cells. Think of this transformation process
+as dissecting a vector image into its pixelled counterpart, more or less accurate.
+We end up with multiple images each with a better resolution up to the configured precision.
+
+Every grid cell that is touched up to the configured precision
+is stored in an inverted index, creating a mapping from grid cell to all shapes that do touch it.
+And this mapping actually is our geographic index.
+
+The main difference is that the ``geohash`` supports higher precision
+than the ``quadtree`` tree. Both tree implementations support precision in order of fractions of millimeters.
+
+
+Representation
+--------------
+
+Columns with the ``geo_shape`` type are represented and inserted as object
+containing a valid `GeoJSON`_ geometry object::
+
+    {
+      type = 'Polygon',
+      coordinates = [
+         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]
+      ]
+    }
+
+Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
+
+    'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
+
+.. note::
+
+    It is not possible to detect a geo_shape type for a dynamically created column.
+    Like with :ref:`geo_point_data_type` type, geo_shape columns need to be created explicitly
+    using either :ref:`ref-create-table` or :ref:`ref-alter-table`.
+
+
 object
 ======
 
@@ -525,3 +625,8 @@ will result in an exception:
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
+.. _GeoJSON: http://geojson.org/
+.. _GeoJSON geometry objects: http://geojson.org/geojson-spec.html#geometry-objects
+.. _Geohash: https://en.wikipedia.org/wiki/Geohash
+.. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
+.. _Trie: https://de.wikipedia.org/wiki/Trie

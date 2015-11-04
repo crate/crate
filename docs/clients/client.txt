@@ -151,6 +151,7 @@ object     Map
 ip         String
 timestamp  Double
 geo_point  Double[2]
+geo_shape  Map
 ========== =========
 
 The mapping also works the other way round for parameter substitution.
