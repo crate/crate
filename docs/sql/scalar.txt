@@ -889,7 +889,13 @@ It can be used to append elements to array fields
     SELECT 1 row in set (... sec)
 
 
-.. note:: Appending to arrays with array_cat in updates is handy, but unfortunately not isolated. We use optimistic concurrency control to ensure that your update operation used the latest state of the row. But only 3 retry attempts are made by fetching the newest version again and if they all fail, the query fails.
+.. note::
+
+   Appending to arrays with array_cat in updates is handy,
+   but unfortunately not isolated. We use optimistic concurrency control
+   to ensure that your update operation used the latest state of the row.
+   But only 3 retry attempts are made by fetching the newest version again
+   and if they all fail, the query fails.
 
 
 You can also use the concat operator ``||`` with arrays
