@@ -65,7 +65,13 @@ REM JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=$CRATE_HOME/logs/heapdump.hprof
 REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 
-set CRATE_CLASSPATH=%CRATE_CLASSPATH%;%CRATE_HOME%/lib/crate-*.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/sigar/*
+if "%CRATE_CLASSPATH%" == "" (
+    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/sigar/*
+) else (
+    ECHO Error: Don't modify the classpath with CRATE_CLASSPATH. 1>&2
+    ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
+    EXIT /B 1
+)
 set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%" -Des.config="%CRATE_HOME%/config/crate.yml"
 
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateF"

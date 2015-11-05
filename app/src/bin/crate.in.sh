@@ -1,6 +1,15 @@
 #!/bin/sh
 
-CRATE_CLASSPATH=$CRATE_CLASSPATH:$CRATE_HOME/lib/crate-*.jar:$CRATE_HOME/lib/crate-app.jar:$CRATE_HOME/lib/*:$CRATE_HOME/lib/sigar/*
+# check in case a user was using this mechanism
+if [ "x$CRATE_CLASSPATH" != "x" ]; then
+    cat >&2 << EOF
+Error: Don't modify the classpath with CRATE_CLASSPATH.
+Add plugins and their dependencies into the plugins/ folder instead.
+EOF
+    exit 1
+fi
+
+CRATE_CLASSPATH=$CRATE_HOME/lib/crate-app-@version@.jar:$CRATE_HOME/lib/*:$CRATE_HOME/lib/sigar/*
 
 if [ "x$CRATE_MIN_MEM" = "x" ]; then
     CRATE_MIN_MEM=256m

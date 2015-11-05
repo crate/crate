@@ -2,10 +2,6 @@ apply plugin: 'java'
 
 archivesBaseName = 'crate-testing'
 
-configurations {
-    all*.exclude group: 'org.elasticsearch'
-}
-
 dependencies {
     compile ("org.mockito:mockito-core:1.10.8") {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
@@ -13,8 +9,10 @@ dependencies {
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
     compile 'org.apache.commons:commons-lang3:3.3.2'
 
+    compile project(':es')
+    compile project(path: ':es', configuration: 'testCompile')
     compile project(':es').sourceSets.test.output
-    compile project(':es').sourceSets.test.runtimeClasspath
+
 }
 
 test {

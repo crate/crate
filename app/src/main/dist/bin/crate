@@ -13,7 +13,6 @@
 # This script relies on few environment variables to determine startup
 # behavior, those variables are:
 #
-#   CRATE_CLASSPATH -- A Java classpath containing everything necessary to run.
 #   JAVA_OPTS    -- Additional arguments to the JVM for heap size, etc
 #   CRATE_JAVA_OPTS -- External Java Opts on top of the defaults set
 #
@@ -100,7 +99,7 @@ else
 fi
 
 if [ -z "$CRATE_CLASSPATH" ]; then
-    echo "You must set the CRATE_CLASSPATH var" >&2
+    echo "CRATE_CLASSPATH should've been initialized via crate.in.sh" >&2
     exit 1
 fi
 
