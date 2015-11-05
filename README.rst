@@ -17,6 +17,11 @@ CRATE: The Scalable SQL Database*
 .. image:: https://travis-ci.org/crate/crate.svg?branch=master
     :target: https://travis-ci.org/crate/crate
 
+.. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
+    :target: https://crate.io/docs/en/latest/
+
+.. image:: https://img.shields.io/badge/container-docker-green.svg
+    :target: https://hub.docker.com/_/crate/
 
 Features include
 ----------------
