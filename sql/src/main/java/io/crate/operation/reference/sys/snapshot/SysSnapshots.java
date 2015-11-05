@@ -22,12 +22,15 @@
 package io.crate.operation.reference.sys.snapshot;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.operation.collect.IterableGetter;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
 
@@ -40,6 +43,7 @@ public class SysSnapshots implements IterableGetter {
 
     private final SysRepositories sysRepositories;
     private final SnapshotsService snapshotsService;
+    private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
 
     @Inject
     public SysSnapshots(SysRepositories sysRepositories, SnapshotsService snapshotsService) {
@@ -52,7 +56,15 @@ public class SysSnapshots implements IterableGetter {
         List<SysSnapshot> sysSnapshots = new ArrayList<>();
         for (Object entry : sysRepositories.getIterable()) {
             final String repositoryName = ((SysRepository) entry).name();
-            sysSnapshots.addAll(Lists.transform(snapshotsService.snapshots(repositoryName), new Function<Snapshot, SysSnapshot>() {
+
+            List<Snapshot> snapshots;
+            try {
+                snapshots = snapshotsService.snapshots(repositoryName);
+            } catch (Throwable t) {
+                LOGGER.warn("Error occurred listing snapshots of repository {}", t, repositoryName);
+                continue;
+            }
+            sysSnapshots.addAll(Lists.transform(snapshots, new Function<Snapshot, SysSnapshot>() {
                 @Nullable
                 @Override
                 public SysSnapshot apply(@Nullable Snapshot snapshot) {
