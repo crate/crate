@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added snapshot and restore functionality
+
  - Changed crate launch scripts to no longer support extending the
    CRATE_CLASSPATH environment variable
 
