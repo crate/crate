@@ -812,44 +812,66 @@ always return one row, as they do an aggregation operation on the matching rows 
 
     :ref:`aggregation`
 
-+-----------+---------------+----------------------------------+-----------------------+
-| Name      | Arguments     | Description                      | Return Type           |
-+===========+===============+==================================+=======================+
-| COUNT(*)  | Star as       | Counts the number of rows        | long                  |
-|           | Parameter or  | that match the query.            |                       |
-|           | as Constant   |                                  |                       |
-|           | or the primary|                                  |                       |
-|           | key column    |                                  |                       |
-+-----------+---------------+----------------------------------+-----------------------+
-| MIN       | column name of| returns the smallest of the      | the input             |
-|           | a numeric,    | values in the argument column    | column type or NULL   |
-|           | timestamp     | in case of strings this          | if all values in that |
-|           | or string     | means the lexicographically      | matching rows in that |
-|           | column        | smallest. NULL-values are ignored| column are NULL       |
-+-----------+---------------+----------------------------------+-----------------------+
-| MAX       | column name of| returns the biggest of the       | the input             |
-|           | a numeric,    | values in the argument column    | column type or NULL   |
-|           | timestamp     | in case of strings this          | if all values of all  |
-|           | or string     | means the lexicographically      | matching rows in that |
-|           | column        | biggest. NULL-values are ignored | column are NULL       |
-+-----------+---------------+----------------------------------+-----------------------+
-| SUM       | column name of| returns the sum of the values in | double or NULL        |
-|           | a numeric or  | the argument column.             | if all values of all  |
-|           | timestamp     | NULL-values are ignored.         | matching rows in that |
-|           | column        |                                  | column are NULL       |
-+-----------+---------------+----------------------------------+-----------------------+
-| AVG       | column name of| returns the arithmetic mean of   | double or NULL        |
-|           | a numeric or  | the values in the argument       | if all values of all  |
-|           | timestamp     | column.                          | matching rows in that |
-|           | column        | NULL-values are ignored.         | column are NULL       |
-+-----------+---------------+----------------------------------+-----------------------+
-| ARBITRARY | column name of| returns an undefined value of    | the input             |
-|           | a primitive   | all the values in the argument   | column type or NULL   |
-|           | typed         | column. Can be NULL.             | if some value of the  |
-|           | column        |                                  | matching rows in that |
-|           | (all but      |                                  | column is NULL        |
-|           | object)       |                                  |                       |
-+-----------+---------------+----------------------------------+-----------------------+
++---------------------+---------------+----------------------------------+-----------------------+
+| Name                | Arguments     | Description                      | Return Type           |
++=====================+===============+==================================+=======================+
+| ARBITRARY           | column name of| Returns an undefined value of    | the input             |
+|                     | a primitive   | all the values in the argument   | column type or NULL   |
+|                     | typed         | column. Can be NULL.             | if some value of the  |
+|                     | column        |                                  | matching rows in that |
+|                     | (all but      |                                  | column is NULL        |
+|                     | object)       |                                  |                       |
++---------------------+---------------+----------------------------------+-----------------------+
+| AVG / MEAN          | column name of| Returns the arithmetic mean of   | double or NULL        |
+|                     | a numeric or  | the values in the argument       | if all values of all  |
+|                     | timestamp     | column.                          | matching rows in that |
+|                     | column        | NULL-values are ignored.         | column are NULL       |
++---------------------+---------------+----------------------------------+-----------------------+
+| COUNT(*)            | star as       | Counts the number of rows        | long                  |
+|                     | parameter or  | that match the query.            |                       |
+|                     | as constant   |                                  |                       |
++---------------------+---------------+----------------------------------+-----------------------+
+| COUNT               | column name   | Counts the number of rows        | long                  |
+|                     |               | that contain a non NULL          |                       |
+|                     |               | value for the given column.      |                       |
++---------------------+---------------+----------------------------------+-----------------------+
+| COUNT(DISTINCT col) | column name   | Counts the number of distinct    | long                  |
+|                     |               | values for the given column      |                       |
+|                     |               | that are not NULL.               |                       |
++---------------------+---------------+----------------------------------+-----------------------+
+| GEOMETRIC_MEAN      | column name of| Computes the geometric mean for  | double or NULL        |
+|                     | a numeric or  | positive numbers.                | if all values of all  |
+|                     | timestamp     |                                  | matching rows in that |
+|                     | column        |                                  | are NULL or if a value|
+|                     |               |                                  | is negative.          |
++---------------------+---------------+----------------------------------+-----------------------+
+| MIN                 | column name of| Returns the smallest of the      | the input             |
+|                     | a numeric,    | values in the argument column    | column type or NULL   |
+|                     | timestamp     | in case of strings this          | if all values in that |
+|                     | or string     | means the lexicographically      | matching rows in that |
+|                     | column        | smallest. NULL-values are ignored| column are NULL       |
++---------------------+---------------+----------------------------------+-----------------------+
+| MAX                 | column name of| Returns the biggest of the       | the input             |
+|                     | a numeric,    | values in the argument column    | column type or NULL   |
+|                     | timestamp     | in case of strings this          | if all values of all  |
+|                     | or string     | means the lexicographically      | matching rows in that |
+|                     | column        | biggest. NULL-values are ignored | column are NULL       |
++---------------------+---------------+----------------------------------+-----------------------+
+| STDDEV              | column name of| Returns the standard deviation   | double or NULL        |
+|                     | a numeric or  | of the values in the argument    | if all values are NULL|
+|                     | timestamp     | column.                          | or we got no value at |
+|                     | column        | NULL-values are ignored.         | all                   |
++---------------------+---------------+----------------------------------+-----------------------+
+| SUM                 | column name of| Returns the sum of the values in | double or NULL        |
+|                     | a numeric or  | the argument column.             | if all values of all  |
+|                     | timestamp     | NULL-values are ignored.         | matching rows in that |
+|                     | column        |                                  | column are NULL       |
++---------------------+---------------+----------------------------------+-----------------------+
+| VARIANCE            | column name of| Returns the variance of the      | double or NULL        |
+|                     | a numeric or  | values in the argument column.   | if all values are NULL|
+|                     | timestamp     | NULL-values are ignored.         | or we got no value at |
+|                     | column        |                                  | all                   |
++---------------------+---------------+----------------------------------+-----------------------+
 
 .. note::
 
