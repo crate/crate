@@ -88,8 +88,12 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     private int originalPageSize;
-    private TemporaryFolder temporaryFolder = new TemporaryFolder();
+
 
     @Before
     public void prepare() throws Exception{
