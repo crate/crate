@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``CREATE REPOSITORY``, ``DROP REPOSITORY``, ``CREATE SNAPSHOT``,
+   ``RESTORE SNAPSHOT`` statements and the ``sys.snapshots`` and
+   ``sys.repositories`` virtual tables for backup and restore functionality.
+
  - Changed crate launch scripts to no longer support extending the
    CRATE_CLASSPATH environment variable
 
