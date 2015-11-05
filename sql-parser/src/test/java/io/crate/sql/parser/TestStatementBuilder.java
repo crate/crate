@@ -399,6 +399,25 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testGeoShape() throws Exception {
+        printStatement("create table test (" +
+                       "    col1 geo_shape," +
+                       "    col2 geo_shape index using geohash" +
+                       ")");
+        printStatement("create table test(" +
+                       "    col1 geo_shape index using quadtree with (precision='1m')" +
+                       ")");
+        printStatement("create table test(" +
+                       "    col1 geo_shape," +
+                       "    index geo_shape_i using quadtree(col1) with (precision='1m')" +
+                       ")");
+        printStatement("create table test(" +
+                       "    col1 geo_shape INDEX OFF," +
+                       "    index geo_shape_i using quadtree(col1) with (precision='1m')" +
+                       ")");
+    }
+
+    @Test
     public void testCast() throws Exception {
         printStatement("select cast(y as integer) from foo");
     }
