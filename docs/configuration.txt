@@ -555,21 +555,23 @@ Repositories
 ------------
 
 Repositories are used to :ref:`backup <snapshot-restore>` a Crate cluster.
-The following settings are used to configure some types of repositories globally.
 
 **repositories.url.allowed_urls**
   | *Runtime:* ``no``
 
-  Whitelist for urls that can be used with the :ref:`ref-create-repository-types-url`
-  repository type. Wildcards are supported in the host, path, query and fragment parts.
+  This setting only applies to repositories of type
+  :ref:`ref-create-repository-types-url`.
 
-  Supported protocols are configured in
-  :ref:`repositories.url.supported_protocols <conf-repositories-url-supported-protocols>`.
-  Only ``http``, ``https`` and ``ftp`` URLs need to be listed here for usage in
-  :ref:`ref-create-repository-types-url` repsoitories.
-  
-  ``file`` urls listed here must be prefixed with an entry configured in
-  :ref:`path.repo <conf-path-repo>`.
+  With this setting a list of urls can be specified which are allowed to be
+  used if a repository of type ``url`` is created.
+
+  Wildcards are supported in the host, path, query and fragment parts.
+
+  This setting is a security measure to prevent access to arbitrary resources.
+
+  In addition, the supported protocols can be restricted using the
+  :ref:`repositories.url.supported_protocols
+  <conf-repositories-url-supported-protocols>` setting.
 
 .. _conf-repositories-url-supported-protocols:
 
@@ -584,7 +586,6 @@ The following settings are used to configure some types of repositories globally
   For more info, see the java `JarURLConnection documentation`_.
 
 See also the :ref:`path.repo <conf-path-repo>` Setting.
-
 
 .. _conf-cluster-settings:
 
