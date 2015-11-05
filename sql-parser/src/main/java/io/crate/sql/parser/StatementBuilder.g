@@ -866,7 +866,7 @@ columnDefinition returns [ColumnDefinition value]
 
 dataType returns [ColumnType value]
     : type=(BOOLEAN | BYTE | SHORT | INT | INTEGER | LONG | FLOAT | DOUBLE |
-            TIMESTAMP | STRING_TYPE | IP | GEO_POINT )
+            TIMESTAMP | STRING_TYPE | IP | GEO_POINT | GEO_SHAPE)
       {
         $value = new ColumnType($type.text.toLowerCase(Locale.ENGLISH));
       }
