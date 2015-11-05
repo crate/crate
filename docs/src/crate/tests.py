@@ -17,7 +17,6 @@ from crate.client import connect
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
-REPO_PATH = tempfile.mkdtemp()
 
 class CrateTestCmd(CrateCmd):
 
@@ -80,22 +79,28 @@ crash_parser = zc.customdoctests.DocTestParser(
 
 class ConnectingCrateLayer(CrateLayer):
 
+    def __init__(self, *args, **kwargs):
+        self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
+        super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
+
     def start(self):
         super(ConnectingCrateLayer, self).start()
         cmd._connect(self.crate_servers[0])
+
+    def tearDown(self):
+        shutil.rmtree(self.repo_path, ignore_errors=True)
+        super(ConnectingCrateLayer, self).tearDown()
 
 
 empty_layer = ConnectingCrateLayer(
     'crate',
     crate_home=crate_path(),
-    crate_exec=crate_path('bin', 'crate'),
     port=CRATE_HTTP_PORT,
     transport_port=CRATE_TRANSPORT_PORT,
     settings={
         'gateway.type': 'none',
         'index.store.type': 'memory',
         'cluster.routing.schedule': '30ms',
-        'path.repo': REPO_PATH
     }
 )
 
