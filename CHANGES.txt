@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Changed crate launch scripts to no longer support extending the
+   CRATE_CLASSPATH environment variable
+
  - Updated crate-admin to 0.15.3 which includes following changes:
 
    - fix: REPLICATED DATA at the overview page showed incorrect percentage of
