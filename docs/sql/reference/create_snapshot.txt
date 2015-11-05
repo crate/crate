@@ -76,10 +76,13 @@ WITH Clause
 The following configuration parameters can be used to modify how the snapshot is
 created:
 
-:wait_for_completion: (Default ``false``) By default the request returns once the snapshot creation
-                      started. If set to ``true`` the request returns after the
-                      whole snapshot was created or an error occurred.
-                      This can take a serious amount of time.
+:wait_for_completion: (Default ``false``) By default the request returns once
+                      the snapshot creation started. If set to ``true`` the
+                      request returns after the whole snapshot was created or
+                      an error occurred. The :ref:`sys.snapshots
+                      +<sys-snapshots>```sys.snapshots`` table can be queried
+                      to track the snapshot creation progress if
+                      ``wait_for_completion`` has been set to ``false``.
 
 :ignore_unavailable: (Default ``false``) if a given table does not exist the command will fail by default.
                      If set to ``true`` these tables are ignored and not included in the snapshot.

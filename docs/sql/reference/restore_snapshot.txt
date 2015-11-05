@@ -28,10 +28,9 @@ It is possible to restore all tables contained in the snapshot using the ``ALL``
 keyword. Single tables and/or partitions can be selected for restoring by giving them
 as ``table_ident`` or partition reference given the ``partition_column`` values.
 
-It is possible to change the table names that get restored and to change the
-table settings of the restored table.
 
-Tables that are to be restored may not exist yet.
+Tables that are to be restored must not exist yet.
+
 
 Parameters
 ==========
@@ -59,7 +58,9 @@ restored to the cluster:
                      is given that does not exist in the snapshot. If set to ``true`` those
                      missing tables are ignored.
 
-:wait_for_completion: (Default: ``false``) By default the request returns once the restore
-                      operation started. If set to ``true`` the request returns after all
-                      selected tables from the snapshot are restored or an error occurred.
-                      This can take a serious amount of time.
+:wait_for_completion: (Default: ``false``) By default the request returns once
+                      the restore operation started. If set to ``true`` the
+                      request returns after all selected tables from the
+                      snapshot are restored or an error occurred. In order to
+                      monitor the restore operation the * :ref:`sys.shards
+                      <sys-shards>` table can be queried.
