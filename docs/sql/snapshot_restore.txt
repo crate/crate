@@ -110,9 +110,9 @@ the state when the snapshot was created.
 To get basic information about snapshots the :ref:`sys.snapshots
 <sys-snapshots>` table can be queried::
 
-    cr> SELECT "repository", name, state, concrete_indices
+    cr> SELECT repository, name, state, concrete_indices
     ... FROM sys.snapshots
-    ... ORDER BY "repository", name;
+    ... ORDER BY repository, name;
     +-----------------------+-----------+---------+--------------------...-+
     | repository            | name      | state   | concrete_indices       |
     +-----------------------+-----------+---------+--------------------...-+
