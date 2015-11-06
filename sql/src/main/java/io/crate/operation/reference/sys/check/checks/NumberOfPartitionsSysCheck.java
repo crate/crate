@@ -35,8 +35,9 @@ import org.elasticsearch.common.inject.Singleton;
 public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     private static final int ID = 5;
-    private static final String DESCRIPTION = "The total number of partitions of one or more partitioned " +
-            "tables needs to be less than 1000.";
+    private static final String DESCRIPTION =
+            "The total number of partitions of one or more partitioned tables should" +
+            " not be greater than 1000. A large amount of shards can significantly reduce performance.";
 
     private static final int PARTITIONS_THRESHOLD = 1000;
     private final ReferenceInfos referenceInfos;
