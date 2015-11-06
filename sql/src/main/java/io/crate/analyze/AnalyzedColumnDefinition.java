@@ -30,6 +30,8 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
+import org.elasticsearch.common.unit.DistanceUnit;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -42,10 +44,12 @@ public class AnalyzedColumnDefinition {
     private String dataType;
     private String collectionType;
     private String index;
+    private String geoTree;
     private String analyzer;
     private String objectType = "true"; // dynamic = true
     private boolean isPrimaryKey = false;
     private Settings analyzerSettings = ImmutableSettings.EMPTY;
+    private Settings geoSettings = ImmutableSettings.EMPTY;
 
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
@@ -83,8 +87,16 @@ public class AnalyzedColumnDefinition {
         this.index = index;
     }
 
+    public void geoTree(String geoTree) {
+       this.geoTree = geoTree;
+    }
+
     public void analyzerSettings(Settings settings) {
         this.analyzerSettings = settings;
+    }
+
+    public void geoSettings(Settings settings) {
+        this.geoSettings = settings;
     }
 
     public String index() {
@@ -178,6 +190,42 @@ public class AnalyzedColumnDefinition {
         mapping.put("type", dataType());
         mapping.put("index", index());
         mapping.put("store", false);
+
+        if (geoTree != null) {
+            mapping.put("tree", geoTree);
+        }
+
+        if (dataType().equals("geo_shape")) {
+            String precision = geoSettings.get("precision");
+            if (precision != null) {
+                try {
+                    DistanceUnit.parse(precision, DistanceUnit.DEFAULT, DistanceUnit.DEFAULT);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH, "Value '%s' of setting precision is not a valid distance unit", precision)
+                    );
+                }
+                mapping.put("precision", precision);
+            }
+            try {
+                Float errorPct = geoSettings.getAsFloat("distance_error_pct", null);
+                if (errorPct != null) {
+                    mapping.put("distance_error_pct", errorPct);
+                }
+            } catch (SettingsException e) {
+                throw new IllegalArgumentException(
+                     String.format(Locale.ENGLISH, "Value '%s' of setting distance_error_pct is not a float value", geoSettings.get("distance_error_pct"))
+                );
+            }
+
+        }
+
+        for (String setting : geoSettings.names()) {
+            if (!setting.equals("precision") && !setting.equals("distance_error_pct")) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Setting \"%s\" ist not supported on geo_shape index", setting));
+            }
+        }
 
         if (copyToTargets != null) {
             mapping.put("copy_to", copyToTargets);
