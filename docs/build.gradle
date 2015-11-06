@@ -23,7 +23,7 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", '-N'
+    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test'
 }
 
 task itest (type:Exec) {
