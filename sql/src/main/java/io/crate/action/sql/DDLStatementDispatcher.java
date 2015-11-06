@@ -27,9 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.executor.transport.AlterTableOperation;
-import io.crate.executor.transport.TableCreator;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -53,18 +51,25 @@ public class DDLStatementDispatcher {
     private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
+    private final RepositoryService repositoryService;
+    private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
+
 
     @Inject
     public DDLStatementDispatcher(BlobIndices blobIndices,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
+                                  RepositoryService repositoryService,
+                                  SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
         this.blobIndices = blobIndices;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
+        this.repositoryService = repositoryService;
+        this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
     }
 
     public ListenableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId) {
@@ -141,6 +146,30 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, UUID jobId) {
+            return repositoryService.execute(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, UUID jobId) {
+            return repositoryService.execute(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, UUID jobId) {
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
+        }
+
+        public ListenableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, UUID jobId) {
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, UUID context) {
+            return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
     }
 

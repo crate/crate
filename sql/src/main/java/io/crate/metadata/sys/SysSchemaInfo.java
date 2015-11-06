@@ -41,7 +41,7 @@ public class SysSchemaInfo implements SchemaInfo {
     public SysSchemaInfo(ClusterService clusterService) {
 
         SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo(clusterService, this);
-        
+
         tableInfos = ImmutableMap.<String, TableInfo>builder()
                 .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
                 .put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo)
@@ -51,6 +51,8 @@ public class SysSchemaInfo implements SchemaInfo {
                 .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, this, sysNodesTableInfo))
                 .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService, this))
                 .put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo(clusterService, this))
+                .put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService, this))
+                .put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo(clusterService, this))
                 .build();
     }
 

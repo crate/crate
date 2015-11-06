@@ -5,6 +5,7 @@ from crate.testing.layer import CrateLayer
 import os
 import shutil
 import re
+import tempfile
 from . import process_test
 from .paths import crate_path, project_path
 from .ports import GLOBAL_PORT_POOL
@@ -78,20 +79,28 @@ crash_parser = zc.customdoctests.DocTestParser(
 
 class ConnectingCrateLayer(CrateLayer):
 
+    def __init__(self, *args, **kwargs):
+        self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
+        super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
+
     def start(self):
         super(ConnectingCrateLayer, self).start()
         cmd._connect(self.crate_servers[0])
 
+    def tearDown(self):
+        shutil.rmtree(self.repo_path, ignore_errors=True)
+        super(ConnectingCrateLayer, self).tearDown()
+
+
 empty_layer = ConnectingCrateLayer(
     'crate',
     crate_home=crate_path(),
-    crate_exec=crate_path('bin', 'crate'),
     port=CRATE_HTTP_PORT,
     transport_port=CRATE_TRANSPORT_PORT,
     settings={
         'gateway.type': 'none',
         'index.store.type': 'memory',
-        'cluster.routing.schedule': '30ms'
+        'cluster.routing.schedule': '30ms',
     }
 )
 
@@ -258,6 +267,14 @@ def test_suite():
         path = os.path.join('..', '..', 'best_practice', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUpTutorials,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                 doctest.ELLIPSIS)
+        s.layer = empty_layer
+        docs_suite.addTest(s)
+    for fn in ('sql/snapshot_restore.txt',):
+        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
+                                 setUp=setUpLocationsAndQuotes,
+                                 tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer

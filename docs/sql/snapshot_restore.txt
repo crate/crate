@@ -1,0 +1,322 @@
+.. highlight:: psql
+.. _snapshot-restore:
+
+Backup with Snapshot and Restore
+================================
+
+Snapshot
+--------
+
+In CRATE, backups are called *Snapshots*. They represent the state of
+the tables in a CRATE cluster at the time the *Snapshot* was
+created. A *Snapshot* is always stored in a *Repository* which has to
+be created up front.
+
+Creating a Repository
+~~~~~~~~~~~~~~~~~~~~~
+
+Repositories are used to store, manage and restore snapshots.
+
+They are created using the :ref:`ref-create-repository` statement::
+
+    cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
+    ... WITH (location='repo_path', compress=true);
+    CREATE OK (... sec)
+
+Repositories are uniquely identified by their name. Every repository
+has a specific type which determines how snapshots are stored.
+
+CRATE supports different repository types:
+:ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
+and :ref:`ref-create-repository-types-url`. Support for further types
+might be added using :ref:`plugins`.
+
+The creation of a repository simply configures it inside the crate cluster. In
+general no data is written, no snapshots inside repositories are changed or
+deleted. This way you can tell the CRATE cluster about existing repositories
+which already contain snapshots.
+
+Creating a repository with the same name will result in an error::
+
+    cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
+    ... WITH (location='another_repo_path', compress=false);
+    SQLActionException[Repository 'where_my_snapshots_go' already exists]
+
+Creating a Snapshot
+~~~~~~~~~~~~~~~~~~~
+
+Snapshots are created inside a repository and can contain any number
+of tables. The :ref:`ref-create-snapshot` statement is used to create
+a snapshots::
+
+    cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot1 ALL
+    ... WITH (wait_for_completion=true, ignore_unavailable=true);
+    CREATE OK (... sec)
+
+A snapshot is referenced by the name of the repository and the snapshot name,
+separated by a dot. If used with ``ALL``, all *user created* tables of the
+cluster (except blob tables) are stored inside the snapshot.
+
+It is also possible to only save a specific subset of tables in the snapshot by
+listing them explicitly::
+
+    cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes, doc.locations
+    ... WITH (wait_for_completion=true);
+    CREATE OK (... sec)
+
+.. Hidden: create partitioned table
+
+    cr> CREATE TABLE parted_table (
+    ...   id int,
+    ...   value string,
+    ...   date timestamp
+    ... ) clustered into 1 shards partitioned by (date) with (number_of_replicas=0);
+    CREATE OK (... sec)
+    cr> INSERT INTO parted_table (id, value, date)
+    ... VALUES (1, 'foo', '1970-01-01'), (2, 'bar', '2015-10-19');
+    INSERT OK, 2 rows affected (... sec)
+    cr> REFRESH TABLE parted_table;
+    REFRESH OK (... sec)
+
+Even single partitions of :ref:`partitioned_tables` can be selected
+for backup. This is especially useful if old partitions must be
+deleted but it should be possible to restore them if needed::
+
+    cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
+    ...    locations,
+    ...    parted_table PARTITION (date='1970-01-01')
+    ... WITH (wait_for_completion=true);
+    CREATE OK (... sec)
+
+Snapshots are **incremental**. Snapshots of the same cluster that were
+created later only store the data that is not already contained in the
+repository.
+
+All examples above are used with the argument ``wait_for_completion``
+set to *true*. As also described at the :ref:`ref-create-repository`
+reference documentation, by doing this, the statement will only respond
+(either sucessfully or not) when the snapshot is fully
+created. Otherwise the snapshot will be created in the background and
+the statement will immediately respond successfully. The status of a
+created snapshot can be retrieved by querying the :ref:`sys.snapshots
+<sys-snapshots>` system table.
+
+Restore
+-------
+
+Once a snapshot is created, it can be used to restore its tables to
+the state when the snapshot was created.
+
+To get basic information about snapshots the :ref:`sys.snapshots
+<sys-snapshots>` table can be queried::
+
+    cr> SELECT repository, name, state, concrete_indices
+    ... FROM sys.snapshots
+    ... ORDER BY repository, name;
+    +-----------------------+-----------+---------+--------------------...-+
+    | repository            | name      | state   | concrete_indices       |
+    +-----------------------+-----------+---------+--------------------...-+
+    | where_my_snapshots_go | snapshot1 | SUCCESS | [...]                  |
+    | where_my_snapshots_go | snapshot2 | SUCCESS | [...]                  |
+    | where_my_snapshots_go | snapshot3 | SUCCESS | [...]                  |
+    +-----------------------+-----------+---------+--------------------...-+
+    SELECT 3 rows in set (... sec)
+
+In order to restore a table from a snapshot we have to drop it beforehand::
+
+    cr> DROP TABLE quotes;
+    DROP OK (... sec)
+
+Restoring a snapshot is done using the :ref:`ref-restore-snapshot` statement.::
+
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes WITH (wait_for_completion=true);
+    RESTORE OK, 1 row affected (... sec)
+
+In this case only the ``quotes`` table from snapshot
+``where_my_snapshots_go.snapshot2`` is restored. Using ``ALL`` instead
+of listing all tables restores the whole snapshot.
+
+It is not possible to restore tables that exist in the current cluster::
+
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
+    SQLActionException[The table 'doc.quotes' already exists.]
+
+Single partitions can be either imported into an existing partitioned
+table the partition belongs to.
+
+.. Hidden: drop partition::
+
+    cr> DELETE FROM parted_table WHERE date = '1970-01-01';
+    DELETE OK, -1 rows affected (... sec)
+
+::
+
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
+    ...    parted_table PARTITION (date='1970-01-01')
+    ... WITH (wait_for_completion=true);
+    RESTORE OK, 1 row affected (... sec)
+
+
+Or if no matching partition table exists, it will be implicitly
+created during restore.
+
+::
+
+    cr> DROP TABLE parted_table;
+    DROP OK (... sec)
+
+    cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
+    ...    parted_table PARTITION (date='1970-01-01')
+    ... WITH (wait_for_completion=true);
+    RESTORE OK, 1 row affected (... sec)
+
+
+Cleanup
+-------
+
+Dropping Snapshots
+~~~~~~~~~~~~~~~~~~
+
+Dropping a snapshot deletes all files inside the repository that are
+only referenced by this snapshot. Due to its incremental nature this
+might be very few files (e.g. for intermediate snapshots). Snapshots
+are dropped using the :ref:`ref-drop-snapshot` command::
+
+    cr> DROP SNAPSHOT where_my_snapshots_go.snapshot3;
+    DROP OK (... sec)
+
+
+Dropping Repositories
+~~~~~~~~~~~~~~~~~~~~~
+
+.. Hidden: create repository
+
+    cr> CREATE REPOSITORY "OldRepository" TYPE fs WITH (location='old_path');
+    CREATE OK (... sec)
+
+If a repository is not needed anymore, it can be dropped using the
+:ref:`ref-drop-repository` statement::
+
+    cr> DROP REPOSITORY "OldRepository";
+    DROP OK (... sec)
+
+This statement, like :ref:`ref-create-repository`, does not manipulate
+repository contents but only deletes stored configuration for this
+repository in the cluster state, so it is not accessible any more.
+
+
+.. Hidden: cleanup
+
+    cr> DROP TABLE parted_table;
+    DROP OK (... sec)
+    cr> DROP SNAPSHOT where_my_snapshots_go.snapshot1;
+    DROP OK (... sec)
+    cr> DROP SNAPSHOT where_my_snapshots_go.snapshot2;
+    DROP OK (... sec)
+    cr> DROP REPOSITORY where_my_snapshots_go;
+    DROP OK (... sec)
+
+.. _snapshot-restore_hfs-requirements:
+
+Requirements for using repositories of type 'hdfs'
+--------------------------------------------------
+
+Crate supports repositories of type
+:ref:`ref-create-repository-types-hdfs` type by default, but required
+`Hadoop`_ java client libraries are not included in any Crate
+distribution. Therefore they needed to be added to Crate's hdfs plugin lib
+folder. As default it's ``$CRATE_HOME/plugins/hdfs/lib``
+
+Because some libraries `Hadoop`_ depends on are also depended (and so
+deployed) by Crate, only the `Hadoop`_
+libraries listed below for the concrete `Hadoop`_ version must be
+copied, other libraries will be ignored.
+
+.. note::
+
+   After installing all needed libraries, every node must be restarted.
+
+Hadoop 1.x required libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using `Hadoop (1.x)`_ version 1.x, please install the following libraries
+into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
+
+ - commons-collections-3.2.1.jar
+ - commons-configuration-1.6.jar
+ - commons-digester-1.8.jar
+ - commons-el-1.0.jar
+ - commons-httpclient-3.1.jar
+ - commons-io-2.1.jar
+ - commons-lang-2.4.jar
+ - commons-net-1.4.1.jar
+ - hadoop-core-1.2.1.jar
+ - jackson-core-asl-1.8.8.jar
+ - jackson-mapper-asl-1.8.8.jar
+ - jets3t-0.6.1.jar
+ - oro-2.0.8.jar
+ - xmlenc-0.52.jar
+
+.. note::
+
+   As of writing this documentation, the latest stable `Hadoop 1.x`
+   version is **1.2.1**. Required libraries may differ for other
+   versions.
+
+Hadoop 2.x required libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using `Hadoop (YARN)`_ version 2.x, please install the following libraries
+into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
+
+
+ - apacheds-i18n-2.0.0-M15.jar
+ - apacheds-kerberos-codec-2.0.0-M15.jar
+ - api-asn1-api-1.0.0-M20.jar
+ - api-util-1.0.0-M20.jar
+ - avro-1.7.4.jar
+ - commons-collections-3.2.1.jar
+ - commons-compress-1.4.1.jar
+ - commons-configuration-1.6.jar
+ - commons-beanutils-core-1.8.0.jar
+ - commons-digester-1.8.jar
+ - commons-httpclient-3.1.jar
+ - commons-io-2.4.jar
+ - commons-lang-2.6.jar
+ - commons-net-3.1.jar
+ - curator-client-2.7.1.jar
+ - curator-framework-2.7.1.jar
+ - curator-recipes-2.7.1.jar
+ - gson-2.2.4.jar
+ - hadoop-annotations-2.7.1.jar
+ - hadoop-auth-2.7.1.jar
+ - hadoop-client-2.7.1.jar
+ - hadoop-common-2.7.1.jar
+ - hadoop-hdfs-2.7.1.jar
+ - htrace-core-3.1.0-incubating.jar
+ - jackson-core-asl-1.9.13.jar
+ - jackson-mapper-asl-1.9.13.jar
+ - jline-0.9.94.jar
+ - jsp-api-2.1.jar
+ - jsr305-3.0.0.jar
+ - leveldbjni-all-1.8.jar
+ - protobuf-java-2.5.0.jar
+ - paranamer-2.3.jar
+ - snappy-java-1.0.4.1.jar
+ - servlet-api-2.5.jar
+ - xercesImpl-2.9.1.jar
+ - xmlenc-0.52.jar
+ - xml-apis-1.3.04.jar
+ - xz-1.0.jar
+ - zookeeper-3.4.6.jar
+
+.. note::
+
+   As of writing this documentation, the latest stable `Hadoop
+   (YARN)` version is **2.7.1**. Required libraries may differ for other
+   versions.
+
+
+.. _Hadoop: https://hadoop.apache.org/
+.. _Hadoop (1.x): https://hadoop.apache.org/
+.. _Hadoop (YARN): https://hadoop.apache.org/

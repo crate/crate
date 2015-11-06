@@ -21,6 +21,7 @@
 
 package io.crate.testing;
 
+import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -75,6 +76,18 @@ public class MockedClusterServiceModule extends AbstractModule {
         when(node.getName()).thenReturn("node 1");
         when(clusterService.localNode()).thenReturn(node);
 
+        bind(TransportActionProvider.class).toInstance(mock(TransportActionProvider.class));
+
         bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
+
+        configureClusterService(clusterService);
+        configureClusterState(state);
+        configureMetaData(metaData);
     }
+
+    protected void configureClusterService(ClusterService clusterService) {}
+
+    protected void configureClusterState(ClusterState clusterState) {}
+
+    protected void configureMetaData(MetaData metaData) {}
 }

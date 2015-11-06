@@ -280,6 +280,7 @@ distZip {
 ext {
     downloadDir = new File(buildDir, 'downloads')
     plugin_crateadmin_version = '0.15.3'
+    plugin_repository_hdfs_version = '2.1.1-1'
     crash_version = '0.14.2'
 }
 
@@ -306,7 +307,9 @@ distributions {
                 from jar
             }
             into('plugins') {
-                from 'plugins'
+                from ('plugins') {
+                    includeEmptyDirs = true
+                }
             }
             into('bin') {
                 from ("${downloadDir}/crash_standalone") {
@@ -384,6 +387,17 @@ task downloadPlugins << {
             "crate-admin-${plugin_crateadmin_version}.tar.gz"
     )
     extractTopfolder(dest, 'plugins/crate-admin/_site')
+
+    dest = download(
+            "https://bintray.com/artifact/download/crate/crate/io/crate/crate-repository-hdfs/${plugin_repository_hdfs_version}/crate-repository-hdfs-${plugin_repository_hdfs_version}.jar",
+            "crate-repository-hdfs-${plugin_repository_hdfs_version}.jar"
+    )
+    def hdfsLib = new File(project.projectDir, 'plugins/hdfs/lib')
+    hdfsLib.mkdirs()
+    copy {
+        from dest
+        into 'plugins/hdfs'
+    }
 }
 
 task downloadCrash << {

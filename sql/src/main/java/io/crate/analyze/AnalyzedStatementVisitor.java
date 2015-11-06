@@ -41,6 +41,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLAnalyzedStatement(analysis, context);
     }
 
+    protected R visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
     protected R visitDeleteStatement(DeleteAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
@@ -113,4 +117,19 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitShowAnalyzedStatement(analysis, context);
     }
 
+    public R visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
+    public R visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
+    public R visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
+    public R visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
 }

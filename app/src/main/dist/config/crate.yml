@@ -233,9 +233,11 @@
 #
 # path.plugins: /path/to/plugins
 
+
 # path:
 #     logs: /var/log/crate
 #     data: /var/lib/crate
+
 
 #################################### Plugin ###################################
 
@@ -799,3 +801,22 @@
 # A relative path value is relative to CRATE_HOME.
 #
 # blobs.path: /path/to/blobs
+
+
+########################## BACKUP / RESTORE ##########################
+
+# Paths where Repositories of type fs may be created:
+#
+# path.repo: /path/to/shared/fs,/other/shared/fs
+
+
+# Whitelist for urls that can be used with the url repository type
+# Wildcards are supported in the host, path, query and fragment parts.
+#
+# Supported protocols are: "http", "https", "ftp", "file" and "jar"
+# While only "http", "https" and "ftp" need to be listed here for usage in
+# URL repsoitories.
+#
+# "file" urls must be prefixed with an entry configured in ``path.repo``
+#
+# repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]

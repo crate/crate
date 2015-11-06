@@ -60,6 +60,11 @@ public class Analyzer {
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
         private final KillStatementAnalyzer killStatementAnalyzer;
+        private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
+        private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
+        private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
+        private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
+        private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
 
 
         @Inject
@@ -80,7 +85,12 @@ public class Analyzer {
                                   CopyStatementAnalyzer copyStatementAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DeleteStatementAnalyzer deleteStatementAnalyzer,
-                                  KillStatementAnalyzer killStatementAnalyzer) {
+                                  KillStatementAnalyzer killStatementAnalyzer,
+                                  DropRepositoryStatementAnalyzer dropRepositoryAnalyzer,
+                                  CreateRepositoryAnalyzer createRepositoryAnalyzer,
+                                  DropSnapshotAnalyzer dropSnapshotAnalyzer,
+                                  CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
+                                  RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
@@ -99,6 +109,11 @@ public class Analyzer {
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
             this.killStatementAnalyzer = killStatementAnalyzer;
+            this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
+            this.createRepositoryAnalyzer = createRepositoryAnalyzer;
+            this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
+            this.createSnapshotStatementAnalyzer = createSnapshotStatementAnalyzer;
+            this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
         }
 
         @Override
@@ -198,6 +213,31 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
             return killStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
+            return dropRepositoryAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
+            return createRepositoryAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
+            return dropSnapshotAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateSnapshot(CreateSnapshot node, Analysis context) {
+            return createSnapshotStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis context) {
+            return restoreSnapshotStatementAnalyzer.analyze(node, context);
         }
 
         @Override

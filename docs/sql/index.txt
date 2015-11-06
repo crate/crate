@@ -24,5 +24,6 @@ see :doc:`sql`. For general information about SQL please refer to
    information_schema
    system
    kill
+   snapshot_restore
    sql
    rest

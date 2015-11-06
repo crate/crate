@@ -46,6 +46,9 @@ tokens {
     EXPLAIN_FORMAT;
     EXPLAIN_TYPE;
     TABLE;
+    REPOSITORY;
+    SNAPSHOT;
+    RESTORE;
     JOINED_TABLE;
     QUALIFIED_JOIN;
     CROSS_JOIN;
@@ -80,12 +83,17 @@ tokens {
     CREATE_TABLE;
     CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
+    CREATE_REPOSITORY;
+    CREATE_SNAPSHOT;
+    RESTORE_SNAPSHOT;
     REFRESH_MATERIALIZED_VIEW;
     VIEW_REFRESH;
     CREATE_ALIAS;
     DROP_ALIAS;
     DROP_TABLE;
     DROP_BLOB_TABLE;
+    DROP_REPOSITORY;
+    DROP_SNAPSHOT;
     TABLE_ELEMENT_LIST;
     TABLE_PARTITION_LIST;
     ADD_COLUMN;
@@ -209,6 +217,7 @@ statement
     | setStmt
     | resetStmt
     | killStmt
+    | RESTORE restoreStmt -> restoreStmt
     ;
 
 query
@@ -365,6 +374,10 @@ tableWithPartition
 
 table
     : qname -> ^(TABLE qname)
+    ;
+
+repository
+    : ident -> ^(ident)
     ;
 
 tableOnly
@@ -810,6 +823,8 @@ createStatement
     | BLOB TABLE createBlobTableStmt -> createBlobTableStmt
     | ALIAS createAliasStmt -> createAliasStmt
     | ANALYZER createAnalyzerStmt -> createAnalyzerStmt
+    | REPOSITORY createRepositoryStmt -> createRepositoryStmt
+    | SNAPSHOT createSnapshotStmt -> createSnapshotStmt
     ;
 
 createTableStmt
@@ -830,6 +845,18 @@ createAliasStmt
 
 createAnalyzerStmt
     : ident extendsAnalyzer? analyzerElementList -> ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
+    ;
+
+createRepositoryStmt
+    : repository
+      TYPE ident
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_REPOSITORY repository ident genericProperties?)
+    ;
+
+createSnapshotStmt
+    : qname
+      allOrTableWithPartitionList
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_SNAPSHOT qname allOrTableWithPartitionList genericProperties?)
     ;
 
 // END CREATE STATEMENTS
@@ -864,8 +891,18 @@ dropStatement
 	: TABLE ( IF EXISTS )? table -> ^(DROP_TABLE EXISTS? table)
 	| BLOB TABLE ( IF EXISTS )? table -> ^(DROP_BLOB_TABLE EXISTS? table)
 	| ALIAS qname -> ^(DROP_ALIAS qname)
+	| REPOSITORY repository -> ^(DROP_REPOSITORY repository)
+	| SNAPSHOT qname -> ^(DROP_SNAPSHOT qname)
 	;
 // END DROP STATEMENTS
+
+restoreStmt
+    : SNAPSHOT qname
+      allOrTableWithPartitionList
+      (WITH '(' genericProperties ')' )? -> ^(RESTORE_SNAPSHOT qname allOrTableWithPartitionList genericProperties?)
+    ;
+
+
 
 crateTableOption
     : clusteredBy
@@ -1010,6 +1047,11 @@ tableWithPartitionList
     : tableWithPartition ( ',' tableWithPartition )* -> ^(TABLE_PARTITION_LIST tableWithPartition+)
     ;
 
+allOrTableWithPartitionList
+    : ALL
+    | TABLE tableWithPartitionList -> tableWithPartitionList
+    ;
+
 refreshStmt
     : REFRESH TABLE tableWithPartitionList -> ^(REFRESH tableWithPartitionList)
     ;
@@ -1041,6 +1083,7 @@ nonReserved
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
+    | REPOSITORY | SNAPSHOT | RESTORE
     ;
 
 SELECT: 'SELECT';
@@ -1122,6 +1165,8 @@ RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
+REPOSITORY: 'REPOSITORY';
+SNAPSHOT: 'SNAPSHOT';
 ALTER: 'ALTER';
 KILL: 'KILL';
 ONLY: 'ONLY';
@@ -1165,6 +1210,7 @@ FUNCTIONS: 'FUNCTIONS';
 MATERIALIZED: 'MATERIALIZED';
 VIEW: 'VIEW';
 REFRESH: 'REFRESH';
+RESTORE: 'RESTORE';
 DROP: 'DROP';
 ALIAS: 'ALIAS';
 UNION: 'UNION';

@@ -27,8 +27,10 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
@@ -78,6 +80,27 @@ public class PartitionPropertiesAnalyzer {
             }
         }
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
+    }
+
+    public static PartitionName toPartitionName(TableIdent tableIdent,
+                                                DocTableInfo docTableInfo,
+                                                List<Assignment> partitionProperties,
+                                                Object[] parameters) {
+        if (docTableInfo != null) {
+            return toPartitionName(docTableInfo, partitionProperties, parameters);
+        }
+
+        // Because only TableIdent is available, types of partitioned columns must be guessed
+        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
+        BytesRef[] values = new BytesRef[properties.size()];
+
+        int idx = 0;
+        for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
+            DataType guessedType = DataTypes.guessType(entry.getValue(), false);
+            Object value = guessedType.value(entry.getValue());
+            values[idx++] = DataTypes.STRING.value(value);
+        }
+        return new PartitionName(tableIdent, Arrays.asList(values));
     }
 
     public static String toPartitionIdent(DocTableInfo tableInfo,

@@ -61,7 +61,10 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.snapshots.InvalidSnapshotNameException;
+import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
@@ -330,6 +333,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new CircuitBreakingException(e.getMessage());
         } else if (e instanceof CancellationException) {
             return new JobKilledException();
+        } else if (e instanceof RepositoryMissingException) {
+            return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
+        } else if (e instanceof SnapshotMissingException) {
+            return new SnapshotUnknownException(((SnapshotMissingException) e).snapshot(), e);
+        } else if (e instanceof InvalidSnapshotNameException) {
+            if (((InvalidSnapshotNameException) e).getDetailedMessage().contains("snapshot with such name already exists")) {
+                return new SnapShotAlreadyExistsExeption(((InvalidSnapshotNameException) e).snapshot());
+            }
         }
         return e;
     }

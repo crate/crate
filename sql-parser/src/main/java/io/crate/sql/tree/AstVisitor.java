@@ -589,4 +589,23 @@ public abstract class AstVisitor<R, C>
         return visitStatement(node, context);
     }
 
+    public R visitDropRepository(DropRepository node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitCreateRepository(CreateRepository node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitDropSnapshot(DropSnapshot node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitCreateSnapshot(CreateSnapshot node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitRestoreSnapshot(RestoreSnapshot node, C context) {
+        return visitStatement(node, context);
+    }
 }
