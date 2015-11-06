@@ -208,8 +208,9 @@ The following predicates extend the range of possible conditions to use in the w
     ==========================  ===========================================================
     :ref:`predicates_not_null`  field is not null and not missing
     :ref:`predicates_is_null`   field is null or missing
-    :ref:`predicates_match`     Perform a fulltext search on a column.
-                                See :ref:`sql_dql_fulltext_search` for usage.
+    :ref:`predicates_match`     Perform a search on an indexed column.
+                                See :ref:`sql_dql_fulltext_search`
+                                or :ref:`sql_dql_geo_search` for usage.
     ==========================  ===========================================================
 
 .. note::
