@@ -26,8 +26,18 @@ Synopsis
     )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
 
 
-The MATCH predicate performs a fulltext search on one or multiple columns
-and supports different matching techniques.
+The MATCH predicate performs a fulltext search on one or multiple indexed columns or indices
+and supports different matching techniques. It can also be used to perform :ref:`geographical
+searches <sql_dql_geo_search>` on :ref:`geo_shape_data_type` indices.
+
+The actual usage of the predicate depends on the type of the queried index.
+More exactly the available ``match_type`` and ``match_parameters``
+depend on the index type used. This section only covers the usage of the
+MATCH predicate on ``fulltext`` indices on string columns.
+For usage on :ref:`geo_shape_data_type` indices, see :ref:`sql_dql_geo_search`.
+
+Furthermore it is not possible to query
+multiple index columns with different index types with one match predicate.
 
 In order to use fulltext searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
 must be created on the related column. See :ref:`fulltext-indices` for details.
