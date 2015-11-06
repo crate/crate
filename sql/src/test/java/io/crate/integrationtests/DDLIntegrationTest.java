@@ -201,6 +201,55 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateGeoShapeExplicitIndex() throws Exception {
+        execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
+        ensureYellow();
+        String expectedMapping = "{\"default\":{" +
+                                 "\"dynamic\":\"true\"," +
+                                 "\"_all\":{\"enabled\":false}," +
+                                 "\"properties\":{" +
+                                 // precision is automatically converted to tree_levels by elasticsearch
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"tree_levels\":26,\"distance_error_pct\":0.25}" +
+                                 "}}}";
+        assertEquals(expectedMapping, getIndexMapping("test"));
+    }
+
+    @Test
+    public void testCreateGeoShape() throws Exception {
+        execute("create table test (col1 geo_shape)");
+        ensureYellow();
+        String expectedMapping = "{\"default\":{" +
+                                 "\"dynamic\":\"true\"," +
+                                 "\"_all\":{\"enabled\":false}," +
+                                 "\"properties\":{" +
+                                 "\"col1\":{\"type\":\"geo_shape\"}" +
+                                 "}}}";
+        assertEquals(expectedMapping, getIndexMapping("test"));
+
+    }
+
+    @Test
+    public void testGeoShapeInvalidPrecision() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Value '10%' of setting precision is not a valid distance uni");
+        execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))");
+    }
+
+    @Test
+    public void testGeoShapeInvalidDistance() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Value 'true' of setting distance_error_pct is not a float value");
+        execute("create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))");
+    }
+
+    @Test
+    public void testUnknownGeoShapeSetting() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Setting \"does_not_exist\" ist not supported on geo_shape index");
+        execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))");
+    }
+
+    @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
         execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
         ensureYellow();
