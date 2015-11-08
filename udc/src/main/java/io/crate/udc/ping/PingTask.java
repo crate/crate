@@ -30,6 +30,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.monitor.network.NetworkInfo;
 import org.elasticsearch.node.service.NodeService;
 import org.hyperic.sigar.OperatingSystem;
 
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class PingTask extends TimerTask {
 
-    public static TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
+    public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
 
     private static final ESLogger logger = Loggers.getLogger(PingTask.class);
 
@@ -98,9 +99,14 @@ public class PingTask extends TimerTask {
         }};
     }
 
+    @Nullable
     public String getHardwareAddress() {
-        final String macAddr = nodeService.info().getNetwork().getPrimaryInterface().getMacAddress();
-        return (macAddr != null && macAddr.equals("")) ? null : macAddr.toLowerCase(Locale.ENGLISH);
+        final NetworkInfo network = nodeService.info().getNetwork();
+        if (network == null) {
+            return null;
+        }
+        final String macAddress = network.getPrimaryInterface().getMacAddress();
+        return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
     }
 
     public String getCrateVersion() {

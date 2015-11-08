@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.monitor.network.NetworkInfo;
 import org.elasticsearch.node.service.NodeService;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,6 +103,36 @@ public class PingTaskTest extends CrateUnitTest {
         when(networkInfo.getPrimaryInterface()).thenReturn(iface);
         when(nodeInfo.getNetwork()).thenReturn(networkInfo);
         when(nodeService.info()).thenReturn(nodeInfo);
+    }
+
+    @Test
+    public void testGetHardwareAddressNetworkInfoNull() throws Exception {
+        NodeService nodeService = mock(NodeService.class);
+        NodeInfo nodeInfo = mock(NodeInfo.class);
+        when(nodeService.info()).thenReturn(nodeInfo);
+        when(nodeInfo.getNetwork()).thenReturn(null);
+        PingTask pingTask = new PingTask(
+                mock(ClusterService.class),
+                mock(ClusterIdService.class),
+                nodeService, "http://dummy");
+        assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
+    }
+
+    @Test
+    public void testGetHardwareAddressMacAddrNull() throws Exception {
+        NodeService nodeService = mock(NodeService.class);
+        NodeInfo nodeInfo = mock(NodeInfo.class);
+        NetworkInfo network = mock(NetworkInfo.class);
+        NetworkInfo.Interface networkInterface = mock(NetworkInfo.Interface.class);
+        when(networkInterface.getMacAddress()).thenReturn(null);
+        when(network.getPrimaryInterface()).thenReturn(networkInterface);
+        when(nodeService.info()).thenReturn(nodeInfo);
+        when(nodeInfo.getNetwork()).thenReturn(network);
+        PingTask pingTask = new PingTask(
+                mock(ClusterService.class),
+                mock(ClusterIdService.class),
+                nodeService, "http://dummy");
+        assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
     }
 
     @Test
