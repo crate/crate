@@ -42,7 +42,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -99,7 +99,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(tableRelation.resolve(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
 
-        assertLiteralSymbol(whereClause.arguments().get(1), "Trillian");
+        assertThat(whereClause.arguments().get(1), isLiteral("Trillian"));
     }
 
     @Test( expected = UnsupportedOperationException.class)

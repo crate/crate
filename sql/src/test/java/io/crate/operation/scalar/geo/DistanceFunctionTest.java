@@ -38,8 +38,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -96,7 +96,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("POINT (10 20)"),
                 Literal.newLiteral("POINT (11 21)")
         ));
-        assertLiteralSymbol(symbol, 152462.70754934277);
+        assertThat(symbol, isLiteral(152462.70754934277));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(type, new Double[]{10.0, 20.0}),
                 Literal.newLiteral(type, new Double[]{11.0, 21.0})
         ));
-        assertLiteralSymbol(symbol, 152462.70754934277);
+        assertThat(symbol, isLiteral(152462.70754934277));
     }
 
     @Test
@@ -127,16 +127,16 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
                 createReference("foo", DataTypes.GEO_POINT),
                 Literal.newLiteral("POINT(10 20)")
         ));
-        assertLiteralSymbol(symbol.arguments().get(1),
-                new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT);
+        assertThat(symbol.arguments().get(1),
+                isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
 
         // args reversed
         symbol = (Function) normalize(Arrays.<Symbol>asList(
                 Literal.newLiteral("POINT(10 20)"),
                 createReference("foo", DataTypes.GEO_POINT)
         ));
-        assertLiteralSymbol(symbol.arguments().get(1),
-                new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT);
+        assertThat(symbol.arguments().get(1),
+                isLiteral(new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT));
     }
 
     @Test
@@ -145,16 +145,16 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
                 createReference("foo", DataTypes.GEO_POINT),
                 Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
         ));
-        assertLiteralSymbol(symbol.arguments().get(1),
-                new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT);
+        assertThat(symbol.arguments().get(1),
+                isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
 
         // args reversed
         symbol = (Function) normalize(Arrays.<Symbol>asList(
                 Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
                 createReference("foo", DataTypes.GEO_POINT)
         ));
-        assertLiteralSymbol(symbol.arguments().get(1),
-                new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT);
+        assertThat(symbol.arguments().get(1),
+                isLiteral(new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT));
     }
 
     @Test

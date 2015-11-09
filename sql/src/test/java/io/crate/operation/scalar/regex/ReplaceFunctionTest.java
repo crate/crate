@@ -169,7 +169,7 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
         ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
 
         Symbol result = regexpImpl.normalizeSymbol(function);
-        assertLiteralSymbol(result, expected.utf8ToString());
+        assertThat(result, isLiteral(expected.utf8ToString()));
 
         arguments = Arrays.<Symbol>asList(
                 createReference("text", DataTypes.STRING),
@@ -197,7 +197,7 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
         ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
 
         Symbol result = regexpImpl.normalizeSymbol(function);
-        assertLiteralSymbol(result, expected.utf8ToString());
+        assertThat(result, isLiteral(expected.utf8ToString()));
     }
 
     @Test

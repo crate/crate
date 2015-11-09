@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -37,6 +36,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 
@@ -111,15 +112,15 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeValueSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize(25.0, DataTypes.DOUBLE), 5.d);
-        TestingHelpers.assertLiteralSymbol(normalize(25.f, DataTypes.FLOAT), 5.d);
-        TestingHelpers.assertLiteralSymbol(normalize(25, DataTypes.INTEGER), 5.d);
-        TestingHelpers.assertLiteralSymbol(normalize(25L, DataTypes.LONG), 5.d);
+        assertThat(normalize(25.0, DataTypes.DOUBLE), isLiteral(5.d));
+        assertThat(normalize(25.f, DataTypes.FLOAT), isLiteral(5.d));
+        assertThat(normalize(25, DataTypes.INTEGER), isLiteral(5.d));
+        assertThat(normalize(25L, DataTypes.LONG), isLiteral(5.d));
     }
 
     @Test
     public void testNormalizeReference() throws Exception {
-        Reference height = TestingHelpers.createReference("height", DataTypes.DOUBLE);
+        Reference height = createReference("height", DataTypes.DOUBLE);
         SquareRootFunction sqrt = getFunction(Arrays.<DataType>asList(DataTypes.DOUBLE));
         Function function = new Function(sqrt.info(), Arrays.<Symbol>asList(height));
         Function normalized = (Function) sqrt.normalizeSymbol(function);

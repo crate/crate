@@ -28,13 +28,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -60,9 +60,9 @@ public class ToFloatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), 123f);
-        TestingHelpers.assertLiteralSymbol(normalize("42.5", DataTypes.STRING), 42.5f);
-        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), 12.5f);
+        assertThat(normalize("123", DataTypes.STRING), isLiteral(123f));
+        assertThat(normalize("42.5", DataTypes.STRING), isLiteral(42.5f));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral(12.5f));
     }
 
     @Test

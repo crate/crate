@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -40,6 +39,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 
 public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
@@ -92,7 +93,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         List<DataType> argumentTypes = Arrays.<DataType>asList(type, type);
         List<Symbol> arguments = Arrays.<Symbol>asList(
                 Literal.newLiteral(new Object[]{1, 2, 3},type),
-                TestingHelpers.createReference("foo", type)
+                createReference("foo", type)
         );
 
         Scalar function = ((ArrayDifferenceFunction) functions.get(new FunctionIdent(ArrayDifferenceFunction.NAME, argumentTypes)));
@@ -157,7 +158,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(new Integer[]{10, 30}, type)
         )));
 
-        TestingHelpers.assertLiteralSymbol(symbol, new Integer[]{20}, type);
+        assertThat(symbol, isLiteral(new Integer[]{20}, type));
     }
 
     @Test
@@ -166,7 +167,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         ArrayDifferenceFunction function = getFunction(type, type);
 
         Function functionSymbol = new Function(function.info(), Arrays.<Symbol>asList(
-                TestingHelpers.createReference("foo", type),
+                createReference("foo", type),
                 Literal.newLiteral(new Integer[]{10, 30}, type)
         ));
         Function symbol = (Function) function.normalizeSymbol(functionSymbol);

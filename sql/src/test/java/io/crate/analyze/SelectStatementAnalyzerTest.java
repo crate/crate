@@ -442,7 +442,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             assertThat(eqFunction.arguments().size(), is(2));
 
             List<Symbol> eqArguments = eqFunction.arguments();
-            assertLiteralSymbol(eqArguments.get(1), "something");
+            assertThat(eqArguments.get(1), isLiteral("something"));
         }
     }
 
@@ -464,7 +464,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> eqArguments = eqFunction.arguments();
 
         assertThat(eqArguments.get(0), isReference("name"));
-        assertLiteralSymbol(eqArguments.get(1), "[sS]omething");
+        assertThat(eqArguments.get(1), isLiteral("[sS]omething"));
 
     }
 
@@ -628,7 +628,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
-        assertLiteralSymbol(whereClause.arguments().get(1), "foo");
+        assertThat(whereClause.arguments().get(1), isLiteral("foo"));
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
@@ -827,7 +827,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function anyFunction = (Function) analysis.relation().querySpec().where().query();
         assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
         assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType(DataTypes.LONG)));
-        assertLiteralSymbol(anyFunction.arguments().get(0), 5L);
+        assertThat(anyFunction.arguments().get(0), isLiteral(5L));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -1241,7 +1241,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
-        assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
+        assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
     }
 
     @Test
@@ -1263,7 +1263,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function maxFunction = (Function) havingFunction.arguments().get(0);
 
         assertThat(maxFunction.arguments().get(0), isReference("bytes"));
-        assertLiteralSymbol(havingFunction.arguments().get(1), (byte) 4, DataTypes.BYTE);
+        assertThat(havingFunction.arguments().get(1), isLiteral((byte) 4, DataTypes.BYTE));
     }
 
     @Test
@@ -1291,7 +1291,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
-        assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
+        assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
     }
 
 

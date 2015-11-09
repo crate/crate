@@ -28,13 +28,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -60,8 +60,8 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), 123L);
-        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), 12L);
+        assertThat(normalize("123", DataTypes.STRING), isLiteral(123L));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral(12L));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast 'hello' to long");
-        TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
+        assertThat(normalize("hello", DataTypes.STRING), isLiteral(123L));
     }
 
     @Test

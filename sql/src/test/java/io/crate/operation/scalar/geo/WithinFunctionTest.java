@@ -42,8 +42,8 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.*;
 
@@ -139,7 +139,7 @@ public class WithinFunctionTest {
         Symbol normalized = normalize(Arrays.<Symbol>asList(
                 Literal.newGeoShape("POLYGON ((10 10, 11 10, 11 11, 10 11, 10 10))"),
                 Literal.newGeoShape("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))")));
-        assertLiteralSymbol(normalized, true);
+        assertThat(normalized, isLiteral(true));
     }
 
     @Test
@@ -147,7 +147,7 @@ public class WithinFunctionTest {
         Symbol normalized = normalize(
                 Literal.newLiteral("POINT (10 10)"),
                 Literal.newLiteral("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        assertLiteralSymbol(normalized, true);
+        assertThat(normalized, isLiteral(true));
     }
 
     @Test

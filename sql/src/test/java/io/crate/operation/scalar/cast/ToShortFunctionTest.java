@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -60,8 +61,8 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), (short)123);
-        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), (short)12);
+        assertThat(normalize("123", DataTypes.STRING), isLiteral((short)123));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((short)12));
     }
 
     @Test

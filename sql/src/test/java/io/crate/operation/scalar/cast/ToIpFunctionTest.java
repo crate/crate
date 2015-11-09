@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -36,6 +35,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -60,9 +60,9 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("127.0.0.1", DataTypes.STRING), new BytesRef("127.0.0.1"), DataTypes.IP);
-        TestingHelpers.assertLiteralSymbol(normalize(new BytesRef("127.0.0.1"), DataTypes.STRING), new BytesRef("127.0.0.1"), DataTypes.IP);
-        TestingHelpers.assertLiteralSymbol(normalize(2130706433L, DataTypes.LONG), new BytesRef("127.0.0.1"), DataTypes.IP);
+        assertThat(normalize("127.0.0.1", DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
+        assertThat(normalize(new BytesRef("127.0.0.1"), DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
+        assertThat(normalize(2130706433L, DataTypes.LONG), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
     }
 
     @Test

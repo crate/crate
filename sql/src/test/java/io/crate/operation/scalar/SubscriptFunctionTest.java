@@ -86,7 +86,7 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
         Symbol result = subscriptFunction.normalizeSymbol(function);
-        assertLiteralSymbol(result, expected.utf8ToString());
+        assertThat(result, isLiteral(expected.utf8ToString()));
 
         arguments = Arrays.<Symbol>asList(
                 createReference("text", term.valueType()),

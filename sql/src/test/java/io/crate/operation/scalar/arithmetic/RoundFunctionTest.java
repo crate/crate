@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -37,6 +36,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 
@@ -88,14 +89,14 @@ public class RoundFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeValueSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize(42.9, DataTypes.DOUBLE), 43L);
-        TestingHelpers.assertLiteralSymbol(normalize(42.9f, DataTypes.FLOAT), 43);
-        TestingHelpers.assertLiteralSymbol(normalize(null, DataTypes.FLOAT), null, DataTypes.INTEGER);
+        assertThat(normalize(42.9, DataTypes.DOUBLE), isLiteral(43L));
+        assertThat(normalize(42.9f, DataTypes.FLOAT), isLiteral(43));
+        assertThat(normalize(null, DataTypes.FLOAT), isLiteral(null, DataTypes.INTEGER));
     }
 
     @Test
     public void testNormalizeReference() throws Exception {
-        Reference height = TestingHelpers.createReference("height", DataTypes.DOUBLE);
+        Reference height = createReference("height", DataTypes.DOUBLE);
         RoundFunction round = getFunction(Arrays.<DataType>asList(DataTypes.DOUBLE));
         Function function = new Function(round.info(), Arrays.<Symbol>asList(height));
         Function normalized = (Function) round.normalizeSymbol(function);

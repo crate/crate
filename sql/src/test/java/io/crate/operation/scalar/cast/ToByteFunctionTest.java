@@ -28,13 +28,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -60,8 +60,8 @@ public class ToByteFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), (byte)123);
-        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), (byte)12);
+        assertThat(normalize("123", DataTypes.STRING), isLiteral((byte)123));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((byte)12));
     }
 
     @Test

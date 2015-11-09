@@ -20,8 +20,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createFunction;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -48,7 +48,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(2)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, true);
+        assertThat(result, isLiteral(true));
     }
 
     @Test
@@ -62,12 +62,12 @@ public class EqOperatorTest extends CrateUnitTest {
         Function function = createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
                 Literal.newLiteral(intIntArray, null),
                 Literal.newLiteral(intIntArray, values));
-        assertLiteralSymbol(op.normalizeSymbol(function), null, DataTypes.BOOLEAN);
+        assertThat(op.normalizeSymbol(function), isLiteral(null, DataTypes.BOOLEAN));
 
         function = createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
                 Literal.newLiteral(intIntArray, values),
                 Literal.newLiteral(intIntArray, null));
-        assertLiteralSymbol(op.normalizeSymbol(function), null, DataTypes.BOOLEAN);
+        assertThat(op.normalizeSymbol(function), isLiteral(null, DataTypes.BOOLEAN));
 
         assertThat(eq(intIntArray, null, values), nullValue());
         assertThat(eq(intIntArray, values, null), nullValue());
@@ -90,7 +90,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 Literal.newLiteral(intIntArray, left),
                 Literal.newLiteral(intIntArray, right));
 
-        assertLiteralSymbol(op.normalizeSymbol(function), true);
+        assertThat(op.normalizeSymbol(function), isLiteral(true));
         assertThat(eq(intIntArray, left, right), is(true));
     }
 
@@ -111,7 +111,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 Literal.newLiteral(intIntArray, left),
                 Literal.newLiteral(intIntArray, right));
 
-        assertLiteralSymbol(op.normalizeSymbol(function), false);
+        assertThat(op.normalizeSymbol(function), isLiteral(false));
         assertThat(eq(intIntArray, left, right), is(false));
     }
 
@@ -126,7 +126,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 Literal.newLiteral(intArray, left),
                 Literal.newLiteral(intArray, right));
 
-        assertLiteralSymbol(op.normalizeSymbol(function), true);
+        assertThat(op.normalizeSymbol(function), isLiteral(true));
         assertThat(eq(intArray, left, right), is(true));
     }
 
@@ -141,7 +141,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 Literal.newLiteral(intArray, left),
                 Literal.newLiteral(intArray, right));
 
-        assertLiteralSymbol(op.normalizeSymbol(function), false);
+        assertThat(op.normalizeSymbol(function), isLiteral(false));
         assertThat(eq(intArray, left, right), is(false));
     }
 
@@ -156,7 +156,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 Literal.newLiteral(intArray, left),
                 Literal.newLiteral(intArray, right));
 
-        assertLiteralSymbol(op.normalizeSymbol(function), false);
+        assertThat(op.normalizeSymbol(function), isLiteral(false));
         assertThat(eq(intArray, left, right), is(false));
     }
 
@@ -188,7 +188,7 @@ public class EqOperatorTest extends CrateUnitTest {
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(4)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, false);
+        assertThat(result, isLiteral(false));
     }
 
     @Test

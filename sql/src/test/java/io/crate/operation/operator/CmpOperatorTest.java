@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class CmpOperatorTest extends CrateUnitTest {
@@ -43,49 +43,49 @@ public class CmpOperatorTest extends CrateUnitTest {
     @Test
     public void testLteNormalizeSymbolTwoLiteral() throws Exception {
         Symbol symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(200L));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
 
         symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(8L));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
 
         symbol = normalize(op_lte_long, Literal.newLiteral(16L), Literal.newLiteral(8L));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testGteNormalizeSymbolTwoLiteral() throws Exception {
         Symbol symbol = normalize(op_gte_double, Literal.newLiteral(0.03), Literal.newLiteral(0.4));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
 
         symbol = normalize(op_gte_double, Literal.newLiteral(0.4), Literal.newLiteral(0.4));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
 
         symbol = normalize(op_gte_double, Literal.newLiteral(0.6), Literal.newLiteral(0.4));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralTrue() throws Exception {
         Symbol symbol = normalize(op_lt_int, Literal.newLiteral(2), Literal.newLiteral(4));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalse() throws Exception {
         Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(2));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalseEq() throws Exception {
         Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(4));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testGtNormalizeSymbolTwoLiteralFalse() throws Exception {
         Symbol symbol = normalize(op_gt_string, Literal.newLiteral("aa"), Literal.newLiteral("bbb"));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test

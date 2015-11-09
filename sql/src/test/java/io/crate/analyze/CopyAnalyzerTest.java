@@ -43,7 +43,7 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
@@ -82,14 +82,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromExistingTable() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
+        assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
     }
 
     @Test
     public void testCopyFromExistingPartitionedTable() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy parted from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
-        assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
+        assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -134,7 +134,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to '/blah.txt'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
-        assertLiteralSymbol(analysis.uri(), "/blah.txt");
+        assertThat(analysis.uri(), isLiteral("/blah.txt"));
     }
 
     @Test
@@ -164,7 +164,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
 
-        assertLiteralSymbol(analysis.uri(), "/blah.txt");
+        assertThat(analysis.uri(), isLiteral("/blah.txt"));
         assertThat(analysis.settings().get("compression"), is("gzip"));
     }
 

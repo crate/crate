@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.is;
 
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
@@ -109,11 +109,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
         Symbol symbol = scalar.normalizeSymbol(new Function(scalar.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral("foo"), Literal.newLiteral("bar"))));
-        TestingHelpers.assertLiteralSymbol(symbol, "foobar");
+        assertThat(symbol, isLiteral("foobar"));
 
         symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(TestingHelpers.createReference("col1", DataTypes.STRING), Literal.newLiteral("bar"))));
-        assertThat(symbol, TestingHelpers.isFunction(ConcatFunction.NAME));
+                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.newLiteral("bar"))));
+        assertThat(symbol, isFunction(ConcatFunction.NAME));
     }
 
     @Test

@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class OrOperatorTest extends CrateUnitTest {
@@ -21,7 +21,7 @@ public class OrOperatorTest extends CrateUnitTest {
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(true)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function);
-        assertLiteralSymbol(normalizedSymbol, true);
+        assertThat(normalizedSymbol, isLiteral(true));
     }
 
     @Test

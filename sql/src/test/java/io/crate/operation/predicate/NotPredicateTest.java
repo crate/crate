@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class NotPredicateTest extends CrateUnitTest {
@@ -44,7 +44,7 @@ public class NotPredicateTest extends CrateUnitTest {
         NotPredicate predicate = new NotPredicate();
         Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral(true)));
 
-        assertLiteralSymbol(predicate.normalizeSymbol(not), false);
+        assertThat(predicate.normalizeSymbol(not), isLiteral(false));
     }
 
     @Test

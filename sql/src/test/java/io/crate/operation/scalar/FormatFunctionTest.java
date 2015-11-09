@@ -50,7 +50,7 @@ public class FormatFunctionTest extends AbstractScalarFunctionsTest {
         FunctionImplementation format = functions.get(function.info().ident());
         Symbol result = format.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, "2014");
+        assertThat(result, isLiteral("2014"));
     }
 
     @Test

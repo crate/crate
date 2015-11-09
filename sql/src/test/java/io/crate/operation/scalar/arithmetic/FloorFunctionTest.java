@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -77,9 +78,9 @@ public class FloorFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeValueSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize(42.9, DataTypes.DOUBLE), 42L);
-        TestingHelpers.assertLiteralSymbol(normalize(42.9f, DataTypes.FLOAT), 42);
-        TestingHelpers.assertLiteralSymbol(normalize(null, DataTypes.FLOAT), null, DataTypes.INTEGER);
+        assertThat(normalize(42.9, DataTypes.DOUBLE), isLiteral(42L));
+        assertThat(normalize(42.9f, DataTypes.FLOAT), isLiteral(42));
+        assertThat(normalize(null, DataTypes.FLOAT), isLiteral(null, DataTypes.INTEGER));
     }
 
     @Test

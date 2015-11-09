@@ -77,56 +77,56 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
 
         Function function = substr("cratedata", 0L);
         Symbol result = funcA.normalizeSymbol(function);
-        assertLiteralSymbol(result, "cratedata");
+        assertThat(result, isLiteral("cratedata"));
 
         function = substr("cratedata", 6L);
         result = funcA.normalizeSymbol(function);
-        assertLiteralSymbol(result, "data");
+        assertThat(result, isLiteral("data"));
 
         function = substr("cratedata", 10L);
         result = funcA.normalizeSymbol(function);
-        assertLiteralSymbol(result, "");
+        assertThat(result, isLiteral(""));
 
         function = substr("cratedata", 1L, 1L);
         result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, "c");
+        assertThat(result, isLiteral("c"));
 
         function = substr("cratedata", 3L, 2L);
         result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, "at");
+        assertThat(result, isLiteral("at"));
 
         function = substr("cratedata", 6L, 10L);
         result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, "data");
+        assertThat(result, isLiteral("data"));
 
         function = substr("cratedata", 6L, 0L);
         result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, "");
+        assertThat(result, isLiteral(""));
 
         function = substr("cratedata", 10L, -1L);
         result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, "");
+        assertThat(result, isLiteral(""));
     }
 
     @Test
     public void testNullLiteralFrom() throws Exception {
         Function function = substr("cratedata", Literal.NULL);
         Symbol result = funcA.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
+        assertThat(result, isLiteral(null, DataTypes.UNDEFINED));
     }
 
     @Test
     public void testNullLiteralCount() throws Exception {
         Function function = substr("cratedata", Literal.newLiteral(1), Literal.NULL);
         Symbol result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
+        assertThat(result, isLiteral(null, DataTypes.UNDEFINED));
     }
 
     @Test
     public void testNullLiteralFromCount() throws Exception {
         Function function = substr("cratedata", Literal.NULL, Literal.NULL);
         Symbol result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
+        assertThat(result, isLiteral(null, DataTypes.UNDEFINED));
     }
 
     @Test

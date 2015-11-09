@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -36,6 +35,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 
@@ -89,37 +90,37 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeValueSymbol() throws Exception {
         // test log(x) ... implicit base of 10
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10f, DataTypes.FLOAT), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10L, DataTypes.LONG), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10, DataTypes.INTEGER), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(null, DataTypes.DOUBLE), null, DataTypes.DOUBLE);
+        assertThat(normalizeLog(10.0, DataTypes.DOUBLE), isLiteral(1.0));
+        assertThat(normalizeLog(10f, DataTypes.FLOAT), isLiteral(1.0));
+        assertThat(normalizeLog(10L, DataTypes.LONG), isLiteral(1.0));
+        assertThat(normalizeLog(10, DataTypes.INTEGER), isLiteral(1.0));
+        assertThat(normalizeLog(null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
 
         // test ln(x)
-        TestingHelpers.assertLiteralSymbol(normalizeLn(1.0, DataTypes.DOUBLE), 0.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLn(1f, DataTypes.FLOAT), 0.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLn(1L, DataTypes.LONG), 0.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLn(1, DataTypes.INTEGER), 0.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLn(null, DataTypes.DOUBLE), null, DataTypes.DOUBLE);
+        assertThat(normalizeLn(1.0, DataTypes.DOUBLE), isLiteral(0.0));
+        assertThat(normalizeLn(1f, DataTypes.FLOAT), isLiteral(0.0));
+        assertThat(normalizeLn(1L, DataTypes.LONG), isLiteral(0.0));
+        assertThat(normalizeLn(1, DataTypes.INTEGER), isLiteral(0.0));
+        assertThat(normalizeLn(null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
 
         // test log(x, b) ... explicit base
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE, 10.0, DataTypes.DOUBLE), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10f, DataTypes.FLOAT, 10.0, DataTypes.DOUBLE), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), 1.0);
+        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
+        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
+        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
+        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
 
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10L, DataTypes.LONG, 10.0, DataTypes.DOUBLE), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), 1.0);
+        assertThat(normalizeLog(10L, DataTypes.LONG, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
+        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
+        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
 
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10L, DataTypes.LONG, 10L, DataTypes.LONG), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10, DataTypes.INTEGER, 10L, DataTypes.LONG), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10L, DataTypes.LONG, (short) 10, DataTypes.SHORT), 1.0);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10, DataTypes.INTEGER, 10, DataTypes.INTEGER), 1.0);
+        assertThat(normalizeLog(10L, DataTypes.LONG, 10L, DataTypes.LONG), isLiteral(1.0));
+        assertThat(normalizeLog(10, DataTypes.INTEGER, 10L, DataTypes.LONG), isLiteral(1.0));
+        assertThat(normalizeLog(10L, DataTypes.LONG, (short) 10, DataTypes.SHORT), isLiteral(1.0));
+        assertThat(normalizeLog(10, DataTypes.INTEGER, 10, DataTypes.INTEGER), isLiteral(1.0));
 
-        TestingHelpers.assertLiteralSymbol(normalizeLog(null, DataTypes.DOUBLE, 10, DataTypes.INTEGER), null, DataTypes.DOUBLE);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(10, DataTypes.INTEGER, null, DataTypes.DOUBLE), null, DataTypes.DOUBLE);
-        TestingHelpers.assertLiteralSymbol(normalizeLog(null, DataTypes.INTEGER, null, DataTypes.DOUBLE), null, DataTypes.DOUBLE);
+        assertThat(normalizeLog(null, DataTypes.DOUBLE, 10, DataTypes.INTEGER), isLiteral(null, DataTypes.DOUBLE));
+        assertThat(normalizeLog(10, DataTypes.INTEGER, null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
+        assertThat(normalizeLog(null, DataTypes.INTEGER, null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -161,7 +162,7 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeReference() throws Exception {
-        Reference dB = TestingHelpers.createReference("dB", DataTypes.DOUBLE);
+        Reference dB = createReference("dB", DataTypes.DOUBLE);
 
         LogFunction log10 = getFunction(LogFunction.NAME, DataTypes.DOUBLE);
         Function function = new Function(log10.info(), Arrays.<Symbol>asList(dB));
@@ -178,7 +179,7 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
         normalized = (Function) logBase.normalizeSymbol(function);
         assertThat(normalized, Matchers.sameInstance(function));
 
-        Reference base = TestingHelpers.createReference("base", DataTypes.INTEGER);
+        Reference base = createReference("base", DataTypes.INTEGER);
         function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, base));
         normalized = (Function) logBase.normalizeSymbol(function);
         assertThat(normalized, Matchers.sameInstance(function));

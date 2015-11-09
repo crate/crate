@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class AndOperatorTest extends CrateUnitTest {
@@ -30,7 +30,7 @@ public class AndOperatorTest extends CrateUnitTest {
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(false), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function);
 
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
@@ -39,7 +39,7 @@ public class AndOperatorTest extends CrateUnitTest {
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true)));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
@@ -48,7 +48,7 @@ public class AndOperatorTest extends CrateUnitTest {
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(false)));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     private Boolean and(Boolean left, Boolean right) {

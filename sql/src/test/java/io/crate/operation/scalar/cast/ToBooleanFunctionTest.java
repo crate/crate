@@ -28,13 +28,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.core.Is.is;
 
 public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
@@ -59,8 +59,8 @@ public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("f", DataTypes.STRING), Boolean.FALSE);
-        TestingHelpers.assertLiteralSymbol(normalize("t", DataTypes.STRING), Boolean.TRUE);
+        assertThat(normalize("f", DataTypes.STRING), isLiteral(false));
+        assertThat(normalize("t", DataTypes.STRING), isLiteral(true));
     }
 
     @Test
@@ -86,6 +86,6 @@ public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast 'hello' to boolean");
-        TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
+        assertThat(normalize("hello", DataTypes.STRING), isLiteral(123L));
     }
 }

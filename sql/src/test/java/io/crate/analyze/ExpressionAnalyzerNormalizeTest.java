@@ -58,7 +58,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -341,6 +341,6 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
         Literal<BytesRef> stringDoubleLiteral = Literal.newLiteral("298.444");
         Literal literal = (Literal)expressionAnalyzer.normalizeInputForReference(
                 stringDoubleLiteral, new Reference(objInfo), context);
-        assertLiteralSymbol(literal, 298.444d);
+        assertThat(literal, isLiteral(298.444d, DataTypes.DOUBLE));
     }
 }

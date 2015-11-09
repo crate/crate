@@ -823,7 +823,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(2));
-        assertLiteralSymbol(assignments[0], "Ar");
+        assertThat(assignments[0], isLiteral("Ar"));
         assertThat(assignments[1], isFunction(AddFunction.NAME));
         Function function = (Function)assignments[1];
         assertThat(function.arguments().get(0), isReference("other_id"));
@@ -871,7 +871,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(1));
-        assertLiteralSymbol(assignments[0], "foobar");
+        assertThat(assignments[0], isLiteral("foobar"));
     }
 
     @Test
@@ -893,11 +893,11 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(1));
-        assertLiteralSymbol(assignments[0], "A");
+        assertThat(assignments[0], isLiteral("A"));
 
         assignments = statement.onDuplicateKeyAssignments().get(1);
         assertThat(assignments.length, is(1));
-        assertLiteralSymbol(assignments[0], "T");
+        assertThat(assignments[0], isLiteral("T"));
     }
 
     @Test
@@ -907,7 +907,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(1));
-        assertLiteralSymbol(assignments[0], "foobar");
+        assertThat(assignments[0], isLiteral("foobar"));
     }
 
     @Test

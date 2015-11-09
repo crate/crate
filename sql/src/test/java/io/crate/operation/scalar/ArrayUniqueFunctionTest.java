@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
@@ -81,7 +82,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
         )));
 
-        TestingHelpers.assertLiteralSymbol(symbol, new Integer[]{10, 20, 30}, arrayOfIntegerType);
+        assertThat(symbol, isLiteral(new Integer[]{10, 20, 30}, arrayOfIntegerType));
     }
 
     @Test

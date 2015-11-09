@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.core.Is.is;
 
 public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
@@ -51,13 +51,13 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
 
         Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("123")));
         Symbol result = castStringToInteger.normalizeSymbol(function);
-        assertLiteralSymbol(result, 123);
+        assertThat(result, isLiteral(123));
 
         FunctionImplementation castFloatToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT)));
 
         function = new Function(castFloatToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral(12.5f)));
         result = castStringToInteger.normalizeSymbol(function);
-        assertLiteralSymbol(result, 12);
+        assertThat(result, isLiteral(12));
     }
 
     @Test

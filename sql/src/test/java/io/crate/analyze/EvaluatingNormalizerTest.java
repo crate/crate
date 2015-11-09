@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {
@@ -110,7 +110,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         // the dummy reference load == 0.08 evaluates to true,
         // so the whole query can be normalized to a single boolean literal
         Symbol query = visitor.normalize(op_or);
-        assertLiteralSymbol(query, true);
+        assertThat(query, isLiteral(true));
     }
 
     @Test

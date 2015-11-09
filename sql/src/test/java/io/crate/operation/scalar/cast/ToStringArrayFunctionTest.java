@@ -52,7 +52,7 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
         ToArrayFunction arrayFunction = (ToArrayFunction) functions.get(function.info().ident());
 
         Symbol result = arrayFunction.normalizeSymbol(function);
-        assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
+        assertThat(result, isLiteral(expected, new ArrayType(DataTypes.STRING)));
 
         arguments.set(0, Literal.newLiteral(new Float[]{ 1.0f, 2.0f, 3.0f }, new ArrayType(DataTypes.FLOAT)));
         expected = new BytesRef[]{ new BytesRef("1.0"), new BytesRef("2.0"), new BytesRef("3.0") };
@@ -61,7 +61,7 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
         arrayFunction = (ToArrayFunction) functions.get(function.info().ident());
 
         result = arrayFunction.normalizeSymbol(function);
-        assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
+        assertThat(result, isLiteral(expected, new ArrayType(DataTypes.STRING)));
     }
 
     @Test

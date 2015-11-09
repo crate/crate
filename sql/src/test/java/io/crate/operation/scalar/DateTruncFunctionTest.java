@@ -35,7 +35,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -161,7 +160,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         Symbol result = normalize(
                 Literal.newLiteral("day"),
                 Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
-        assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
+        assertThat(result, isLiteral(1393286400000L, DataTypes.TIMESTAMP));
     }
 
     @Test
@@ -261,7 +260,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("day"),
                 Literal.newLiteral("UTC"),
                 Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
-        assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
+        assertThat(result, isLiteral(1393286400000L, DataTypes.TIMESTAMP));
     }
 
     @Test

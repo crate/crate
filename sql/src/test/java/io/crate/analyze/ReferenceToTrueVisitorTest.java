@@ -52,7 +52,8 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
+
 
 public class ReferenceToTrueVisitorTest extends CrateUnitTest {
 
@@ -130,13 +131,13 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     @Test
     public void testFalseAndMatchFunction() throws Exception {
         Symbol symbol = convert(fromSQL("false and match (table_name, 'jalla')"));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testTrueAndMatchFunction() throws Exception {
         Symbol symbol = convert(fromSQL("true and match (table_name, 'jalla')"));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
@@ -144,31 +145,31 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
         Symbol symbol = convert(fromSQL(
             "number_of_shards = 1 or (number_of_replicas = 3 and schema_name = 'sys') " +
                 "or not (number_of_shards = 2) and substr(table_name, 1, 1) = '1'"));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testIsNull() throws Exception {
         Symbol symbol = convert(fromSQL("clustered_by is null"));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testNot_NullAndSubstr() throws Exception {
         Symbol symbol = convert(fromSQL("not (null and substr(table_name, 1, 1) = '1')"));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testNot_FalseAndSubstr() throws Exception {
         Symbol symbol = convert(fromSQL("not (false and substr(table_name, 1, 1) = '1')"));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testNotPredicate() throws Exception {
         Symbol symbol = convert(fromSQL(("not (clustered_by = 'foo')")));
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
@@ -176,13 +177,13 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
         Symbol symbol = convert(fromSQL(
             "(number_of_shards = 1 or number_of_replicas = 3 and schema_name = 'sys' " +
                 "or not (number_of_shards = 2)) and substr(table_name, 1, 1) = '1' and false"));
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testNullAndMatchFunction() throws Exception {
         Symbol symbol = convert(fromSQL("null and match (table_name, 'jalla')"));
-        assertLiteralSymbol(symbol, null, DataTypes.BOOLEAN);
+        assertThat(symbol, isLiteral(null, DataTypes.BOOLEAN));
     }
 
 }

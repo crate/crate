@@ -38,7 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -60,7 +60,7 @@ public class InOperatorTest extends CrateUnitTest{
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, true);
+        assertThat(result, isLiteral(true));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class InOperatorTest extends CrateUnitTest{
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, false);
+        assertThat(result, isLiteral(false));
     }
 
     @Test
@@ -93,7 +93,7 @@ public class InOperatorTest extends CrateUnitTest{
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, false);
+        assertThat(result, isLiteral(false));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class InOperatorTest extends CrateUnitTest{
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, true);
+        assertThat(result, isLiteral(true));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class InOperatorTest extends CrateUnitTest{
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertLiteralSymbol(result, false);
+        assertThat(result, isLiteral(false));
     }
 
 

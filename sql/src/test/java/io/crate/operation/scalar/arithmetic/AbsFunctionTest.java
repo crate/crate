@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -36,6 +35,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -91,29 +92,26 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
         Number negVal;
         for (DataType type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             posVal = (Number)type.value(1);
-            TestingHelpers.assertLiteralSymbol(normalize(posVal, type),
-                    type.value(1), type);
+            assertThat(normalize(posVal, type), isLiteral(type.value(1), type));
 
             zeroVal = (Number)type.value(0);
-            TestingHelpers.assertLiteralSymbol(normalize(zeroVal, type),
-                    type.value(0), type);
+            assertThat(normalize(zeroVal, type), isLiteral(type.value(0), type));
 
             negVal = (Number)type.value(-1);
-            TestingHelpers.assertLiteralSymbol(normalize(negVal, type),
-                    type.value(1), type);
+            assertThat(normalize(negVal, type), isLiteral(type.value(1), type));
         }
     }
 
     @Test
     public void testNormalizeNull() throws Exception {
         for (DataType type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            TestingHelpers.assertLiteralSymbol(normalize(null, type), null, type);
+            assertThat(normalize(null, type), isLiteral(null, type));
         }
     }
 
     @Test
     public void testNormalizeReference() throws Exception {
-        Reference height = TestingHelpers.createReference("height", DataTypes.DOUBLE);
+        Reference height = createReference("height", DataTypes.DOUBLE);
         AbsFunction abs = getFunction(DataTypes.DOUBLE);
         Function function = new Function(abs.info(), Arrays.<Symbol>asList(height));
         Function normalized = (Function) abs.normalizeSymbol(function);

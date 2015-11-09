@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -46,14 +46,14 @@ public class IsNullPredicateTest extends CrateUnitTest {
     public void testNormalizeSymbolFalse() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral("a")));
         Symbol symbol = predicate.normalizeSymbol(isNull);
-        assertLiteralSymbol(symbol, false);
+        assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolTrue() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
         Symbol symbol = predicate.normalizeSymbol(isNull);
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
                 DataTypes.UNDEFINED));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull);
-        assertLiteralSymbol(symbol, true);
+        assertThat(symbol, isLiteral(true));
     }
 
     @Test

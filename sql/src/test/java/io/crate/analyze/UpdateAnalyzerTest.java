@@ -198,7 +198,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(statement1.assignments().containsKey(ref));
 
         Symbol value = statement1.assignments().entrySet().iterator().next().getValue();
-        assertLiteralSymbol(value, "Trillian");
+        assertThat(value, isLiteral("Trillian"));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.LONG, ref.info().type());
 
         Symbol value = statement.assignments().entrySet().iterator().next().getValue();
-        assertLiteralSymbol(value, 9L);
+        assertThat(value, isLiteral(9L));
     }
 
     @Test
@@ -279,21 +279,20 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 analyze("update users set name=?, other_id=?, friends=? where id=?",
                         new Object[]{"Jeltz", 0, friends, "9"}).nestedStatements().get(0);
         assertThat(analysis.assignments().size(), is(3));
-        assertLiteralSymbol(
+        assertThat(
                 analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("name")))),
-                "Jeltz"
+                isLiteral("Jeltz")
         );
-        assertLiteralSymbol(
+        assertThat(
                 analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends")))),
-                friends,
-                new ArrayType(DataTypes.OBJECT)
+                isLiteral(friends, new ArrayType(DataTypes.OBJECT))
         );
-        assertLiteralSymbol(
+        assertThat(
                 analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("other_id")))),
-                0L
+                isLiteral(0L)
         );
 
-        assertLiteralSymbol(((Function)analysis.whereClause().query()).arguments().get(1), 9L);
+        assertThat(((Function)analysis.whereClause().query()).arguments().get(1), isLiteral(9L));
     }
 
 

@@ -178,7 +178,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
         Symbol result = regexpImpl.normalizeSymbol(function);
         BytesRef[] expected = new BytesRef[]{ new BytesRef("ba") };
-        assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
+        assertThat(result, isLiteral(expected, new ArrayType(DataTypes.STRING)));
 
         arguments = Arrays.<Symbol>asList(
                 createReference("text", DataTypes.STRING),
@@ -204,7 +204,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
         Symbol result = regexpImpl.normalizeSymbol(function);
         BytesRef[] expected = new BytesRef[]{ new BytesRef("ba") };
-        assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
+        assertThat(result, isLiteral(expected, new ArrayType(DataTypes.STRING)));
     }
 
     @Test

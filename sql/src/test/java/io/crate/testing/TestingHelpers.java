@@ -23,21 +23,19 @@ package io.crate.testing;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
-import io.crate.core.collections.*;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
 import io.crate.metadata.*;
-import io.crate.types.ArrayType;
+import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.*;
 import org.mockito.invocation.InvocationOnMock;
@@ -58,8 +56,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
@@ -187,110 +183,36 @@ public class TestingHelpers {
         return new BytesRef(encoded).utf8ToString();
     }
 
-    public static void assertLiteralSymbol(Symbol symbol, Map<String, Object> expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.OBJECT);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Boolean expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.BOOLEAN);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static void assertLiteralSymbol(Symbol symbol, String expectedValue) {
-        assertThat(symbol, instanceOf(Literal.class));
-        Object value = ((Literal) symbol).value();
-
-        if (value instanceof String) {
-            assertThat((String) value, is(expectedValue));
-        } else {
-            assertThat(((BytesRef) value).utf8ToString(), is(expectedValue));
-        }
-        assertEquals(DataTypes.STRING, ((Literal) symbol).valueType());
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Long expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.LONG);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Integer expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.INTEGER);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Double expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.DOUBLE);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Float expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.FLOAT);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Byte expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.BYTE);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Short expectedValue) {
-        assertLiteral(symbol, expectedValue, DataTypes.SHORT);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
-        assertThat(symbol, instanceOf(Literal.class));
-        assertEquals(type, ((Literal) symbol).valueType());
-        assertThat((T) ((Literal) symbol).value(), is(expectedValue));
-    }
-
-    public static <T> void assertNullLiteral(Symbol symbol, T expectedValue) {
-        assertLiteral(symbol, (T) ((Literal) symbol).value(), DataTypes.UNDEFINED);
-    }
-
-    public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
-        assertThat(symbol, instanceOf(Literal.class));
-        assertEquals(type, ((Literal) symbol).valueType());
-        assertThat(((Literal) symbol).value(), is(expectedValue));
-    }
-
     public static Matcher<Symbol> isLiteral(Object expectedValue) {
         return isLiteral(expectedValue, null);
     }
 
-    public static Matcher<Symbol> isLiteral(Object expectedObject, @Nullable final DataType type) {
-        final Object expectedValue = stringToBytesRef.apply(expectedObject);
-        return new TypeSafeDiagnosingMatcher<Symbol>() {
+    public static Matcher<Symbol> hasDataType(DataType type) {
+        return new FeatureMatcher<Symbol, DataType>(equalTo(type), "valueType", "valueType") {
             @Override
-            protected boolean matchesSafely(Symbol item, Description mismatchDescription) {
-                boolean result = true;
-                if (!(item instanceof Literal)) {
-                    mismatchDescription.appendText("not a Literal: ").appendValue(item.getClass().getName());
-                    return false;
-                }
-
-                if (type != null && !item.valueType().equals(type)) {
-                    mismatchDescription.appendText("wrong type ").appendValue(item.valueType());
-                    result = false;
-                }
-                if (((Literal) item).value() == null && expectedValue != null) {
-                    mismatchDescription.appendText("wrong value ").appendValue(
-                            BytesRefs.toString(((Literal) item).value()));
-                    result = false;
-                } else if (((Literal) item).value() == null && expectedValue == null) {
-                    return true;
-                }
-                if (!((Literal) item).value().equals(expectedValue)) {
-                    mismatchDescription.appendText("wrong value ").appendValue(
-                            bytesRefToString.apply(((Literal) item).value()));
-                    result = false;
-                }
-                return result;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Literal: value:").appendValue(expectedValue);
-                if (type != null) {
-                    description.appendText("type:").appendValue(type);
-                }
+            protected DataType featureValueOf(Symbol actual) {
+                return actual.valueType();
             }
         };
+    }
+
+    private static Matcher<Symbol> hasValue(Object expectedValue) {
+        return new FeatureMatcher<Symbol, Object>(equalTo(expectedValue), "value", "value") {
+            @Override
+            protected Object featureValueOf(Symbol actual) {
+                return ((Input) actual).value();
+            }
+        };
+    }
+
+    public static Matcher<Symbol> isLiteral(Object expectedValue, @Nullable final DataType type) {
+        if (expectedValue instanceof String) {
+            expectedValue = new BytesRef(((String) expectedValue));
+        }
+        if (type == null) {
+            return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue));
+        }
+        return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue), hasDataType(type));
     }
 
     private static final com.google.common.base.Function<Object, Object> bytesRefToString =
@@ -462,45 +384,6 @@ public class TestingHelpers {
         return isReference(expectedName, null);
     }
 
-    public static Matcher<Symbol> isInputColumn(int idx) {
-        return isInputColumn(idx, null);
-    }
-
-    public static Matcher<Symbol> isInputColumn(final int idx, @Nullable final DataType dataType) {
-        return new TypeSafeDiagnosingMatcher<Symbol>() {
-            @Override
-            protected boolean matchesSafely(Symbol item, Description desc) {
-                if (!(item instanceof InputColumn)) {
-                    desc.appendText("not an InputColumn: ").appendText(item.getClass().getSimpleName());
-                    return false;
-                }
-                InputColumn inputColumn = (InputColumn) item;
-                if (inputColumn.index() != idx) {
-                    desc.appendText("different index:  ").appendValue(inputColumn.index());
-                    return false;
-                }
-
-                if (dataType == null) {
-                    return true;
-                }
-
-                if (!inputColumn.valueType().equals(dataType)) {
-                    desc.appendText("different type: ").appendValue(dataType);
-                    return false;
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("inputColumn ").appendValue(idx);
-                if (dataType != null) {
-                    description.appendText(" and type ").appendValue(dataType);
-                }
-            }
-        };
-    }
-
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
         return new TypeSafeDiagnosingMatcher<Symbol>() {
 
@@ -616,17 +499,6 @@ public class TestingHelpers {
         return column;
     }
 
-    public static Object[] getColumn(Bucket bucket, final int index) throws Exception {
-        return Iterators.toArray(Iterators.transform(bucket.iterator(), new com.google.common.base.Function<Row, Object>() {
-            @Nullable
-            @Override
-            public Object apply(@Nullable Row input) {
-                assert input != null : "input row is null :/";
-                return input.get(index);
-            }
-        }), Object.class);
-    }
-
     public static WhereClause whereClause(String opname, Symbol left, Symbol right) {
         return new WhereClause(new Function(new FunctionInfo(
                 new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
@@ -735,15 +607,6 @@ public class TestingHelpers {
         return new CauseMatcher(type, expectedMessage);
     }
 
-    public static BucketPage createPage(List<Object[]>... buckets) {
-        List<ListenableFuture<Bucket>> futures = new ArrayList<>();
-        for (List<Object[]> bucket : buckets) {
-            Bucket realBucket = new CollectionBucket(bucket);
-            futures.add(Futures.immediateFuture(realBucket));
-        }
-        return new BucketPage(futures);
-    }
-
     public static Object[][] range(int from, int to) {
         int size = to - from;
         Object[][] result = new Object[to - from][];
@@ -751,10 +614,6 @@ public class TestingHelpers {
             result[i] = new Object[]{i + from};
         }
         return result;
-    }
-
-    public static Matcher<Bucket> isSorted(int sortingPos) {
-        return isSorted(sortingPos, false, null);
     }
 
     public static Matcher<Bucket> isSorted(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
@@ -810,28 +669,4 @@ public class TestingHelpers {
     public static DataType randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
     }
-
-    public static DataType randomType() {
-        DataType result;
-        if (ThreadLocalRandom.current().nextBoolean()) {
-
-            switch (ThreadLocalRandom.current().nextInt(3)) {
-                case 0:
-                    result = DataTypes.OBJECT;
-                    break;
-                case 1:
-                    result = new ArrayType(randomPrimitiveType());
-                    break;
-                case 2:
-                default:
-                    result = DataTypes.GEO_POINT;
-                    break;
-            }
-        } else {
-            result = randomPrimitiveType();
-        }
-        return result;
-    }
-
-
 }
