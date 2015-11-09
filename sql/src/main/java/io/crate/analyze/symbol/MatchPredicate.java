@@ -34,33 +34,33 @@ public class MatchPredicate extends Symbol {
     public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
         public Symbol newInstance() {
-            return new MatchPredicate();
+            throw new UnsupportedOperationException("Streaming a MatchPredicate is not supported");
         }
     };
 
-    private Map<Field, Double> identBoostMap;
-    private String queryTerm;
-    private String matchType;
-    private Map<String, Object> options;
+    private final Map<Field, Double> identBoostMap;
+    private final DataType columnType;
+    private final Object queryTerm;
+    private final String matchType;
+    private final Map<String, Object> options;
 
     public MatchPredicate(Map<Field, Double> identBoostMap,
-                          String queryTerm,
+                          DataType columnType,
+                          Object queryTerm,
                           String matchType,
                           Map<String, Object> options) {
-
         this.identBoostMap = identBoostMap;
+        this.columnType = columnType;
         this.queryTerm = queryTerm;
         this.matchType = matchType;
         this.options = options;
     }
 
-    private MatchPredicate() {}
-
     public Map<Field, Double> identBoostMap() {
         return identBoostMap;
     }
 
-    public String queryTerm() {
+    public Object queryTerm() {
         return queryTerm;
     }
 
@@ -70,6 +70,10 @@ public class MatchPredicate extends Symbol {
 
     public Map<String, Object> options() {
         return options;
+    }
+
+    public DataType columnType() {
+        return columnType;
     }
 
     @Override
