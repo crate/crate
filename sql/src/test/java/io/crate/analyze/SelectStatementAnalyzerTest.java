@@ -1787,4 +1787,11 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("referenced relation \"users\" is ambiguous");
         analyze("select users.* from doc.users, foo.users");
     }
+
+    @Test
+    public void testSelectMatchOnGeoShape() throws Exception {
+        SelectAnalyzedStatement statement = analyze(
+                "select * from users where match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
+        assertThat(statement.relation().querySpec().where().query(), isFunction("match"));
+    }
 }
