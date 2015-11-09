@@ -67,7 +67,9 @@ sourceSets {
             include "io/crate/Streamer*"
             include "io/crate/TimestampFormat*"
             include "io/crate/core/collections/MapComparator*"
+            include "io/crate/core/collections/ForEach*"
             include "io/crate/core/StringUtils*"
+            include "io/crate/geo/GeoJSONUtils*"
             include "io/crate/types/**"
         }
     }

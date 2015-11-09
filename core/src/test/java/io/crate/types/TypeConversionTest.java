@@ -184,7 +184,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void selfConversionTest() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
 
             assertTrue(type.isConvertableTo(type));
 
@@ -200,7 +200,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testNotSupportedConversion() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+                Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
             assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type));
         }
     }
@@ -209,9 +209,21 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testToNullConversions() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+                Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
             assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));
         }
         assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED), is(true));
+    }
+
+    @Test
+    public void testGeoPointConversion() throws Exception {
+        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType(DataTypes.DOUBLE)), is(true));
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT), is(true));
+    }
+
+    @Test
+    public void testGeoShapeConversion() throws Exception {
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
+        assertThat(DataTypes.OBJECT.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
     }
 }

@@ -34,6 +34,7 @@ import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
@@ -794,7 +795,8 @@ public class LuceneQueryBuilder {
                         innerPair.reference().info().ident().columnIdent().fqn(),
                         context.mapperService
                 );
-                Shape shape = (Shape) innerPair.input().value();
+                Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
+                Shape shape = GeoJSONUtils.map2Shape(geoJSON);
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
                 Filter filter;

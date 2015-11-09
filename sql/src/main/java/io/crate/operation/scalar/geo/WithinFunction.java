@@ -29,6 +29,7 @@ import com.spatial4j.core.shape.SpatialRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -37,6 +38,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class WithinFunction extends Scalar<Boolean, Object> {
 
@@ -81,9 +83,9 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             assert values.size() == 2;
             leftShape = SpatialContext.GEO.makePoint((Double) values.get(0), (Double) values.get(1));
         } else {
-            leftShape = (Shape)left;
+            leftShape = GeoJSONUtils.map2Shape((Map<String, Object>)left);
         }
-        return leftShape.relate((Shape) right) == SpatialRelation.WITHIN;
+        return leftShape.relate(GeoJSONUtils.map2Shape((Map<String, Object>)right)) == SpatialRelation.WITHIN;
     }
 
     @Override

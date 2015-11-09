@@ -22,26 +22,24 @@
 package io.crate.types;
 
 import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.io.BinaryCodec;
 import com.spatial4j.core.shape.Shape;
 import io.crate.Streamer;
+import io.crate.geo.GeoJSONUtils;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.text.ParseException;
+import java.util.Locale;
+import java.util.Map;
 
-public class GeoShapeType extends DataType<Shape> implements Streamer<Shape>, DataTypeFactory {
+public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>>, DataTypeFactory {
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
 
     private GeoShapeType() {}
-    private final static BinaryCodec BINARY_CODEC = JtsSpatialContext.GEO.getBinaryCodec();
 
     @Override
     public int id() {
@@ -59,40 +57,45 @@ public class GeoShapeType extends DataType<Shape> implements Streamer<Shape>, Da
     }
 
     @Override
-    public Shape value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Map<String, Object> value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
-        if (value instanceof BytesRef) {
-            return shapeFromString(BytesRefs.toString(value));
+        try {
+            if (value instanceof BytesRef || value instanceof String) {
+                return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
+            }
+            if (value instanceof Shape) {
+                return GeoJSONUtils.shape2Map((Shape) value);
+            }
+            if (value instanceof Map) {
+                GeoJSONUtils.validateGeoJson((Map) value);
+                return (Map<String, Object>) value;
+            }
+        } catch (Throwable e) {
+            throw new IllegalArgumentException(invalidMsg(value), e);
         }
-        if (value instanceof String) {
-            return shapeFromString((String) value);
-        }
-        if (value instanceof Shape) {
-            return (Shape) value;
-        }
-        throw new IllegalArgumentException(String.format("Cannot convert \"%s\" to geo_shape", value));
+        throw new IllegalArgumentException(invalidMsg(value));
     }
 
+    private String invalidMsg(Object value) {
+        return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to geo_shape", value);
+    }
+
+
+
     @Override
-    public int compareValueTo(Shape val1, Shape val2) {
-        switch (val1.relate(val2)) {
+    public int compareValueTo(Map<String, Object> val1, Map<String, Object> val2) {
+        // TODO: compare without converting to shape
+        Shape shape1 = GeoJSONUtils.map2Shape(val1);
+        Shape shape2 = GeoJSONUtils.map2Shape(val2);
+        switch (shape1.relate(shape2)) {
             case WITHIN:
                 return -1;
             case CONTAINS:
                 return 1;
             default:
-                return Double.compare(val1.getArea(JtsSpatialContext.GEO), val2.getArea(JtsSpatialContext.GEO));
-        }
-    }
-
-    private Shape shapeFromString(String value) {
-        try {
-            return JtsSpatialContext.GEO.readShapeFromWkt(value);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException(String.format(
-                    "Cannot convert \"%s\" to geo_shape", value), e);
+                return Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
         }
     }
 
@@ -102,12 +105,12 @@ public class GeoShapeType extends DataType<Shape> implements Streamer<Shape>, Da
     }
 
     @Override
-    public Shape readValueFrom(StreamInput in) throws IOException {
-        return BINARY_CODEC.readShape(new DataInputStream(in));
+    public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
+        return in.readMap();
     }
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        BINARY_CODEC.writeShape(new DataOutputStream(out), (Shape) v);
+        out.writeMap((Map<String, Object>)v);
     }
 }

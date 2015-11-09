@@ -610,6 +610,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         generator.convert(new WhereClause(whereClause));
     }
 
+
     @Test
     public void testWhereClauseWithWithinPolygonQuery() throws Exception {
         Function withinFunction = createFunction(
@@ -619,7 +620,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))")
         );
         xcontentAssert(withinFunction,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0}]}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0}]}}}}}}");
     }
 
     @Test
@@ -649,7 +650,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 withinFunction
         );
         xcontentAssert(eqFunction,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0}]}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0}]}}}}}}");
     }
 
     @Test

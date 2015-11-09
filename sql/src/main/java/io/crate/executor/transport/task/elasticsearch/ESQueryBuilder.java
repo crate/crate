@@ -26,12 +26,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
+import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.operation.Input;
 import io.crate.operation.operator.*;
@@ -350,8 +350,10 @@ public class ESQueryBuilder {
             }
 
             private void writeFilterToContext(Context context, Reference reference, Input rightSymbol) throws IOException {
-                Shape shape = (Shape) rightSymbol.value();
-                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
+                Map<String, Object> geoJSONMap = (Map<String, Object>) rightSymbol.value();
+                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(
+                        GeoJSONUtils.map2Shape(geoJSONMap)
+                );
 
                 context.builder.startObject(Fields.FILTERED)
                         .startObject(Fields.QUERY)

@@ -139,11 +139,16 @@ public class DataTypes {
             .put(FLOAT.id(), NUMBER_CONVERSIONS)
             .put(DOUBLE.id(), NUMBER_CONVERSIONS)
             .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING))
-            .put(STRING.id(), NUMBER_CONVERSIONS)
+            .put(STRING.id(), ImmutableSet.<DataType>builder()
+                    .addAll(NUMBER_CONVERSIONS)
+                    .add(GEO_SHAPE)
+                    .add(GEO_POINT)
+                    .build())
             .put(IP.id(), ImmutableSet.<DataType>of(STRING))
             .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG))
             .put(UNDEFINED.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
             .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE)))
+            .put(OBJECT.id(), ImmutableSet.<DataType>of(GEO_SHAPE))
             .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
             .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
             .build();
@@ -248,6 +253,7 @@ public class DataTypes {
             .put(TIMESTAMP.getName(), TIMESTAMP)
             .put(OBJECT.getName(), OBJECT)
             .put(GEO_POINT.getName(), GEO_POINT)
+            .put(GEO_SHAPE.getName(), GEO_SHAPE)
             .build();
 
     public static DataType ofName(String name) {

@@ -2,7 +2,6 @@ package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.spatial4j.core.shape.Shape;
 import io.crate.exceptions.ConversionException;
 import io.crate.operation.Input;
 import io.crate.types.*;
@@ -230,7 +229,7 @@ public class Literal<ReturnType>
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
-    public static Literal<Shape> newGeoShape(String value) {
+    public static Literal<Map<String, Object>> newGeoShape(String value) {
         return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
     }
 
