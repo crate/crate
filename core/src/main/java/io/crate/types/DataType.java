@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.Set;
 
 public abstract class DataType<T> implements Comparable, Streamable {
 
@@ -47,7 +48,15 @@ public abstract class DataType<T> implements Comparable, Streamable {
      * @return true or false
      */
     public boolean isConvertableTo(DataType other) {
-        return this.equals(other) || DataTypes.ALLOWED_CONVERSIONS.get(id()).contains(other);
+        if (this.equals(other)) {
+            return true;
+        }
+        Set<DataType> possibleConversions = DataTypes.ALLOWED_CONVERSIONS.get(id());
+        //noinspection SimplifiableIfStatement
+        if (possibleConversions == null) {
+            return false;
+        }
+        return possibleConversions.contains(other);
     }
 
     public int hashCode() {

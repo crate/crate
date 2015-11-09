@@ -127,7 +127,7 @@ public class DataTypes {
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
             .addAll(NUMERIC_PRIMITIVE_TYPES)
-            .add(STRING, TIMESTAMP, IP, UNDEFINED)
+            .add(STRING, TIMESTAMP, IP)
             .build();
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
@@ -138,14 +138,12 @@ public class DataTypes {
             .put(LONG.id(), NUMBER_CONVERSIONS)
             .put(FLOAT.id(), NUMBER_CONVERSIONS)
             .put(DOUBLE.id(), NUMBER_CONVERSIONS)
-            .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING, UNDEFINED))
+            .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING))
             .put(STRING.id(), NUMBER_CONVERSIONS)
-            .put(IP.id(), ImmutableSet.<DataType>of(STRING, UNDEFINED))
-            .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG, UNDEFINED))
+            .put(IP.id(), ImmutableSet.<DataType>of(STRING))
+            .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG))
             .put(UNDEFINED.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
-            .put(NOT_SUPPORTED.id(), ImmutableSet.<DataType>of(UNDEFINED))
-            .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE), UNDEFINED))
-            .put(OBJECT.id(), ImmutableSet.<DataType>of(UNDEFINED))
+            .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE)))
             .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
             .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
             .build();

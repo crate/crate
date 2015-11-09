@@ -48,7 +48,6 @@ public class CastFunctionResolver {
         public static final String TO_FLOAT = "toFloat";
         public static final String TO_BYTE = "toByte";
         public static final String TO_SHORT = "toShort";
-        public static final String TO_NULL = "toNull";
         public static final String TO_IP = "toIp";
 
         public static final String TO_STRING_ARRAY = "toStringArray";
@@ -72,7 +71,6 @@ public class CastFunctionResolver {
             .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
             .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
             .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
-            .put(DataTypes.UNDEFINED, FunctionNames.TO_NULL)
             .put(DataTypes.IP, FunctionNames.TO_IP)
             .build();
 

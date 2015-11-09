@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -173,7 +174,7 @@ public class QuerySpec {
                             Collections.replaceAll(orderBy().get().orderBySymbols(), output, castFunction);
                         }
                         outputs.set(i, castFunction);
-                    } else {
+                    } else if (!targetType.equals(DataTypes.UNDEFINED)) {
                         return i;
                     }
                 }
