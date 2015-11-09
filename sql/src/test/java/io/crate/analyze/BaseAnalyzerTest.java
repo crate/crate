@@ -77,6 +77,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .add("tags", new ArrayType(DataTypes.STRING), null)
             .add("bytes", DataTypes.BYTE, null)
             .add("shorts", DataTypes.SHORT, null)
+            .add("shape", DataTypes.GEO_SHAPE)
             .add("ints", DataTypes.INTEGER, null)
             .add("floats", DataTypes.FLOAT, null)
             .addIndex(ColumnIdent.fromPath("name_text_ft"), ReferenceInfo.IndexType.ANALYZED)

@@ -57,8 +57,6 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -896,31 +894,40 @@ public class ExpressionAnalyzer {
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
             Map<Field, Double> identBoostMap = new HashMap<>(node.idents().size());
+            DataType columnType = null;
             for (MatchPredicateColumnIdent ident : node.idents()) {
                 Symbol column = process(ident.columnIdent(), context);
-                Preconditions.checkArgument(
-                        column.valueType().equals(DataTypes.STRING),
-                        String.format("Can only use MATCH on columns of type STRING, not on '%s'", column.valueType())
-                );
+                if (columnType == null) {
+                    columnType = column.valueType();
+                }
                 Preconditions.checkArgument(
                         column instanceof Field,
-                        SymbolFormatter.format("can only MATCH on columns, not on %s", column)
-                );
-                assert column instanceof Field;
+                        SymbolFormatter.format("can only MATCH on columns, not on %s", column));
                 Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext.parameters());
                 identBoostMap.put(((Field) column), boost == null ? null : boost.doubleValue());
             }
-            String queryTerm = ExpressionToStringVisitor.convert(node.value(), parameterContext.parameters());
-            String matchType = node.matchType() == null
-                    ? io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE_STRING
-                    : node.matchType();
-            try {
-                MultiMatchQueryBuilder.Type.parse(matchType);
-            } catch (ElasticsearchParseException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid MATCH type '%s'", matchType), e);
-            }
+            assert columnType != null : "columnType must not be null";
+            verifyTypesForMatch(identBoostMap.keySet(), columnType);
+
+            Object queryTerm = ExpressionToObjectVisitor.convert(node.value(), parameterContext.parameters());
+            queryTerm = columnType.value(queryTerm);
+            String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
             Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext.parameters());
-            return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
+            return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
+        }
+
+        private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
+            Preconditions.checkArgument(
+                    io.crate.operation.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
+                    String.format("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
+            for (Symbol column : columns) {
+                if (!column.valueType().equals(columnType)) {
+                    throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "All columns within a match predicate must be of the same type. Found %s and %s",
+                            columnType, column.valueType()));
+                }
+            }
         }
     }
 
