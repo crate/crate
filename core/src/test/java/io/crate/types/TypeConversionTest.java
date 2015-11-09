@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
+import static org.hamcrest.core.Is.is;
+
 public class TypeConversionTest extends CrateUnitTest {
 
     static {
@@ -211,12 +213,9 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testToNullConversions() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
-
-            assertTrue(type.isConvertableTo(DataTypes.UNDEFINED));
-            assertTrue(DataTypes.UNDEFINED.isConvertableTo(type));
+                Arrays.asList(DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+            assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));
         }
+        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED), is(true));
     }
-
-
 }
