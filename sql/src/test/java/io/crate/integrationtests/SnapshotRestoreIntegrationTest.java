@@ -24,6 +24,11 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.TransportSQLAction;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -32,8 +37,10 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
+
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -44,7 +51,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
-    public static TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -150,13 +157,20 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         // this test just verifies that no exception is thrown if wait_for_completion is false
         execute("CREATE SNAPSHOT my_repo.snapshot_no_wait ALL WITH (wait_for_completion=false)");
         assertThat(response.rowCount(), is(1L));
+        waitForSnapshotCompletion("snapshot_no_wait");
+    }
 
+    private void waitForSnapshotCompletion(final String snapshotName) throws Exception {
         // wait for success so that @after dropRepository doesn't fail
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                execute("select count(*) from sys.snapshots where state = 'SUCCESS' and name = 'snapshot_no_wait'");
-                assertThat(response.rowCount(), is(1L));
+                SQLRequest request = new SQLRequest(
+                        "select count(*) from sys.snapshots where state = 'SUCCESS' and name = ?", $(snapshotName));
+                for (TransportSQLAction transportSQLAction : internalCluster().getInstances(TransportSQLAction.class)) {
+                    SQLResponse response = transportSQLAction.execute(request).actionGet(5, TimeUnit.SECONDS);
+                    assertThat(((long) response.rows()[0][0]), is(1L));
+                }
             }
         });
     }
@@ -230,7 +244,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE my_other with (wait_for_completion=true)");
 
         execute("alter table my_other add column x double");
-        waitNoPendingTasksOnAll();
+        waitForMappingUpdateOnAll("my_other", "x");
         execute("delete from my_other");
 
         execute("CREATE TABLE survivor (bla string, blubb float) partitioned by (blubb) with (number_of_replicas=0)");
@@ -246,7 +260,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 .setIncludeAliases(true)
                 .setRestoreGlobalState(true)
                 .execute().actionGet();
-        waitNoPendingTasksOnAll();
+        ensureGreen();
 
         execute("select * from survivor order by bla");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
@@ -260,6 +274,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTableAndSnapshot("my_table", SNAPSHOT_NAME);
 
         execute("drop table my_table");
+        waitForTableCacheClear("doc", "my_table");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (" +
                 "ignore_unavailable=false, " +
@@ -302,12 +317,24 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTableAndSnapshot("my_table", SNAPSHOT_NAME);
 
         execute("drop table my_table");
+        waitForTableCacheClear("doc", "my_table");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table, not_my_table with (" +
                 "ignore_unavailable=true, " +
                 "wait_for_completion=true)");
         execute("select schema_name || '.' || table_name from information_schema.tables where schema_name='doc'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table\n"));
+    }
+
+    private void waitForTableCacheClear(final String schemaName, final String tableName) throws Exception {
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                for (Schemas schemas : internalCluster().getInstances(Schemas.class)) {
+                    assertThat(schemas.tableExists(new TableIdent(schemaName, tableName)), is(false));
+                }
+            }
+        });
     }
 
     @Test
@@ -317,6 +344,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
 
         execute("drop table my_table_1");
+        waitForTableCacheClear("doc", "my_table_1");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 with (" +
                 "wait_for_completion=true)");
@@ -332,7 +360,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createSnapshot(SNAPSHOT_NAME, "my_parted_1", "my_parted_2");
 
         execute("drop table my_parted_1");
+        waitForTableCacheClear("doc", "my_parted_1");
         execute("drop table my_parted_2");
+        waitForTableCacheClear("doc", "my_parted_2");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_1 with (" +
                 "ignore_unavailable=true, " +
