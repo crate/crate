@@ -30,10 +30,6 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class ArrayTypeTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testArrayTypeSerialization() throws Exception {
         // nested string array: [ ["x"], ["y"] ]

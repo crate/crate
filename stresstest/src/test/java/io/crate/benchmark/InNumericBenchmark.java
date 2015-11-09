@@ -51,10 +51,6 @@ public class InNumericBenchmark extends BenchmarkBase {
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final String INDEX_NAME = "bench_in_numeric";
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     static AtomicInteger VALUE = new AtomicInteger(0);
     static Vector<Integer> VALUES = new Vector<>();
 

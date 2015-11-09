@@ -51,10 +51,6 @@ public class GroupByArbitraryBenchmark extends BenchmarkBase {
     public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select continent, arbitrary(\"countryName\") from %s group by 1", INDEX_NAME));
 
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

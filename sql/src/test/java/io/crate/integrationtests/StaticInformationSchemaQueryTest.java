@@ -34,10 +34,6 @@ import org.junit.rules.ExpectedException;
 
 public class StaticInformationSchemaQueryTest extends ClassLifecycleIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

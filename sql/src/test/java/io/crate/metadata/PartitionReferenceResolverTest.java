@@ -53,11 +53,26 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
                 fallbackRefResolver,
                 ImmutableList.<PartitionExpression>of()
         );
-        try {
+
+        if (assertionsEnabled()) {
+            try {
+                referenceResolver.getImplementation(refInfo);
+                fail("no assertion error thrown");
+            } catch (AssertionError e) {
+                assertThat(e.getMessage(), is("granularity < PARTITION should have been resolved already"));
+            }
+        } else {
             referenceResolver.getImplementation(refInfo);
-            fail();
-        } catch (AssertionError e) {
-            assertThat(e.getMessage(), is("granularity < PARTITION should have been resolved already"));
         }
+
+
     }
+
+    private static boolean assertionsEnabled() {
+        boolean assertsEnabled = false;
+        assert assertsEnabled = true; // Intentional side effect!!!
+        return assertsEnabled;
+    }
+
+
 }

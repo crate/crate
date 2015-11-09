@@ -34,10 +34,6 @@ import java.util.Map;
 
 public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

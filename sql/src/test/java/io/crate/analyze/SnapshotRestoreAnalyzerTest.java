@@ -51,10 +51,6 @@ import static org.mockito.Mockito.when;
 
 public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Mock
     private RepositoriesMetaData repositoriesMetaData;
 

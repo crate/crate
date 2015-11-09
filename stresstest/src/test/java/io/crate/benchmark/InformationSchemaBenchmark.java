@@ -22,10 +22,6 @@ public class InformationSchemaBenchmark extends BenchmarkBase {
 
     private boolean dataCreated = false;
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

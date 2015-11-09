@@ -46,10 +46,6 @@ import static org.mockito.Mockito.when;
 
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private ExecutorService executorService;
 
     @Before

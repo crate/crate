@@ -35,10 +35,6 @@ import static org.hamcrest.Matchers.is;
 
 public class RoutingTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testStreamingWithLocations() throws Exception {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();

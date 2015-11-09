@@ -50,10 +50,6 @@ public class NodeSettingsTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     protected Node node;
     protected Client client;
     private boolean loggingConfigured = false;

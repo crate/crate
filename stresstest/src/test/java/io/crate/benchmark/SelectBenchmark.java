@@ -59,10 +59,6 @@ public class SelectBenchmark extends BenchmarkBase {
 
     public static final SQLRequest SYS_SHARDS_REQUEST = new SQLRequest("select * from sys.shards order by schema_name, table_name");
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

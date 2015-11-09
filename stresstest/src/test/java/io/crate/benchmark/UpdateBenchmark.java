@@ -57,10 +57,6 @@ public class UpdateBenchmark extends BenchmarkBase {
     public String updateId = null;
     public String updateIdqueryPlannerEnabled = null;
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

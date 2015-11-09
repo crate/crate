@@ -35,10 +35,6 @@ import static org.hamcrest.core.Is.is;
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

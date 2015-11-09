@@ -40,10 +40,6 @@ import static org.hamcrest.core.Is.is;
  */
 public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

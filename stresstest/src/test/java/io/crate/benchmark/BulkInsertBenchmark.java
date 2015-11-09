@@ -46,10 +46,6 @@ import java.util.Collections;
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-insert")
 public class BulkInsertBenchmark extends BenchmarkBase {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

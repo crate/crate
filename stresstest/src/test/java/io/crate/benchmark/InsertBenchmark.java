@@ -47,10 +47,6 @@ import java.io.IOException;
 @BenchmarkMethodChart(filePrefix = "benchmark-insert")
 public class InsertBenchmark extends BenchmarkBase {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

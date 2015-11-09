@@ -30,10 +30,6 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class IpTypeTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testValidation() throws Exception {
         BytesRef[] validIps = {

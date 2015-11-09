@@ -32,10 +32,6 @@ import static org.hamcrest.Matchers.is;
 
 public class GeoShapeTypeTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private GeoShapeType type = GeoShapeType.INSTANCE;
 
     @Test

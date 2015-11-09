@@ -40,10 +40,6 @@ import static org.mockito.Mockito.*;
 
 public class KeepAliveTimersTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private static final TimeValue TEST_DELAY = TimeValue.timeValueMillis(100);
 
     private ThreadPool threadPool;

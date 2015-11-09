@@ -46,9 +46,6 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     private final Function bothFun = TestingHelpers.createFunction("both", DataTypes.STRING, x, y);
     private final Function myOtherFun = TestingHelpers.createFunction("my_other_fun", DataTypes.STRING, x);
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {
         if (!orderBySymbols.isEmpty()){

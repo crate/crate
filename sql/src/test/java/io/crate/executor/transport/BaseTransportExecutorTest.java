@@ -49,10 +49,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     TransportExecutor executor;
     DocSchemaInfo docSchemaInfo;
 

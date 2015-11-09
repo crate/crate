@@ -61,30 +61,8 @@ import static org.hamcrest.Matchers.is;
 
 public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private TransportExecutor executor;
 
-    private final static Map<String, Object> TEST_MAPPING = ImmutableMap.<String, Object>of(
-            "properties", ImmutableMap.of(
-                    "id", ImmutableMap.builder()
-                            .put("type", "integer")
-                            .put("store", false)
-                            .put("index", "not_analyzed")
-                            .put("doc_values", true).build(),
-                    "name", ImmutableMap.builder()
-                            .put("type", "string")
-                            .put("store", false)
-                            .put("index", "not_analyzed")
-                            .put("doc_values", true).build(),
-                    "names", ImmutableMap.builder()
-                            .put("type", "string")
-                            .put("store", false)
-                            .put("index", "not_analyzed")
-                            .put("doc_values", false).build()
-            ));
     private final static Map<String, Object> TEST_PARTITIONED_MAPPING = ImmutableMap.<String, Object>of(
             "_meta", ImmutableMap.of(
                     "partitioned_by", ImmutableList.of(Arrays.asList("name", "string"))

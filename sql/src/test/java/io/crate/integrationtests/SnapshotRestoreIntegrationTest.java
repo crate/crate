@@ -37,10 +37,6 @@ import static org.hamcrest.Matchers.is;
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private static final String REPOSITORY_NAME = "my_repo";
     private static final String SNAPSHOT_NAME = "my_snapshot";
 

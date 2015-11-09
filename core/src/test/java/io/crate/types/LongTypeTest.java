@@ -29,10 +29,6 @@ import static org.hamcrest.Matchers.is;
 
 public class LongTypeTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testBytesRefToLongParsing() throws Exception {
         assertBytesRefParsing("12839", 12839L);

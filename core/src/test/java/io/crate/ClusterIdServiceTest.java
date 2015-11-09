@@ -31,10 +31,6 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 @ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testClusterIdGeneration() throws Exception {
         Settings localSettings = settingsBuilder()

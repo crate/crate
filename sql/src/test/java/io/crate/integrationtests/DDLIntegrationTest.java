@@ -50,10 +50,6 @@ import static org.hamcrest.core.Is.is;
 @ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

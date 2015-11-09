@@ -60,10 +60,6 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static SQLRequest groupByRoutingColumnRequest = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1", INDEX_NAME));
     public static SQLRequest groupByRoutingColumnRequestHighLimit = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1 limit 100000", INDEX_NAME));
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

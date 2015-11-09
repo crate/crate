@@ -90,7 +90,6 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
 
     static {
         System.setProperty("tests.short_timeouts", "true");
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
 
         Logger logger;
         ConsoleAppender consoleAppender;

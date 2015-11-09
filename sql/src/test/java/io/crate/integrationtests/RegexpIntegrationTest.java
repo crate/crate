@@ -30,10 +30,6 @@ import static org.hamcrest.core.Is.is;
 
 public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private Setup setup = new Setup(sqlExecutor);
 
     @Rule

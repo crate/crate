@@ -38,9 +38,6 @@ import org.junit.rules.TestRule;
 @BenchmarkMethodChart(filePrefix = "benchmark-upsert")
 public class UpsertBenchmark extends BenchmarkBase {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
     public static final String INDEX_NAME = "traffic_logs";
     public static final int BENCHMARK_ROUNDS = 120;
     public static final int BENCHMARK_ROUNDS_MANY_VALUES = 3;

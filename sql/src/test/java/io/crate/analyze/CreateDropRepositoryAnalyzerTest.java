@@ -43,10 +43,6 @@ import static org.mockito.Mockito.when;
 
 public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Mock
     private RepositoriesMetaData repositoriesMetaData;
 

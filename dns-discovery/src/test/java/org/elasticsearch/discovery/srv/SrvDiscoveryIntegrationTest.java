@@ -36,10 +36,6 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 @ElasticsearchIntegrationTest.ClusterScope(numClientNodes = 0, numDataNodes = 0)
 public class SrvDiscoveryIntegrationTest extends ElasticsearchIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Before
     public void prepare() throws Exception {
         Lookup.setDefaultCache(new MockedZoneCache("crate.internal."), DClass.IN);

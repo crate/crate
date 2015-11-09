@@ -40,10 +40,6 @@ import static org.mockito.Mockito.*;
 
 public class FlatProjectorChainTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Test
     public void testFinalDownstreamPrepareIsCalled() throws Exception {
         RowReceiver finalDownstream = mock(RowReceiver.class);

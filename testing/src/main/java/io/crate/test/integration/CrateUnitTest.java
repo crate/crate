@@ -41,7 +41,6 @@ public abstract class CrateUnitTest extends AbstractRandomizedTest {
     static {
         // mute ES loggings
         Loggers.getLogger(ElasticsearchTestCase.class).setLevel("WARN");
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
     @Rule

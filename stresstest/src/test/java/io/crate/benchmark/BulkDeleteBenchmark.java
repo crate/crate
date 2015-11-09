@@ -56,10 +56,6 @@ import java.util.List;
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-delete")
 public class BulkDeleteBenchmark extends BenchmarkBase{
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 

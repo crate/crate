@@ -33,10 +33,6 @@ import static org.hamcrest.core.Is.is;
 
 public class TypeConversionTest extends CrateUnitTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private static class Repeater<T> implements Iterable<T>, Iterator<T> {
 
         private final LongAdder repeated;

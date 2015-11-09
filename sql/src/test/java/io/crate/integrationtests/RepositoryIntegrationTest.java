@@ -38,10 +38,6 @@ import static org.hamcrest.Matchers.is;
 
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

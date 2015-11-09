@@ -35,10 +35,6 @@ import org.junit.rules.TestRule;
 @BenchmarkMethodChart(filePrefix = "benchmark-partitionedtablebenchmark")
 public class PartitionedTableBenchmark extends BenchmarkBase {
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
     private static boolean dataGenerated = false;
 
     private static final Integer NUMBER_OF_PARTITIONS = 500;
