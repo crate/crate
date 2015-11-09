@@ -1098,7 +1098,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         nonExistingColumnSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'null'");
 
         execute("select * from quotes where match(o['something'], 'bla')");
     }
@@ -1776,7 +1776,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'null'");
 
         execute("select * from matchbox where match(o_ignored['a'], 'Ford')");
         assertThat(response.rowCount(), is(0L));
