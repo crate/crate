@@ -671,8 +671,10 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 "{\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_bounding_box\":{\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}}}");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testWithinEqWithin() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Can't compare two within functions");
         Function withinFunction = createFunction(
                 WithinFunction.NAME,
                 DataTypes.BOOLEAN,
@@ -686,6 +688,73 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 withinFunction
         );
         generator.convert(new WhereClause(eqFunction));
+    }
+
+    @Test
+    public void testWithinBBox() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.BOOLEAN_FALSE
+        );
+        xcontentAssert(eqFunction, "{\"query\":{\"bool\":{\"must_not\":{" +
+                                   "\"filtered\":{\"query\":{\"match_all\":{}}," +
+                                    "\"filter\":{" +
+                                        "\"geo_bounding_box\":{" +
+                                            "\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinHolePolygon() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ), (10 10, 10 11, 12 10, 10 10))")
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.BOOLEAN_FALSE
+        );
+        xcontentAssert(eqFunction, "{\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                                        "\"filter\":{" +
+                                            "\"geo_polygon\":{" +
+                                                "\"location\":{\"points\":[" +
+                                                    "{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":30.0}," +
+                                                    "{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":10.0,\"lat\":11.0}," +
+                                                    "{\"lon\":12.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":11.0}]}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinShapeReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Second argument to the within function must be a literal");
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                createReference("shape", DataTypes.GEO_SHAPE)
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.BOOLEAN_TRUE
+        );
+        generator.convert(new WhereClause(eqFunction));
+
+
     }
 
     @Test

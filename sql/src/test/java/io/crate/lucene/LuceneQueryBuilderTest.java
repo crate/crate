@@ -53,10 +53,11 @@ import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.filter.FilterCache;
-import org.elasticsearch.index.mapper.ContentPath;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.MapperBuilders;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
+import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
@@ -92,6 +93,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .add("d_array", new ArrayType(DataTypes.DOUBLE))
                 .add("y_array", new ArrayType(DataTypes.LONG))
                 .add("shape", DataTypes.GEO_SHAPE)
+                .add("point", DataTypes.GEO_POINT)
                 .build();
         TableRelation usersTr = new TableRelation(users);
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
@@ -100,6 +102,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         expressions = new SqlExpressions(sources);
         normalizer = new EvaluatingNormalizer(expressions.analysisMD(), usersTr, true);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
+
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         MapperService mapperService = mock(MapperService.class);
 
@@ -116,6 +119,20 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 return (Filter) invocation.getArguments()[0];
             }
         });
+
+        // mock geo point mapper stuff
+        MapperService.SmartNameFieldMappers smartNameFieldMappers = mock(MapperService.SmartNameFieldMappers.class);
+        when(mapperService.smartName("point")).thenReturn(smartNameFieldMappers);
+        when(smartNameFieldMappers.hasMapper()).thenReturn(true);
+
+        GeoPointFieldMapper mapper = MapperBuilders.geoPointField("point").build(context);
+        when(smartNameFieldMappers.mapper()).thenReturn(mapper);
+
+        IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
+        when(searchContext.fieldData()).thenReturn(indexFieldDataService);
+        IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
+        when(geoFieldData.getFieldNames()).thenReturn(new FieldMapper.Names("point"));
+        when(indexFieldDataService.getForField(mapper)).thenReturn(geoFieldData);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -375,5 +392,19 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
         assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(WithinPrefixTreeFilter.class));
+    }
+
+    @Test
+    public void testWithinFunction() throws Exception {
+        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
+        assertThat(eqWithinQuery.toString(), is("filtered(ConstantScore(*:*))->GeoPolygonFilter(point, [[0.0, 0.0], [1.0, 1.0]])"));
+    }
+
+    @Test
+    public void testWithinFunctionWithShapeReference() throws Exception {
+        // shape references cannot use the inverted index, so use generic function here
+        Query eqWithinQuery = convert("within(point, shape)");
+        assertThat(eqWithinQuery, instanceOf(FilteredQuery.class));
+        assertThat(((FilteredQuery)eqWithinQuery).getFilter(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 }

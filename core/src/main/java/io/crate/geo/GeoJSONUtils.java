@@ -198,8 +198,8 @@ public class GeoJSONUtils {
         double y;
         if (coordinate.getClass().isArray()) {
             Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
-            x = Array.getDouble(coordinate, 0);
-            y = Array.getDouble(coordinate, 1);
+            x = ((Number)Array.get(coordinate, 0)).doubleValue();
+            y = ((Number)Array.get(coordinate, 1)).doubleValue();
         } else if (coordinate instanceof Collection) {
             Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
             Iterator iter = ((Collection) coordinate).iterator();

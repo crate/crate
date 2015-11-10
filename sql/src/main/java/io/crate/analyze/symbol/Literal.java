@@ -229,6 +229,10 @@ public class Literal<ReturnType>
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
+    public static Literal<Double[]> newGeoPoint(Object point) {
+        return new Literal<>(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(point));
+    }
+
     public static Literal<Map<String, Object>> newGeoShape(String value) {
         return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
     }
