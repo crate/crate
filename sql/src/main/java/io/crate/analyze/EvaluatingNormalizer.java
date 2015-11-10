@@ -24,9 +24,9 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.Input;
+import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -58,7 +58,7 @@ public class EvaluatingNormalizer {
     private static final ESLogger logger = Loggers.getLogger(EvaluatingNormalizer.class);
     private final Functions functions;
     private final RowGranularity granularity;
-    private final NestedReferenceResolver referenceResolver;
+    private final ReferenceResolver<? extends Input<?>> referenceResolver;
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
 
@@ -71,7 +71,7 @@ public class EvaluatingNormalizer {
      * @param inPlace defines if symbols like functions can be changed inplace instead of being copied when changed
      */
     public EvaluatingNormalizer(
-            Functions functions, RowGranularity granularity, NestedReferenceResolver referenceResolver,
+            Functions functions, RowGranularity granularity, ReferenceResolver<? extends Input<?>> referenceResolver,
             @Nullable FieldResolver fieldResolver, boolean inPlace) {
         this.functions = functions;
         this.granularity = granularity;
@@ -85,7 +85,7 @@ public class EvaluatingNormalizer {
     }
 
     public EvaluatingNormalizer(
-            Functions functions, RowGranularity granularity, NestedReferenceResolver referenceResolver) {
+            Functions functions, RowGranularity granularity, ReferenceResolver<? extends Input<?>> referenceResolver) {
         this(functions, granularity, referenceResolver, null, false);
     }
 

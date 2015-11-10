@@ -23,22 +23,18 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.*;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,15 +48,11 @@ import static io.crate.testing.TestingHelpers.isFunction;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class RelationSplitterTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    private ExpressionAnalyzer expressionAnalyzer;
-    private ExpressionAnalysisContext context;
 
     private final TableInfo t1Info = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
             .add("a", DataTypes.STRING)
@@ -79,32 +71,16 @@ public class RelationSplitterTest extends CrateUnitTest {
             .add("z", DataTypes.INTEGER)
             .build();
     private final TableRelation tr3 = new TableRelation(t3Info);
+    private SqlExpressions expressions;
 
     @Before
     public void setUp() throws Exception {
-        Injector injector = new ModulesBuilder()
-                .add(new ScalarFunctionModule())
-                .add(new OperatorModule())
-                .createInjector();
-
-        Functions functions = injector.getInstance(Functions.class);
-        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
-            @Override
-            public ReferenceImplementation<?> getImplementation(ReferenceInfo refInfo) {
-                throw new AssertionError("getImplementation should never be called in this test");
-            }
-        };
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                 new QualifiedName("t1"), tr1,
                 new QualifiedName("t2"), tr2,
                 new QualifiedName("t3"), tr3
         );
-        context = new ExpressionAnalysisContext();
-        expressionAnalyzer = new ExpressionAnalyzer(
-                new AnalysisMetaData(functions, mock(ReferenceInfos.class), referenceResolver),
-                new ParameterContext(new Object[0], new Object[0][], null),
-                new FullQualifedNameFieldProvider(sources)
-        );
+        expressions = new SqlExpressions(sources);
         super.setUp();
     }
 
@@ -113,7 +89,7 @@ public class RelationSplitterTest extends CrateUnitTest {
     }
 
     private Symbol asSymbol(String expression) {
-        return expressionAnalyzer.convert(SqlParser.createExpression(expression), context);
+        return expressions.asSymbol(expression);
     }
 
     private List<Symbol> singleTrue() {

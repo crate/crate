@@ -44,13 +44,12 @@ public class WhereClauseAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
     private final DocTableInfo tableInfo;
-    private final EvaluatingNormalizer normalizer;
     private final EqualityExtractor eqExtractor;
 
     public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, DocTableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
-        this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
                 analysisMetaData.referenceResolver(), tableRelation, false);
         this.eqExtractor = new EqualityExtractor(normalizer);
 

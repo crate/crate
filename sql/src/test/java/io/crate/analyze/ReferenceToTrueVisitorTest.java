@@ -22,35 +22,19 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Path;
-import io.crate.metadata.information.MetaDataInformationModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Binder;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 
@@ -58,44 +42,18 @@ import static io.crate.testing.TestingHelpers.isLiteral;
 public class ReferenceToTrueVisitorTest extends CrateUnitTest {
 
     private ReferenceToTrueVisitor visitor;
-    private ExpressionAnalyzer expressionAnalyzer;
-    private ExpressionAnalysisContext expressionAnalysisContext;
-    private ThreadPool threadPool;
+    private SqlExpressions expressions;
 
     @Before
     public void prepare() throws Exception {
-        threadPool = new ThreadPool("testing");
-        Injector injector = new ModulesBuilder()
-            .add(new Module() {
-                @Override
-                public void configure(Binder binder) {
-                    binder.bind(ThreadPool.class).toInstance(threadPool);
-                }
-            })
-            .add(new MockedClusterServiceModule())
-            .add(new MetaDataModule())
-            .add(new OperatorModule())
-            .add(new MetaDataInformationModule())
-            .add(new ScalarFunctionModule())
-            .add(new PredicateModule()).createInjector();
         visitor = new ReferenceToTrueVisitor();
-        expressionAnalyzer = new ExpressionAnalyzer(
-                injector.getInstance(AnalysisMetaData.class),
-                new ParameterContext(new Object[0], new Object[0][], null),
-                new FullQualifedNameFieldProvider(
-                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("dummy"), new DummyRelation()))
-        );
-        expressionAnalysisContext = new ExpressionAnalysisContext();
-    }
-
-    @After
-    public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+        ImmutableMap<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                new QualifiedName("dummy"), new DummyRelation());
+        expressions = new SqlExpressions(sources);
     }
 
     private Symbol convert(Symbol symbol) {
-        return expressionAnalyzer.normalize(visitor.process(symbol, null));
+        return expressions.normalize(visitor.process(symbol, null));
     }
 
     /**
@@ -125,7 +83,7 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     }
 
     public Symbol fromSQL(String expression) {
-        return expressionAnalyzer.convert(SqlParser.createExpression(expression), expressionAnalysisContext);
+        return expressions.asSymbol(expression);
     }
 
     @Test
