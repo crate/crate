@@ -39,6 +39,7 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -175,6 +176,24 @@ public class DocIndexMetaData {
         }
     }
 
+    private void addGeoReference(ColumnIdent column, @Nullable String tree, @Nullable Integer treeLevels, @Nullable Double distanceErrorPct) {
+        GeoReferenceInfo.Builder builder = new GeoReferenceInfo.Builder();
+        builder.ident(new ReferenceIdent(ident, column));
+        if (tree != null) {
+            builder.geoTree(tree);
+        }
+        if (treeLevels != null) {
+            builder.treeLevels(treeLevels);
+        }
+        if (distanceErrorPct != null) {
+            builder.distanceErrorPct(distanceErrorPct);
+        }
+        GeoReferenceInfo info = builder.build();
+        columnsBuilder.add(info);
+        referencesBuilder.put(column, info);
+    }
+
+
     private ReferenceInfo newInfo(ColumnIdent column,
                                   DataType type,
                                   ColumnPolicy columnPolicy,
@@ -267,7 +286,12 @@ public class DocIndexMetaData {
 
             columnProperties = furtherColumnProperties(columnProperties);
             ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnProperties);
-            if (columnDataType == DataTypes.OBJECT
+            if (columnDataType == DataTypes.GEO_SHAPE) {
+                String geoTree = (String)columnProperties.get("tree");
+                Integer treeLevels = (Integer)columnProperties.get("tree_levels");
+                Double distanceErrorPct = (Double)columnProperties.get("distance_error_pct");
+                addGeoReference(newIdent, geoTree, treeLevels, distanceErrorPct);
+            } else if (columnDataType == DataTypes.OBJECT
                     || (columnDataType.id() == ArrayType.ID
                     && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
                 ColumnPolicy columnPolicy =

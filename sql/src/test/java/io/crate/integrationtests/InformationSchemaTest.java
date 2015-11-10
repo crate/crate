@@ -741,22 +741,27 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testUnknownTypes() throws Exception {
         new Setup(sqlExecutor).setUpObjectMappingWithUnknownTypes();
         execute("select * from information_schema.columns where table_name='ut' order by column_name");
-        assertEquals(3, response.rowCount());
+        assertEquals(4, response.rowCount());
 
-        assertEquals("name", response.rows()[0][2]);
+        assertEquals("location", response.rows()[0][2]);
         short ordinal_position = 1;
         assertEquals(ordinal_position, response.rows()[0][3]);
-        assertEquals("string", response.rows()[0][4]);
+        assertEquals("geo_shape", response.rows()[0][4]);
 
-        assertEquals("o", response.rows()[1][2]);
+        assertEquals("name", response.rows()[1][2]);
         ordinal_position = 2;
         assertEquals(ordinal_position, response.rows()[1][3]);
-        assertEquals("object", response.rows()[1][4]);
+        assertEquals("string", response.rows()[1][4]);
 
-        assertEquals("population", response.rows()[2][2]);
+        assertEquals("o", response.rows()[2][2]);
         ordinal_position = 3;
         assertEquals(ordinal_position, response.rows()[2][3]);
-        assertEquals("long", response.rows()[2][4]);
+        assertEquals("object", response.rows()[2][4]);
+
+        assertEquals("population", response.rows()[3][2]);
+        ordinal_position = 4;
+        assertEquals(ordinal_position, response.rows()[3][3]);
+        assertEquals("long", response.rows()[3][4]);
 
         // TODO: enable when information_schema.indices is implemented
         //execute("select * from information_schema.indices where table_name='ut' order by index_name");
