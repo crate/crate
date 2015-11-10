@@ -21,10 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -225,38 +223,6 @@ public class Setup {
                 }
         );
         transportExecutor.refresh("ot");
-    }
-
-    public void setUpObjectMappingWithUnknownTypes() throws Exception {
-        transportExecutor.prepareCreate("ut")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0).put("number_of_shards", 2).build())
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, new HashMap<String, Object>(){{
-                    put("properties", new HashMap<String, Object>(){{
-                        put("name", new HashMap<String, Object>(){{
-                            put("type", "string");
-                            put("store", "false");
-                            put("index", "not_analyzed");
-                        }});
-                        put("location", new HashMap<String, Object>(){{
-                            put("type", "geo_shape");
-                        }});
-                        put("o", new HashMap<String, Object>(){{
-                            put("type", "object");
-                        }});
-                        put("population", new HashMap<String, Object>(){{
-                            put("type", "long");
-                            put("store", "false");
-                            put("index", "not_analyzed");
-                        }});
-                    }});
-                }}).execute().actionGet();
-        transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id1")
-                .setSource("{\"name\":\"Berlin\",\"location\":{\"type\": \"point\", \"coordinates\": [52.5081, 13.4416]}, \"population\":3500000}")
-                .execute().actionGet();
-        transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id2")
-                .setSource("{\"name\":\"Dornbirn\",\"location\":{\"type\": \"point\", \"coordinates\": [47.3904,9.7562]}, \"population\":46080}")
-                .execute().actionGet();
-        transportExecutor.refresh("ut");
     }
 
     public void setUpArrayTables() {

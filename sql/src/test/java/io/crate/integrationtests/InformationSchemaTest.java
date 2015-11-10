@@ -44,7 +44,6 @@ import static org.hamcrest.Matchers.*;
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
-    final static Joiner dotJoiner = Joiner.on('.');
     final static Joiner commaJoiner = Joiner.on(", ");
 
     @Rule
@@ -735,42 +734,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         assertEquals("title", response.rows()[3][0]);
         assertEquals(ordinal_position, response.rows()[3][1]);
-    }
-
-    @Test
-    public void testUnknownTypes() throws Exception {
-        new Setup(sqlExecutor).setUpObjectMappingWithUnknownTypes();
-        execute("select * from information_schema.columns where table_name='ut' order by column_name");
-        assertEquals(4, response.rowCount());
-
-        assertEquals("location", response.rows()[0][2]);
-        short ordinal_position = 1;
-        assertEquals(ordinal_position, response.rows()[0][3]);
-        assertEquals("geo_shape", response.rows()[0][4]);
-
-        assertEquals("name", response.rows()[1][2]);
-        ordinal_position = 2;
-        assertEquals(ordinal_position, response.rows()[1][3]);
-        assertEquals("string", response.rows()[1][4]);
-
-        assertEquals("o", response.rows()[2][2]);
-        ordinal_position = 3;
-        assertEquals(ordinal_position, response.rows()[2][3]);
-        assertEquals("object", response.rows()[2][4]);
-
-        assertEquals("population", response.rows()[3][2]);
-        ordinal_position = 4;
-        assertEquals(ordinal_position, response.rows()[3][3]);
-        assertEquals("long", response.rows()[3][4]);
-
-        // TODO: enable when information_schema.indices is implemented
-        //execute("select * from information_schema.indices where table_name='ut' order by index_name");
-        //assertEquals(2, response.rowCount());
-        //assertEquals("name", response.rows()[0][1]);
-        //assertEquals("population", response.rows()[1][1]);
-
-        execute("select sum(number_of_shards) from information_schema.tables");
-        assertEquals(1, response.rowCount());
     }
 
     @Test
