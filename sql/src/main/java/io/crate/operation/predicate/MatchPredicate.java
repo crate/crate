@@ -53,10 +53,10 @@ public class MatchPredicate implements FunctionImplementation<Function> {
     private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
     private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.<DataType, String>of(
             DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
-            DataTypes.GEO_SHAPE, "intersect"
+            DataTypes.GEO_SHAPE, "intersects"
     );
     private static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
-    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersect", "contains", "disjoint", "within");
+    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "contains", "disjoint", "within");
 
     public static final BytesRef DEFAULT_MATCH_TYPE = new BytesRef(DEFAULT_MATCH_TYPE_STRING);
     public static final String NAME = "match";
