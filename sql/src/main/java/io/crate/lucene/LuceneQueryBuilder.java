@@ -846,6 +846,10 @@ public class LuceneQueryBuilder {
                 if (!innerPair.isValid()) {
                     return null;
                 }
+                if (innerPair.reference().valueType().equals(DataTypes.GEO_SHAPE)) {
+                    // we have within('POINT(0 0)', shape_column)
+                    return genericFunctionQuery(inner, context);
+                }
                 GeoPointFieldMapper mapper = getGeoPointFieldMapper(
                         innerPair.reference().info().ident().columnIdent().fqn(),
                         context.mapperService
@@ -1137,29 +1141,41 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new Filter() {
-                @Override
-                public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
-                    for (LuceneCollectorExpression expression : expressions) {
-                        expression.setNextReader(context.reader().getContext());
-                    }
-                    return BitsFilteredDocIdSet.wrap(
-                            new FunctionDocSet(
-                                    context.reader(),
-                                    collectorContext.visitor(),
-                                    condition,
-                                    expressions,
-                                    context.reader().maxDoc(),
-                                    acceptDocs
-                            ),
-                            acceptDocs
-                    );
-                }
-            };
+            return new FunctionFilter(expressions, collectorContext, condition);
         }
 
         private static Query genericFunctionQuery(Function function, Context context) {
             return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function, context));
+        }
+
+        public static class FunctionFilter extends Filter {
+            private final List<LuceneCollectorExpression> expressions;
+            private final CollectorContext collectorContext;
+            private final Input<Boolean> condition;
+
+            public FunctionFilter(List<LuceneCollectorExpression> expressions, CollectorContext collectorContext, Input<Boolean> condition) {
+                this.expressions = expressions;
+                this.collectorContext = collectorContext;
+                this.condition = condition;
+            }
+
+            @Override
+            public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
+                for (LuceneCollectorExpression expression : expressions) {
+                    expression.setNextReader(context.reader().getContext());
+                }
+                return BitsFilteredDocIdSet.wrap(
+                        new FunctionDocSet(
+                                context.reader(),
+                                collectorContext.visitor(),
+                                condition,
+                                expressions,
+                                context.reader().maxDoc(),
+                                acceptDocs
+                        ),
+                        acceptDocs
+                );
+            }
         }
 
         static class FunctionDocSet extends MatchDocIdSet {

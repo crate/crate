@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.geo;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.spatial4j.core.context.SpatialContext;
 import com.spatial4j.core.shape.Shape;
@@ -30,7 +29,9 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
@@ -45,14 +46,23 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     public static final String NAME = "within";
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(NAME, new Resolver());
+        for (DataType pointType : Arrays.asList(DataTypes.GEO_POINT, DataTypes.STRING)) {
+            for (DataType shapeType : Arrays.asList(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.OBJECT)) {
+                scalarFunctionModule.register(new WithinFunction(info(pointType, shapeType)));
+            }
+        }
     }
 
+    private static FunctionInfo info(DataType pointType, DataType shapeType) {
+        return new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(pointType, shapeType)),
+                DataTypes.BOOLEAN
+        );
+    }
+
+    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE);
+
     private final FunctionInfo info;
-    private final static FunctionInfo geoShapeInfo = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE)),
-            DataTypes.BOOLEAN
-    );
 
     WithinFunction(FunctionInfo info) {
         this.info = info;
@@ -105,22 +115,18 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
-            if (leftType.equals(DataTypes.STRING)) {
-                left = Literal.convert(left, DataTypes.GEO_SHAPE);
+            if (!leftType.equals(DataTypes.GEO_POINT)) {
+                left = Literal.convert(left, DataTypes.GEO_POINT);
                 literalConverted = true;
             }
-        } else {
-            ensureShapeOrPoint(leftType);
         }
 
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
-            if (rightType.equals(DataTypes.STRING)) {
+            if (!rightType.equals(DataTypes.GEO_SHAPE)) {
                 right = Literal.convert(right, DataTypes.GEO_SHAPE);
                 literalConverted = true;
             }
-        } else {
-            ensureShapeOrPoint(rightType);
         }
 
         if (numLiterals == 2) {
@@ -128,40 +134,9 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         if (literalConverted) {
-            return new Function(geoShapeInfo, Arrays.asList(left, right));
+            return new Function(SHAPE_INFO, Arrays.asList(left, right));
         }
 
         return symbol;
-    }
-
-    private void ensureShapeOrPoint(DataType symbolType) {
-        if (!(symbolType.equals(DataTypes.GEO_POINT) || symbolType.equals(DataTypes.GEO_SHAPE))) {
-            throw new IllegalArgumentException(String.format(
-                    "\"%s\" doesn't support references of type \"%s\"", NAME, symbolType));
-        }
-    }
-
-    private static class Resolver implements DynamicFunctionResolver {
-
-        @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2);
-            DataType firstType = dataTypes.get(0);
-
-            if (!(firstType.equals(DataTypes.GEO_POINT) ||
-                    firstType.equals(DataTypes.GEO_SHAPE) ||
-                    firstType.equals(DataTypes.STRING))) {
-                throw new IllegalArgumentException(String.format(
-                        "%s doesn't take an argument of type \"%s\" as first argument", NAME, firstType));
-            }
-
-            DataType secondType = dataTypes.get(1);
-            if (!(secondType.equals(DataTypes.GEO_SHAPE) ||
-                    secondType.equals(DataTypes.STRING))) {
-                throw new IllegalArgumentException(String.format(
-                        "%s doesn't take an argument of type \"%s\" as second argument", NAME, secondType));
-            }
-            return new WithinFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN));
-        }
     }
 }

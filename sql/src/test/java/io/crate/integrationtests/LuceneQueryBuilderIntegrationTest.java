@@ -120,4 +120,19 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute(sb.toString());
         assertThat(response.rowCount(), is(2L));
     }
+
+    @Test
+    public void testWithinGenericFunction() throws Exception {
+        execute("create table shaped (id int, point geo_point, shape geo_shape) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into shaped (id, point, shape) VALUES (?, ?, ?)", $$(
+                $(1, "POINT (15 15)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))"),
+                $(1, "POINT (-10 -10)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))")
+        ));
+        execute("refresh table shaped");
+
+        execute("select * from shaped where within(point, shape) order by id");
+        assertThat(response.rowCount(), is(1L));
+
+    }
 }
