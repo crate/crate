@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
@@ -1645,6 +1646,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         assertThat(response.rowCount(), is(1L));
+        execute("select * from t where within(p, ?)", $(ImmutableMap.of(
+                "type", "Polygon",
+                "coordinates", new double[][][] {
+                        {
+                                {5.0, 5.0},
+                                {30.0, 5.0},
+                                {30.0, 30.0},
+                                {5.0, 30.0},
+                                {5.0, 5.0}
+                        }
+                }
+        )));
+        assertThat(response.rowCount(), is(1L));
+
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
         assertThat(response.rowCount(), is(0L));
     }

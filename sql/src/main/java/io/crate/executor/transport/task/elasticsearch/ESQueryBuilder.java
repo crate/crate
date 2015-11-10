@@ -338,7 +338,7 @@ public class ESQueryBuilder {
                 Symbol leftSymbol = withinFunction.arguments().get(0);
                 Symbol rightSymbol = withinFunction.arguments().get(1);
 
-                if (!(leftSymbol instanceof Reference)) {
+                if (!(leftSymbol instanceof Reference && rightSymbol instanceof Input)) {
                     throw new IllegalArgumentException("Second argument to the within function must be a literal");
                 }
                 writeFilterToContext(context, (Reference) leftSymbol, (Input) rightSymbol);

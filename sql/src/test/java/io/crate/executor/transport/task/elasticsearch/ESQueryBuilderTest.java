@@ -39,6 +39,7 @@ import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
+import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -385,6 +386,51 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     public void testWithinEqWithin() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         convert("within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
+    }
+
+    @Test
+    public void testWithinBBox() throws Exception {
+        xcontentAssert("within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = false",
+                "{\"query\":{\"bool\":{\"must_not\":{" +
+                "\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{" +
+                "\"geo_bounding_box\":{" +
+                "\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinHolePolygon() throws Exception {
+        xcontentAssert("within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ), (10 10, 10 11, 12 10, 10 10))') = false",
+                "{\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{" +
+                "\"geo_polygon\":{" +
+                "\"location\":{\"points\":[" +
+                "{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":30.0}," +
+                "{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":10.0,\"lat\":11.0}," +
+                "{\"lon\":12.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":11.0}]}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinShapeReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Second argument to the within function must be a literal");
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                createReference("shape", DataTypes.GEO_SHAPE)
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.BOOLEAN_TRUE
+        );
+        generator.convert(new WhereClause(eqFunction));
+
+
     }
 
     @Test
