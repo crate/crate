@@ -251,8 +251,8 @@ Example::
 The `number_of_replicas` property also accepts an string as parameter that
 contains a `range`.
 
-A range is a definition of `minimum number of replicas` to `maximum
-number of replicas` depending on the number of nodes in the
+A range is a definition of minimum number of replicas to maximum
+number of replicas depending on the number of nodes in the
 cluster. The table below shows some examples.
 
 ===== ======================================================================
@@ -341,9 +341,15 @@ which is exactly the same as::
     cr> drop table my_table13;
     DROP OK (... sec)
 
-New columns added to ``dynamic`` tables are, once added,
-usable as usual columns. One can retrieve them, sort by them
-and use them in where clauses.
+New columns added to ``dynamic`` tables are, once added, usable as usual 
+columns. One can retrieve them, sort by them and use them in where clauses.
+
+.. warning::
+    The mapping update is processed asynchrously on multiple nodes. If a new 
+    field gets added to the local mapping of two shards, these shards are sending 
+    their mapping to the master. If this mapping update gets delivered later 
+    than the next query on the previously added column, it will result 
+    in a ``ColumnUnknownException``.
 
 .. _sql_ddl_partitioned_by:
 
@@ -909,5 +915,3 @@ means that if you re-create the table using the resulting ``CREATE TABLE``
 statement the settings of the 'old' table may differ from the settings of
 the 'new' table. This is because the table settings are set explicitly on
 creation time.
-
-
