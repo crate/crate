@@ -808,7 +808,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.requiredForQuery(), containsInAnyOrder(isField("id"), isField("name"), isField("name")));
+        assertThat(relation.requiredForQuery(), isSQL(
+                "doc.users_multi_pk.id, doc.users_multi_pk.name, doc.users.name, concat(doc.users.name, doc.users_multi_pk.name)"));
     }
 
 
@@ -1743,7 +1744,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectSameTableTwice() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"doc.users\" specified more than once in the FROM clause");
-
         analyze("select * from users, users");
     }
 

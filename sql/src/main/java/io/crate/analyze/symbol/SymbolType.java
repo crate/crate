@@ -32,7 +32,8 @@ public enum SymbolType {
     DYNAMIC_REFERENCE(DynamicReference.FACTORY),
     VALUE(Value.FACTORY),
     MATCH_PREDICATE(MatchPredicate.FACTORY),
-    FETCH_REFERENCE(null);
+    FETCH_REFERENCE(null),
+    RELATION_COLUMN(RelationColumn.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

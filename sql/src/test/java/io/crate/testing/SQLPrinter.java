@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
@@ -31,6 +32,7 @@ import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 public class SQLPrinter {
 
@@ -41,6 +43,8 @@ public class SQLPrinter {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {
             return print((Symbol) o);
+        } else if (o instanceof HashSet) {
+            return print(Ordering.usingToString().sortedCopy((HashSet) o));
         } else if (o instanceof Collection) {
             return print((Collection<Symbol>) o);
         } else if (o == null) {
@@ -172,6 +176,16 @@ public class SQLPrinter {
                 first = false;
                 process(arg, ctx);
             }
+        }
+
+        @Override
+        public Void visitRelationColumn(RelationColumn relationColumn, Context context) {
+            sb.append("RELCOL(");
+            sb.append(relationColumn.relationName());
+            sb.append(", ");
+            sb.append(relationColumn.index());
+            sb.append(")");
+            return null;
         }
 
         @Override

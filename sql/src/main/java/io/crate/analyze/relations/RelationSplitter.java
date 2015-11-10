@@ -22,6 +22,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -45,14 +46,7 @@ public class RelationSplitter {
 
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
-
-    private static final Supplier<Set<Field>> FIELD_SET_SUPPLIER = new Supplier<Set<Field>>() {
-        @Override
-        public Set<Field> get() {
-            // a LinkedHashSet is required for deterministic output order
-            return new LinkedHashSet<>();
-        }
-    };
+    private Set<Field> canBeFetched;
 
     private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
         @Override
@@ -61,8 +55,7 @@ public class RelationSplitter {
         }
     };
 
-    private OrderBy remainingOrderBy;
-
+    private Optional<OrderBy> remainingOrderBy = Optional.absent();
     private final Map<AnalyzedRelation, QuerySpec> specs;
 
     public static RelationSplitter process(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
@@ -79,12 +72,16 @@ public class RelationSplitter {
         }
     }
 
-    public OrderBy remainingOrderBy() {
+    public Optional<OrderBy> remainingOrderBy() {
         return remainingOrderBy;
     }
 
     public Set<Symbol> requiredForQuery() {
         return requiredForQuery;
+    }
+
+    public Set<Field> canBeFetched() {
+        return canBeFetched;
     }
 
     public QuerySpec getSpec(AnalyzedRelation relation) {
@@ -118,21 +115,16 @@ public class RelationSplitter {
         processOutputs();
     }
 
-    static class Context {
-        final Multimap<AnalyzedRelation, Field> fields;
-
-        public Context(int numRelations) {
-            fields = Multimaps.newSetMultimap(
-                    new IdentityHashMap<AnalyzedRelation, Collection<Field>>(numRelations),
-                    FIELD_SET_SUPPLIER);
-        }
-    }
-
     private void processOutputs() {
-        Context context = new Context(specs.size());
-        if (remainingOrderBy != null) {
-            FieldCollectingVisitor.INSTANCE.process(remainingOrderBy.orderBySymbols(), context);
+        FieldCollectingVisitor.Context context = new FieldCollectingVisitor.Context(specs.size());
+
+        // declare all symbols from the remainging order by as required for query
+        if (remainingOrderBy.isPresent()) {
+            requiredForQuery.addAll(remainingOrderBy.get().orderBySymbols());
+            // we need to add also the used symbols for query phase
+            FieldCollectingVisitor.INSTANCE.process(remainingOrderBy.get().orderBySymbols(), context);
         }
+
         if (querySpec.where().hasQuery()) {
             FieldCollectingVisitor.INSTANCE.process(querySpec.where().query(), context);
         }
@@ -145,10 +137,10 @@ public class RelationSplitter {
             }
         }
 
-        // add all order by symbols to outputs
-        for (QuerySpec spec : specs.values()) {
-            if (spec.orderBy().isPresent()) {
-                FieldCollectingVisitor.INSTANCE.process(spec.orderBy().get().orderBySymbols(), context);
+        // add all order by symbols to context outputs
+        for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
+            if (entry.getValue().orderBy().isPresent()){
+                context.fields.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
             }
         }
 
@@ -156,16 +148,15 @@ public class RelationSplitter {
         requiredForQuery.addAll(context.fields.values());
 
         // capture items from the outputs
-        FetchFieldExtractor.extract(querySpec.outputs(), requiredForQuery);
+        canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), context.fields);
 
-        // add all outputs to the sub queries
         FieldCollectingVisitor.INSTANCE.process(querySpec.outputs(), context);
 
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            Collection<Field> fields = context.fields.get(entry.getKey());
+            Collection<Symbol> fields = context.fields.get(entry.getKey());
             assert entry.getValue().outputs() == null;
-            entry.getValue().outputs(new ArrayList<Symbol>(fields));
+            entry.getValue().outputs(new ArrayList<>(fields));
         }
     }
 
@@ -207,7 +198,7 @@ public class RelationSplitter {
             OrderBy newOrderBy = orderBy.subset(entry.getValue());
             AnalyzedRelation relation = entry.getKey();
             if (relation == null) {
-                remainingOrderBy = newOrderBy;
+                remainingOrderBy = Optional.of(newOrderBy);
             } else {
                 QuerySpec spec = getSpec(relation);
                 assert !spec.orderBy().isPresent();
@@ -228,20 +219,4 @@ public class RelationSplitter {
         }
     }
 
-    static class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<Context, Void> {
-
-        public static final FieldCollectingVisitor INSTANCE = new FieldCollectingVisitor();
-
-        public void process(Iterable<? extends Symbol> symbols, Context context) {
-            for (Symbol symbol : symbols) {
-                process(symbol, context);
-            }
-        }
-
-        @Override
-        public Void visitField(Field field, Context context) {
-            context.fields.put(field.relation(), field);
-            return null;
-        }
-    }
 }

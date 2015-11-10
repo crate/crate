@@ -22,7 +22,6 @@
 package io.crate.planner.fetch;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.OrderBy;
@@ -31,7 +30,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
@@ -44,8 +42,8 @@ public class FetchPushDown {
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
     private static final InputColumn DOCID_COL = new InputColumn(0, DataTypes.LONG);
-    private LinkedHashMap<ReferenceIdent, FetchReference> fetchReferences;
-    private LinkedHashMap<ReferenceIdent, FetchReference> partitionReferences;
+    private LinkedHashMap<Reference, FetchReference> fetchRefs;
+    private LinkedHashMap<Reference, FetchReference> partitionRefs;
 
     public FetchPushDown(QuerySpec querySpec, DocTableRelation docTableRelation) {
         this.querySpec = querySpec;
@@ -56,11 +54,18 @@ public class FetchPushDown {
         return DOCID_COL;
     }
 
-    public Collection<Reference> fetchRefs() {
-        if (fetchReferences == null || fetchReferences.isEmpty()) {
+    public Collection<Reference> partitionRefs() {
+        if (partitionRefs == null || partitionRefs.isEmpty()) {
             return ImmutableList.of();
         }
-        return Collections2.transform(fetchReferences.values(), FetchReference.REF_FUNCTION);
+        return partitionRefs.keySet();
+    }
+
+    public Collection<Reference> fetchRefs() {
+        if (fetchRefs == null || fetchRefs.isEmpty()) {
+            return ImmutableList.of();
+        }
+        return fetchRefs.keySet();
     }
 
     private FetchReference allocateReference(Reference ref) {
@@ -69,24 +74,24 @@ public class FetchPushDown {
             if (!ref.ident().columnIdent().isSystemColumn()) {
                 ref = DocReferenceConverter.toSourceLookup(ref);
             }
-            if (fetchReferences == null) {
-                fetchReferences = new LinkedHashMap<>();
+            if (fetchRefs == null) {
+                fetchRefs = new LinkedHashMap<>();
             }
-            return toFetchReference(ref, fetchReferences);
+            return toFetchReference(ref, fetchRefs);
         } else {
             assert docTableRelation.tableInfo().isPartitioned() && granularity == RowGranularity.PARTITION;
-            if (partitionReferences == null) {
-                partitionReferences = new LinkedHashMap<>(docTableRelation.tableInfo().partitionedBy().size());
+            if (partitionRefs == null) {
+                partitionRefs = new LinkedHashMap<>(docTableRelation.tableInfo().partitionedBy().size());
             }
-            return toFetchReference(ref, partitionReferences);
+            return toFetchReference(ref, partitionRefs);
         }
     }
 
-    private FetchReference toFetchReference(Reference ref, LinkedHashMap<ReferenceIdent, FetchReference> refs) {
-        FetchReference fRef = refs.get(ref.ident());
+    private FetchReference toFetchReference(Reference ref, LinkedHashMap<Reference, FetchReference> refs) {
+        FetchReference fRef = refs.get(ref);
         if (fRef == null) {
             fRef = new FetchReference(DOCID_COL, ref);
-            refs.put(ref.ident(), fRef);
+            refs.put(ref, fRef);
         }
         return fRef;
     }

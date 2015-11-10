@@ -23,15 +23,23 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.Planner;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchPushDown;
+import io.crate.planner.fetch.MultiSourceFetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
@@ -40,12 +48,16 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.*;
+
 
 @Singleton
 public class QueryThenFetchConsumer implements Consumer {
@@ -53,8 +65,8 @@ public class QueryThenFetchConsumer implements Consumer {
     private final Visitor visitor;
 
     @Inject
-    public QueryThenFetchConsumer() {
-        visitor = new Visitor();
+    public QueryThenFetchConsumer(ClusterService clusterService) {
+        visitor = new Visitor(clusterService);
     }
 
     @Override
@@ -63,6 +75,124 @@ public class QueryThenFetchConsumer implements Consumer {
     }
 
     private static class Visitor extends RelationPlanningVisitor {
+
+
+        private final ClusterService clusterService;
+
+        public Visitor(ClusterService clusterService) {
+
+            this.clusterService = clusterService;
+        }
+
+        public static MergePhase mergePhase(ConsumerContext context,
+                                            Collection<String> executionNodes,
+                                            UpstreamPhase upstreamPhase,
+                                            @Nullable OrderBy orderBy,
+                                            List<Symbol> previousOutputs,
+                                            boolean isDistributed) {
+            assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
+            if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
+                // if the nested loop is on the same node we don't need a mergePhase to receive requests
+                // but can access the RowReceiver of the nestedLoop directly
+                return null;
+            }
+
+            MergePhase mergePhase;
+            if (orderBy != null) {
+                mergePhase = MergePhase.sortedMerge(
+                        context.plannerContext().jobId(),
+                        context.plannerContext().nextExecutionPhaseId(),
+                        orderBy,
+                        previousOutputs,
+                        orderBy.orderBySymbols(),
+                        ImmutableList.<Projection>of(),
+                        upstreamPhase.executionNodes().size(),
+                        Symbols.extractTypes(previousOutputs)
+                );
+            } else {
+                mergePhase = MergePhase.localMerge(
+                        context.plannerContext().jobId(),
+                        context.plannerContext().nextExecutionPhaseId(),
+                        ImmutableList.<Projection>of(),
+                        upstreamPhase.executionNodes().size(),
+                        Symbols.extractTypes(previousOutputs)
+                );
+            }
+            mergePhase.executionNodes(executionNodes);
+            return mergePhase;
+        }
+
+
+        @Override
+        public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
+            if (!context.isRoot()) {
+                return null;
+            }
+            if (mss.querySpec().where().noMatch()) {
+                return new NoopPlannedAnalyzedRelation(mss, context.plannerContext().jobId());
+            }
+            if (mss.canBeFetched().isEmpty()){
+                return null;
+            }
+
+            MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
+            pd.remainingOutputs();
+
+            OrderBy subOrderBy = mss.querySpec().orderBy().orNull();
+            PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(mss, context);
+            if (plannedSubQuery == null) {
+                return null;
+            }
+
+            Planner.Context.ReaderAllocations readerAllocations = context.plannerContext().buildReaderAllocations();
+            ArrayList<Reference> docRefs = new ArrayList<>();
+            for (Map.Entry<TableIdent, FetchSource> entry : pd.fetchSources().entrySet()) {
+                docRefs.addAll(entry.getValue().references());
+            }
+
+            FetchPhase fetchPhase = new FetchPhase(
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    readerAllocations.nodeReaders().keySet(),
+                    readerAllocations.bases(),
+                    readerAllocations.tableIndices(),
+                    docRefs
+            );
+
+            FetchProjection fp = new FetchProjection(
+                    fetchPhase.executionPhaseId(),
+                    pd.fetchSources(),
+                    pd.remainingOutputs(),
+                    readerAllocations.nodeReaders(),
+                    readerAllocations.indices());
+
+            MergePhase localMergePhase = null;
+            if (plannedSubQuery.resultIsDistributed()){
+                Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
+
+                localMergePhase = mergePhase(context,
+                        localExecutionNodes,
+                        plannedSubQuery.resultPhase(),
+                        subOrderBy,
+                        mss.querySpec().outputs(),
+                        true);
+                assert localMergePhase != null : "local merge phase must not be null";
+                TopNProjection finalTopN = ProjectionBuilder.topNProjection(
+                        mss.querySpec().outputs(),
+                        subOrderBy,
+                        mss.querySpec().offset(),
+                        mss.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                        mss.querySpec().outputs()
+                );
+                localMergePhase.addProjection(finalTopN);
+                localMergePhase.addProjection(fp);
+                //throw new UnsupportedOperationException("distributed nested loop with fetch is not implemented");
+            } else {
+                plannedSubQuery.addProjection(fp);
+            }
+            QueryThenFetch qtf = new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, localMergePhase, context.plannerContext().jobId());
+            return qtf;
+        }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
@@ -73,7 +203,7 @@ public class QueryThenFetchConsumer implements Consumer {
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return null;
             }
-            if(querySpec.where().hasVersions()){
+            if (querySpec.where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
@@ -116,7 +246,6 @@ public class QueryThenFetchConsumer implements Consumer {
                     new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
                             ImmutableList.of(fetchPushDown.docIdCol()),
                             fetchPushDown.fetchRefs()));
-
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
                     fetchSources,
@@ -154,7 +283,6 @@ public class QueryThenFetchConsumer implements Consumer {
                         collectPhase.outputTypes()
                 );
             }
-
             if (context.requiredPageSize() != null) {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }

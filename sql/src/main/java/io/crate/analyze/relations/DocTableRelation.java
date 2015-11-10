@@ -107,6 +107,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
             }
         }
         referenceInfo = checkNestedArray(ci, referenceInfo);
+        // TODO: check allocated fields first?
         return allocate(ci, new Reference(referenceInfo));
     }
 

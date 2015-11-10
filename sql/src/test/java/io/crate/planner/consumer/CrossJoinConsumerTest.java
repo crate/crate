@@ -48,7 +48,9 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
@@ -160,6 +162,16 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testFetch() throws Exception {
+        QueryThenFetch plan = plan("select u1.name, u2.id from users u1, users u2 order by 2");
+        NestedLoopPhase nlp = (NestedLoopPhase) ((NestedLoop) plan.subPlan()).resultPhase();
+        assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
+        //TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
+        //assertThat(topN.outputs().get(0), isFunction("concat"));
+    }
+
+
+    @Test
     public void testFunctionWithJoinCondition() throws Exception {
         // TODO: once fetch is supported for cross joins, reset query to:
         // select u1.name || u2.name from users u1, users u2
@@ -214,24 +226,19 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
 
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
-        NestedLoop plan = plan("select u1.name, u2.name from users u1 cross join users u2");
-        /*
-        assertThat(plan.nestedLoopPhase().projections().size(), is(1));
-        TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(0));
+        QueryThenFetch plan = plan("select u1.name, u2.name from users u1 cross join users u2");
+        NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
+        assertThat(nestedLoop.nestedLoopPhase().projections().size(), is(1));
+        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(2));
 
-
-        assertThat(plan.left().resultNode().projections().size(), is(0));
-        MergePhase leftMerge = plan.nestedLoopPhase().leftMergePhase();
+        MergePhase leftMerge = nestedLoop.nestedLoopPhase().leftMergePhase();
         assertThat(leftMerge.projections().size(), is(0));
 
-        assertThat(plan.right().resultNode().projections().size(), is(0));
-        MergePhase rightMerge = plan.nestedLoopPhase().rightMergePhase();
-        assertThat(rightMerge.projections().size(), is(0));*/
+        MergePhase rightMerge = nestedLoop.nestedLoopPhase().rightMergePhase();
+        assertThat(rightMerge.projections().size(), is(0));
     }
 
 
@@ -301,21 +308,6 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         // select min(u1.name) from users u1, users u2
 
         plan("select min(u1.name) from users u1, users u2");
-    }
-
-    @Test
-    public void testCrossJoinWithFetchField() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
-        plan("select u1.id, u2.name from users u1, users u2 order by u1.id");
-    }
-
-    @Test
-    public void testCrossJoinWithSelectAllFetch() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Only fields that are used in ORDER BY can be selected within a CROSS JOIN");
-        plan("select * from users u1, users u2 order by u1.id, u2.name");
-
     }
 
     @Test
