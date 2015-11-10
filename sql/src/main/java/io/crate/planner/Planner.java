@@ -186,7 +186,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null;
-            return consumingPlanner.plan(relation, consumerContext);
+            boolean isRoot = consumerContext.isRoot();
+            consumerContext.isRoot(false);
+            PlannedAnalyzedRelation subPlan = consumingPlanner.plan(relation, consumerContext);
+            consumerContext.isRoot(isRoot);
+            return subPlan;
         }
 
         public UUID jobId() {
@@ -366,7 +370,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private Plan copyToPlan(CopyAnalyzedStatement analysis, Context context) {
-        TableInfo tableInfo = analysis.table();
+        DocTableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
         projection.isDirectoryUri(analysis.directoryUri());

@@ -107,7 +107,10 @@ public class FetchContext extends AbstractExecutionSubContext {
             }
         }
         for (Reference reference : phase.fetchRefs()) {
-            toFetch.get(reference.ident().tableIdent()).add(reference);
+            Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+            if (references != null) {
+                references.add(reference);
+            }
         }
     }
 

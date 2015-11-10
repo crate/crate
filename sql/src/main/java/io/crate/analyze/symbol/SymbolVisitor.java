@@ -58,6 +58,10 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(inputColumn, context);
     }
 
+    public R visitRelationColumn(RelationColumn relationColumn, C context) {
+        return visitSymbol(relationColumn, context);
+    }
+
     public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }

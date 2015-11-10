@@ -31,6 +31,7 @@ public class ConsumerContext {
 
     private final AnalyzedRelation rootRelation;
     private final Planner.Context plannerContext;
+    private boolean isRoot = true;
 
     private ValidationException validationException;
 
@@ -58,7 +59,6 @@ public class ConsumerContext {
         return plannerContext;
     }
 
-
     public void requiredPageSize(Integer requiredPageSize) {
         this.requiredPageSize = requiredPageSize;
     }
@@ -68,5 +68,13 @@ public class ConsumerContext {
      */
     public Integer requiredPageSize() {
         return requiredPageSize;
+    }
+
+    public void isRoot(boolean root) {
+        isRoot = root;
+    }
+
+    public boolean isRoot() {
+        return isRoot;
     }
 }

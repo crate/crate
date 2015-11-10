@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -36,7 +35,6 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
@@ -76,8 +74,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table target (color string, size string)");
         ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         execute("insert into target (color, size) (select colors.name, sizes.name from colors cross join sizes)");
         execute("refresh table target");
 
@@ -98,8 +94,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into offices (height, name) values (1.5, 'Hobbit House')");
         execute("refresh table employees, offices");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         // which employee fits in which office?
         execute("select employees.name, offices.name from employees, offices limit 1");
         assertThat(response.rows().length, is(1));
@@ -156,8 +150,6 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCrossJoinWithoutLimitAndOrderByAndCrossJoinSyntax() throws Exception {
         createColorsAndSizes();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Only fields that are used in ORDER BY can be selected within a CROSS JOIN"));
         execute("select colors.name, sizes.name from colors cross join sizes");
         assertThat(response.rowCount(), is(6L));
 
@@ -315,14 +307,19 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table employees, offices");
 
         // which employee fits in which office?
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select employees.name, offices.name from employees, offices where size < height order by height - size limit 3
         execute("select employees.name, offices.name from employees inner join offices on size < height " +
-                "order by height - size, employees.name, offices.name limit 3");
+                "where size < height order by height - size limit 3");
         assertThat(printedTable(response.rows()), is("" +
                 "Douglas Adams| Chief Office\n" +
                 "Trillian| Entresol\n" +
                 "Ford Perfect| Hobbit House\n"));
+    }
+
+    @Test
+    public void testFetchWithoutOrder() throws Exception {
+        createColorsAndSizes();
+        execute("select colors.name, sizes.name from colors, sizes limit 3");
+        assertThat(response.rowCount(), is(3L));
     }
 
     @Test

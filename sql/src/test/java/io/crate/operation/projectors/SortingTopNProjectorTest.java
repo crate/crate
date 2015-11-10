@@ -24,9 +24,9 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.symbol.Literal;
+import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -51,7 +51,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.<CollectExpression<Row, ?>>of(INPUT);
     private static final Ordering<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, null);
 
-    private final RowN spare = new RowN(new Object[]{});
+    private final ArrayRow spare = new ArrayRow();
 
     private Row spare(Object... cells) {
         if (cells == null) {

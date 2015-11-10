@@ -116,12 +116,16 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        nestedLoopPhase.addProjection(projection);
+        if (localMerge != null){
+            localMerge.addProjection(projection);
+        } else {
+            nestedLoopPhase.addProjection(projection);
+        }
     }
 
     @Override
     public boolean resultIsDistributed() {
-        return false;
+        return localMerge == null;
     }
 
     @Override
