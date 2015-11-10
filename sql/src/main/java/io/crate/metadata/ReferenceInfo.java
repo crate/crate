@@ -75,7 +75,7 @@ public class ReferenceInfo implements Streamable {
         }
     }
 
-    public static enum IndexType {
+    public enum IndexType {
         ANALYZED,
         NOT_ANALYZED,
         NO;

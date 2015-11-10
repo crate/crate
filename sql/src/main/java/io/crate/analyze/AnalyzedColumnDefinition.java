@@ -206,6 +206,12 @@ public class AnalyzedColumnDefinition {
                     );
                 }
                 mapping.put("precision", precision);
+            } else {
+                Integer treeLevels = geoSettings.getAsInt("tree_levels", null);
+                if (treeLevels != null) {
+                    mapping.put("tree_levels", treeLevels);
+                }
+
             }
             try {
                 Float errorPct = geoSettings.getAsFloat("distance_error_pct", null);
@@ -221,7 +227,7 @@ public class AnalyzedColumnDefinition {
         }
 
         for (String setting : geoSettings.names()) {
-            if (!setting.equals("precision") && !setting.equals("distance_error_pct")) {
+            if (!setting.equals("precision") && !setting.equals("distance_error_pct") && !setting.equals("tree_levels")) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Setting \"%s\" ist not supported on geo_shape index", setting));
             }

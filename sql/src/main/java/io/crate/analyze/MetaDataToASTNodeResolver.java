@@ -21,10 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
@@ -108,6 +105,16 @@ public class MetaDataToASTNodeResolver {
                         properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                     }
                     constraints.add(new IndexColumnConstraint("fulltext", properties));
+                } else if (info.type().equals(DataTypes.GEO_SHAPE)) {
+                    GeoReferenceInfo geoReferenceInfo = (GeoReferenceInfo)info;
+                    GenericProperties properties = new GenericProperties();
+                    if (geoReferenceInfo.distanceErrorPct() != null) {
+                        properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReferenceInfo.distanceErrorPct())));
+                    }
+                    if (geoReferenceInfo.treeLevels() != null) {
+                        properties.add(new GenericProperty("tree_levels", StringLiteral.fromObject(geoReferenceInfo.treeLevels())));
+                    }
+                    constraints.add(new IndexColumnConstraint(geoReferenceInfo.geoTree(), properties));
                 }
                 ColumnDefinition column = new ColumnDefinition(columnName, columnType, constraints);
                 elements.add(column);
