@@ -111,12 +111,12 @@ The matching operation is determined by the ``match_type`` which determines the 
 we want to match. Available ``match_types`` are:
 
 
-:intersect: (Default) If the two shapes share some points and/or area, they are intersecting
+:intersects: (Default) If the two shapes share some points and/or area, they are intersecting
             and considered matching using this ``match_type``.
             This also precludes containment or complete equality.
 
 :disjoint: If the two shapes share no single point and not area, they are disjoint.
-           This is the opposite of ``intersect``.
+           This is the opposite of ``intersects``.
 
 :within: If the indexed ``column_ident`` shape is completely inside the ``query_term`` shape
          they are considered matching using this ``match_type``.

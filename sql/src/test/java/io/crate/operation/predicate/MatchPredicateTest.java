@@ -47,7 +47,7 @@ public class MatchPredicateTest extends CrateUnitTest {
 
     @Test
     public void testGetGeoShapeDefaultMatchType() throws Exception {
-        assertThat(MatchPredicate.getMatchType(null, DataTypes.GEO_SHAPE), is("intersect"));
+        assertThat(MatchPredicate.getMatchType(null, DataTypes.GEO_SHAPE), is("intersects"));
     }
 
     @Test
