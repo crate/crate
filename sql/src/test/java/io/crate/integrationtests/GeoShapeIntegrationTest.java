@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
@@ -62,7 +63,53 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "{coordinates=[13.0, 52.4], type=Point}\n" +
                 "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
-        assertThat(response.columnTypes()[0], is((DataType)DataTypes.GEO_SHAPE));
+        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
     }
+
+    @Test
+    public void testShowCreateTable() throws Exception {
+        execute("create table test (" +
+                "col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25')" +
+                ") " +
+                "CLUSTERED INTO 1 SHARDS");
+        ensureYellow();
+        execute("show create table test");
+        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                          "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
+                          "      distance_error_pct = 0.25,\n" +
+                          "      tree_levels = 26\n" +
+                          "   )\n" +
+                          ")\n" +
+                          "CLUSTERED INTO 1 SHARDS\n" +
+                          "WITH (\n";
+        assertEquals(response.rowCount(), 1L);
+        assertThat((String)response.rows()[0][0], startsWith(expected));
+
+        // execute the statement again and compare it with the SHOW CREATE TABLE result
+        String stmt = (String)response.rows()[0][0];
+        execute("drop table test");
+        execute(stmt);
+        ensureYellow();
+        execute("show create table test");
+        assertEquals(response.rows()[0][0], stmt);
+    }
+
+    @Test
+    public void testShowCreateTableWithDefaultValues() throws Exception {
+        execute("create table test (" +
+                "col1 geo_shape" +
+                ") " +
+                "CLUSTERED INTO 1 SHARDS");
+        ensureYellow();
+        execute("show create table test");
+        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                          "   \"col1\" GEO_SHAPE INDEX USING GEOHASH\n" +
+                          ")\n" +
+                          "CLUSTERED INTO 1 SHARDS\n" +
+                          "WITH (\n";
+        assertEquals(response.rowCount(), 1L);
+        assertThat((String)response.rows()[0][0], startsWith(expected));
+    }
+
 }
