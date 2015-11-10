@@ -92,6 +92,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new IntegerColumnReference(colName);
             case GeoPointType.ID:
                 return new GeoPointColumnReference(colName);
+            case GeoShapeType.ID:
+                return new GeoShapeColumnReference(colName);
             default:
                 throw new UnhandledServerException(String.format("unsupported type '%s'", refInfo.type().getName()));
         }
