@@ -46,13 +46,15 @@ public class SqlExpressions {
 
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisCtx;
+    private final Injector injector;
+    private final AnalysisMetaData analysisMetaData;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
                 .add(new PredicateModule());
-        Injector injector = modulesBuilder.createInjector();
+        injector = modulesBuilder.createInjector();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
             public ReferenceImplementation<?> getImplementation(ReferenceInfo refInfo) {
@@ -60,8 +62,9 @@ public class SqlExpressions {
             }
         };
         Schemas schemas = mock(Schemas.class);
+        analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer =  new ExpressionAnalyzer(
-                new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver),
+                analysisMetaData,
                 new ParameterContext(new Object[0], new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources));
         expressionAnalysisCtx = new ExpressionAnalysisContext();
@@ -73,5 +76,13 @@ public class SqlExpressions {
 
     public Symbol normalize(Symbol symbol) {
         return expressionAnalyzer.normalize(symbol);
+    }
+
+    public <T> T getInstance(Class<T> clazz) {
+        return injector.getInstance(clazz);
+    }
+
+    public AnalysisMetaData analysisMD() {
+        return analysisMetaData;
     }
 }

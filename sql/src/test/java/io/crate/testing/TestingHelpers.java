@@ -146,14 +146,26 @@ public class TestingHelpers {
         return MAP_JOINER.join(sortMapByKeyRecursive(map));
     }
 
+    /**
+     * @deprecated use {@link SqlExpressions} instead
+     */
+    @Deprecated
     public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
         return createFunction(functionName, returnType, Arrays.asList(arguments), true);
     }
 
+    /**
+     * @deprecated use {@link SqlExpressions} instead
+     */
+    @Deprecated
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
         return createFunction(functionName, returnType, arguments, true);
     }
 
+    /**
+     * @deprecated use {@link SqlExpressions} instead
+     */
+    @Deprecated
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments, boolean deterministic) {
         List<DataType> dataTypes = Symbols.extractTypes(arguments);
         return new Function(
@@ -499,6 +511,10 @@ public class TestingHelpers {
         return column;
     }
 
+    /**
+     * @deprecated use {@link SqlExpressions} instead
+     */
+    @Deprecated
     public static WhereClause whereClause(String opname, Symbol left, Symbol right) {
         return new WhereClause(new Function(new FunctionInfo(
                 new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
