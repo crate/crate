@@ -24,7 +24,6 @@ package io.crate.geo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.exception.InvalidShapeException;
 import com.spatial4j.core.shape.Shape;
@@ -55,15 +54,22 @@ public class GeoJSONUtils {
     public static final String POLYGON = "Polygon";
     public static final String MULTI_POLYGON = "MultiPolygon";
 
-    public static final Set<String> GEOJSON_TYPES = ImmutableSet.of(
-            POINT,
-            MULTI_POINT,
-            LINE_STRING,
-            MULTI_LINE_STRING,
-            POLYGON,
-            MULTI_POLYGON,
-            GEOMETRY_COLLECTION
-    );
+    public static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
+            .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
+            .put(GEOMETRY_COLLECTION.toLowerCase(), GEOMETRY_COLLECTION)
+            .put(POINT, POINT)
+            .put(POINT.toLowerCase(), POINT)
+            .put(MULTI_POINT, MULTI_POINT)
+            .put(MULTI_POINT.toLowerCase(), MULTI_POINT)
+            .put(LINE_STRING, LINE_STRING)
+            .put(LINE_STRING.toLowerCase(), LINE_STRING)
+            .put(MULTI_LINE_STRING, MULTI_LINE_STRING)
+            .put(MULTI_LINE_STRING.toLowerCase(), MULTI_LINE_STRING)
+            .put(POLYGON, POLYGON)
+            .put(POLYGON.toLowerCase(), POLYGON)
+            .put(MULTI_POLYGON, MULTI_POLYGON)
+            .put(MULTI_POLYGON.toLowerCase(), MULTI_POLYGON)
+            .build();
 
     private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();
 
@@ -132,7 +138,9 @@ public class GeoJSONUtils {
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
         }
-        if (!GEOJSON_TYPES.contains(type)) {
+
+        type = GEOSJON_TYPES.get(type);
+        if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
         }
 
