@@ -428,9 +428,7 @@ public class ContextPreparer {
                             if (input == null) {
                                 return null;
                             }
-                            if (phase.collectPhaseIds().contains(input.executionPhaseId())) {
-                                assert input instanceof CollectPhase :
-                                        "fetchPhase.collectPhaseIds must only contain ids of executionPhases that are an instanceof CollectPhase";
+                            if (input instanceof CollectPhase) {
                                 return ((CollectPhase) input).routing();
                             }
                             return null;

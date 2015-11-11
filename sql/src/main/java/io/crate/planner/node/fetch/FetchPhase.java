@@ -48,21 +48,18 @@ public class FetchPhase implements ExecutionPhase {
 
     private UUID jobId;
     private int executionPhaseId;
-    private Collection<Integer> collectPhaseIds;
     private Set<String> executionNodes;
 
     private FetchPhase() {}
 
     public FetchPhase(UUID jobId,
                       int executionPhaseId,
-                      Collection<Integer> collectPhaseIds,
                       Set<String> executionNodes,
                       TreeMap<String, Integer> bases,
                       Multimap<TableIdent, String> tableIndices,
                       Collection<Collection<Reference>> fetchRefs) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
-        this.collectPhaseIds = collectPhaseIds;
         this.executionNodes = executionNodes;
         this.bases = bases;
         this.tableIndices = tableIndices;
@@ -103,10 +100,6 @@ public class FetchPhase implements ExecutionPhase {
         return visitor.visitFetchPhase(this, context);
     }
 
-    public Collection<Integer> collectPhaseIds() {
-        return collectPhaseIds;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         jobId = new UUID(in.readLong(), in.readLong());
@@ -116,12 +109,6 @@ public class FetchPhase implements ExecutionPhase {
         executionNodes = new HashSet<>(n);
         for (int i = 0; i < n; i++) {
             executionNodes.add(in.readString());
-        }
-
-        n = in.readVInt();
-        collectPhaseIds = new HashSet<>(n);
-        for (int i = 0; i < n; i++) {
-            collectPhaseIds.add(in.readVInt());
         }
 
         n = in.readVInt();
@@ -161,11 +148,6 @@ public class FetchPhase implements ExecutionPhase {
         out.writeVInt(executionNodes.size());
         for (String executionNode : executionNodes) {
             out.writeString(executionNode);
-        }
-
-        out.writeVInt(collectPhaseIds.size());
-        for (Integer collectPhaseId : collectPhaseIds) {
-            out.writeVInt(collectPhaseId);
         }
 
         out.writeVInt(bases.size());

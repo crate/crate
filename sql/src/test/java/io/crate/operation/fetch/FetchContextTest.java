@@ -51,7 +51,6 @@ public class FetchContextTest extends CrateUnitTest {
                         null,
                         1,
                         null,
-                        null,
                         new TreeMap<String, Integer>(),
                         null,
                         ImmutableList.<Collection<Reference>>of()),
@@ -81,7 +80,6 @@ public class FetchContextTest extends CrateUnitTest {
                 new FetchPhase(
                         null,
                         1,
-                        null,
                         null,
                         ibv.build(),
                         tableIndices,

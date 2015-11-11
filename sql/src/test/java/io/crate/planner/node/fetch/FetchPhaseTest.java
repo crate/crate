@@ -66,7 +66,6 @@ public class FetchPhaseTest {
         FetchPhase orig = new FetchPhase(
                 UUID.randomUUID(),
                 1,
-                ImmutableList.of(1, 2, 3),
                 ImmutableSet.<String>of("node1", "node2"),
                 bases,
                 tableIndices,

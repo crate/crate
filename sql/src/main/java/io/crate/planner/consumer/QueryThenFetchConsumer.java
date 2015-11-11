@@ -104,8 +104,7 @@ public class QueryThenFetchConsumer implements Consumer {
             FetchPhase fetchPhase = new FetchPhase(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
-                    ImmutableList.of(collectPhase.executionPhaseId()),
-                    collectPhase.executionNodes(),
+                    readerAllocations.nodeReaders().keySet(),
                     readerAllocations.bases(),
                     readerAllocations.tableIndices(),
                     ImmutableList.of(fetchPushDown.fetchRefs())
