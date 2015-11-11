@@ -687,6 +687,29 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromSubQueryGeoShapes() throws Exception {
+        execute("create table strshapes (id int primary key, shape string) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into strshapes (id, shape) VALUES (?, ?)", $$(
+                $(1, "POINT (0 0)"),
+                $(2, "LINESTRING (0 0, 1 1, 2 2)")
+        ));
+        execute("refresh table strshapes");
+
+        execute("create table shapes (id int primary key, shape geo_shape) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into shapes (id, shape) (select id, shape from strshapes)");
+        execute("refresh table shapes");
+
+        execute("select * from shapes order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "1| {coordinates=[0.0, 0.0], type=Point}\n" +
+                "2| {coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], type=LineString}\n"));
+
+    }
+
+    @Test
     public void testBulkInsert() throws Exception {
         execute("create table giveittome (" +
                 "  date timestamp," +
