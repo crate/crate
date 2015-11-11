@@ -27,6 +27,7 @@ import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -129,8 +130,10 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
             formatMap((Map<String, Object>) value, builder);
         } else if (value instanceof List) {
             formatList((List<?>) value, builder);
+        } else if (value instanceof Object[]) {
+            formatList(ImmutableList.copyOf((Object[])value), builder);
         } else if (value.getClass().isArray()) {
-            formatList(ImmutableList.copyOf((Object[]) value), builder);
+            formatArray(value, builder);
         } else if (value instanceof CharSequence || value instanceof Character) {
             builder.append("'").append(value.toString()).append("'");
         } else if (value instanceof BytesRef) {
@@ -154,6 +157,20 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
             formatValue(entry.getValue(), builder);
         }
         builder.append("}");
+    }
+
+    private void formatArray(Object array, StringBuilder builder) {
+        builder.append('[');
+        boolean first = true;
+        for (int i = 0, length=Array.getLength(array); i < length; i++) {
+            if (!first) {
+                builder.append(", ");
+            } else {
+                first = false;
+            }
+            formatValue(Array.get(array, i), builder);
+        }
+        builder.append(']');
     }
 
     private void formatList(List<?> value, StringBuilder builder) {

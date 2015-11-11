@@ -22,17 +22,13 @@
 package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
@@ -47,17 +43,11 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
         return (BytesRef) fn.evaluate(Literal.newLiteral(type, value));
     }
 
-    private Symbol normalize(Object value, DataType type) {
-        ToPrimitiveFunction function = getFunction(functionName, type);
-        return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
-    }
-
     @Test
     public void testNormalizeSymbol() throws Exception {
-        assertThat(normalize("127.0.0.1", DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
-        assertThat(normalize(new BytesRef("127.0.0.1"), DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
-        assertThat(normalize(2130706433L, DataTypes.LONG), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
+        assertThat(normalize(functionName, "127.0.0.1", DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
+        assertThat(normalize(functionName, new BytesRef("127.0.0.1"), DataTypes.STRING), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
+        assertThat(normalize(functionName, 2130706433L, DataTypes.LONG), isLiteral(new BytesRef("127.0.0.1"), DataTypes.IP));
     }
 
     @Test
@@ -94,21 +84,21 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeInvalidStringValue() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast '257.0.0.0' to ip");
-        normalize("257.0.0.0", DataTypes.STRING);
+        normalize(functionName, "257.0.0.0", DataTypes.STRING);
     }
 
     @Test
     public void testNormalizeInvalidLongValue() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast -1 to ip");
-        normalize(-1L, DataTypes.LONG);
+        normalize(functionName, -1L, DataTypes.LONG);
     }
 
     @Test
     public void testNormalizeInvalidBytesRefValue() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast '257.0.0.0' to ip");
-        normalize(new BytesRef("257.0.0.0"), DataTypes.STRING);
+        normalize(functionName, new BytesRef("257.0.0.0"), DataTypes.STRING);
     }
 
     @Test
