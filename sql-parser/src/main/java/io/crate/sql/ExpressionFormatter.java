@@ -201,8 +201,8 @@ public final class ExpressionFormatter {
                 } else {
                     first = false;
                 }
-                builder.append(entry.getKey())
-                       .append(": ")
+                builder.append(formatIdentifier(entry.getKey()))
+                       .append("= ")
                        .append(entry.getValue().accept(this, context));
 
             }

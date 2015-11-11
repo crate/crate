@@ -1096,6 +1096,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testMatchPredicateWithWrongQueryTerm() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast {} to string");
+        analyze("select name from users order by match(name, {})");
+
+    }
+
+    @Test
     public void testSelectWhereSimpleMatchPredicate() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
@@ -1792,6 +1800,13 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectMatchOnGeoShape() throws Exception {
         SelectAnalyzedStatement statement = analyze(
                 "select * from users where match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
+        assertThat(statement.relation().querySpec().where().query(), isFunction("match"));
+    }
+
+    @Test
+    public void testSelectMatchOnGeoShapeObjectLiteral() throws Exception {
+        SelectAnalyzedStatement statement = analyze(
+                "select * from users where match(shape, {type='Polygon', coordinates=[[[30, 10], [40, 40], [20, 40], [10, 20], [30, 10]]]})");
         assertThat(statement.relation().querySpec().where().query(), isFunction("match"));
     }
 
