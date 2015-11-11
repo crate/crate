@@ -112,4 +112,26 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String)response.rows()[0][0], startsWith(expected));
     }
 
+    @Test
+    public void testGeoMatchTest() throws Exception {
+        execute("select id from shaped where match(shape, " +
+                "'POLYGON((12.998725175857544 52.40087142225922," +
+                "13.002265691757202 52.40087142225922," +
+                "13.002265691757202 52.39927416492016," +
+                "12.998725175857544 52.39927416492016," +
+                "12.998725175857544 52.40087142225922))')");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((long) response.rows()[0][0]), is(1L));
+
+        execute("delete from shaped where match(shape, " +
+                "'POLYGON((12.998725175857544 52.40087142225922," +
+                "13.002265691757202 52.40087142225922," +
+                "13.002265691757202 52.39927416492016," +
+                "12.998725175857544 52.39927416492016," +
+                "12.998725175857544 52.40087142225922))')");
+        execute("refresh table shaped");
+
+        execute("select count(*) from shaped");
+        assertThat(((long) response.rows()[0][0]), is(1L));
+    }
 }

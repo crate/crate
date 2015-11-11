@@ -90,6 +90,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 .add("l", DataTypes.LONG)
                 .add("f", DataTypes.FLOAT)
                 .add("location", DataTypes.GEO_POINT)
+                .add("shape_col", DataTypes.GEO_SHAPE)
                 .add("short_ref", DataTypes.SHORT)
                 .add("is_paranoid", DataTypes.BOOLEAN)
                 .build();
@@ -570,5 +571,37 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
                         createReference("x", DataTypes.INTEGER), Literal.newLiteral(10)));
         generator.convert(new WhereClause(query));
+    }
+
+    @Test
+    public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')",
+                "{\"query\":" +
+                "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+                "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"intersects\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchDisJoint() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"disjoint\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchContains() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using contains",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"contains\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchWithin() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"within\"}}}}");
     }
 }
