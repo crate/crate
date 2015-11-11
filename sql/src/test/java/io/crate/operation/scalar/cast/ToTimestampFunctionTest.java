@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.cast;
 
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -30,8 +29,10 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 
 public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -48,8 +49,7 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
                 DataTypes.STRING
                 );
         for (DataType dataType : supportedTypes) {
-            FunctionIdent ident = new FunctionIdent(functionName, Arrays.asList(dataType));
-            FunctionImplementation implementation = functions.get(ident);
+            FunctionImplementation implementation = getFunction(functionName, dataType);
             assertThat(implementation, instanceOf(ToPrimitiveFunction.class));
             assertEquals(implementation.info().returnType(), DataTypes.TIMESTAMP);
         }
@@ -65,10 +65,12 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
         );
         for (DataType dataType : unsupportedTypes) {
             try {
-                FunctionIdent ident = new FunctionIdent(functionName, Arrays.asList(dataType));
-                functions.get(ident);
+                getFunction(functionName, dataType);
             } catch (Exception e) {
-                assertEquals(e.getMessage(), String.format("type '%s' not supported for conversion", dataType.getName()));
+                assertThat(
+                        e.getMessage(),
+                        is(String.format(Locale.ENGLISH, "type '%s' not supported for conversion to 'timestamp'", dataType.getName()))
+                );
             }
         }
     }

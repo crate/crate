@@ -34,7 +34,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -71,7 +71,7 @@ public class ToByteArrayFunctionTest extends AbstractScalarFunctionsTest {
                 return arrayType;
             }
         };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
         Object[] integers = impl.evaluate(new Input[]{input});
 
         assertThat(integers, is(((Input) normalized).value()));

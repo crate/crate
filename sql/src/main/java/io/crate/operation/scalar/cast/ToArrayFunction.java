@@ -21,83 +21,37 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-public class ToArrayFunction extends Scalar<Object[], Object> {
-
-    private final DataType returnType;
-    private final FunctionInfo info;
+public class ToArrayFunction extends AbstractCastFunction<Object, Object[]> {
 
     private ToArrayFunction(FunctionInfo functionInfo) {
-        this.returnType = functionInfo.returnType();
-        this.info = functionInfo;
+        super(functionInfo);
     }
 
     public static void register(ScalarFunctionModule module) {
         for (Map.Entry<DataType, String> function : CastFunctionResolver.arrayFunctionMap.entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+            module.register(function.getValue(), new ArrayResolver(function.getKey(), function.getValue()));
         }
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class ArrayResolver extends Resolver {
 
-        private final String name;
-        private final DataType dataType;
-
-        protected Resolver(DataType dataType, String name) {
-            this.name = name;
-            this.dataType = dataType;
+        protected ArrayResolver(DataType dataType, String name) {
+            super(dataType, name);
         }
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            ToArrayFunction.checkPreconditions(dataTypes);
+        protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
             return new ToArrayFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
-    }
-
-    protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() == 1, "Invalid number of arguments");
-        Preconditions.checkArgument(dataTypes.get(0) instanceof ArrayType, "Argument must be an array type");
-        ArrayType arrayType = (ArrayType) dataTypes.get(0);
-        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
-                String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
-                        arrayType.innerType().getName()));
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        final int size = symbol.arguments().size();
-        assert size == 1 : "Invalid number of arguments";
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-        final Object inputValue = ((Input) symbol.arguments().get(0)).value();
-        return Literal.newLiteral(returnType, returnType.value(inputValue));
-    }
-
-    @Override
-    public Object[] evaluate(Input[] args) {
-        assert args.length == 1 : "Number of arguments must be 1";
-        return (Object[]) returnType.value(args[0].value());
     }
 }

@@ -21,11 +21,9 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
@@ -34,7 +32,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -57,8 +55,7 @@ public class ToShortArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToArrayFunction impl = (ToArrayFunction) functions.get(
-                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_SHORT_ARRAY, ImmutableList.of(arrayType)));
+        ToArrayFunction impl = getFunction(CastFunctionResolver.FunctionNames.TO_SHORT_ARRAY, arrayType);
 
         Literal input = new Literal() {
             @Override
@@ -71,8 +68,8 @@ public class ToShortArrayFunctionTest extends AbstractScalarFunctionsTest {
                 return arrayType;
             }
         };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
-        Object[] integers = impl.evaluate(new Input[]{input});
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
+        Object[] integers = impl.evaluate(input);
 
         assertThat(integers, is(((Input) normalized).value()));
         return integers;
