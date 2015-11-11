@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/11/11 0.52.2
+=================
+
  - Updated crate-admin to 0.15.3 which includes following changes:
 
    - fix: REPLICATED DATA at the overview page showed incorrect percentage of
