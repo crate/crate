@@ -27,8 +27,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -274,7 +272,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTableAndSnapshot("my_table", SNAPSHOT_NAME);
 
         execute("drop table my_table");
-        waitForTableCacheClear("doc", "my_table");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (" +
                 "ignore_unavailable=false, " +
@@ -317,24 +314,12 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createTableAndSnapshot("my_table", SNAPSHOT_NAME);
 
         execute("drop table my_table");
-        waitForTableCacheClear("doc", "my_table");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table, not_my_table with (" +
                 "ignore_unavailable=true, " +
                 "wait_for_completion=true)");
         execute("select schema_name || '.' || table_name from information_schema.tables where schema_name='doc'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table\n"));
-    }
-
-    private void waitForTableCacheClear(final String schemaName, final String tableName) throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                for (Schemas schemas : internalCluster().getInstances(Schemas.class)) {
-                    assertThat(schemas.tableExists(new TableIdent(schemaName, tableName)), is(false));
-                }
-            }
-        });
     }
 
     @Test
@@ -344,7 +329,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createSnapshot(SNAPSHOT_NAME, "my_table_1", "my_table_2");
 
         execute("drop table my_table_1");
-        waitForTableCacheClear("doc", "my_table_1");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 with (" +
                 "wait_for_completion=true)");
@@ -360,9 +344,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         createSnapshot(SNAPSHOT_NAME, "my_parted_1", "my_parted_2");
 
         execute("drop table my_parted_1");
-        waitForTableCacheClear("doc", "my_parted_1");
         execute("drop table my_parted_2");
-        waitForTableCacheClear("doc", "my_parted_2");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_1 with (" +
                 "ignore_unavailable=true, " +

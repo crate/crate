@@ -34,6 +34,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -83,7 +84,7 @@ public class PartitionPropertiesAnalyzer {
     }
 
     public static PartitionName toPartitionName(TableIdent tableIdent,
-                                                DocTableInfo docTableInfo,
+                                                @Nullable DocTableInfo docTableInfo,
                                                 List<Assignment> partitionProperties,
                                                 Object[] parameters) {
         if (docTableInfo != null) {

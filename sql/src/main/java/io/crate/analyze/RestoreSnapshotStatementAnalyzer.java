@@ -25,9 +25,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionAlreadyExistsException;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -93,39 +91,43 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
             List<Table> tableList = node.tableList().get();
             Set<String> restoreIndices = new HashSet<>(tableList.size());
             for (Table table : tableList) {
-                TableInfo tableInfo;
                 TableIdent tableIdent = TableIdent.of(table, analysis.parameterContext().defaultSchema());
-                DocTableInfo docTableInfo = null;
-                try {
-                    tableInfo = schemas.getTableInfo(tableIdent);
+                boolean tableExists = schemas.tableExists(tableIdent);
+
+                if (tableExists) {
+                    if (table.partitionProperties().isEmpty()) {
+                        throw new TableAlreadyExistsException(tableIdent);
+                    }
+
+                    TableInfo tableInfo = schemas.getTableInfo(tableIdent);
                     if (!(tableInfo instanceof DocTableInfo)) {
                         throw new IllegalArgumentException(
                                 String.format(Locale.ENGLISH, "Cannot restore snapshot of tables in schema '%s'", tableInfo.ident().schema()));
                     }
-                    docTableInfo = (DocTableInfo) tableInfo;
-                } catch (SchemaUnknownException | TableUnknownException e) {
+                    DocTableInfo docTableInfo = ((DocTableInfo) tableInfo);
+                    PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                            tableIdent,
+                            docTableInfo,
+                            table.partitionProperties(),
+                            analysis.parameterContext().parameters());
+                    if (docTableInfo.partitions().contains(partitionName)) {
+                        throw new PartitionAlreadyExistsException(partitionName);
+                    }
+                    restoreIndices.add(partitionName.asIndexName());
+                } else {
                     if (table.partitionProperties().isEmpty()) {
                         // add a partitions wildcard
                         // to match all partitions if a partitioned table was meant
                         restoreIndices.add(PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*");
                         // add index name
                         restoreIndices.add(tableIdent.indexName());
-                        continue;
+                    } else {
+                        restoreIndices.add(PartitionPropertiesAnalyzer.toPartitionName(
+                                tableIdent,
+                                null,
+                                table.partitionProperties(),
+                                analysis.parameterContext().parameters()).asIndexName());
                     }
-                }
-                if (table.partitionProperties().isEmpty()) {
-                    throw new TableAlreadyExistsException(tableIdent);
-                }
-                PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                        tableIdent,
-                        docTableInfo,
-                        table.partitionProperties(),
-                        analysis.parameterContext().parameters()
-                );
-                if (docTableInfo != null && docTableInfo.partitions().contains(partitionName)) {
-                    throw new PartitionAlreadyExistsException(partitionName);
-                } else {
-                    restoreIndices.add(partitionName.asIndexName());
                 }
             }
 
