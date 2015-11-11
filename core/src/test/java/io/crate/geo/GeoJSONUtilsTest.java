@@ -209,6 +209,35 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
                         GeoJSONUtils.COORDINATES_FIELD, "ABC"
                 )
         );
+    }
 
+    @Test
+    public void testInvalidNestedCoordinates() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
+        GeoJSONUtils.validateGeoJson(
+                ImmutableMap.of(
+                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
+                                {0.0, 1.0},
+                                {1.0, 0.0}
+                        }
+                )
+        );
+    }
+
+    @Test
+    public void testInvalidDepthNestedCoordinates() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
+        GeoJSONUtils.validateGeoJson(
+                ImmutableMap.of(
+                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
+                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
+                                {0.0, 1.0},
+                                {1.0, 0.0}
+                        }
+                )
+        );
     }
 }

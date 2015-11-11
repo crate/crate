@@ -22,6 +22,7 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -163,5 +164,13 @@ public class SymbolFormatterTest extends CrateUnitTest {
     @Test
     public void testNullKey() throws Exception {
         assertFormat(Literal.newLiteral(new HashMap<String, Object>(){{ put("null", null);}}), "{'null': NULL}");
+    }
+
+    @Test
+    public void testNativeArray() throws Exception {
+        assertFormat(
+                Literal.newLiteral(DataTypes.GEO_SHAPE, ImmutableMap.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d})),
+                "{'coordinates': [1.0, 2.0], 'type': 'Point'}");
+
     }
 }

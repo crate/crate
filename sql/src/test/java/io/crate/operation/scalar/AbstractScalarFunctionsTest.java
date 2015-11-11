@@ -24,10 +24,10 @@ package io.crate.operation.scalar;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -39,6 +39,7 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected SqlExpressions sqlExpressions;
@@ -47,6 +48,12 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     protected <T extends FunctionImplementation> T getFunction(String functionName, DataType... argTypes) {
         return (T) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
+    }
+
+    protected Symbol normalize(String functionName, Object value, DataType type) {
+        FunctionImplementation<Function> function = getFunction(functionName, type);
+        return function.normalizeSymbol(new Function(function.info(),
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
     }
 
     @Before
