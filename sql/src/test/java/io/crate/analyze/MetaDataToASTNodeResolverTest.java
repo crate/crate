@@ -274,7 +274,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 "   \"index.translog.flush_interval\" = 100,\n" +
                 "   number_of_replicas = '5',\n" +
                 "   param_array = ['foo','bar'],\n" +
-                "   param_obj = {foo: 'bar', int: 42},\n" +
+                "   param_obj = {\"foo\"= 'bar', \"int\"= 42},\n" +
                 "   refresh_interval = 10000\n" +
                 ")",
                 SqlFormatter.formatSql(node));
