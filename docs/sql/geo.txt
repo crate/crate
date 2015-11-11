@@ -162,7 +162,6 @@ Exact Queries
 
 *Exact* queries are done using the following scalar functions:
 
- * :ref:`scalar_intersect`
  * :ref:`scalar_within`
  * :ref:`scalar_distance`
 
