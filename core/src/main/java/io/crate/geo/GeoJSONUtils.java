@@ -204,25 +204,24 @@ public class GeoJSONUtils {
     }
 
     private static void validateCoordinate(Object coordinate) {
-        double x;
-        double y;
-        if (coordinate.getClass().isArray()) {
-            Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
-            x = ((Number)Array.get(coordinate, 0)).doubleValue();
-            y = ((Number)Array.get(coordinate, 1)).doubleValue();
-        } else if (coordinate instanceof Collection) {
-            Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
-            Iterator iter = ((Collection) coordinate).iterator();
-            x = ((Number)iter.next()).doubleValue();
-            y = ((Number)iter.next()).doubleValue();
-        } else {
-            throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
-        }
-
         try {
+            double x;
+            double y;
+            if (coordinate.getClass().isArray()) {
+                Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
+                x = ((Number)Array.get(coordinate, 0)).doubleValue();
+                y = ((Number)Array.get(coordinate, 1)).doubleValue();
+            } else if (coordinate instanceof Collection) {
+                Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
+                Iterator iter = ((Collection) coordinate).iterator();
+                x = ((Number)iter.next()).doubleValue();
+                y = ((Number)iter.next()).doubleValue();
+            } else {
+                throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
+            }
             JtsSpatialContext.GEO.verifyX(x);
             JtsSpatialContext.GEO.verifyY(y);
-        } catch (InvalidShapeException e) {
+        } catch (InvalidShapeException|ClassCastException e) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"), e);
         }
     }
