@@ -44,7 +44,6 @@ import org.apache.lucene.queries.TermsFilter;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.DisjointSpatialFilter;
-import org.apache.lucene.spatial.prefix.ContainsPrefixTreeFilter;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeFilter;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
@@ -378,13 +377,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
         assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(DisjointSpatialFilter.class));
-    }
-
-    @Test
-    public void testGeoShapeMatchContains() throws Exception {
-        Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using contains");
-        assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(ContainsPrefixTreeFilter.class));
     }
 
     @Test

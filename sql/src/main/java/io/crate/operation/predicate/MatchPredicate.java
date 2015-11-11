@@ -56,7 +56,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
             DataTypes.GEO_SHAPE, "intersects"
     );
     private static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
-    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "contains", "disjoint", "within");
+    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "disjoint", "within");
 
     public static final BytesRef DEFAULT_MATCH_TYPE = new BytesRef(DEFAULT_MATCH_TYPE_STRING);
     public static final String NAME = "match";

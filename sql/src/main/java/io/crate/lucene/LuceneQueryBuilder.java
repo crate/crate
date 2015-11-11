@@ -684,16 +684,8 @@ public class LuceneQueryBuilder {
                 Shape shape = GeoJSONUtils.map2Shape(((Map<String, Object>) ((Input) queryTerm).value()));
 
                 ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
-                SpatialArgs spatialArgs;
-                if (relation == null) {
-                    if (matchType.equalsIgnoreCase(SpatialOperation.Contains.getName())) {
-                        spatialArgs = new SpatialArgs(SpatialOperation.Contains, shape);
-                    } else {
-                        throw invalidMatchType(matchType);
-                    }
-                } else {
-                    spatialArgs = getArgs(shape, relation);
-                }
+                assert relation != null : "invalid matchType: " + matchType;
+                SpatialArgs spatialArgs = getArgs(shape, relation);
                 return geoShapeFieldMapper.defaultStrategy().makeQuery(spatialArgs);
             }
 
