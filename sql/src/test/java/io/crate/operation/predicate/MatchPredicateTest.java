@@ -42,7 +42,9 @@ public class MatchPredicateTest extends CrateUnitTest {
 
     @Test
     public void testGetValidGeoMatchType() throws Exception {
-        assertThat(MatchPredicate.getMatchType("contains", DataTypes.GEO_SHAPE), is("contains"));
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid MATCH type 'contains' for type 'geo_shape'");
+        MatchPredicate.getMatchType("contains", DataTypes.GEO_SHAPE);
     }
 
     @Test

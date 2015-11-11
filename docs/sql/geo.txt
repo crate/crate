@@ -121,9 +121,6 @@ we want to match. Available ``match_types`` are:
 :within: If the indexed ``column_ident`` shape is completely inside the ``query_term`` shape
          they are considered matching using this ``match_type``.
 
-:contains: If the ``query_term`` shape is completely inside the indexed ``column_ident`` shape
-           they are considered matching using this ``match_type``.
-
 
 .. note::
 
@@ -152,17 +149,6 @@ we want to match. Available ``match_types`` are:
     ...   shape,
     ...   'LINESTRING (13.3813 52.5229, 11.1840 51.5497, 8.6132 50.0782, 8.3715 47.9457, 8.5034 47.3685)'
     ...  ) USING disjoint;
-    +---------+
-    | name    |
-    +---------+
-    | Austria |
-    +---------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> SELECT name from countries
-    ... WHERE match(shape, [9.744417, 47.413417]) using contains;
     +---------+
     | name    |
     +---------+

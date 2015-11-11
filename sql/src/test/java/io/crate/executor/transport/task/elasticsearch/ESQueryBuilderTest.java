@@ -590,14 +590,6 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testGeoShapeMatchContains() throws Exception {
-        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using contains",
-        "{\"query\":" +
-        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
-        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"contains\"}}}}");
-    }
-
-    @Test
     public void testGeoShapeMatchWithin() throws Exception {
         xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within",
         "{\"query\":" +
