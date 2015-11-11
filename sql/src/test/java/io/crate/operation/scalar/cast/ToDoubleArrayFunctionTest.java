@@ -34,7 +34,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -61,7 +61,7 @@ public class ToDoubleArrayFunctionTest extends AbstractScalarFunctionsTest {
         ToArrayFunction impl = (ToArrayFunction)functions.get(
                 new FunctionIdent(CastFunctionResolver.FunctionNames.TO_DOUBLE_ARRAY, ImmutableList.of(arrayType)));
 
-        Literal input = new Literal() {
+        Literal<Object> input = new Literal<Object>() {
             @Override
             public Object value() {
                 return objects;
@@ -72,8 +72,8 @@ public class ToDoubleArrayFunctionTest extends AbstractScalarFunctionsTest {
                 return arrayType;
             }
         };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
-        Object[] integers = impl.evaluate(new Input[]{input});
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
+        Object[] integers = impl.evaluate(input);
 
         assertThat(integers, is(((Input) normalized).value()));
         return integers;

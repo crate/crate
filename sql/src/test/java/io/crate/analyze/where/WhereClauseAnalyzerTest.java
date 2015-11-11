@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
@@ -615,8 +616,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testAnyInvalidArrayType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("array expression of invalid type array(string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Can't convert \"foo\" to boolean");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 

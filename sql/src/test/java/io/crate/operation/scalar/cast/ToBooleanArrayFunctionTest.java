@@ -57,7 +57,7 @@ public class ToBooleanArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument must be an array type");
+        expectedException.expectMessage("type 'object' not supported for conversion to 'boolean_array'");
         functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_BOOLEAN_ARRAY, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 

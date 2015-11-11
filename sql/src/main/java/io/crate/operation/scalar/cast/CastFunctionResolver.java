@@ -59,6 +59,8 @@ public class CastFunctionResolver {
         public static final String TO_FLOAT_ARRAY = "toFloatArray";
         public static final String TO_SHORT_ARRAY = "toShortArray";
         public static final String TO_IP_ARRAY = "toIpArray";
+        public static final String TO_GEO_POINT = "toGeoPoint";
+        public static final String TO_GEO_SHAPE = "toGeoShape";
     }
 
     static final ImmutableMap<DataType, String> primitiveFunctionMap = new ImmutableMap.Builder<DataType, String>()
@@ -72,6 +74,11 @@ public class CastFunctionResolver {
             .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
             .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
             .put(DataTypes.IP, FunctionNames.TO_IP)
+            .build();
+
+    static final ImmutableMap<DataType, String> geoFunctionMap = new ImmutableMap.Builder<DataType, String>()
+            .put(DataTypes.GEO_POINT, FunctionNames.TO_GEO_POINT)
+            .put(DataTypes.GEO_SHAPE, FunctionNames.TO_GEO_SHAPE)
             .build();
 
     static final ImmutableMap<DataType, String> arrayFunctionMap = new ImmutableMap.Builder<DataType, String>()
@@ -89,6 +96,7 @@ public class CastFunctionResolver {
     // TODO: register all type conversion functions here
     private static final ImmutableMap<DataType, String> functionMap = new ImmutableMap.Builder<DataType, String>()
             .putAll(primitiveFunctionMap)
+            .putAll(geoFunctionMap)
             .putAll(arrayFunctionMap)
             .build();
 

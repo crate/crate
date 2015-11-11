@@ -33,6 +33,7 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
@@ -54,7 +55,7 @@ public class ToByteFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
     }
 
     @Test

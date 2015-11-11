@@ -21,87 +21,38 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
-import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-public class ToPrimitiveFunction extends Scalar<Object, Object> {
+public class ToPrimitiveFunction extends AbstractCastFunction<Object, Object> {
 
-    private final DataType returnType;
-    private final FunctionInfo info;
-
-    private ToPrimitiveFunction(FunctionInfo functionInfo) {
-        this.returnType = functionInfo.returnType();
-        this.info = functionInfo;
-    }
 
     public static void register(ScalarFunctionModule module) {
         for (Map.Entry<DataType, String> function : CastFunctionResolver.primitiveFunctionMap.entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+            module.register(function.getValue(), new PrimitiveResolver(function.getKey(), function.getValue()));
         }
       }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class PrimitiveResolver extends AbstractCastFunction.Resolver {
 
-        private final String name;
-        private final DataType dataType;
-
-        protected Resolver(DataType dataType, String name) {
-            this.name = name;
-            this.dataType = dataType;
+        protected PrimitiveResolver(DataType dataType, String name) {
+            super(dataType, name);
         }
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            ToPrimitiveFunction.checkPreconditions(dataTypes);
+        protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
             return new ToPrimitiveFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
     }
 
-    protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() == 1,
-                "invalid size of arguments, 1 expected");
-        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)) ||
-                        dataTypes.get(0).equals(DataTypes.UNDEFINED),
-                "type '%s' not supported for conversion", dataTypes.get(0));
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol.arguments().size() == 1;
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            Object value = ((Input) argument).value();
-            try {
-                return Literal.newLiteral(returnType, returnType.value(value));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "cannot cast %s to %s",
-                                SymbolFormatter.format(argument), returnType), e);
-            }
-        }
-        return symbol;
-    }
-
-    @Override
-    public Object evaluate(Input[] args) {
-        assert args.length == 1;
-        return returnType.value(args[0].value());
+    private ToPrimitiveFunction(FunctionInfo functionInfo) {
+        super(functionInfo);
     }
 }
