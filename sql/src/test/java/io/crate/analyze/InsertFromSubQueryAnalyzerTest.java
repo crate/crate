@@ -38,6 +38,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.StringType;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Assert;
@@ -185,17 +186,18 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testImplicitTypeCasting() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
-                analyze("insert into users (id, name) (" +
-                        "  select id, other_id from users " +
+                analyze("insert into users (id, name, shape) (" +
+                        "  select id, other_id, name from users " +
                         "  where name = 'Trillian'" +
                         ")");
-
 
         List<Symbol> outputSymbols = ((QueriedDocTable)statement.subQueryRelation()).querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function)outputSymbols.get(1);
-        assertThat(castFunction.info().ident().name(), is(CastFunctionResolver.FunctionNames.TO_STRING));
+        assertThat(castFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_STRING));
+        Function geoCastFunction = (Function)outputSymbols.get(2);
+        assertThat(geoCastFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_GEO_SHAPE));
     }
 
     @Test

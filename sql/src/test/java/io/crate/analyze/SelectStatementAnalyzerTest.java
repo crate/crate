@@ -1794,4 +1794,18 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 "select * from users where match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
         assertThat(statement.relation().querySpec().where().query(), isFunction("match"));
     }
+
+    @Test
+    public void testOrderByGeoShape() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot ORDER BY 'shape': invalid data type 'geo_shape'.");
+        analyze("select * from users ORDER BY shape");
+    }
+
+    @Test
+    public void testGroupByGeoShape() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
+        analyze("select count(*) from users group by shape");
+    }
 }
