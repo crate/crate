@@ -26,14 +26,13 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
@@ -43,19 +42,15 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_IP;
 
-    private ToPrimitiveFunction getFunction(DataType type) {
-        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
-    }
-
     private BytesRef evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
-        return (BytesRef) getFunction(type).evaluate(input);
+        ToPrimitiveFunction fn = getFunction(functionName, type);
+        return (BytesRef) fn.evaluate(Literal.newLiteral(type, value));
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToPrimitiveFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
     }
 
     @Test

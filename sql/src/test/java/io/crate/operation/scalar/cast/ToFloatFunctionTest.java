@@ -32,7 +32,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
@@ -43,7 +43,7 @@ public class ToFloatFunctionTest extends AbstractScalarFunctionsTest {
     private final String functionName = CastFunctionResolver.FunctionNames.TO_FLOAT;
 
     private ToPrimitiveFunction getFunction(DataType type) {
-        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Collections.singletonList(type)));
     }
 
     private Float evaluate(Object value, DataType type) {
@@ -54,7 +54,7 @@ public class ToFloatFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
     }
 
     @Test

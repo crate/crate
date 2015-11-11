@@ -23,9 +23,6 @@
 package io.crate.operation.scalar.cast;
 
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -35,42 +32,28 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.Map;
 
-public class TryCastScalarFunction extends AbstractCastFunction<Object, Object> {
-
-    private TryCastScalarFunction(FunctionInfo functionInfo) {
-        super(functionInfo);
-    }
+public class ToGeoFunction extends AbstractCastFunction<Object, Object> {
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.tryFunctionsMap().entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.geoFunctionMap.entrySet()) {
+            module.register(function.getValue(), new GeoResolver(function.getKey(), function.getValue()));
         }
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class GeoResolver extends AbstractCastFunction.Resolver {
 
-        private final String name;
-        private final DataType dataType;
-
-        protected Resolver(DataType dataType, String name) {
-            this.name = name;
-            this.dataType = dataType;
+        protected GeoResolver(DataType dataType, String name) {
+            super(dataType, name);
         }
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new TryCastScalarFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
+        protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
+            return new ToGeoFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
     }
 
-    @Override
-    protected Symbol onNormalizeException(Symbol argument, Throwable t) {
-        return Literal.NULL;
-    }
 
-    @Override
-    protected Object onEvaluateException(Object argument, Throwable t) {
-        // swallow exception
-        return null;
+    protected ToGeoFunction(FunctionInfo info) {
+        super(info);
     }
 }

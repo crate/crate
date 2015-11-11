@@ -21,21 +21,17 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.core.Is.is;
@@ -48,19 +44,19 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
 
-        FunctionImplementation castIntegerToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.INTEGER)));
+        FunctionImplementation castIntegerToString = getFunction(functionName, DataTypes.INTEGER);
 
-        Function function = new Function(castIntegerToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(123)));
+        Function function = new Function(castIntegerToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral(123)));
         Symbol result = castIntegerToString.normalizeSymbol(function);
         assertThat(result, isLiteral("123"));
 
-        FunctionImplementation castFloatToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT)));
-        function = new Function(castFloatToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(0.5f)));
+        FunctionImplementation castFloatToString = getFunction(functionName, DataTypes.FLOAT);
+        function = new Function(castFloatToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral(0.5f)));
         result = castFloatToString.normalizeSymbol(function);
         assertThat(result, isLiteral("0.5"));
 
-        FunctionImplementation castStringToString = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
-        function = new Function(castStringToString.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
+        FunctionImplementation castStringToString = getFunction(functionName, DataTypes.STRING);
+        function = new Function(castStringToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
         result = castStringToString.normalizeSymbol(function);
         assertThat(result, isLiteral("hello"));
     }
@@ -69,14 +65,13 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("type 'object' not supported for conversion");
-        functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+        getFunction(functionName, DataTypes.OBJECT);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        FunctionIdent ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.INTEGER));
-        Scalar<Object, Object> format = (Scalar<Object, Object>) functions.get(ident);
+        ToPrimitiveFunction format = getFunction(functionName, DataTypes.INTEGER);
         Input<Object> arg1 = new Input<Object>() {
             @Override
             public Object value() {
