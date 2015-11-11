@@ -874,14 +874,25 @@ public class ESQueryBuilder {
                 Preconditions.checkNotNull(function, "expected MATCH predicate, but is null");
                 Preconditions.checkArgument(function.arguments().size() == 4, "invalid number of arguments");
                 List<Symbol> arguments = function.arguments();
-                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
-                assert Symbol.isLiteral(arguments.get(1), DataTypes.STRING);
-                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING);
-                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
+                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT) : "fields must be a literal of type object";
+                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING) : "matchType must be a literal of type string";
+                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT) : "options must be a literal of type object";
+
+                Symbol queryTerm = arguments.get(1);
+                if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
+                    return geoMatch(context, arguments, queryTerm);
+                }
+
+                return stringMatch(context, arguments, (Literal) queryTerm);
+            }
+
+            private boolean stringMatch(Context context, List<Symbol> arguments, Literal queryTerm) throws IOException {
+                assert Symbol.isLiteral(queryTerm, DataTypes.STRING) : "queryTerm must be of type String";
+
 
                 @SuppressWarnings("unchecked")
                 Map<String, Object> idents = ((Literal<Map<String, Object>>)arguments.get(0)).value();
-                BytesRef queryString = (BytesRef) ((Literal)arguments.get(1)).value();
+                BytesRef queryString = (BytesRef) queryTerm.value();
                 BytesRef matchType = (BytesRef) ((Literal)arguments.get(2)).value();
                 @SuppressWarnings("unchecked")
                 Map<String, Object> options = ((Literal<Map<String, Object>>)arguments.get(3)).value();
@@ -891,8 +902,8 @@ public class ESQueryBuilder {
 
                 // build
                 if (idents.size()== 1 &&
-                        (matchType == null || matchType.equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
-                        (options == null || options.isEmpty())) {
+                    (matchType == null || matchType.equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
+                    (options == null || options.isEmpty())) {
                     // legacy match
                     Map.Entry<String, Object> entry = idents.entrySet().iterator().next();
                     context.builder.startObject(Fields.MATCH).startObject(entry.getKey())
@@ -919,6 +930,23 @@ public class ESQueryBuilder {
                     }
                     context.builder.endObject();
                 }
+                return true;
+            }
+
+            private boolean geoMatch(Context context, List<Symbol> arguments, Symbol queryTerm) throws IOException {
+                Map fields = (Map) ((Literal) arguments.get(0)).value();
+                String fieldName = (String) Iterables.getOnlyElement(fields.keySet());
+
+                String matchType = ((BytesRef) ((Literal) arguments.get(2)).value()).utf8ToString();
+                //noinspection unchecked
+                Map<String, Object> value = (Map) ((Literal) queryTerm).value();
+
+                context.builder.startObject("geo_shape")
+                        .startObject(fieldName)
+                        .field("shape", value)
+                        .field("relation", matchType)
+                        .endObject()
+                        .endObject();
                 return true;
             }
         }
