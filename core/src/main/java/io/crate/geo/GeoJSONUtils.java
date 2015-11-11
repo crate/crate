@@ -127,12 +127,22 @@ public class GeoJSONUtils {
         }
     }
 
+    private static String convertTypeCase(String type) {
+        for (String geoType : GEOJSON_TYPES) {
+            if(geoType.equalsIgnoreCase(type)) {
+                return geoType;
+            }
+        }
+        return null;
+    }
+
     public static void validateGeoJson(Map value) {
         String type = BytesRefs.toString(value.get(TYPE_FIELD));
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
         }
-        if (!GEOJSON_TYPES.contains(type)) {
+        type = convertTypeCase(type);
+        if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
         }
 

@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
@@ -65,6 +66,31 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                 "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
         assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
+    }
+
+    @Test
+    public void testIndexWithES() throws Exception {
+        execute("create table test (shape geo_shape)");
+        ensureYellow();
+        client().prepareIndex("test", "default", "test").setSource(jsonBuilder().startObject()
+                     .startObject("shape")
+                     .field("type", "polygon")
+                     .startArray("coordinates").startArray()
+                     .startArray().value(-122.83).value(48.57).endArray()
+                     .startArray().value(-122.77).value(48.56).endArray()
+                     .startArray().value(-122.79).value(48.53).endArray()
+                     .startArray().value(-122.83).value(48.57).endArray() // close the polygon
+                     .endArray().endArray()
+                     .endObject()
+                     .endObject()).execute().actionGet();
+        execute("refresh table test");
+        execute("select shape from test");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "{coordinates=[[[-122.83, 48.57], [-122.77, 48.56], [-122.79, 48.53], [-122.83, 48.57]]], type=polygon}\n"));
+        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
+        assertThat(response.rows()[0][0], instanceOf(Map.class));
+
     }
 
     @Test
