@@ -46,6 +46,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -91,8 +92,25 @@ public class TestingHelpers {
                     out.print("NULL");
                 } else if (o instanceof BytesRef) {
                     out.print(((BytesRef) o).utf8ToString());
-                } else if (o.getClass().isArray()) {
+                } else if (o instanceof Object[]) {
                     out.print(Arrays.deepToString((Object[]) o));
+                } else if (o.getClass().isArray()) {
+                    out.print("[");
+                    boolean arrayFirst = true;
+                    for (int i = 0, length = Array.getLength(o); i < length; i++) {
+                        if (!arrayFirst) {
+                            out.print(",v");
+                        } else {
+                            arrayFirst = false;
+                        }
+                        out.print(Array.get(o, i));
+
+                    }
+                    out.print("]");
+                } else if (o instanceof Map) {
+                    out.print("{");
+                    out.print(MAP_JOINER.join(sortMapByKeyRecursive((Map<String, Object>)o, true)));
+                    out.print("}");
                 } else {
                     out.print(o.toString());
                 }
@@ -102,9 +120,13 @@ public class TestingHelpers {
         return os.toString();
     }
 
-    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").withKeyValueSeparator("=");
+    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
 
     private static LinkedHashMap<String, Object> sortMapByKeyRecursive(Map<String, Object> map) {
+        return sortMapByKeyRecursive(map, false);
+    }
+
+    private static LinkedHashMap<String, Object> sortMapByKeyRecursive(Map<String, Object> map, boolean sortOnlyMaps) {
         LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
         ArrayList<String> sortedKeys = Lists.newArrayList(map.keySet());
         Collections.sort(sortedKeys);
@@ -112,9 +134,9 @@ public class TestingHelpers {
             Object o = map.get(sortedKey);
             if (o instanceof Map) {
                 //noinspection unchecked
-                sortedMap.put(sortedKey, sortMapByKeyRecursive((Map<String, Object>) o));
+                sortedMap.put(sortedKey, sortMapByKeyRecursive((Map<String, Object>) o, sortOnlyMaps));
             } else if (o instanceof Collection) {
-                sortedMap.put(sortedKey, sortCollectionRecursive((Collection) o));
+                sortedMap.put(sortedKey, sortOnlyMaps ? o : sortCollectionRecursive((Collection) o));
             } else {
                 sortedMap.put(sortedKey, o);
             }
@@ -131,7 +153,7 @@ public class TestingHelpers {
             ArrayList sortedList = new ArrayList(collection.size());
             for (Object obj : collection) {
                 //noinspection unchecked
-                sortedList.add(sortMapByKeyRecursive((Map<String, Object>) obj));
+                sortedList.add(sortMapByKeyRecursive((Map<String, Object>) obj, true));
             }
             Collections.sort(sortedList);
             return sortedList;
