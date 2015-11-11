@@ -64,6 +64,8 @@ import org.apache.lucene.queries.TermsFilter;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
@@ -72,6 +74,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -88,6 +91,7 @@ import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
+import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeFilter;
 import org.elasticsearch.index.search.geo.GeoPolygonFilter;
@@ -658,14 +662,65 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) throws IOException {
                 List<Symbol> arguments = input.arguments();
                 assert arguments.size() == 4 : "invalid number of arguments";
-                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
-                assert Symbol.isLiteral(arguments.get(1), DataTypes.STRING);
-                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING);
+                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT); // fields
+                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING); // matchType
+
+                Symbol queryTerm = arguments.get(1);
+                if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
+                    return geoMatch(context, arguments, queryTerm);
+                }
+                return stringMatch(context, arguments, queryTerm);
+            }
+
+            private Query geoMatch(Context context, List<Symbol> arguments, Symbol queryTerm) {
+                assert Symbol.isLiteral(arguments.get(1), DataTypes.GEO_SHAPE);
+
+                Map fields = (Map) ((Literal) arguments.get(0)).value();
+                String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
+                FieldMapper fieldMapper = context.mapperService.smartNameFieldMapper(fieldName);
+                GeoShapeFieldMapper geoShapeFieldMapper = (GeoShapeFieldMapper) fieldMapper;
+                String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
+                @SuppressWarnings("unchecked")
+                Shape shape = GeoJSONUtils.map2Shape(((Map<String, Object>) ((Input) queryTerm).value()));
+
+                ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
+                SpatialArgs spatialArgs;
+                if (relation == null) {
+                    if (matchType.equalsIgnoreCase(SpatialOperation.Contains.getName())) {
+                        spatialArgs = new SpatialArgs(SpatialOperation.Contains, shape);
+                    } else {
+                        throw invalidMatchType(matchType);
+                    }
+                } else {
+                    spatialArgs = getArgs(shape, relation);
+                }
+                return geoShapeFieldMapper.defaultStrategy().makeQuery(spatialArgs);
+            }
+
+            private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
+                switch (relation) {
+                    case INTERSECTS:
+                        return new SpatialArgs(SpatialOperation.Intersects, shape);
+                    case DISJOINT:
+                        return new SpatialArgs(SpatialOperation.IsDisjointTo, shape);
+                    case WITHIN:
+                        return new SpatialArgs(SpatialOperation.IsWithin, shape);
+                }
+                throw invalidMatchType(relation.getRelationName());
+            }
+
+            private AssertionError invalidMatchType(String matchType) {
+                throw new AssertionError(String.format(
+                        "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
+            }
+
+            private Query stringMatch(Context context, List<Symbol> arguments, Symbol queryTerm) throws IOException {
+                assert Symbol.isLiteral(queryTerm, DataTypes.STRING);
                 assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
 
                 @SuppressWarnings("unchecked")
                 Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
-                BytesRef queryString = (BytesRef) ((Literal) arguments.get(1)).value();
+                BytesRef queryString = (BytesRef) ((Literal) queryTerm).value();
                 BytesRef matchType = (BytesRef) ((Literal) arguments.get(2)).value();
                 Map options = (Map) ((Literal) arguments.get(3)).value();
 
@@ -790,6 +845,10 @@ public class LuceneQueryBuilder {
                 RefLiteralPair innerPair = new RefLiteralPair(inner);
                 if (!innerPair.isValid()) {
                     return null;
+                }
+                if (innerPair.reference().valueType().equals(DataTypes.GEO_SHAPE)) {
+                    // we have within('POINT(0 0)', shape_column)
+                    return genericFunctionQuery(inner, context);
                 }
                 GeoPointFieldMapper mapper = getGeoPointFieldMapper(
                         innerPair.reference().info().ident().columnIdent().fqn(),
@@ -1082,29 +1141,41 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new Filter() {
-                @Override
-                public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
-                    for (LuceneCollectorExpression expression : expressions) {
-                        expression.setNextReader(context.reader().getContext());
-                    }
-                    return BitsFilteredDocIdSet.wrap(
-                            new FunctionDocSet(
-                                    context.reader(),
-                                    collectorContext.visitor(),
-                                    condition,
-                                    expressions,
-                                    context.reader().maxDoc(),
-                                    acceptDocs
-                            ),
-                            acceptDocs
-                    );
-                }
-            };
+            return new FunctionFilter(expressions, collectorContext, condition);
         }
 
         private static Query genericFunctionQuery(Function function, Context context) {
             return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function, context));
+        }
+
+        public static class FunctionFilter extends Filter {
+            private final List<LuceneCollectorExpression> expressions;
+            private final CollectorContext collectorContext;
+            private final Input<Boolean> condition;
+
+            public FunctionFilter(List<LuceneCollectorExpression> expressions, CollectorContext collectorContext, Input<Boolean> condition) {
+                this.expressions = expressions;
+                this.collectorContext = collectorContext;
+                this.condition = condition;
+            }
+
+            @Override
+            public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
+                for (LuceneCollectorExpression expression : expressions) {
+                    expression.setNextReader(context.reader().getContext());
+                }
+                return BitsFilteredDocIdSet.wrap(
+                        new FunctionDocSet(
+                                context.reader(),
+                                collectorContext.visitor(),
+                                condition,
+                                expressions,
+                                context.reader().maxDoc(),
+                                acceptDocs
+                        ),
+                        acceptDocs
+                );
+            }
         }
 
         static class FunctionDocSet extends MatchDocIdSet {

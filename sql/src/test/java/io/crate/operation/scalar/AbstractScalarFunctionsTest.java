@@ -21,17 +21,42 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import io.crate.testing.SqlExpressions;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 
-public class AbstractScalarFunctionsTest extends CrateUnitTest {
+import java.util.Arrays;
+
+public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
+    protected SqlExpressions sqlExpressions;
     protected Functions functions;
+
+    @SuppressWarnings("unchecked")
+    protected <T extends FunctionImplementation> T getFunction(String functionName, DataType... argTypes) {
+        return (T) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
+    }
 
     @Before
     public void prepareFunctions() throws Exception {
-        functions = new ModulesBuilder().add(new ScalarFunctionModule())
-                .createInjector().getInstance(Functions.class);
+        TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
+                .add("id", DataTypes.INTEGER)
+                .add("name", DataTypes.STRING)
+                .build();
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        sqlExpressions = new SqlExpressions(ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation));
+        functions = sqlExpressions.getInstance(Functions.class);
     }
 }

@@ -39,6 +39,7 @@ import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
+import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -89,6 +90,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 .add("l", DataTypes.LONG)
                 .add("f", DataTypes.FLOAT)
                 .add("location", DataTypes.GEO_POINT)
+                .add("shape_col", DataTypes.GEO_SHAPE)
                 .add("short_ref", DataTypes.SHORT)
                 .add("is_paranoid", DataTypes.BOOLEAN)
                 .build();
@@ -388,6 +390,51 @@ public class ESQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testWithinBBox() throws Exception {
+        xcontentAssert("within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = false",
+                "{\"query\":{\"bool\":{\"must_not\":{" +
+                "\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{" +
+                "\"geo_bounding_box\":{" +
+                "\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinHolePolygon() throws Exception {
+        xcontentAssert("within(location, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ), (10 10, 10 11, 12 10, 10 10))') = false",
+                "{\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{" +
+                "\"geo_polygon\":{" +
+                "\"location\":{\"points\":[" +
+                "{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":30.0}," +
+                "{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":10.0,\"lat\":11.0}," +
+                "{\"lon\":12.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":10.0},{\"lon\":10.0,\"lat\":11.0}]}}}}}}}}");
+
+    }
+
+    @Test
+    public void testWithinShapeReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Second argument to the within function must be a literal");
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                createReference("shape", DataTypes.GEO_SHAPE)
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.BOOLEAN_TRUE
+        );
+        generator.convert(new WhereClause(eqFunction));
+
+
+    }
+
+    @Test
     public void testWhereNumericScalar() throws Exception {
         Function scalarFunction = new Function(
                 new FunctionInfo(
@@ -524,5 +571,37 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 createFunction(EqOperator.NAME, DataTypes.BOOLEAN,
                         createReference("x", DataTypes.INTEGER), Literal.newLiteral(10)));
         generator.convert(new WhereClause(query));
+    }
+
+    @Test
+    public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')",
+                "{\"query\":" +
+                "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+                "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"intersects\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchDisJoint() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"disjoint\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchContains() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using contains",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"contains\"}}}}");
+    }
+
+    @Test
+    public void testGeoShapeMatchWithin() throws Exception {
+        xcontentAssert("match(shape_col, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within",
+        "{\"query\":" +
+        "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
+        "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"within\"}}}}");
     }
 }

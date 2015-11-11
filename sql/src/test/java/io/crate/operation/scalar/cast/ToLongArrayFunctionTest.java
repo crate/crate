@@ -38,6 +38,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -73,8 +74,8 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidValueToInt() throws Exception {
-        expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("For input string: \"foobar\"");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to long_array");
         eval(Arrays.asList("foobar", "20", "30"), DataTypes.STRING);
     }
 
@@ -93,7 +94,7 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
                 new FunctionIdent(CastFunctionResolver.FunctionNames.TO_LONG_ARRAY, ImmutableList.of(arrayType)));
 
         Reference foo = TestingHelpers.createReference("foo", arrayType);
-        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(foo)));
+        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(foo)));
         assertThat(symbol, instanceOf(Function.class));
     }
 
@@ -119,8 +120,8 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
                 return arrayType;
             }
         };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
-        Object[] values = impl.evaluate(new Input[]{input});
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
+        Object[] values = impl.evaluate(input);
 
         assertThat(values, is(((Input) normalized).value()));
         return values;

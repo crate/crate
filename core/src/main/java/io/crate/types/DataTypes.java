@@ -127,6 +127,7 @@ public class DataTypes {
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
             .addAll(NUMERIC_PRIMITIVE_TYPES)
+            .add(BOOLEAN)
             .add(STRING, TIMESTAMP, IP)
             .build();
     // allowed conversion from key to one of the value types
@@ -143,6 +144,7 @@ public class DataTypes {
                     .addAll(NUMBER_CONVERSIONS)
                     .add(GEO_SHAPE)
                     .add(GEO_POINT)
+                    .add(BOOLEAN)
                     .build())
             .put(IP.id(), ImmutableSet.<DataType>of(STRING))
             .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG))

@@ -142,6 +142,17 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
     }
 
     @Test
+    public void testMap2Shape() throws Exception {
+        Shape shape = GeoJSONUtils.map2Shape(ImmutableMap.<String, Object>of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
+                GeoJSONUtils.COORDINATES_FIELD, new Double[][]{ {0.0, 0.1}, {1.0, 1.1} }
+                ));
+        assertThat(shape, instanceOf(JtsGeometry.class));
+        assertThat(((JtsGeometry)shape).getGeom(), instanceOf(LineString.class));
+
+    }
+
+    @Test
     public void testInvalidMap() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot convert Map \"{}\" to shape");
@@ -198,6 +209,35 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
                         GeoJSONUtils.COORDINATES_FIELD, "ABC"
                 )
         );
+    }
 
+    @Test
+    public void testInvalidNestedCoordinates() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
+        GeoJSONUtils.validateGeoJson(
+                ImmutableMap.of(
+                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
+                                {0.0, 1.0},
+                                {1.0, 0.0}
+                        }
+                )
+        );
+    }
+
+    @Test
+    public void testInvalidDepthNestedCoordinates() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
+        GeoJSONUtils.validateGeoJson(
+                ImmutableMap.of(
+                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
+                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
+                                {0.0, 1.0},
+                                {1.0, 0.0}
+                        }
+                )
+        );
     }
 }

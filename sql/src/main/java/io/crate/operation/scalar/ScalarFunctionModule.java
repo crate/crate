@@ -26,6 +26,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.cast.ToArrayFunction;
+import io.crate.operation.scalar.cast.ToGeoFunction;
 import io.crate.operation.scalar.cast.ToPrimitiveFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
@@ -88,6 +89,7 @@ public class ScalarFunctionModule extends AbstractModule {
         DateFormatFunction.register(this);
         ToPrimitiveFunction.register(this);
         ToArrayFunction.register(this);
+        ToGeoFunction.register(this);
         TryCastScalarFunction.register(this);
 
         ConcatFunction.register(this);

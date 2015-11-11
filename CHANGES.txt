@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - restrict WITHIN function to only accept geo_point (and compatible types)
+   as first argument
+
  - Added snapshot and restore functionality
 
  - Changed crate launch scripts to no longer support extending the

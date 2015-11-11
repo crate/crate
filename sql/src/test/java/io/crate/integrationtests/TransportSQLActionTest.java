@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
@@ -1098,7 +1099,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         nonExistingColumnSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'null'");
 
         execute("select * from quotes where match(o['something'], 'bla')");
     }
@@ -1645,6 +1646,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         assertThat(response.rowCount(), is(1L));
+        execute("select * from t where within(p, ?)", $(ImmutableMap.of(
+                "type", "Polygon",
+                "coordinates", new double[][][] {
+                        {
+                                {5.0, 5.0},
+                                {30.0, 5.0},
+                                {30.0, 30.0},
+                                {5.0, 30.0},
+                                {5.0, 5.0}
+                        }
+                }
+        )));
+        assertThat(response.rowCount(), is(1L));
+
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
         assertThat(response.rowCount(), is(0L));
     }
@@ -1776,7 +1791,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can only use MATCH on columns of type STRING, not on 'null'");
+        expectedException.expectMessage("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on 'null'");
 
         execute("select * from matchbox where match(o_ignored['a'], 'Ford')");
         assertThat(response.rowCount(), is(0L));

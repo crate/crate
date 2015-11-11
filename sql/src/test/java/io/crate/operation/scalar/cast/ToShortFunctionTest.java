@@ -28,12 +28,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.nullValue;
@@ -43,19 +42,16 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_SHORT;
 
-    private ToPrimitiveFunction getFunction(DataType type) {
-        return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
-    }
-
     private Short evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
-        return (Short) getFunction(type).evaluate(input);
+        ToPrimitiveFunction fn = getFunction(functionName, type);
+        return (Short) fn.evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToPrimitiveFunction function = getFunction(type);
+        ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
     }
 
     @Test

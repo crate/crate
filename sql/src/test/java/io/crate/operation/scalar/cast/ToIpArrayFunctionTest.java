@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -57,8 +57,8 @@ public class ToIpArrayFunctionTest extends AbstractScalarFunctionsTest {
                 new FunctionIdent(CastFunctionResolver.FunctionNames.TO_IP_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = Literal.newLiteral(objects, arrayType);
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
-        Object[] integers = impl.evaluate(new Input[]{input});
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
+        Object[] integers = impl.evaluate(input);
 
         assertThat(integers, is(((Input) normalized).value()));
         return integers;

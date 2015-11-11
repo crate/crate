@@ -402,6 +402,8 @@ The ``timezone`` will be ``UTC`` if not provided::
 Geo Functions
 =============
 
+.. _scalar_distance:
+
 distance(geo_point1, geo_point2) returns double
 -----------------------------------------------
 
@@ -437,6 +439,8 @@ the other argument must be a column reference.
     `where distance(...) = 0` might not yield anything at all due to the
     precision difference.
 
+.. _scalar_within:
+
 within(shape1, shape2) returns boolean
 --------------------------------------
 
@@ -460,8 +464,7 @@ casting from strings to geo point and geo shapes::
     +--------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-This function can always be used within a ``WHERE`` clause.
-
+This function can always be used within the ``WHERE`` clause.
 
 Mathematical Functions
 ======================

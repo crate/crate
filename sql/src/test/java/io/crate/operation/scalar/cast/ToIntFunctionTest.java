@@ -26,15 +26,13 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.core.Is.is;
@@ -47,15 +45,15 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
 
-        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
+        ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
 
-        Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("123")));
+        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("123")));
         Symbol result = castStringToInteger.normalizeSymbol(function);
         assertThat(result, isLiteral(123));
 
-        FunctionImplementation castFloatToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT)));
+        ToPrimitiveFunction castFloatToInteger = getFunction(functionName, DataTypes.FLOAT);
 
-        function = new Function(castFloatToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral(12.5f)));
+        function = new Function(castFloatToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral(12.5f)));
         result = castStringToInteger.normalizeSymbol(function);
         assertThat(result, isLiteral(12));
     }
@@ -71,34 +69,32 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast 'hello' to int");
-        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING)));
-        Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
+        ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
+        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
         castStringToInteger.normalizeSymbol(function);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        FunctionIdent ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.STRING));
-        Scalar<Object, Object> format = (Scalar<Object, Object>) functions.get(ident);
+        ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Input<Object> arg1 = new Input<Object>() {
             @Override
             public Object value() {
                 return "123";
             }
         };
-        Object result = format.evaluate(arg1);
+        Object result = stringFn.evaluate(arg1);
         assertThat((Integer)result, is(123));
 
-        ident = new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.FLOAT));
-        format = (Scalar<Object, Object>) functions.get(ident);
+        ToPrimitiveFunction floatFn = getFunction(functionName, DataTypes.FLOAT);
         arg1 = new Input<Object>() {
             @Override
             public Object value() {
                 return 42.5f;
             }
         };
-        result = format.evaluate(arg1);
+        result = floatFn.evaluate(arg1);
         assertThat((Integer)result, is(42));
     }
 

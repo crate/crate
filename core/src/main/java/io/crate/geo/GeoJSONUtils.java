@@ -127,12 +127,22 @@ public class GeoJSONUtils {
         }
     }
 
+    private static String convertTypeCase(String type) {
+        for (String geoType : GEOJSON_TYPES) {
+            if(geoType.equalsIgnoreCase(type)) {
+                return geoType;
+            }
+        }
+        return null;
+    }
+
     public static void validateGeoJson(Map value) {
         String type = BytesRefs.toString(value.get(TYPE_FIELD));
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
         }
-        if (!GEOJSON_TYPES.contains(type)) {
+        type = convertTypeCase(type);
+        if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
         }
 
@@ -194,25 +204,24 @@ public class GeoJSONUtils {
     }
 
     private static void validateCoordinate(Object coordinate) {
-        double x;
-        double y;
-        if (coordinate.getClass().isArray()) {
-            Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
-            x = Array.getDouble(coordinate, 0);
-            y = Array.getDouble(coordinate, 1);
-        } else if (coordinate instanceof Collection) {
-            Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
-            Iterator iter = ((Collection) coordinate).iterator();
-            x = ((Number)iter.next()).doubleValue();
-            y = ((Number)iter.next()).doubleValue();
-        } else {
-            throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
-        }
-
         try {
+            double x;
+            double y;
+            if (coordinate.getClass().isArray()) {
+                Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
+                x = ((Number)Array.get(coordinate, 0)).doubleValue();
+                y = ((Number)Array.get(coordinate, 1)).doubleValue();
+            } else if (coordinate instanceof Collection) {
+                Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
+                Iterator iter = ((Collection) coordinate).iterator();
+                x = ((Number)iter.next()).doubleValue();
+                y = ((Number)iter.next()).doubleValue();
+            } else {
+                throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
+            }
             JtsSpatialContext.GEO.verifyX(x);
             JtsSpatialContext.GEO.verifyY(y);
-        } catch (InvalidShapeException e) {
+        } catch (InvalidShapeException|ClassCastException e) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"), e);
         }
     }

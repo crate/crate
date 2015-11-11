@@ -208,8 +208,9 @@ The following predicates extend the range of possible conditions to use in the w
     ==========================  ===========================================================
     :ref:`predicates_not_null`  field is not null and not missing
     :ref:`predicates_is_null`   field is null or missing
-    :ref:`predicates_match`     Perform a fulltext search on a column.
-                                See :ref:`sql_dql_fulltext_search` for usage.
+    :ref:`predicates_match`     Perform a search on an indexed column.
+                                See :ref:`sql_dql_fulltext_search`
+                                or :ref:`sql_dql_geo_search` for usage.
     ==========================  ===========================================================
 
 .. note::
@@ -876,7 +877,7 @@ always return one row, as they do an aggregation operation on the matching rows 
 .. note::
 
     Aggregations can only be applied to columns with a plain index, which is the
-    default for all columns.
+    default for all :ref:`primitive type <sql_ddl_datatypes_primitives>` columns.
     For more information, please refer to :ref:`sql_ddl_index_plain`.
 
 

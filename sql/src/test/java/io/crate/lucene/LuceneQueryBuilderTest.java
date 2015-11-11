@@ -43,12 +43,22 @@ import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.queries.TermsFilter;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.spatial.DisjointSpatialFilter;
+import org.apache.lucene.spatial.prefix.ContainsPrefixTreeFilter;
+import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeFilter;
+import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.lucene.search.RegexpFilter;
 import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.filter.FilterCache;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
+import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
+import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +72,7 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +92,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .add("d", DataTypes.DOUBLE)
                 .add("d_array", new ArrayType(DataTypes.DOUBLE))
                 .add("y_array", new ArrayType(DataTypes.LONG))
+                .add("shape", DataTypes.GEO_SHAPE)
+                .add("point", DataTypes.GEO_POINT)
                 .build();
         TableRelation usersTr = new TableRelation(users);
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
@@ -89,7 +102,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         expressions = new SqlExpressions(sources);
         normalizer = new EvaluatingNormalizer(expressions.analysisMD(), usersTr, true);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
+
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
+        MapperService mapperService = mock(MapperService.class);
+
+        Mapper.BuilderContext context = new Mapper.BuilderContext(ImmutableSettings.EMPTY, new ContentPath(1));
+        GeoShapeFieldMapper shape = MapperBuilders.geoShapeField("shape").build(context);
+        when(mapperService.smartNameFieldMapper(eq("shape"))).thenReturn(shape);
+        when(searchContext.mapperService()).thenReturn(mapperService);
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
         FilterCache filterCache = mock(FilterCache.class);
         when(indexCache.filter()).thenReturn(filterCache);
@@ -99,6 +119,20 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 return (Filter) invocation.getArguments()[0];
             }
         });
+
+        // mock geo point mapper stuff
+        MapperService.SmartNameFieldMappers smartNameFieldMappers = mock(MapperService.SmartNameFieldMappers.class);
+        when(mapperService.smartName("point")).thenReturn(smartNameFieldMappers);
+        when(smartNameFieldMappers.hasMapper()).thenReturn(true);
+
+        GeoPointFieldMapper mapper = MapperBuilders.geoPointField("point").build(context);
+        when(smartNameFieldMappers.mapper()).thenReturn(mapper);
+
+        IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
+        when(searchContext.fieldData()).thenReturn(indexFieldDataService);
+        IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
+        when(geoFieldData.getFieldNames()).thenReturn(new FieldMapper.Names("point"));
+        when(indexFieldDataService.getForField(mapper)).thenReturn(geoFieldData);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -280,9 +314,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testAnyOnArrayLiteral() throws Exception {
-        Reference ref = createReference("d", DataTypes.STRING);
-        Literal stringArrayLiteral = Literal.newLiteral(new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}, new ArrayType(DataTypes.STRING));
-
         Query neqQuery = convert("name != any (['a', 'b', 'c'])");
         assertThat(neqQuery, instanceOf(FilteredQuery.class));
         assertThat(((FilteredQuery)neqQuery).getFilter(), instanceOf(BooleanFilter.class));
@@ -327,5 +358,53 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("_me"), is("?me"));
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
+    }
+
+
+    /**
+     * geo match tests below... error cases (wrong matchType, etc.) are not tests here because validation is done in the
+     * analyzer
+     */
+
+    @Test
+    public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
+        Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(IntersectsPrefixTreeFilter.class));
+    }
+
+    @Test
+    public void testGeoShapeMatchDisJoint() throws Exception {
+        Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint");
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(DisjointSpatialFilter.class));
+    }
+
+    @Test
+    public void testGeoShapeMatchContains() throws Exception {
+        Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using contains");
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(ContainsPrefixTreeFilter.class));
+    }
+
+    @Test
+    public void testGeoShapeMatchWithin() throws Exception {
+        Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(WithinPrefixTreeFilter.class));
+    }
+
+    @Test
+    public void testWithinFunction() throws Exception {
+        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
+        assertThat(eqWithinQuery.toString(), is("filtered(ConstantScore(*:*))->GeoPolygonFilter(point, [[0.0, 0.0], [1.0, 1.0]])"));
+    }
+
+    @Test
+    public void testWithinFunctionWithShapeReference() throws Exception {
+        // shape references cannot use the inverted index, so use generic function here
+        Query eqWithinQuery = convert("within(point, shape)");
+        assertThat(eqWithinQuery, instanceOf(FilteredQuery.class));
+        assertThat(((FilteredQuery)eqWithinQuery).getFilter(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 }
