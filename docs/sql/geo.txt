@@ -162,6 +162,7 @@ Exact Queries
 
 *Exact* queries are done using the following scalar functions:
 
+ * :ref:`scalar_intersects`
  * :ref:`scalar_within`
  * :ref:`scalar_distance`
 
@@ -196,7 +197,7 @@ your geographic data::
 
 ::
 
-    cr> SELECT intersect(
+    cr> SELECT intersects(
     ...   {type='LineString', coordinates=[[13.3813, 52.5229],
                                            [11.1840, 51.5497],
                                            [8.6132,  50.0782],

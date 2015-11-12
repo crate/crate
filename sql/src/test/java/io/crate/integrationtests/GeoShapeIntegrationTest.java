@@ -150,14 +150,32 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((long) response.rows()[0][0]), is(1L));
 
         execute("delete from shaped where match(shape, " +
-                "'POLYGON((12.998725175857544 52.40087142225922," +
-                "13.002265691757202 52.40087142225922," +
-                "13.002265691757202 52.39927416492016," +
-                "12.998725175857544 52.39927416492016," +
-                "12.998725175857544 52.40087142225922))')");
+                "{" +
+                "   type='Polygon', " +
+                "   coordinates=[[[12.998725175857544, 52.40087142225922], " +
+                "                 [13.002265691757202, 52.40087142225922], " +
+                "                 [12.998725175857544, 52.39927416492016], " +
+                "                 [12.998725175857544, 52.40087142225922]]]})");
         execute("refresh table shaped");
 
         execute("select count(*) from shaped");
         assertThat(((long) response.rows()[0][0]), is(1L));
+    }
+
+    @Test
+    public void testSelectWhereIntersects() throws Exception {
+        execute("select id from shaped where intersects(shape, ?) order by id",
+                $("POLYGON(" +
+                     "(12.995452 52.417497," +
+                     " 13.051071 52.424407," +
+                     " 13.053474 52.403047," +
+                     " 13.046951 52.400743," +
+                     " 13.069953 52.391944," +
+                     " 13.024635 52.354425," +
+                     " 12.970390 52.347714," +
+                     " 12.995452 52.417497))"));
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is((Object)1L));
+
     }
 }

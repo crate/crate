@@ -36,6 +36,7 @@ import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.*;
 import org.mockito.invocation.InvocationOnMock;
@@ -718,5 +719,13 @@ public class TestingHelpers {
 
     public static DataType randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
+    }
+
+    public static Map<String, Object> jsonMap(String json) {
+        try {
+            return JsonXContent.jsonXContent.createParser(json).mapAndClose();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -27,7 +27,11 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -39,7 +43,7 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected SqlExpressions sqlExpressions;
@@ -47,13 +51,31 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @SuppressWarnings("unchecked")
     protected <T extends FunctionImplementation> T getFunction(String functionName, DataType... argTypes) {
-        return (T) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
+        return (T) getFunction(functionName, Arrays.asList(argTypes));
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T extends FunctionImplementation> T getFunction(String functionName, List<DataType> argTypes) {
+        return (T) functions.get(new FunctionIdent(functionName, argTypes));
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T extends FunctionImplementation> T getFunctionFromArgs(String functionName, List<Symbol> args) {
+        return (T) functions.get(new FunctionIdent(functionName, Symbols.extractTypes(args)));
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {
-        FunctionImplementation<Function> function = getFunction(functionName, type);
+        return normalize(functionName, Literal.newLiteral(type, value));
+    }
+
+    protected Symbol normalize(String functionName, Symbol ...args) {
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = args[i].valueType();
+        }
+        FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
+                Arrays.asList(args)));
     }
 
     @Before
@@ -61,6 +83,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
                 .add("id", DataTypes.INTEGER)
                 .add("name", DataTypes.STRING)
+                .add("shape", DataTypes.GEO_SHAPE)
                 .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
         sqlExpressions = new SqlExpressions(ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation));

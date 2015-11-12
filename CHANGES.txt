@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - implement ``intersects`` scalar function
+
  - fix: properly restrict partitioned by columns to primitive types
         during analysis
 

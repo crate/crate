@@ -22,18 +22,18 @@
 package io.crate.operation.scalar.geo;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.FunctionIdent;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,25 +41,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class WithinFunctionTest extends CrateUnitTest {
+public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
-    private Functions functions;
-
-    private WithinFunction functionFromArgs(List<? extends Symbol> args) {
-        return getFunction(Symbols.extractTypes(args));
-    }
-
-    @Nullable
-    private WithinFunction getFunction(List<DataType> types) {
-        return (WithinFunction) functions.get(
-                new FunctionIdent(WithinFunction.NAME, types));
-    }
+    public static final String FNAME = WithinFunction.NAME;
 
     private Boolean evaluate(List<Symbol> symbols) {
         Input[] args = new Input[symbols.size()];
@@ -68,7 +57,7 @@ public class WithinFunctionTest extends CrateUnitTest {
             args[idx] = (Input) symbol;
             idx++;
         }
-        WithinFunction withinFunction = functionFromArgs(symbols);
+        WithinFunction withinFunction = getFunctionFromArgs(FNAME, symbols);
         assertThat(String.format(Locale.ENGLISH, "within function for %s not found", symbols), withinFunction, not(nullValue()));
         return withinFunction.evaluate(args);
     }
@@ -78,7 +67,8 @@ public class WithinFunctionTest extends CrateUnitTest {
         for (int i = 0; i < args.length; i++) {
             args[i] = (Input) symbols[i];
         }
-        return functionFromArgs(Arrays.asList(symbols)).evaluate(args);
+        WithinFunction fn = getFunctionFromArgs(FNAME, Arrays.asList(symbols));
+        return fn.evaluate(args);
     }
 
     private Symbol normalize(Symbol... arguments) {
@@ -86,7 +76,7 @@ public class WithinFunctionTest extends CrateUnitTest {
     }
 
     private Symbol normalize(List<Symbol> arguments) {
-        WithinFunction withinFunction = functionFromArgs(arguments);
+        WithinFunction withinFunction = getFunctionFromArgs(FNAME, arguments);
         return withinFunction.normalizeSymbol(new Function(withinFunction.info(), arguments));
     }
 
@@ -115,18 +105,22 @@ public class WithinFunctionTest extends CrateUnitTest {
 
     @Test
     public void testEvaluateShapeLiteralWithinShapeLiteral() throws Exception {
-        assertThat(getFunction(Arrays.<DataType>asList(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE)), is(nullValue()));
+        assertThat(getFunction(FNAME, Arrays.<DataType>asList(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE)), is(nullValue()));
     }
 
     @Test
     public void testNormalizeWithReferenceAndLiteral() throws Exception {
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("foo", DataTypes.GEO_POINT),
+        Symbol normalizedSymbol = normalize(FNAME, createReference("foo", DataTypes.GEO_POINT),
                 Literal.newGeoShape("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        WithinFunction withinFunction = functionFromArgs(arguments);
-        Symbol function = new Function(withinFunction.info(), arguments);
-        Symbol normalizedSymbol = withinFunction.normalizeSymbol((Function) function);
-        assertThat(normalizedSymbol, Matchers.sameInstance(function));
+        assertThat(normalizedSymbol, isFunction(FNAME));
+    }
+
+    @Test
+    public void testNormalizeNull() throws Exception {
+        Symbol normalizedSymbol = normalize(FNAME,
+                Literal.newLiteral(DataTypes.GEO_POINT, null),
+                createReference("foo", DataTypes.GEO_SHAPE));
+        assertThat(normalizedSymbol, isLiteral(null));
     }
 
     @Test
@@ -175,12 +169,12 @@ public class WithinFunctionTest extends CrateUnitTest {
 
     @Test
     public void testFirstArgumentWithInvalidType() throws Exception {
-        assertThat(getFunction(Arrays.<DataType>asList(DataTypes.LONG, DataTypes.GEO_POINT)), is(nullValue()));
+        assertThat(getFunction(FNAME, DataTypes.LONG, DataTypes.GEO_POINT), is(nullValue()));
     }
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
-        assertThat(getFunction(Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.LONG)), is(nullValue()));
+        assertThat(getFunction(FNAME, DataTypes.GEO_POINT, DataTypes.LONG), is(nullValue()));
     }
 
     @Test
