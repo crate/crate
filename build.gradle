@@ -212,6 +212,7 @@ idea {
 
     project {
         languageLevel = 'JDK_1_7'
+        vcs = 'Git'
 
         ipr {
             withXml { provider ->
