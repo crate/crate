@@ -25,12 +25,12 @@ package io.crate.testing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
+
+import java.util.Collection;
 
 public class SQLPrinter {
 
@@ -41,11 +41,22 @@ public class SQLPrinter {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {
             return print((Symbol) o);
-        }else if (o == null) {
+        } else if (o instanceof Collection) {
+            return print((Collection<Symbol>) o);
+        } else if (o == null) {
             return "null";
         }
         return o.toString();
     }
+
+    public static String print(Collection<Symbol> symbols) {
+        StringBuilder sb = new StringBuilder();
+        SymbolPrinter visitor = new SymbolPrinter(sb);
+        Context ctx = new Context();
+        visitor.process(symbols, ctx);
+        return sb.toString();
+    }
+
 
     public static String print(Symbol symbol) {
         StringBuilder sb = new StringBuilder();
@@ -132,6 +143,16 @@ public class SQLPrinter {
         public String visitDocTableRelation(DocTableRelation relation, Void context) {
             return relation.tableInfo().ident().fqn();
         }
+
+        @Override
+        public String visitQueriedDocTable(QueriedDocTable table, Void context) {
+            return table.tableRelation().tableInfo().ident().fqn();
+        }
+
+        @Override
+        public String visitQueriedTable(QueriedTable table, Void context) {
+            return table.tableRelation().tableInfo().ident().fqn();
+        }
     }
 
     private static class SymbolPrinter extends SymbolVisitor<Context, Void> {
@@ -154,10 +175,28 @@ public class SQLPrinter {
         }
 
         @Override
+        public Void visitInputColumn(InputColumn inputColumn, Context context) {
+            sb.append("INPUT(");
+            sb.append(inputColumn.index());
+            sb.append(")");
+            return null;
+        }
+
+        @Override
         public Void visitField(Field field, Context context) {
             sb.append(context.relIdent(field.relation()));
             sb.append('.');
             sb.append(field.path().outputName());
+            return null;
+        }
+
+        @Override
+        public Void visitFetchReference(FetchReference fetchReference, Context context) {
+            sb.append("FETCH(");
+            process(fetchReference.docId(), context);
+            sb.append(", ");
+            process(fetchReference.ref(), context);
+            sb.append(")");
             return null;
         }
 

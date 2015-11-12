@@ -28,7 +28,9 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -37,8 +39,8 @@ import io.crate.operation.scalar.arithmetic.AbsFunction;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -104,17 +106,8 @@ public class FetchPushDownTest {
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(qs.outputs(), hasSize(2));
-
-        assertThat(((Field) ((FetchReference) qs.outputs().get(0)).docId()).index(), is(0));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isFetchRef(0, "_doc['i']")
-        ));
-
-        assertThat(sub.querySpec().outputs(), hasSize(1));
-        assertThat(sub.querySpec().outputs().get(0), isReference("_docid"));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i'])"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid LIMIT 10000"));
     }
 
     @Test
@@ -124,17 +117,8 @@ public class FetchPushDownTest {
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(qs.outputs(), hasSize(2));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isField(1)
-        ));
-
-        assertThat(sub.querySpec().outputs(), hasSize(2));
-        assertThat(sub.querySpec().outputs(), contains(
-                isReference("_docid"),
-                isReference("i")));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
     }
 
     private Function abs(Symbol symbol){
@@ -150,19 +134,8 @@ public class FetchPushDownTest {
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(abs(REF_I)), new boolean[]{true}, new Boolean[]{false}));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(qs.outputs(), hasSize(2));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isFetchRef(0, "_doc['i']")
-        ));
-
-        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
-
-        assertThat(sub.querySpec().outputs(), hasSize(2));
-        assertThat(sub.querySpec().outputs(), contains(
-                isReference("_docid"),
-                isFunction("abs")));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']) ORDER BY INPUT(1) DESC NULLS LAST"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST LIMIT 10000"));
     }
 
 
@@ -176,54 +149,22 @@ public class FetchPushDownTest {
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(funcOfI), new boolean[]{true}, new Boolean[]{false}));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(qs.outputs(), hasSize(3));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isFetchRef(0, "_doc['i']"),
-                isField(1)
-        ));
-
-        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
-
-        assertThat(sub.querySpec().outputs(), hasSize(2));
-        assertThat(sub.querySpec().outputs(), contains(
-                isReference("_docid"),
-                isFunction("abs")));
-
-        assertThat(sub.querySpec().orderBy().get().orderBySymbols(), contains(
-                isFunction("abs", isReference("i"))));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST LIMIT 10000"));
     }
 
 
     @Test
     public void testPushDownOrderRefUsedInFunction() throws Exception {
         QuerySpec qs = new QuerySpec();
-
         Function funcOfI = abs(REF_I);
-
         qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
         qs.orderBy(new OrderBy(
                 Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(qs.outputs(), hasSize(3));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isField(1),
-                isFunction("abs")
-        ));
-
-        assertThat(qs.orderBy().get().orderBySymbols().get(0), isField(1));
-
-        assertThat(sub.querySpec().outputs(), hasSize(2));
-        assertThat(sub.querySpec().outputs(), contains(
-                isReference("_docid"),
-                isReference("i")));
-
-        // check that the reference in the abs function is a field
-        assertThat(((Function) qs.outputs().get(2)).arguments().get(0), isField(1));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), abs(INPUT(1)) ORDER BY INPUT(1) DESC NULLS LAST"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
     }
 
 
@@ -232,10 +173,9 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
-
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         assertNull(pd.pushDown());
-        assertThat(qs.outputs(), contains(isReference("i")));
+        assertThat(qs, isSQL("SELECT s.t.i ORDER BY s.t.i DESC NULLS LAST"));
     }
 
     @Test
@@ -252,20 +192,9 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I, REF_SCORE));
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
-
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(sub, notNullValue());
-
-        assertThat(sub.querySpec().outputs(), contains(
-                isReference("_docid"),
-                isReference("i"),
-                isReference("_score")));
-
-        assertThat(qs.outputs(), contains(
-                isFetchRef(0, "_doc['a']"),
-                isField(1),
-                isField(2)
-        ));
+        assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), INPUT(2) ORDER BY INPUT(1) DESC NULLS LAST"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i, s.t._score ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
     }
 }

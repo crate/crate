@@ -341,6 +341,18 @@ public class TestingHelpers {
         };
     }
 
+
+
+    public static Matcher<Symbol> isInputColumn(final Integer index) {
+        return both(Matchers.<Symbol>instanceOf(InputColumn.class)).and(
+                new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
+                    @Override
+                    protected Integer featureValueOf(Symbol actual) {
+                        return ((InputColumn) actual).index();
+                    }
+                });
+    }
+
     public static Matcher<Symbol> isField(final Integer index) {
         return both(Matchers.<Symbol>instanceOf(Field.class)).and(
                 new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
@@ -387,7 +399,7 @@ public class TestingHelpers {
     }
 
     public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
-        return isFetchRef(isField(docIdIdx), isReference(ref));
+        return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
     }
 
     public static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {

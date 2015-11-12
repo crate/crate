@@ -542,8 +542,7 @@ public class PlannerTest extends CrateUnitTest {
         Projection lastProjection = mergePhase.finalProjection().get();
         assertThat(lastProjection, instanceOf(FetchProjection.class));
         FetchProjection fetchProjection = (FetchProjection) lastProjection;
-        assertThat(fetchProjection.outputs().size(), is(1));
-        assertThat(fetchProjection.outputs().get(0), isFetchRef(0, "_doc['name']"));
+        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), users._doc['name'])"));
     }
 
     @Test
