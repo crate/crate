@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added functionality to index and match geo shapes
+
  - restrict WITHIN function to only accept geo_point (and compatible types)
    as first argument
 
