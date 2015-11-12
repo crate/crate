@@ -56,7 +56,7 @@ public class BaseCreateBenchmark extends BenchmarkBase {
                         " countryName string," +
                         " population integer," +
                         " continent string" +
-                        ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], false);
+                        ") clustered into 1 shards with (number_of_replicas=0)", new Object[0]);
             }
         }
         tablesCreated = true;
@@ -70,7 +70,7 @@ public class BaseCreateBenchmark extends BenchmarkBase {
                     " countryName string," +
                     " population integer," +
                     " continent string" +
-                    ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], false);
+                    ") clustered into 1 shards with (number_of_replicas=0)", new Object[0]);
         }
     }
 }

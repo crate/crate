@@ -22,12 +22,9 @@
 package io.crate.stress;
 
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLResponse;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.action.sql.*;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,28 +33,27 @@ import org.junit.rules.ExpectedException;
 
 @TimeoutSuite(millis = 30 * 20 * TimeUnits.MINUTE)
 @TestLogging("io.crate.jobs.JobExecutionContext:TRACE,io.crate.jobs.KeepAliveTimers:TRACE")
-@ElasticsearchIntegrationTest.ClusterScope (numDataNodes = 2)
-public class LongRunningQueriesIntegrationTest extends SQLTransportIntegrationTest {
+public class LongRunningQueriesIntegrationTest extends AbstractIntegrationStressTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     private static final int ROWS = 500_000;
-    private static final TimeValue TIMEOUT = TimeValue.timeValueSeconds(2_500);
+    protected static final TimeValue TIMEOUT = TimeValue.timeValueSeconds(2_500);
 
     @Override
     public SQLResponse execute(String stmt) {
-        return super.execute(stmt, TIMEOUT);
+        return execute(stmt, TIMEOUT);
     }
 
     @Override
     public SQLResponse execute(String stmt, Object[] args) {
-        return super.execute(stmt, args, TIMEOUT);
+        return execute(stmt, args, TIMEOUT);
     }
 
     @Override
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
-        return super.execute(stmt, bulkArgs, TIMEOUT);
+        return execute(stmt, bulkArgs, TIMEOUT);
     }
 
     @Before

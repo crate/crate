@@ -55,7 +55,7 @@ public class PartitionedTableBenchmark extends BenchmarkBase {
     protected void createTable() {
         execute("create table \"" + INDEX_NAME + "\" (" +
                 " name string," +
-                " p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)", new Object[0], true);
+                " p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 

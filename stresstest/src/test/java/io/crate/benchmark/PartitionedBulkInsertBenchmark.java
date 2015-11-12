@@ -28,8 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.TimestampFormat;
-import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Rule;
@@ -73,16 +71,16 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
                 "  primary key (d, device_id, ts)\n" +
                 ")\n" +
                 "partitioned by (d)\n" +
-                "clustered by (device_id)", new Object[0], false);
+                "clustered by (device_id)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
-    private SQLBulkRequest getBulkArgsRequest(boolean uniquePartitions, int numRows) {
+    private Object[][] getBulkArgs(boolean uniquePartitions, int numRows) {
         Object[][] bulkArgs = new Object[numRows][];
         for (int i = 0; i < numRows; i++) {
             bulkArgs[i] = getRandomObject(uniquePartitions);
         }
-        return new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
+        return bulkArgs;
     }
 
     private Object[] getRandomObject(boolean uniquePartitions) {
@@ -101,7 +99,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
         long inserted = 0;
         long errors = 0;
 
-        SQLBulkResponse bulkResponse = getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(false, ROWS)).actionGet();
+        SQLBulkResponse bulkResponse = execute(SINGLE_INSERT_SQL_STMT, getBulkArgs(false, ROWS));
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.errorMessage(), is(nullValue()));
             if (result.rowCount() < 0) {
@@ -120,9 +118,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
         long inserted = 0;
         long errors = 0;
 
-        SQLBulkResponse bulkResponse = getClient(false)
-                .execute(SQLBulkAction.INSTANCE, getBulkArgsRequest(true, UNIQUE_PARTITIONS))
-                .actionGet();
+        SQLBulkResponse bulkResponse = execute(SINGLE_INSERT_SQL_STMT, getBulkArgs(true, UNIQUE_PARTITIONS));
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.errorMessage(), is(nullValue()));
             if (result.rowCount() < 0) {

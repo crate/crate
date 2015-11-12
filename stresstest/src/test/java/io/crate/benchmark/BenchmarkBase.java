@@ -24,10 +24,10 @@ package io.crate.benchmark;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.google.common.base.MoreObjects;
 import io.crate.action.sql.*;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.test.integration.PathAccessor;
-import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -40,6 +40,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
@@ -59,6 +60,10 @@ import java.util.concurrent.TimeUnit;
 @Listeners({LoggingListener.class})
 public abstract class BenchmarkBase extends RandomizedTest {
 
+    private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
+    private static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+
     private static final long SEED = System.nanoTime();
     protected static String NODE1;
     protected static String NODE2;
@@ -69,32 +74,27 @@ public abstract class BenchmarkBase extends RandomizedTest {
 
     public final ESLogger logger = Loggers.getLogger(getClass());
 
-    protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
-            new SQLTransportExecutor.ClientProvider() {
-                @Override
-                public Client client() {
-                    return getClient(true);
-                }
-            }
-    );
-
     @Rule
     public TestRule ruleChain = RuleChain.emptyRuleChain();
 
-    public SQLResponse execute(String stmt, Object[] args, boolean queryPlannerEnabled) {
-        return getClient(queryPlannerEnabled).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    public SQLResponse execute(String stmt, Object[] args) {
+        return execute(new SQLRequest(stmt, args));
     }
 
     public SQLResponse execute(String stmt) {
         return execute(stmt, SQLRequest.EMPTY_ARGS);
     }
 
-    public SQLResponse execute(String stmt, Object[] args) {
-        return getClient(true).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    public SQLResponse execute(SQLRequest request) {
+        return CLUSTER.client().execute(SQLAction.INSTANCE, request).actionGet(REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
-        return sqlExecutor.client().execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(stmt, bulkArgs)).actionGet();
+        return execute(new SQLBulkRequest(stmt, bulkArgs));
+    }
+
+    public SQLBulkResponse execute(SQLBulkRequest request) {
+        return CLUSTER.client().execute(SQLBulkAction.INSTANCE, request).actionGet(REQUEST_TIMEOUT);
     }
 
     @BeforeClass
@@ -165,7 +165,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
                 " \"isoAlpha3\" string," +
                 " \"isoNumeric\" string," +
                 " population integer" +
-                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
@@ -180,7 +180,6 @@ public abstract class BenchmarkBase extends RandomizedTest {
                 public void run() {
                     int numDocsToCreate = numberOfDocuments/4;
                     logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
-                    Client client = getClient(false);
                     BulkRequest bulkRequest = new BulkRequest();
 
                     for (int i=0; i < numDocsToCreate; i+=1000) {
@@ -198,7 +197,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
                                 indexRequest.source(source);
                                 bulkRequest.add(indexRequest);
                             }
-                            BulkResponse response = client.bulk(bulkRequest).actionGet();
+                            BulkResponse response = client().bulk(bulkRequest).actionGet();
                             Assert.assertFalse(response.hasFailures());
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -210,9 +209,8 @@ public abstract class BenchmarkBase extends RandomizedTest {
         executor.shutdown();
         executor.awaitTermination(2L, TimeUnit.MINUTES);
         executor.shutdownNow();
-        getClient(true).admin().indices().prepareFlush(tableName).execute().actionGet();
-        getClient(false).admin().indices().prepareFlush(tableName).execute().actionGet();
-        refresh(client());
+        client().admin().indices().prepareFlush(tableName).execute().actionGet();
+        refresh();
         logger.info("{} documents generated.", numberOfDocuments);
     }
 
@@ -228,8 +226,8 @@ public abstract class BenchmarkBase extends RandomizedTest {
         return CLUSTER.client();
     }
 
-    protected RefreshResponse refresh(Client client) {
-        return client.admin().indices().prepareRefresh().execute().actionGet();
+    protected RefreshResponse refresh() {
+        return client().admin().indices().prepareRefresh().execute().actionGet();
     }
 
     public boolean nodesStarted() {
@@ -237,7 +235,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
     }
 
     public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest(tableName())).actionGet().isExists();
+        return client().admin().indices().exists(new IndicesExistsRequest(tableName())).actionGet().isExists();
     }
 
     public boolean importData() {
@@ -261,9 +259,8 @@ public abstract class BenchmarkBase extends RandomizedTest {
     }
 
     public void doImportData() throws Exception {
-        loadBulk(false);
-        refresh(getClient(true));
-        refresh(getClient(false));
+        loadBulk();
+        refresh();
     }
 
     /**
@@ -289,14 +286,10 @@ public abstract class BenchmarkBase extends RandomizedTest {
         return builder.build();
     }
 
-    public Client getClient(boolean firstNode) {
-        return firstNode ? CLUSTER.client(NODE1) : CLUSTER.client(NODE2);
-    }
-
-    public void loadBulk(boolean queryPlannerEnabled) throws Exception {
+    public void loadBulk() throws Exception {
         String path = dataPath();
         byte[] bulkPayload = PathAccessor.bytesFromPath(path, this.getClass());
-        BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, null, null).execute().actionGet();
+        BulkResponse bulk = client().prepareBulk().add(bulkPayload, 0, bulkPayload.length, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data %s", item);
         }

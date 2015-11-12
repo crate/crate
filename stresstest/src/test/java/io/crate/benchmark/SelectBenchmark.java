@@ -27,9 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.search.SearchAction;
@@ -55,7 +53,6 @@ public class SelectBenchmark extends BenchmarkBase {
     public int apiGetRound = 0;
     public int sqlGetRound = 0;
     private List<String> someIds = new ArrayList<>(10);
-    private List<String> someIdsQueryPlannerEnabled = new ArrayList<>(10);
 
     public static final SQLRequest SYS_SHARDS_REQUEST = new SQLRequest("select * from sys.shards order by schema_name, table_name");
 
@@ -97,42 +94,30 @@ public class SelectBenchmark extends BenchmarkBase {
     @Before
     public void loadRandomIds() {
         if (someIds.isEmpty()) {
-            SQLRequestBuilder builder = new SQLRequestBuilder(client());
-            builder.request().stmt(
-                    "select \"_id\" from countries limit 10"
-            );
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, builder.request()).actionGet();
+            SQLResponse response = execute("select \"_id\" from countries limit 10");
             for (int i=0; i<response.rows().length; i++) {
                 someIds.add((String)response.rows()[i][0]);
             }
-
-            response = getClient(true).execute(SQLAction.INSTANCE, builder.request()).actionGet();
-            for (int i=0; i<response.rows().length; i++) {
-                someIdsQueryPlannerEnabled.add((String)response.rows()[i][0]);
-            }
-
         }
     }
 
-    public String getGetId(boolean queryPlannerEnabled) {
-        List<String> l = queryPlannerEnabled ? someIdsQueryPlannerEnabled : someIds;
-        return l.get(getRandom().nextInt(l.size()));
+    public String getGetId() {
+        return someIds.get(getRandom().nextInt(someIds.size()));
     }
 
-    public String getGetId(boolean queryPlannerEnabled, int idx) {
-        List<String> l = queryPlannerEnabled ? someIdsQueryPlannerEnabled : someIds;
-        return l.get(idx % l.size());
+    public String getGetId(int idx) {
+        return someIds.get(idx % someIds.size());
     }
 
 
-    public GetRequest getApiGetRequest(boolean queryPlannerEnabled) {
-        return new GetRequest(INDEX_NAME, "default", getGetId(queryPlannerEnabled));
+    public GetRequest getApiGetRequest() {
+        return new GetRequest(INDEX_NAME, "default", getGetId());
     }
 
-    public SQLRequest getSqlGetRequest(boolean queryPlannerEnabled) {
+    public SQLRequest getSqlGetRequest() {
         return new SQLRequest(
             "SELECT * from " + INDEX_NAME + " WHERE \"_id\"=?",
-            new Object[]{getGetId(queryPlannerEnabled)}
+            new Object[]{getGetId()}
         );
     }
 
@@ -151,17 +136,16 @@ public class SelectBenchmark extends BenchmarkBase {
         MultiGetRequest request = new MultiGetRequest();
         for (int i = 0; i<3;i++) {
             request.add(
-                    new MultiGetRequest.Item(INDEX_NAME, "default", getGetId(false, i))
+                    new MultiGetRequest.Item(INDEX_NAME, "default", getGetId(i))
             );
         }
         return request;
     }
 
-    public SQLRequest getMultiGetSqlRequest(boolean queryPlannerEnabled) {
-
+    public SQLRequest getMultiGetSqlRequest() {
         return new SQLRequest(
                 "SELECT * FROM " + INDEX_NAME + " WHERE \"_id\"=? OR \"_id\"=? OR \"_id\"=?",
-                new Object[]{getGetId(queryPlannerEnabled, 0), getGetId(queryPlannerEnabled, 1), getGetId(queryPlannerEnabled, 2) }
+                new Object[]{getGetId(0), getGetId(1), getGetId(2) }
         );
     }
 
@@ -170,8 +154,8 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetSingleResultApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            GetRequest request = getApiGetRequest(false);
-            GetResponse response = getClient(false).execute(GetAction.INSTANCE, request).actionGet();
+            GetRequest request = getApiGetRequest();
+            GetResponse response = client().execute(GetAction.INSTANCE, request).actionGet();
             Assert.assertTrue(String.format(Locale.ENGLISH, "Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
             apiGetRound++;
         }
@@ -181,8 +165,8 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetSingleResultSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLRequest request = getSqlGetRequest(false);
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
+            SQLRequest request = getSqlGetRequest();
+            SQLResponse response = execute(request);
             Assert.assertEquals(
                     String.format(Locale.ENGLISH, "Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
                     1,
@@ -196,7 +180,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetMultipleResultsApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest()).actionGet();
+            SearchResponse response = client().execute(SearchAction.INSTANCE, getApiSearchRequest()).actionGet();
             Assert.assertEquals(
                     "Did not find the two wanted rows (API).",
                     2L,
@@ -209,7 +193,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetMultipleResultsSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
+            SQLResponse response = execute(getSqlSearchRequest());
             Assert.assertEquals(
                     "Did not find the three wanted rows (SQL).",
                     3,
@@ -222,7 +206,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetMultiGetApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            MultiGetResponse response = getClient(false).execute(MultiGetAction.INSTANCE, getMultiGetApiRequest()).actionGet();
+            MultiGetResponse response = client().execute(MultiGetAction.INSTANCE, getMultiGetApiRequest()).actionGet();
             Assert.assertEquals(
                     "Did not find the three wanted rows (API, MultiGet)",
                     3,
@@ -235,7 +219,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetMultiGetSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(false)).actionGet();
+            SQLResponse response = execute(getMultiGetSqlRequest());
             Assert.assertEquals(
                     "Did not find the three wanted rows (SQL, MultiGet)",
                     3,
@@ -248,7 +232,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testSelectSysShardsBenchmark() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            getClient(false).execute(SQLAction.INSTANCE, SYS_SHARDS_REQUEST).actionGet();
+            execute(SYS_SHARDS_REQUEST);
         }
 
     }

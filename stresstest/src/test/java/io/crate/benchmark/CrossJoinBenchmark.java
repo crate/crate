@@ -28,10 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLRequest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.junit.AfterClass;
@@ -74,15 +70,15 @@ public class CrossJoinBenchmark extends BenchmarkBase {
                 "    id integer primary key," +
                 "    name string," +
                 "    price float" +
-                ") clustered into 2 shards with (number_of_replicas=0, refresh_interval=0)", new Object[0], false);
+                ") clustered into 2 shards with (number_of_replicas=0, refresh_interval=0)", new Object[0]);
         execute("create table colors (" +
                 "    id integer primary key," +
                 "    name string, " +
                 "    coolness float" +
-                ") with (refresh_interval=0)", new Object[0], false);
+                ") with (refresh_interval=0)", new Object[0]);
         execute("create table small (" +
                 "    info object as (size integer)" +
-                ") with (refresh_interval=0)", new Object[0], false);
+                ") with (refresh_interval=0)", new Object[0]);
     }
 
     @AfterClass
@@ -94,7 +90,7 @@ public class CrossJoinBenchmark extends BenchmarkBase {
 
     @Override
     public boolean indexExists() {
-        return getClient(false).admin().indices().exists(new IndicesExistsRequest("articles", "colors", "small")).actionGet().isExists();
+        return client().admin().indices().exists(new IndicesExistsRequest("articles", "colors", "small")).actionGet().isExists();
     }
 
     @Override
@@ -107,7 +103,7 @@ public class CrossJoinBenchmark extends BenchmarkBase {
         createSampleData(ARTICLE_INSERT_SQL_STMT, ARTICLE_SIZE);
         createSampleData(COLORS_INSERT_SQL_STMT, COLORS_SIZE);
         createSampleDataSmall(SMALL_SIZE);
-        refresh(client());
+        refresh();
     }
 
     private void createSampleData(String stmt, int rows) {
@@ -116,9 +112,8 @@ public class CrossJoinBenchmark extends BenchmarkBase {
             Object[] object = getRandomObject(rows);
             bulkArgs[i]  = object;
         }
-        SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
-        client().execute(SQLBulkAction.INSTANCE, request).actionGet();
-        refresh(client());
+        execute(stmt, bulkArgs);
+        refresh();
     }
 
     private Object[] getRandomObject(int numDifferent) {
@@ -134,23 +129,21 @@ public class CrossJoinBenchmark extends BenchmarkBase {
         for (int i = 0; i < rows; i++) {
             bulkArgs[i] = new Object[]{new HashMap<String, Integer>(){{put("size", (int)(Math.random()*1000));}}};
         }
-        SQLBulkRequest request = new SQLBulkRequest("INSERT INTO small (info) values (?)", bulkArgs);
-        client().execute(SQLBulkAction.INSTANCE, request).actionGet();
-        refresh(client());
+        execute("INSERT INTO small (info) values (?)", bulkArgs);
+        refresh();
     }
 
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQTF() {
-        execute("select * from articles, colors", new Object[0], true);
+        execute("select * from articles, colors", new Object[0]);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQTFWithOffset() {
-        getClient(false).execute(SQLAction.INSTANCE,
-                new SQLRequest(QTF_WITH_OFFSET_SQL_STMT)).actionGet();
+        execute(QTF_WITH_OFFSET_SQL_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -200,8 +193,7 @@ public class CrossJoinBenchmark extends BenchmarkBase {
         List<Callable<Object>> tasks = Collections.nCopies(numConcurrent, Executors.callable(new Runnable() {
             @Override
             public void run() {
-                getClient(false).execute(SQLAction.INSTANCE,
-                        new SQLRequest(stmt)).actionGet();
+                execute(stmt);
             }
         }));
         executor.invokeAll(tasks);

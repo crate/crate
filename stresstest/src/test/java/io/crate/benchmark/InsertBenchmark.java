@@ -27,8 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
 import org.elasticsearch.action.bulk.BulkAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexAction;
@@ -83,36 +81,6 @@ public class InsertBenchmark extends BenchmarkBase {
                 .endObject().string();
     }
 
-    private SQLRequest getSingleSqlInsertRequest() {
-        return new SQLRequest(SINGLE_INSERT_SQL_STMT,
-                new Object[]{"Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
-                             "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
-                             "Schicksalsberg", 1000 }
-        );
-    }
-
-    private SQLRequest getBulkSqlInsertRequest() {
-        return new SQLRequest(BULK_INSERT_SQL_STMT,
-                new Object[]{
-                        "Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
-                        "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
-                        "Schicksalsberg", 1000,
-
-                        "Auenland", "AU", "123", 1.1, 2.2, 3.3, 4.4,
-                        "AUL", "BOC", "ME", "Mittelerde", "boc", "AUL",
-                        "Hobbingen", 200,
-
-                        "Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
-                        "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
-                        "Schicksalsberg", 1000,
-
-                        "Auenland", "AU", "123", 1.1, 2.2, 3.3, 4.4,
-                        "AUL", "BOC", "ME", "Mittelerde", "boc", "AUL",
-                        "Hobbingen", 200
-                }
-        );
-    }
-
     private IndexRequest getSingleApiInsertRequest() {
         IndexRequest request = new IndexRequest("countries", "default");
         request.create(true);
@@ -134,7 +102,10 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertSingleSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            getClient(false).execute(SQLAction.INSTANCE, getSingleSqlInsertRequest()).actionGet();
+            execute(SINGLE_INSERT_SQL_STMT,
+                    new Object[]{"Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
+                            "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
+                            "Schicksalsberg", 1000 });
         }
     }
 
@@ -142,7 +113,24 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertBulkSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            getClient(false).execute(SQLAction.INSTANCE, getBulkSqlInsertRequest()).actionGet();
+            execute(BULK_INSERT_SQL_STMT,
+                    new Object[]{
+                            "Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
+                            "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
+                            "Schicksalsberg", 1000,
+
+                            "Auenland", "AU", "123", 1.1, 2.2, 3.3, 4.4,
+                            "AUL", "BOC", "ME", "Mittelerde", "boc", "AUL",
+                            "Hobbingen", 200,
+
+                            "Mordor", "MO", "666", 0.0, 180.0, 90.0, 0.0,
+                            "MOR", "NAZ", "ME", "Mittelerde", "naz", "MOR",
+                            "Schicksalsberg", 1000,
+
+                            "Auenland", "AU", "123", 1.1, 2.2, 3.3, 4.4,
+                            "AUL", "BOC", "ME", "Mittelerde", "boc", "AUL",
+                            "Hobbingen", 200
+                    });
         }
     }
 
@@ -150,7 +138,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertSingleApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            getClient(false).execute(IndexAction.INSTANCE, getSingleApiInsertRequest()).actionGet();
+            client().execute(IndexAction.INSTANCE, getSingleApiInsertRequest()).actionGet();
         }
     }
 
@@ -158,7 +146,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertBulkApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            getClient(false).execute(BulkAction.INSTANCE, getBulkApiInsertRequest()).actionGet();
+            client().execute(BulkAction.INSTANCE, getBulkApiInsertRequest()).actionGet();
         }
     }
 }

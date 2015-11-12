@@ -27,11 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,19 +42,18 @@ import java.util.Random;
 @BenchmarkMethodChart(filePrefix = "benchmark-groupby")
 public class GroupByBenchmark extends BenchmarkBase {
 
-    public final static ESLogger logger = Loggers.getLogger(GroupByBenchmark.class);
     public static final int NUMBER_OF_DOCUMENTS = 500_000; // was 1_000_000
     public static final int BENCHMARK_ROUNDS = 1000;
 
-    public static SQLRequest maxRequest = new SQLRequest(String.format("select max(\"areaInSqKm\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest minRequest = new SQLRequest(String.format("select min(\"areaInSqKm\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest avgRequest = new SQLRequest(String.format("select avg(\"population\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest countStarRequest = new SQLRequest(String.format("select count(*) from %s group by continent", INDEX_NAME));
-    public static SQLRequest countColumnRequest = new SQLRequest(String.format("select count(\"countryName\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest countDistinctRequest = new SQLRequest(String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest groupByRoutingColumnRequest = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1", INDEX_NAME));
-    public static SQLRequest groupByRoutingColumnRequestHighLimit = new SQLRequest(String.format("select sum(population), type from %s group by type order by 1 limit 100000", INDEX_NAME));
+    public static final String MAX_STMT = String.format("select max(\"areaInSqKm\") from %s group by continent", INDEX_NAME);
+    public static final String MIN_STMT = String.format("select min(\"areaInSqKm\") from %s group by continent", INDEX_NAME);
+    public static final String AVG_STMT = String.format("select avg(\"population\") from %s group by continent", INDEX_NAME);
+    public static final String COUNT_STAR_STMT = String.format("select count(*) from %s group by continent", INDEX_NAME);
+    public static final String COUNT_COLUMN_STMT = String.format("select count(\"countryName\") from %s group by continent", INDEX_NAME);
+    public static final String COUNT_DISTINCT_STMT = String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME);
+    public static final String ARBITRARY_STMT = String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME);
+    public static final String GROUP_BY_ROUTING_STMT = String.format("select sum(population), type from %s group by type order by 1", INDEX_NAME);
+    public static final String GROUP_BY_ROUTING_HIGH_LIMIT_STMT = String.format("select sum(population), type from %s group by type order by 1 limit 100000", INDEX_NAME);
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
@@ -99,54 +94,54 @@ public class GroupByBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByMaxPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, maxRequest).actionGet();
+        execute(MAX_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByMinPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, minRequest).actionGet();
+        execute(MIN_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByAvgPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, avgRequest).actionGet();
+        execute(AVG_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByCountStarPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, countStarRequest).actionGet();
+        execute(COUNT_STAR_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByCountColumnPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, countColumnRequest).actionGet();
+        execute(COUNT_COLUMN_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByCountDistinctPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, countDistinctRequest).actionGet();
+        execute(COUNT_DISTINCT_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByAnyPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, arbitraryRequest).actionGet();
+        execute(ARBITRARY_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByRoutingColumn() throws Exception {
-        getClient(false).execute(SQLAction.INSTANCE, groupByRoutingColumnRequest).actionGet();
+        execute(GROUP_BY_ROUTING_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByRoutingColumnLimit100000() throws Exception {
-        getClient(false).execute(SQLAction.INSTANCE, groupByRoutingColumnRequestHighLimit).actionGet();
+        execute(GROUP_BY_ROUTING_HIGH_LIMIT_STMT);
     }
 }

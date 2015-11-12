@@ -26,8 +26,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.SQLBulkRequest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -63,7 +61,7 @@ public class UpsertBenchmark extends BenchmarkBase {
                 "    id integer primary key," +
                 "    url string," +
                 "    count integer" +
-                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
 
 
@@ -82,27 +80,27 @@ public class UpsertBenchmark extends BenchmarkBase {
     protected void doGenerateData() throws Exception {
         for(int i = 0; i < 500; i++) {
             execute("insert into traffic_logs (id, url, count) VALUES (?, ?, ?)",
-                    new Object[]{i+1, "http://crate.io", 1}, true);
+                    new Object[]{i+1, "http://crate.io", 1});
         }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testUpsertExistingDocument() {
-        execute(SIMPLE_UPSERT, new Object[]{0, "http://crate.io", 1}, true);
+        execute(SIMPLE_UPSERT, new Object[]{0, "http://crate.io", 1});
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testUpsertNewDocument() {
         execute(SIMPLE_UPSERT,
-                new Object[]{(int)(Math.random() * 1000000) + 500, "http://crate.io", 1}, true);
+                new Object[]{(int)(Math.random() * 1000000) + 500, "http://crate.io", 1});
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testUpsertWithReference() {
-        execute(UPSERT_WITH_REF, new Object[]{100, "http://crate.io", 1}, true);
+        execute(UPSERT_WITH_REF, new Object[]{100, "http://crate.io", 1});
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS_MANY_VALUES, warmupRounds = 1)
@@ -113,22 +111,20 @@ public class UpsertBenchmark extends BenchmarkBase {
             new Object[]{0, "http://crate.io", 1},
             new Object[]{0, "http://crate.io", 1}
         };
-        SQLBulkRequest request = new SQLBulkRequest(UPSERT_WITH_REF, bulkArgs);
-        getClient(false).execute(SQLBulkAction.INSTANCE, request).actionGet();
+        execute(UPSERT_WITH_REF, bulkArgs);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS_MANY_VALUES, warmupRounds = 1)
     @Test
     public void testBulkUpsertManyValues() {
-        SQLBulkRequest request = new SQLBulkRequest(UPSERT_WITH_REF, BULK_ARGS_MANY);
-        getClient(false).execute(SQLBulkAction.INSTANCE, request).actionGet();
+        execute(UPSERT_WITH_REF, BULK_ARGS_MANY);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS_MANY_VALUES, warmupRounds = 1)
     @Test
     public void testUpsertManyValues() {
         for (Object[] value : BULK_ARGS_MANY) {
-            execute(UPSERT_WITH_REF, value, true);
+            execute(UPSERT_WITH_REF, value);
         }
     }
 }

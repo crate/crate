@@ -28,16 +28,8 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLRequest;
-import io.crate.analyze.Id;
-import io.crate.metadata.ColumnIdent;
+import io.crate.action.sql.*;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.client.Client;
@@ -49,7 +41,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.util.HashMap;
-import java.util.List;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-bulk-delete-history", labelWith = LabelType.CUSTOM_KEY)
@@ -64,6 +55,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     public static final int ROWS = 5000;
 
     public static final String SINGLE_INSERT_SQL_STMT = "INSERT INTO users (id, name, age) Values (?, ?, ?)";
+    public static final String SELECT_ALL_IDS_STMT = "SELECT id, _id FROM users";
     public static final String DELETE_SQL_STMT = "DELETE FROM users where id = ?";
 
     @Override
@@ -85,7 +77,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
                 "    id string primary key," +
                 "    name string," +
                 "    age integer" +
-                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+                ") clustered into 2 shards with (number_of_replicas=0)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
@@ -94,19 +86,18 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
         Object[][] bulkArgs = new Object[ROWS][];
         HashMap<String, String> ids = new HashMap<>();
 
-        ColumnIdent idColumn = new ColumnIdent("id");
-        Function<List<BytesRef>, String> idFunction = Id.compile(ImmutableList.of(idColumn), new ColumnIdent("id"));
         for (int i = 0; i < ROWS; i++) {
             Object[] object = getRandomObject();
             bulkArgs[i]  = object;
-
-            String id = (String)object[0];
-            String esId = idFunction.apply(ImmutableList.of(new BytesRef(id)));
-            ids.put(id, esId);
         }
-        SQLBulkRequest request = new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
-        client().execute(SQLBulkAction.INSTANCE, request).actionGet();
-        refresh(client());
+        execute(SINGLE_INSERT_SQL_STMT, bulkArgs);
+        refresh();
+
+        SQLResponse response = execute(SELECT_ALL_IDS_STMT);
+        for (Object[] row : response.rows()) {
+            ids.put((String) row[0], (String) row[1]);
+        }
+
         return ids;
     }
 
@@ -122,7 +113,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     @Test
     public void testESBulkDelete() {
         HashMap<String, String> ids = createSampleData();
-        Client client = getClient(false);
+        Client client = client();
         BulkRequestBuilder request = new BulkRequestBuilder(client);
 
         for(String id: ids.values()){
@@ -130,7 +121,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
             request.add(deleteRequest);
         }
         request.execute().actionGet();
-        refresh(client());
+        refresh();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -144,8 +135,8 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
             bulkArgs[i] = new Object[]{id};
             i++;
         }
-        getClient(false).execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(DELETE_SQL_STMT, bulkArgs)).actionGet();
-        refresh(client());
+        execute(DELETE_SQL_STMT, bulkArgs);
+        refresh();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
@@ -153,8 +144,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     public void testSQLSingleDelete() {
         HashMap<String, String> ids = createSampleData();
         for(String id: ids.keySet()){
-            getClient(false).execute(SQLAction.INSTANCE,
-                                     new SQLRequest(DELETE_SQL_STMT, new Object[]{id})).actionGet();
+            execute(DELETE_SQL_STMT, new Object[]{id});
         }
     }
 }

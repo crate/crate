@@ -27,8 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
@@ -47,8 +45,8 @@ public class GroupByArbitraryBenchmark extends BenchmarkBase {
     public static final int NUMBER_OF_DOCUMENTS = 500_000;
     public static final int BENCHMARK_ROUNDS = 100;
 
-    public static SQLRequest groupRequest = new SQLRequest(String.format("select continent, \"countryName\" from %s group by 1, 2 ", INDEX_NAME));
-    public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select continent, arbitrary(\"countryName\") from %s group by 1", INDEX_NAME));
+    public static final String GROUP_BY_STMT = String.format("select continent, \"countryName\" from %s group by 1, 2 ", INDEX_NAME);
+    public static final String ARBITRARY_STMT = String.format("select continent, arbitrary(\"countryName\") from %s group by 1", INDEX_NAME);
 
 
     @Rule
@@ -88,12 +86,12 @@ public class GroupByArbitraryBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroup() {
-        getClient(false).execute(SQLAction.INSTANCE, groupRequest).actionGet();
+        execute(GROUP_BY_STMT);
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testArbitrary() {
-        getClient(false).execute(SQLAction.INSTANCE, arbitraryRequest).actionGet();
+        execute(ARBITRARY_STMT);
     }
 }
