@@ -80,7 +80,7 @@ created:
                       the snapshot creation started. If set to ``true`` the
                       request returns after the whole snapshot was created or
                       an error occurred. The :ref:`sys.snapshots
-                      +<sys-snapshots>```sys.snapshots`` table can be queried
+                      <sys-snapshots>` table can be queried
                       to track the snapshot creation progress if
                       ``wait_for_completion`` has been set to ``false``.
 

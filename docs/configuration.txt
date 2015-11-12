@@ -450,7 +450,7 @@ Paths
   that is writable by the Crate process. To safeguard against this security issue,
   the possible paths have to be whitelisted here.
 
-  See also :ref:`ref-create-repository-types-fs-location` setting
+  See also :ref:`location <ref-create-repository-types-fs-location>` setting
   of repository type ``fs``.
 
 Plugins
