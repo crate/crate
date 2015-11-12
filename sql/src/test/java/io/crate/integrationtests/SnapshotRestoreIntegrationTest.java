@@ -254,11 +254,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         });
         execute("refresh table survivor");
 
-        client().admin().cluster().prepareRestoreSnapshot(REPOSITORY_NAME, SNAPSHOT_NAME)
-                .setIncludeAliases(true)
-                .setRestoreGlobalState(true)
-                .execute().actionGet();
-        ensureGreen();
+        execute("restore snapshot " + snapshotName() + " ALL with (wait_for_completion=true)");
 
         execute("select * from survivor order by bla");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
