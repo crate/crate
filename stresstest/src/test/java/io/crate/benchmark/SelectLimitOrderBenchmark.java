@@ -28,7 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.search.SearchAction;
@@ -143,7 +142,7 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
     }
 
     protected void runESBenchmark(Integer limit, Integer offset, boolean orderBy, boolean selectAll) throws Exception {
-        SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest(limit, offset, orderBy, selectAll)).actionGet();
+        SearchResponse response = client().execute(SearchAction.INSTANCE, getApiSearchRequest(limit, offset, orderBy, selectAll)).actionGet();
         assertEquals(
                 "Did not get all wanted rows (ES)",
                 limit.longValue(),
@@ -152,7 +151,7 @@ public class SelectLimitOrderBenchmark extends BenchmarkBase {
     }
 
     protected void runSQLBenchmark(Integer limit, Integer offset, boolean orderBy, boolean selectAll) throws Exception {
-        SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest(limit, offset, orderBy, selectAll)).actionGet();
+        SQLResponse response = execute(getSqlSearchRequest(limit, offset, orderBy, selectAll));
         assertEquals(
                 "Did not get all wanted rows (SQL)",
                 limit.longValue(),

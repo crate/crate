@@ -26,12 +26,10 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.operation.Paging;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -60,6 +58,8 @@ public class ESScrollingBenchmark extends BenchmarkBase {
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
+    // should be in-sync with sql->Paging.PAGE_SIZE
+    public static final int PAGE_SIZE = 500_000;
 
     public final static ESLogger logger = Loggers.getLogger(ESScrollingBenchmark.class);
 
@@ -103,7 +103,7 @@ public class ESScrollingBenchmark extends BenchmarkBase {
                 " \"isoAlpha3\" string," +
                 " \"isoNumeric\" string," +
                 " population integer" +
-                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], true);
+                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0]);
         client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
     }
 
@@ -119,7 +119,6 @@ public class ESScrollingBenchmark extends BenchmarkBase {
                     public void run() {
                         int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
                         logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
-                        Client client = getClient(false);
                         BulkRequest bulkRequest = new BulkRequest();
 
                         for (int i=0; i < numDocsToCreate; i+=1000) {
@@ -131,7 +130,7 @@ public class ESScrollingBenchmark extends BenchmarkBase {
                                     indexRequest.source(source);
                                     bulkRequest.add(indexRequest);
                                 }
-                                BulkResponse response = client.bulk(bulkRequest).actionGet();
+                                BulkResponse response = client().bulk(bulkRequest).actionGet();
                                 assertFalse(response.hasFailures());
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -143,8 +142,8 @@ public class ESScrollingBenchmark extends BenchmarkBase {
             executor.shutdown();
             executor.awaitTermination(2L, TimeUnit.MINUTES);
             executor.shutdownNow();
-            getClient(true).admin().indices().prepareFlush(INDEX_NAME).execute().actionGet();
-            refresh(client());
+            client().admin().indices().prepareFlush(INDEX_NAME).execute().actionGet();
+            refresh();
             dataGenerated = true;
             logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
         }
@@ -154,15 +153,15 @@ public class ESScrollingBenchmark extends BenchmarkBase {
     @Test
     public void testElasticsearchOrderedWithScrollingPerformance() throws Exception{
         int totalHits = 0;
-        SearchResponse response = getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
+        SearchResponse response = client().prepareSearch(INDEX_NAME).setTypes("default")
                                     .addField("continent")
                                     .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                                     .setScroll("1m")
-                                    .setSize(Paging.PAGE_SIZE)
+                                    .setSize(PAGE_SIZE)
                                     .execute().actionGet();
         totalHits += response.getHits().hits().length;
         while ( totalHits < NUMBER_OF_DOCUMENTS) {
-            response = getClient(true).prepareSearchScroll(response.getScrollId()).setScroll("1m").execute().actionGet();
+            response = client().prepareSearchScroll(response.getScrollId()).setScroll("1m").execute().actionGet();
             totalHits += response.getHits().hits().length;
         }
     }
@@ -170,7 +169,7 @@ public class ESScrollingBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testElasticsearchOrderedWithoutScrollingPerformance() throws Exception{
-        getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
+        client().prepareSearch(INDEX_NAME).setTypes("default")
                 .addField("continent")
                 .addSort(SortBuilders.fieldSort("continent").missing("_last"))
                 .setSize(NUMBER_OF_DOCUMENTS)
@@ -180,7 +179,7 @@ public class ESScrollingBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
     public void testElasticsearchUnorderedWithoutScrollingPerformance() throws Exception{
-        getClient(true).prepareSearch(INDEX_NAME).setTypes("default")
+        client().prepareSearch(INDEX_NAME).setTypes("default")
                 .addField("continent")
                 .setSize(NUMBER_OF_DOCUMENTS)
                 .execute().actionGet();

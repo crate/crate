@@ -27,7 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.Constants;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,6 +46,9 @@ public class LikeBenchmark extends BenchmarkBase {
     static final int BENCHMARK_ROUNDS = 200;
     static final int QUERIES = 100;
     static final int NUMBER_OF_DOCUMENTS = 100_000;
+
+    // must be in-sync with core->Constants.DEFAULT_MAPPING_TYPE
+    static final String DEFAULT_MAPPING_TYPE = "default";
 
     static AtomicInteger ID_VALUE = new AtomicInteger(0);
 
@@ -113,7 +115,7 @@ public class LikeBenchmark extends BenchmarkBase {
         for (int i = 0; i < QUERIES; i++) {
             assertThat(
                 client().prepareSearch(INDEX_NAME)
-                        .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setTypes(DEFAULT_MAPPING_TYPE)
                         .setQuery("{\"regexp\":{\"value\":\".*XXX.*\"}}")
                         .addField("value")
                         .setSize(10)
@@ -129,7 +131,7 @@ public class LikeBenchmark extends BenchmarkBase {
         for (int i = 0; i < QUERIES; i++) {
             assertThat(
                     client().prepareSearch(INDEX_NAME)
-                            .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                            .setTypes(DEFAULT_MAPPING_TYPE)
                             .setQuery("{\"filtered\":{\"query\":{\"match_all\":{}}, \"filter\":{\"regexp\":{\"value\":\".*XXX.*\"}}}}")
                             .addField("value")
                             .setSize(10)
@@ -144,7 +146,7 @@ public class LikeBenchmark extends BenchmarkBase {
     public void testEsWildcard() throws Exception {
         for (int i = 0; i < QUERIES; i++) {
             assertThat(client().prepareSearch(INDEX_NAME)
-                    .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setTypes(DEFAULT_MAPPING_TYPE)
                     .setQuery("{\"wildcard\":{\"value\":\"*XXX*\"}}")
                     .addField("value")
                     .setSize(10)

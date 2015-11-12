@@ -27,8 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -53,6 +51,9 @@ public class DeleteBenchmark extends BenchmarkBase {
     public static final int NUM_REQUESTS_PER_TEST = 100;
     public static final int BENCHMARK_ROUNDS = 24; // Don't exceed the number of deletable rows
 
+    private static final String DELETE_BY_ID_STMT = "DELETE FROM countries WHERE \"_id\" = ?";
+    private static final String DELETE_BY_QUERY_STMT = "DELETE FROM countries WHERE \"countryCode\" = ?";
+
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
@@ -68,8 +69,7 @@ public class DeleteBenchmark extends BenchmarkBase {
         if (ids.isEmpty() || countryCodes.isEmpty()) {
             doImportData();
             // setupOnce non-static
-            SQLRequest request = new SQLRequest("SELECT \"_id\", \"countryCode\" FROM countries");
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
+            SQLResponse response = execute("SELECT \"_id\", \"countryCode\" FROM countries");
             for (int i=0; i<response.rows().length;i++ ) {
                 ids.add((String) response.rows()[i][0]);
                 countryCodes.add((String) response.rows()[i][1]);
@@ -95,14 +95,6 @@ public class DeleteBenchmark extends BenchmarkBase {
         return new DeleteRequest(INDEX_NAME, "default", getDeleteId());
     }
 
-    public SQLRequest getDeleteSqlByIdRequest() throws Exception {
-        return new SQLRequest("DELETE FROM countries WHERE \"_id\"=?", new Object[]{ getDeleteId() });
-    }
-
-    public SQLRequest getDeleteSqlByQueryRequest() throws Exception {
-        return new SQLRequest("DELETE FROM countries WHERE \"countryCode\"=?", new Object[]{ getCountryCode() });
-    }
-
     public DeleteByQueryRequest getDeleteApiByQueryRequest() throws Exception {
 
         return new DeleteByQueryRequest(INDEX_NAME).source(
@@ -119,7 +111,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteApiById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            DeleteResponse response = getClient(false).execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
+            DeleteResponse response = client().execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
             Assert.assertTrue(response.isFound());
         }
     }
@@ -128,7 +120,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteApiByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            getClient(false).execute(DeleteByQueryAction.INSTANCE, getDeleteApiByQueryRequest()).actionGet();
+            client().execute(DeleteByQueryAction.INSTANCE, getDeleteApiByQueryRequest()).actionGet();
         }
     }
 
@@ -136,7 +128,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteSqlById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getDeleteSqlByIdRequest()).actionGet();
+            execute(DELETE_BY_ID_STMT, new Object[]{getDeleteId()});
         }
     }
 
@@ -144,7 +136,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteSQLByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getDeleteSqlByQueryRequest()).actionGet();
+            execute(DELETE_BY_QUERY_STMT, new Object[]{ getCountryCode() });
         }
     }
 }

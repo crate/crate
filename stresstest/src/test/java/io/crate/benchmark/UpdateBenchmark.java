@@ -27,7 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -55,7 +54,6 @@ public class UpdateBenchmark extends BenchmarkBase {
     public static final int BENCHMARK_ROUNDS = 100;
 
     public String updateId = null;
-    public String updateIdqueryPlannerEnabled = null;
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
@@ -67,27 +65,21 @@ public class UpdateBenchmark extends BenchmarkBase {
 
     @Before
     public void getUpdateIds() {
-        if (updateId == null || updateIdqueryPlannerEnabled == null) {
-            SQLRequest request = new SQLRequest("SELECT \"_id\" FROM countries WHERE \"countryCode\"=?", new Object[]{"AT"});
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
+        if (updateId == null) {
+            SQLResponse response = execute("SELECT \"_id\" FROM countries WHERE \"countryCode\"=?", new Object[]{"AT"});
             assert response.rows().length == 1;
             updateId = (String)response.rows()[0][0];
-
-            request = new SQLRequest("SELECT \"_id\" FROM countries WHERE \"countryCode\"=?", new Object[]{"AT"});
-            response = getClient(true).execute(SQLAction.INSTANCE, request).actionGet();
-            assert response.rows().length == 1;
-            updateIdqueryPlannerEnabled = (String)response.rows()[0][0];
         }
     }
 
-    public SQLRequest getSqlUpdateByIdRequest(boolean queryPlannerEnabled) {
-        return new SQLRequest("UPDATE countries SET population=? WHERE \"_id\"=?", new Object[]{ Math.abs(getRandom().nextInt()), queryPlannerEnabled ? updateIdqueryPlannerEnabled : updateId });
+    public SQLRequest getSqlUpdateByIdRequest() {
+        return new SQLRequest("UPDATE countries SET population=? WHERE \"_id\"=?", new Object[]{ Math.abs(getRandom().nextInt()), updateId });
     }
 
-    public UpdateRequest getApiUpdateByIdRequest(boolean queryPlannerEnabled) {
+    public UpdateRequest getApiUpdateByIdRequest() {
         Map<String, Integer> updateDoc = new HashMap<>();
         updateDoc.put("population", Math.abs(getRandom().nextInt()));
-        return new UpdateRequest(INDEX_NAME, "default", queryPlannerEnabled ? updateIdqueryPlannerEnabled : updateId).doc(updateDoc);
+        return new UpdateRequest(INDEX_NAME, "default", updateId).doc(updateDoc);
     }
 
     public SQLRequest getSqlUpdateRequest() {
@@ -120,7 +112,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
+            SQLResponse response = execute(getSqlUpdateRequest());
             assertEquals(
                     1,
                     response.rowCount()
@@ -133,7 +125,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateSqlById() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest(false)).actionGet();
+            SQLResponse response = execute(getSqlUpdateByIdRequest());
             assertEquals(
                     1,
                     response.rowCount()
@@ -145,7 +137,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateApiById() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            UpdateResponse response = getClient(false).execute(UpdateAction.INSTANCE, getApiUpdateByIdRequest(false)).actionGet();
+            UpdateResponse response = client().execute(UpdateAction.INSTANCE, getApiUpdateByIdRequest()).actionGet();
             assertEquals(updateId, response.getId());
         }
     }

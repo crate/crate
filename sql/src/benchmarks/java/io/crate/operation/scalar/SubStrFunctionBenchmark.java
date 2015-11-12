@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.benchmark;
+package io.crate.operation.scalar;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
@@ -27,7 +27,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import io.crate.operation.scalar.SubstrFunction;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-substr-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-substr")
-public class SubStrBenchmark {
+public class SubStrFunctionBenchmark {
 
     @Rule
     public TestRule benchmarkRun = new BenchmarkRule();

@@ -52,7 +52,7 @@ public class CountBenchmark extends BenchmarkBase {
     @Test
     public void testESCount() throws Exception {
         for (int i = 0; i < NUM_REQUESTS_PER_TEST; i++) {
-            getClient(false).execute(CountAction.INSTANCE, new CountRequest("countries")).actionGet();
+            client().execute(CountAction.INSTANCE, new CountRequest("countries")).actionGet();
         }
     }
 

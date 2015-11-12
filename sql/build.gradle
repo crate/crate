@@ -8,6 +8,8 @@ archivesBaseName = 'crate-sql'
 configurations {
     all*.exclude group: 'org.elasticsearch'
     sharedCompile.extendsFrom compile
+    benchmarksCompile.extendsFrom testCompile
+    benchmarksRuntime.extendsFrom testRuntime, benchmarksCompile
 }
 
 dependencies {
@@ -29,6 +31,8 @@ dependencies {
         exclude group: 'junit', module: 'junit'
         exclude group: 'org.mockito', module: 'mockito-all'
     }
+
+    benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
 }
 
 buildscript {
@@ -62,14 +66,8 @@ sourceSets {
     benchmarks {
         java {
             srcDir 'src/benchmarks/java'
-            compileClasspath += main.output + test.output
-            runtimeClasspath += main.output + test.output
-        }
-
-        dependencies {
-            benchmarksCompile configurations.testCompile
-            benchmarksRuntime configurations.testRuntime
-            benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
+            compileClasspath += main.output + test.output + configurations.benchmarksCompile
+            runtimeClasspath += main.output + test.output + configurations.benchmarksRuntime
         }
     }
     shared {
@@ -88,5 +86,14 @@ task benchmarks(type: Test) {
 
     jacoco {
         enabled = false
+    }
+}
+
+idea {
+    module {
+        testSourceDirs += file('src/benchmarks/java')
+        // put additional dependencies on the classpath
+        scopes.TEST.plus += [configurations.benchmarksCompile]
+        scopes.TEST.plus += [configurations.benchmarksRuntime]
     }
 }

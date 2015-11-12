@@ -27,11 +27,9 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,8 +38,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE)
-public class ConcurrentCopyFromTest extends SQLTransportIntegrationTest {
+public class ConcurrentCopyFromTest extends AbstractIntegrationStressTest {
 
     @Before
     public void prepareFirst() throws Exception {
@@ -68,7 +65,7 @@ public class ConcurrentCopyFromTest extends SQLTransportIntegrationTest {
     @Test
     public void testConcurrentCopyFrom() throws Exception {
         ThreadPoolExecutor executor = EsExecutors.newFixed(2, 2, EsExecutors.daemonThreadFactory("COPY FROM"));
-        final Iterator<Client> clientIt = cluster().iterator();
+        final Iterator<Client> clientIt = CLUSTER.iterator();
         try {
             executor.execute(new Runnable() {
                 @Override

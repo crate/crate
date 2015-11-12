@@ -39,8 +39,8 @@ public class ConcurrentUpdateStressTest extends AbstractIntegrationStressTest {
     private String[] values;
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        Settings settings = super.nodeSettings(nodeOrdinal);
+    protected Settings nodeSettings() {
+        Settings settings = super.nodeSettings();
         return ImmutableSettings.builder().put(settings).put("threadpool.search.queue_size", 3_000).build();
     }
 
@@ -70,7 +70,7 @@ public class ConcurrentUpdateStressTest extends AbstractIntegrationStressTest {
         for (int i = 0; i < numRequests; i++) {
             String value = values[randomIntBetween(0, 4)];
             futures.add(
-                    client().execute(SQLAction.INSTANCE, new SQLRequest("update rejected set value=? where category = ?", new Object[]{value + "U", (randomIntBetween(0, 19))}))
+                    CLUSTER.client().execute(SQLAction.INSTANCE, new SQLRequest("update rejected set value=? where category = ?", new Object[]{value + "U", (randomIntBetween(0, 19))}))
             );
             latch.countDown();
         }

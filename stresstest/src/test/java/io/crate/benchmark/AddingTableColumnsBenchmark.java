@@ -67,7 +67,7 @@ public class AddingTableColumnsBenchmark extends BenchmarkBase {
                 randomColumns.toString() +
                 " population integer," +
                 " continent string" +
-                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0], false);
+                ") clustered into 1 shards with (number_of_replicas=0)", new Object[0]);
         client().admin().cluster().prepareHealth(tableName).setWaitForGreenStatus().execute().actionGet();
     }
 
@@ -75,7 +75,7 @@ public class AddingTableColumnsBenchmark extends BenchmarkBase {
     @Test
     public void testAlterTable10() throws Exception {
         for (int i = 0; i < 10; ++i) {
-            execute("alter table table_10 add column " + getRandom().nextInt() + " string", new Object[0], true);
+            execute("alter table table_10 add column " + getRandom().nextInt() + " string", new Object[0]);
         }
     }
 
@@ -83,7 +83,7 @@ public class AddingTableColumnsBenchmark extends BenchmarkBase {
     @Test
     public void testAlterTable5k() throws Exception {
         for (int i = 0; i < 10; ++i) {
-            execute("alter table table_5k add column " + getRandom().nextInt() + " string", new Object[0], true);
+            execute("alter table table_5k add column " + getRandom().nextInt() + " string", new Object[0]);
         }
     }
 
