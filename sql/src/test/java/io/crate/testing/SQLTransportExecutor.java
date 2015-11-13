@@ -27,8 +27,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.Priority;
@@ -146,16 +144,8 @@ public class SQLTransportExecutor {
         return actionGet.getStatus();
     }
 
-    public RefreshResponse refresh(String index) {
-        return client().admin().indices().prepareRefresh(index).execute().actionGet();
-    }
-
     public Client client() {
         return clientProvider.client();
-    }
-
-    public CreateIndexRequestBuilder prepareCreate(String index) {
-        return client().admin().indices().prepareCreate(index);
     }
 
     public interface ClientProvider {

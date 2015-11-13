@@ -76,7 +76,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
                         new Object[]{2, "Ford"},
                 }
         );
-        sqlExecutor.refresh("characters");
+        sqlExecutor.exec("refresh table characters");
     }
 
     private Plan analyzeAndPlan(String stmt) {

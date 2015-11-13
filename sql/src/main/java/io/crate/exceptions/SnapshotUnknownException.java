@@ -27,10 +27,6 @@ import java.util.Locale;
 
 public class SnapshotUnknownException extends ResourceUnknownException {
 
-    public SnapshotUnknownException(SnapshotId snapshotId) {
-        super(errorMsg(snapshotId));
-    }
-
     public SnapshotUnknownException(SnapshotId snapshotId, Throwable cause) {
         super(errorMsg(snapshotId), cause);
     }

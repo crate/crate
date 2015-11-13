@@ -49,7 +49,6 @@ public class SymbolToFieldExtractor<T> {
     public abstract static class Context {
         private final List<Reference> references;
         private final Functions functions;
-        private String[] referenceNames;
 
         public Context(Functions functions, int size) {
             this.functions = functions;

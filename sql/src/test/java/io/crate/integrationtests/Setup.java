@@ -164,7 +164,7 @@ public class Setup {
         transportExecutor.exec("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
         transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
         transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
-        transportExecutor.refresh("characters");
+        transportExecutor.exec("refresh table characters");
     }
 
     public void setUpEmployees() {
@@ -190,7 +190,7 @@ public class Setup {
             new Object[]{"ratbert", "HR", 0.50});
         transportExecutor.exec("insert into employees (name, department, age) values (?, ?, ?)",
             new Object[]{"asok", "internship", 28});
-        transportExecutor.refresh("employees");
+        transportExecutor.exec("refresh table employees");
     }
 
     public void setUpObjectTable() {
@@ -222,7 +222,7 @@ public class Setup {
                         }}
                 }
         );
-        transportExecutor.refresh("ot");
+        transportExecutor.exec("refresh table ot");
     }
 
     public void setUpArrayTables() {
@@ -240,7 +240,7 @@ public class Setup {
                         4, null, null, Arrays.asList("kuhl", null)
                 );
         assertThat(response.rowCount(), is(4L));
-        transportExecutor.refresh("any_table");
+        transportExecutor.exec("refresh table any_table");
     }
 
     public void partitionTableSetup() {
@@ -255,7 +255,7 @@ public class Setup {
         transportExecutor.exec("insert into parted (id, date) values (3, '2014-02-01')");
         transportExecutor.exec("insert into parted (id, date) values (4, '2014-02-01')");
         transportExecutor.exec("insert into parted (id, date) values (5, '2014-02-01')");
-        transportExecutor.refresh("parted");
+        transportExecutor.exec("refresh table parted");
     }
 
     public void createTestTableWithPrimaryKey() {
@@ -277,6 +277,6 @@ public class Setup {
                         new Object[]{4, "Arthur", true}
                 }
         );
-        transportExecutor.refresh("characters");
+        transportExecutor.exec("refresh table characters");
     }
 }
