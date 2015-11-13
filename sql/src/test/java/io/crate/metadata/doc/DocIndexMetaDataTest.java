@@ -1200,6 +1200,30 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertThat(mdWithStringCol.schemaEquals(mdWithStringColNotAnalyzed), is(false));
         assertThat(mdWithStringColNotAnalyzed.schemaEquals(mdWithStringColNotAnalyzedAndIndex), is(false));
     }
+
+    @Test
+    public void testSchemaWithGeneratedColumn() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("_meta")
+                    .startObject("generated_columns")
+                        .field("week", "date_trunc('week', ts)")
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                    .startObject("ts").field("type", "date").endObject()
+                    .startObject("week").field("type", "long").endObject()
+                .endObject();
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder, ImmutableSettings.EMPTY, null);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertThat(md.columns().size(), is(2));
+        ReferenceInfo week = md.references().get(new ColumnIdent("week"));
+        assertThat(week, Matchers.notNullValue());
+        assertThat(week, instanceOf(GeneratedReferenceInfo.class));
+        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), is("date_trunc('week', ts)"));
+    }
 }
 
 
