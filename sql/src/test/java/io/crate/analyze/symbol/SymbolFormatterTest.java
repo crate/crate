@@ -119,7 +119,7 @@ public class SymbolFormatterTest extends CrateUnitTest {
                 put("inner", -0.00005d);
             }});
         }});
-        assertFormat(l, "{'array': [1, 2, 3], 'field': 'value', 'nestedMap': {'inner': -5.0E-5}}");
+        assertFormat(l, "{\"array\"=[1, 2, 3], \"field\"='value', \"nestedMap\"={\"inner\"=-5.0E-5}}");
     }
 
     @Test
@@ -163,14 +163,14 @@ public class SymbolFormatterTest extends CrateUnitTest {
 
     @Test
     public void testNullKey() throws Exception {
-        assertFormat(Literal.newLiteral(new HashMap<String, Object>(){{ put("null", null);}}), "{'null': NULL}");
+        assertFormat(Literal.newLiteral(new HashMap<String, Object>(){{ put("null", null);}}), "{\"null\"=NULL}");
     }
 
     @Test
     public void testNativeArray() throws Exception {
         assertFormat(
                 Literal.newLiteral(DataTypes.GEO_SHAPE, ImmutableMap.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d})),
-                "{'coordinates': [1.0, 2.0], 'type': 'Point'}");
+                "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}");
 
     }
 }

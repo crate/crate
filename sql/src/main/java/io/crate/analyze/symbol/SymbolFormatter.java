@@ -22,16 +22,10 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Schemas;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Array;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
@@ -119,71 +113,6 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     }
 
     private String formatValue(Object value) {
-        return formatValue(value, new StringBuilder()).toString();
-    }
-
-    @SuppressWarnings("unchecked")
-    private StringBuilder formatValue(Object value, StringBuilder builder) {
-        if (value == null) {
-            builder.append("NULL");
-        } else if (value instanceof Map) {
-            formatMap((Map<String, Object>) value, builder);
-        } else if (value instanceof List) {
-            formatList((List<?>) value, builder);
-        } else if (value instanceof Object[]) {
-            formatList(ImmutableList.copyOf((Object[])value), builder);
-        } else if (value.getClass().isArray()) {
-            formatArray(value, builder);
-        } else if (value instanceof CharSequence || value instanceof Character) {
-            builder.append("'").append(value.toString()).append("'");
-        } else if (value instanceof BytesRef) {
-            builder.append("'").append(((BytesRef)value).utf8ToString()).append("'");
-        } else {
-            builder.append(value.toString());
-        }
-        return builder;
-    }
-
-    private void formatMap(Map<String, Object> map, StringBuilder builder) {
-        builder.append("{");
-        boolean first = true;
-        for (Map.Entry<String, Object> entry : new TreeMap<>(map).entrySet()) {
-            if (!first) {
-                builder.append(", ");
-            } else {
-                first = false;
-            }
-            builder.append("'").append(entry.getKey()).append("': ");
-            formatValue(entry.getValue(), builder);
-        }
-        builder.append("}");
-    }
-
-    private void formatArray(Object array, StringBuilder builder) {
-        builder.append('[');
-        boolean first = true;
-        for (int i = 0, length=Array.getLength(array); i < length; i++) {
-            if (!first) {
-                builder.append(", ");
-            } else {
-                first = false;
-            }
-            formatValue(Array.get(array, i), builder);
-        }
-        builder.append(']');
-    }
-
-    private void formatList(List<?> value, StringBuilder builder) {
-        builder.append('[');
-        boolean first = true;
-        for (Object elem : value) {
-            if (!first) {
-                builder.append(", ");
-            } else {
-                first = false;
-            }
-            formatValue(elem, builder);
-        }
-        builder.append(']');
+        return LiteralValueFormatter.INSTANCE.format(value);
     }
 }

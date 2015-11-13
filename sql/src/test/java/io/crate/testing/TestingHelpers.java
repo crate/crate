@@ -31,6 +31,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.Sorted;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -110,7 +111,7 @@ public class TestingHelpers {
                     out.print("]");
                 } else if (o instanceof Map) {
                     out.print("{");
-                    out.print(MAP_JOINER.join(sortMapByKeyRecursive((Map<String, Object>)o, true)));
+                    out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>)o, true)));
                     out.print("}");
                 } else {
                     out.print(o.toString());
@@ -123,50 +124,8 @@ public class TestingHelpers {
 
     private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
 
-    private static LinkedHashMap<String, Object> sortMapByKeyRecursive(Map<String, Object> map) {
-        return sortMapByKeyRecursive(map, false);
-    }
-
-    private static LinkedHashMap<String, Object> sortMapByKeyRecursive(Map<String, Object> map, boolean sortOnlyMaps) {
-        LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
-        ArrayList<String> sortedKeys = Lists.newArrayList(map.keySet());
-        Collections.sort(sortedKeys);
-        for (String sortedKey : sortedKeys) {
-            Object o = map.get(sortedKey);
-            if (o instanceof Map) {
-                //noinspection unchecked
-                sortedMap.put(sortedKey, sortMapByKeyRecursive((Map<String, Object>) o, sortOnlyMaps));
-            } else if (o instanceof Collection) {
-                sortedMap.put(sortedKey, sortOnlyMaps ? o : sortCollectionRecursive((Collection) o));
-            } else {
-                sortedMap.put(sortedKey, o);
-            }
-        }
-        return sortedMap;
-    }
-
-    private static Collection sortCollectionRecursive(Collection collection) {
-        if (collection.size() == 0) {
-            return collection;
-        }
-        Object firstElement = collection.iterator().next();
-        if (firstElement instanceof Map) {
-            ArrayList sortedList = new ArrayList(collection.size());
-            for (Object obj : collection) {
-                //noinspection unchecked
-                sortedList.add(sortMapByKeyRecursive((Map<String, Object>) obj, true));
-            }
-            Collections.sort(sortedList);
-            return sortedList;
-        }
-
-        ArrayList sortedList = Lists.newArrayList(collection);
-        Collections.sort(sortedList);
-        return sortedList;
-    }
-
     public static String mapToSortedString(Map<String, Object> map) {
-        return MAP_JOINER.join(sortMapByKeyRecursive(map));
+        return MAP_JOINER.join(Sorted.sortRecursive(map));
     }
 
     /**

@@ -142,7 +142,9 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
     @Test
     public void testNormalizeFromInvalidObject() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast {'coordinates': [[0.0, 0.0], [42.0, 0.0], [42.0, 1.0], [42.0, 42.0], [1.0, 42.0], [0.0, 0.0]], 'type': 'Polygon'} to geo_shape");
+        expectedException.expectMessage("cannot cast {\"coordinates\"=[[0.0, 0.0], [42.0, 0.0], " +
+                                        "[42.0, 1.0], [42.0, 42.0], " +
+                                        "[1.0, 42.0], [0.0, 0.0]], \"type\"='Polygon'} to geo_shape");
         normalize(FUNCTION_NAME, INVALID_OBJECT, DataTypes.OBJECT);
     }
 

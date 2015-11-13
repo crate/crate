@@ -30,9 +30,10 @@ import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
 public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -65,7 +66,7 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeFromInvalidLiteral() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot convert \"{coordinates=[0, 0], type=LineString}\" to geo_shape");
+        expectedException.expectMessage(stringContainsInOrder(Arrays.asList("Cannot convert", "to geo_shape")));
         Symbol normalized = normalize(FUNCTION_NAME,
                 Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[0, 0]}")),
                 Literal.newLiteral("LINESTRING (0 2, 0 -2)"));

@@ -34,7 +34,6 @@ public class StringUtils {
     public static final Splitter PATH_SPLITTER = Splitter.on('.');
     public static final Joiner PATH_JOINER = Joiner.on('.');
 
-
     /**
      * Return the common ancestors of a list of fields.<br>
      * A field is a string that can use the dotted-notation to indicate nesting.<br>
