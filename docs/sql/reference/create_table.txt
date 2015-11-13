@@ -110,7 +110,7 @@ distributed accross a cluster.
     Must be greater than 0; the default is 5.
 
 :routing_column: allows to explicitly specify a column or field on
-    which basis rows are sharded. all rows having the same value in
+    which basis rows are sharded. All rows having the same value in
     ``routing_column`` are stored in the same shard. The default is
     the primary key if specified, otherwise the internal ``_id``
     column.
@@ -133,14 +133,12 @@ in the listed columns.
 Several restrictions apply to columns that can be used here:
 
 * columns may not be part of :ref:`ref_clustered_clause`.
-* columns may not be of type array or inside an array (e.g. an object array).
-* columns may not be of type object.
+* columns must be a :ref:`primitive type <sql_ddl_datatypes_primitives>`.
+* columns may not be inside an object array.
 * columns may not be indexed with a :ref:`sql_ddl_index_fulltext`.
 * if the table has a :ref:`primary_key_constraint` the columns in PARTITIONED clause have to be part of it
 
-
 .. note:: Columns referenced in the PARTITIONED clause cannot be altered by an ``UPDATE`` statement.
-
 
 
 .. _with_clause:
