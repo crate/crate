@@ -338,4 +338,12 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ParsingException.class);
         analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')");
     }
+
+    @Test
+    public void testCreatePartitionedByGeoShape() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use column 'shape' of type geo_shape in PARTITIONED BY clause");
+        analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
+
+    }
 }

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.Streamer;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -266,6 +267,35 @@ public class DataTypes {
         return dataType;
     }
 
+    private static final ImmutableMap<String, DataType> MAPPING_NAMES_TO_TYPES = ImmutableMap.<String, DataType>builder()
+            .put("date", DataTypes.TIMESTAMP)
+            .put("string", DataTypes.STRING)
+            .put("boolean", DataTypes.BOOLEAN)
+            .put("byte", DataTypes.BYTE)
+            .put("short", DataTypes.SHORT)
+            .put("integer", DataTypes.INTEGER)
+            .put("long", DataTypes.LONG)
+            .put("float", DataTypes.FLOAT)
+            .put("double", DataTypes.DOUBLE)
+            .put("ip", DataTypes.IP)
+            .put("geo_point", DataTypes.GEO_POINT)
+            .put("geo_shape", DataTypes.GEO_SHAPE)
+            .put("object", DataTypes.OBJECT)
+            .put("nested", DataTypes.OBJECT).build();
+
+    @Nullable
+    public static DataType ofMappingName(String name) {
+        return MAPPING_NAMES_TO_TYPES.get(name);
+    }
+
+    public static DataType ofMappingNameSafe(String name) {
+        DataType dataType = ofMappingName(name);
+        if (dataType == null) {
+            throw new IllegalArgumentException("Cannot find data type of mapping name " + name);
+        }
+        return dataType;
+    }
+
     public static DataType ofJsonObject(Object type) {
         if (type instanceof List) {
             int idCollectionType = (Integer) ((List) type).get(0);
@@ -276,10 +306,14 @@ public class DataTypes {
         return TYPE_REGISTRY.get(type).create();
     }
 
+    public static boolean isPrimitive(DataType type) {
+        return PRIMITIVE_TYPES.contains(type);
+    }
+
     public static void register(int id, DataTypeFactory dataTypeFactory) {
         if (TYPE_REGISTRY.put(id, dataTypeFactory) != null) {
             throw new IllegalArgumentException("Already got a dataType with id " + id);
-        };
+        }
     }
 
     public static Streamer<?>[] getStreamer(Collection<? extends DataType> dataTypes) {

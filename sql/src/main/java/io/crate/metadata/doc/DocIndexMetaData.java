@@ -90,22 +90,6 @@ public class DocIndexMetaData {
 
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
-    private final static ImmutableMap<String, DataType> dataTypeMap = ImmutableMap.<String, DataType>builder()
-            .put("date", DataTypes.TIMESTAMP)
-            .put("string", DataTypes.STRING)
-            .put("boolean", DataTypes.BOOLEAN)
-            .put("byte", DataTypes.BYTE)
-            .put("short", DataTypes.SHORT)
-            .put("integer", DataTypes.INTEGER)
-            .put("long", DataTypes.LONG)
-            .put("float", DataTypes.FLOAT)
-            .put("double", DataTypes.DOUBLE)
-            .put("ip", DataTypes.IP)
-            .put("geo_point", DataTypes.GEO_POINT)
-            .put("geo_shape", DataTypes.GEO_SHAPE)
-            .put("object", DataTypes.OBJECT)
-            .put("nested", DataTypes.OBJECT).build();
-
     public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
         this.ident = ident;
         this.metaData = metaData;
@@ -229,7 +213,7 @@ public class DocIndexMetaData {
             type = new ArrayType(innerType);
         } else {
             typeName = typeName.toLowerCase(Locale.ENGLISH);
-            type = MoreObjects.firstNonNull(dataTypeMap.get(typeName), DataTypes.NOT_SUPPORTED);
+            type = MoreObjects.firstNonNull(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
         }
         return type;
     }
