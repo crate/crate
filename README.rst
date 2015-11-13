@@ -135,11 +135,15 @@ Help & Contact
 ==============
 
 Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to swing by our IRC channel #crate on Freenode_.
+to help you. So, feel free to to contact us via Gitter.
+
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+  :alt: Join the chat at https://gitter.im/crate/crate
+  :target: https://gitter.im/crate/crate?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+  
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
-.. _Freenode: http://freenode.net
 .. _documentation: https://crate.io/docs/stable/installation.html
 .. _download: https://crate.io/download/
 .. _crate introduction: https://crate.io/docs/stable/hello.html
