@@ -37,8 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
-    public static final String NAME = "data";
-
     private static final ESLogger LOGGER = Loggers.getLogger(NodeFsDataExpression.class);
 
     private final SigarService sigarService;

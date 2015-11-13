@@ -28,8 +28,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 
 public class NodeIdExpression extends SysNodeExpression<BytesRef> {
 
-    public static final String NAME = "id";
-
     private final ClusterService clusterService;
     private BytesRef value;
 

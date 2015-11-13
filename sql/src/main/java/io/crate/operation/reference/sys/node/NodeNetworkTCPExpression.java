@@ -26,7 +26,6 @@ import org.elasticsearch.monitor.network.NetworkStats;
 
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "tcp";
     private static final Long VALUE_UNAVAILABLE = -1L;
 
     public NodeNetworkTCPExpression(NetworkStats stats) {

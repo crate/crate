@@ -21,13 +21,12 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.monitor.os.OsStats;
 
 
 public class NodeOsExpression extends SysNodeObjectReference {
-
-    public static final String NAME = "os";
 
     abstract class OsExpression extends SysNodeExpression<Object> {
     }
@@ -59,7 +58,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
                 return os.timestamp();
             }
         });
-        childImplementations.put(NodeOsCpuExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_OS_CPU,
                 new NodeOsCpuExpression(os));
     }
 

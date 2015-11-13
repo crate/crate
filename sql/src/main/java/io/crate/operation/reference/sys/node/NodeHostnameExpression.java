@@ -27,8 +27,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 
 public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
-    public static final String NAME = "hostname";
-
     private final ClusterService clusterService;
 
     public NodeHostnameExpression(ClusterService clusterService) {

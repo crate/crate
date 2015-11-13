@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added os and jvm infos to sys.nodes table
+
  - sort columns in ``sys`` and `` information_schema`` tables
    alphabetically when selecting all columns with ``*``
 

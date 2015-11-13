@@ -29,8 +29,6 @@ public class NodeHeapExpression extends SysNodeObjectReference {
     abstract class HeapExpression extends SysNodeExpression<Object> {
     }
 
-    public static final String NAME = "heap";
-
     public static final String MAX = "max";
     public static final String FREE = "free";
     public static final String USED = "used";

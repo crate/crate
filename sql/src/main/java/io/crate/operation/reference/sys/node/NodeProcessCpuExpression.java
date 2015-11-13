@@ -26,7 +26,6 @@ import org.elasticsearch.monitor.process.ProcessStats;
 
 public class NodeProcessCpuExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "cpu";
     public static final String PERCENT = "percent";
     public static final String USER = "user";
     public static final String SYSTEM = "system";

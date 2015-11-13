@@ -22,6 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.cluster.ClusterService;
@@ -47,9 +48,9 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NetworkService networkService;
 
     private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
-            NodeMemoryExpression.NAME,
-            NodeLoadExpression.NAME,
-            NodeOsExpression.NAME
+            SysNodesTableInfo.SYS_COL_MEM,
+            SysNodesTableInfo.SYS_COL_LOAD,
+            SysNodesTableInfo.SYS_COL_OS
     );
 
     @Inject
@@ -66,23 +67,23 @@ public class NodeSysExpression extends NestedObjectExpression {
         this.osService = osService;
         this.jvmService = jvmService;
         this.networkService = networkService;
-        childImplementations.put(NodeFsExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_FS,
                 new NodeFsExpression(sigarService, nodeEnvironment));
-        childImplementations.put(NodeHostnameExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
-        childImplementations.put(NodeRestUrlExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
                 new NodeRestUrlExpression(clusterService));
-        childImplementations.put(NodeIdExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_ID,
                 new NodeIdExpression(clusterService));
-        childImplementations.put(NodeNameExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
                 new NodeNameExpression(discovery));
-        childImplementations.put(NodePortExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_PORT,
                 new NodePortExpression(nodeService));
-        childImplementations.put(NodeVersionExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_VERSION,
                 new NodeVersionExpression());
-        childImplementations.put(NodeThreadPoolsExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_THREAD_POOLS,
                 new NodeThreadPoolsExpression(threadPool));
-        childImplementations.put(NodeOsInfoExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_OS_INFO,
                 new NodeOsInfoExpression(osService.info()));
     }
 
@@ -90,19 +91,19 @@ public class NodeSysExpression extends NestedObjectExpression {
     public ReferenceImplementation getChildImplementation(String name) {
         if (EXPRESSIONS_WITH_OS_STATS.contains(name)) {
             OsStats osStats = osService.stats();
-            if (NodeMemoryExpression.NAME.equals(name)) {
+            if (SysNodesTableInfo.SYS_COL_MEM.equals(name)) {
                 return new NodeMemoryExpression(osStats);
-            } else if (NodeLoadExpression.NAME.equals(name)) {
+            } else if (SysNodesTableInfo.SYS_COL_LOAD.equals(name)) {
                 return new NodeLoadExpression(osStats);
-            } else if (NodeOsExpression.NAME.equals(name)) {
+            } else if (SysNodesTableInfo.SYS_COL_OS.equals(name)) {
                 return new NodeOsExpression(osStats);
             }
-        } else if (NodeProcessExpression.NAME.equals(name)) {
+        } else if (SysNodesTableInfo.SYS_COL_PROCESS.equals(name)) {
             return new NodeProcessExpression(nodeService.info().getProcess(),
                     nodeService.stats().getProcess());
-        } else if (NodeHeapExpression.NAME.equals(name)) {
+        } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
             return new NodeHeapExpression(jvmService.stats());
-        } else if (NodeNetworkExpression.NAME.equals(name)) {
+        } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
             return new NodeNetworkExpression(networkService.stats());
         }
         return super.getChildImplementation(name);

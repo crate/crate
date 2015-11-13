@@ -39,7 +39,6 @@ import java.util.List;
 
 public class NodeFsDisksExpression extends SysObjectArrayReference {
 
-    public static final String NAME = "disks";
     private static final ESLogger logger = Loggers.getLogger(NodeFsDisksExpression.class);
     private final SigarService sigarService;
 

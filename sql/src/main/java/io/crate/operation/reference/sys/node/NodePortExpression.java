@@ -29,8 +29,6 @@ import org.elasticsearch.node.service.NodeService;
 
 public class NodePortExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "port";
-
     abstract class PortExpression extends SysNodeExpression<Integer> {
     }
 

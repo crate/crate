@@ -27,8 +27,6 @@ import org.elasticsearch.monitor.os.OsStats;
 
 public class NodeOsCpuExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "cpu";
-
     abstract class CpuExpression extends SysNodeExpression<Object> {
     }
 

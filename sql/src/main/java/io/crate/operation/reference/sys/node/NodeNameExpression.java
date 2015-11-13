@@ -26,7 +26,6 @@ import org.elasticsearch.discovery.Discovery;
 
 public class NodeNameExpression extends SysNodeExpression<BytesRef> {
 
-    public static final String NAME = "name";
     private final Discovery discovery;
     private BytesRef value = null;
 

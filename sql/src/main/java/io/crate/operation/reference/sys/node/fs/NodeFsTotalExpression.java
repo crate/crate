@@ -43,8 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 public class NodeFsTotalExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "total";
-
     public static final String SIZE = "size";
     public static final String USED = "used";
     public static final String AVAILABLE = "available";

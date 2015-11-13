@@ -26,8 +26,6 @@ import org.elasticsearch.monitor.os.OsStats;
 
 public class NodeLoadExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "load";
-
     public static final String ONE = "1";
     public static final String FIVE = "5";
     public static final String FIFTEEN = "15";

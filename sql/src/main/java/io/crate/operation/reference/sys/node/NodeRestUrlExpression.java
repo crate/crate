@@ -26,8 +26,6 @@ import org.elasticsearch.cluster.ClusterService;
 
 public class NodeRestUrlExpression extends SysNodeExpression<BytesRef> {
 
-    public static final String NAME = "rest_url";
-
     private final ClusterService clusterService;
 
     public NodeRestUrlExpression(ClusterService clusterService) {

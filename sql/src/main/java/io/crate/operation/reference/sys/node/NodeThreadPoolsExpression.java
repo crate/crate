@@ -26,8 +26,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 public class NodeThreadPoolsExpression extends SysStaticObjectArrayReference {
 
-    public static final String NAME = "thread_pools";
-
     private final ThreadPool threadPool;
 
     protected NodeThreadPoolsExpression(ThreadPool threadPool) {

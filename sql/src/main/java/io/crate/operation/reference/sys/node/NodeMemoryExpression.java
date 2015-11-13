@@ -29,8 +29,6 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     abstract class MemoryExpression extends SysNodeExpression<Object> {
     }
 
-    public static final String NAME = "mem";
-
     public static final String FREE = "free";
     public static final String USED = "used";
     public static final String FREE_PERCENT = "free_percent";

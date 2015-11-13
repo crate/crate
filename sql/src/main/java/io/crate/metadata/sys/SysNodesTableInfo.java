@@ -48,6 +48,29 @@ public class SysNodesTableInfo extends SysTableInfo {
     private final Map<ColumnIdent, ReferenceInfo> infos;
     private final Set<ReferenceInfo> columns;
 
+    public static final String SYS_COL_ID = "id";
+    public static final String SYS_COL_NODE_NAME = "name";
+    public static final String SYS_COL_HOSTNAME = "hostname";
+    public static final String SYS_COL_REST_URL = "rest_url";
+    public static final String SYS_COL_PORT = "port";
+    public static final String SYS_COL_LOAD = "load";
+    public static final String SYS_COL_MEM = "mem";
+    public static final String SYS_COL_HEAP = "heap";
+    public static final String SYS_COL_VERSION = "version";
+    public static final String SYS_COL_THREAD_POOLS = "thread_pools";
+    public static final String SYS_COL_NETWORK = "network";
+    public static final String SYS_COL_NETWORK_TCP = "tcp";
+    public static final String SYS_COL_OS = "os";
+    public static final String SYS_COL_OS_CPU = "cpu";
+    public static final String SYS_COL_OS_INFO = "os_info";
+    public static final String SYS_COL_OS_INFO_JVM = "jvm";
+    public static final String SYS_COL_PROCESS = "process";
+    public static final String SYS_COL_PROCESS_CPU = "cpu";
+    public static final String SYS_COL_FS = "fs";
+    public static final String SYS_COL_FS_TOTAL = "total";
+    public static final String SYS_COL_FS_DISKS = "disks";
+    public static final String SYS_COL_FS_DATA = "data";
+
 
     public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
         super(service, sysSchemaInfo);
@@ -55,110 +78,118 @@ public class SysNodesTableInfo extends SysTableInfo {
         DataType objectArrayType = new ArrayType(DataTypes.OBJECT);
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.NODE)
-           .register("id", DataTypes.STRING, null)
-           .register("name", DataTypes.STRING, null)
-           .register("hostname", DataTypes.STRING, null)
-           .register("rest_url", DataTypes.STRING, null)
+           .register(SYS_COL_ID, DataTypes.STRING, null)
+           .register(SYS_COL_NODE_NAME, DataTypes.STRING, null)
+           .register(SYS_COL_HOSTNAME, DataTypes.STRING, null)
+           .register(SYS_COL_REST_URL, DataTypes.STRING, null)
 
-           .register("port", DataTypes.OBJECT, null)
-           .register("port", DataTypes.INTEGER, ImmutableList.of("http"))
-           .register("port", DataTypes.INTEGER, ImmutableList.of("transport"))
+           .register(SYS_COL_PORT, DataTypes.OBJECT, null)
+           .register(SYS_COL_PORT, DataTypes.INTEGER, ImmutableList.of("http"))
+           .register(SYS_COL_PORT, DataTypes.INTEGER, ImmutableList.of("transport"))
 
-           .register("load", DataTypes.OBJECT, null)
-           .register("load", DataTypes.DOUBLE, ImmutableList.of("1"))
-           .register("load", DataTypes.DOUBLE, ImmutableList.of("5"))
-           .register("load", DataTypes.DOUBLE, ImmutableList.of("15"))
-           .register("load", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_LOAD, DataTypes.OBJECT, null)
+           .register(SYS_COL_LOAD, DataTypes.DOUBLE, ImmutableList.of("1"))
+           .register(SYS_COL_LOAD, DataTypes.DOUBLE, ImmutableList.of("5"))
+           .register(SYS_COL_LOAD, DataTypes.DOUBLE, ImmutableList.of("15"))
+           .register(SYS_COL_LOAD, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
 
-           .register("mem", DataTypes.OBJECT, null)
-           .register("mem", DataTypes.LONG, ImmutableList.of("free"))
-           .register("mem", DataTypes.LONG, ImmutableList.of("used"))
-           .register("mem", DataTypes.SHORT, ImmutableList.of("free_percent"))
-           .register("mem", DataTypes.SHORT, ImmutableList.of("used_percent"))
-           .register("mem", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_MEM, DataTypes.OBJECT, null)
+           .register(SYS_COL_MEM, DataTypes.LONG, ImmutableList.of("free"))
+           .register(SYS_COL_MEM, DataTypes.LONG, ImmutableList.of("used"))
+           .register(SYS_COL_MEM, DataTypes.SHORT, ImmutableList.of("free_percent"))
+           .register(SYS_COL_MEM, DataTypes.SHORT, ImmutableList.of("used_percent"))
+           .register(SYS_COL_MEM, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
 
-           .register("heap", DataTypes.OBJECT, null)
-           .register("heap", DataTypes.LONG, ImmutableList.of("free"))
-           .register("heap", DataTypes.LONG, ImmutableList.of("used"))
-           .register("heap", DataTypes.LONG, ImmutableList.of("max"))
-           .register("heap", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_HEAP, DataTypes.OBJECT, null)
+           .register(SYS_COL_HEAP, DataTypes.LONG, ImmutableList.of("free"))
+           .register(SYS_COL_HEAP, DataTypes.LONG, ImmutableList.of("used"))
+           .register(SYS_COL_HEAP, DataTypes.LONG, ImmutableList.of("max"))
+           .register(SYS_COL_HEAP, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
 
-           .register("version", DataTypes.OBJECT, null)
-           .register("version", StringType.INSTANCE, ImmutableList.of("number"))
-           .register("version", StringType.INSTANCE, ImmutableList.of("build_hash"))
-           .register("version", DataTypes.BOOLEAN, ImmutableList.of("build_snapshot"))
+           .register(SYS_COL_VERSION, DataTypes.OBJECT, null)
+           .register(SYS_COL_VERSION, StringType.INSTANCE, ImmutableList.of("number"))
+           .register(SYS_COL_VERSION, StringType.INSTANCE, ImmutableList.of("build_hash"))
+           .register(SYS_COL_VERSION, DataTypes.BOOLEAN, ImmutableList.of("build_snapshot"))
 
-           .register("thread_pools", objectArrayType, null)
-           .register("thread_pools", StringType.INSTANCE, ImmutableList.of("name"))
-           .register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("active"))
-           .register("thread_pools", LongType.INSTANCE, ImmutableList.of("rejected"))
-           .register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("largest"))
-           .register("thread_pools", LongType.INSTANCE, ImmutableList.of("completed"))
-           .register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("threads"))
-           .register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"))
+           .register(SYS_COL_THREAD_POOLS, objectArrayType, null)
+           .register(SYS_COL_THREAD_POOLS, StringType.INSTANCE, ImmutableList.of("name"))
+           .register(SYS_COL_THREAD_POOLS, IntegerType.INSTANCE, ImmutableList.of("active"))
+           .register(SYS_COL_THREAD_POOLS, LongType.INSTANCE, ImmutableList.of("rejected"))
+           .register(SYS_COL_THREAD_POOLS, IntegerType.INSTANCE, ImmutableList.of("largest"))
+           .register(SYS_COL_THREAD_POOLS, LongType.INSTANCE, ImmutableList.of("completed"))
+           .register(SYS_COL_THREAD_POOLS, IntegerType.INSTANCE, ImmutableList.of("threads"))
+           .register(SYS_COL_THREAD_POOLS, IntegerType.INSTANCE, ImmutableList.of("queue"))
 
-           .register("network", DataTypes.OBJECT, null)
-           .register("network", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
-           .register("network", DataTypes.OBJECT, ImmutableList.of("tcp"))
-           .register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "connections"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "initiated"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "accepted"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "curr_established"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "dropped"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "embryonic_dropped"))
-           .register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "packets"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "sent"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "received"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "retransmitted"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "errors_received"))
-           .register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "rst_sent"))
+           .register(SYS_COL_NETWORK, DataTypes.OBJECT, null)
+           .register(SYS_COL_NETWORK, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_NETWORK, DataTypes.OBJECT, ImmutableList.of("tcp"))
+           .register(SYS_COL_NETWORK, DataTypes.OBJECT, ImmutableList.of("tcp", "connections"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "connections", "initiated"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "connections", "accepted"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "connections", "curr_established"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "connections", "dropped"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "connections", "embryonic_dropped"))
+           .register(SYS_COL_NETWORK, DataTypes.OBJECT, ImmutableList.of("tcp", "packets"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "packets", "sent"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "packets", "received"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "packets", "retransmitted"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "packets", "errors_received"))
+           .register(SYS_COL_NETWORK, DataTypes.LONG, ImmutableList.of("tcp", "packets", "rst_sent"))
 
-           .register("os", DataTypes.OBJECT, null)
-           .register("os", DataTypes.LONG, ImmutableList.of("uptime"))
-           .register("os", DataTypes.TIMESTAMP, ImmutableList.of("timestamp"))
-           .register("os", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
-           .register("os", DataTypes.OBJECT, ImmutableList.of("cpu"))
-           .register("os", DataTypes.SHORT, ImmutableList.of("cpu", "system"))
-           .register("os", DataTypes.SHORT, ImmutableList.of("cpu", "user"))
-           .register("os", DataTypes.SHORT, ImmutableList.of("cpu", "idle"))
-           .register("os", DataTypes.SHORT, ImmutableList.of("cpu", "used"))
-           .register("os", DataTypes.SHORT, ImmutableList.of("cpu", "stolen"))
+           .register(SYS_COL_OS, DataTypes.OBJECT, null)
+           .register(SYS_COL_OS, DataTypes.LONG, ImmutableList.of("uptime"))
+           .register(SYS_COL_OS, DataTypes.TIMESTAMP, ImmutableList.of("timestamp"))
+           .register(SYS_COL_OS, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_OS, DataTypes.OBJECT, ImmutableList.of("cpu"))
+           .register(SYS_COL_OS, DataTypes.SHORT, ImmutableList.of("cpu", "system"))
+           .register(SYS_COL_OS, DataTypes.SHORT, ImmutableList.of("cpu", "user"))
+           .register(SYS_COL_OS, DataTypes.SHORT, ImmutableList.of("cpu", "idle"))
+           .register(SYS_COL_OS, DataTypes.SHORT, ImmutableList.of("cpu", "used"))
+           .register(SYS_COL_OS, DataTypes.SHORT, ImmutableList.of("cpu", "stolen"))
 
-           .register("os_info", DataTypes.OBJECT, null)
-           .register("os_info", DataTypes.INTEGER, ImmutableList.of("available_processors"))
+           .register(SYS_COL_OS_INFO, DataTypes.OBJECT, null)
+           .register(SYS_COL_OS_INFO, DataTypes.INTEGER, ImmutableList.of("available_processors"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("name"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("arch"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of(SYS_COL_VERSION))
+           .register(SYS_COL_OS_INFO, DataTypes.OBJECT, ImmutableList.of("jvm"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("jvm", SYS_COL_VERSION))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("jvm", "vm_name"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("jvm", "vm_vendor"))
+           .register(SYS_COL_OS_INFO, DataTypes.STRING, ImmutableList.of("jvm", "vm_version"))
 
-           .register("process", DataTypes.OBJECT, null)
-           .register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"))
-           .register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"))
-           .register("process", DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
-           .register("process", DataTypes.OBJECT, ImmutableList.of("cpu"))
-           .register("process", DataTypes.SHORT, ImmutableList.of("cpu", "percent"))
-           .register("process", DataTypes.LONG, ImmutableList.of("cpu", "user"))
-           .register("process", DataTypes.LONG, ImmutableList.of("cpu", "system"))
+           .register(SYS_COL_PROCESS, DataTypes.OBJECT, null)
+           .register(SYS_COL_PROCESS, DataTypes.LONG, ImmutableList.of("open_file_descriptors"))
+           .register(SYS_COL_PROCESS, DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"))
+           .register(SYS_COL_PROCESS, DataTypes.TIMESTAMP, ImmutableList.of("probe_timestamp"))
+           .register(SYS_COL_PROCESS, DataTypes.OBJECT, ImmutableList.of("cpu"))
+           .register(SYS_COL_PROCESS, DataTypes.SHORT, ImmutableList.of("cpu", "percent"))
+           .register(SYS_COL_PROCESS, DataTypes.LONG, ImmutableList.of("cpu", "user"))
+           .register(SYS_COL_PROCESS, DataTypes.LONG, ImmutableList.of("cpu", "system"))
 
-           .register("fs", DataTypes.OBJECT, null)
-           .register("fs", DataTypes.OBJECT, ImmutableList.of("total"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "size"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "used"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "available"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "reads"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "bytes_read"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "writes"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("total", "bytes_written"))
+           .register(SYS_COL_FS, DataTypes.OBJECT, null)
+           .register(SYS_COL_FS, DataTypes.OBJECT, ImmutableList.of("total"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "size"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "used"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "available"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "reads"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "bytes_read"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "writes"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("total", "bytes_written"))
 
-           .register("fs", objectArrayType, ImmutableList.of("disks"))
-           .register("fs", DataTypes.STRING, ImmutableList.of("disks", "dev"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "size"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "used"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "available"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "reads"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "bytes_read"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "writes"))
-           .register("fs", DataTypes.LONG, ImmutableList.of("disks", "bytes_written"))
+           .register(SYS_COL_FS, objectArrayType, ImmutableList.of("disks"))
+           .register(SYS_COL_FS, DataTypes.STRING, ImmutableList.of("disks", "dev"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "size"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "used"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "available"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "reads"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "bytes_read"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "writes"))
+           .register(SYS_COL_FS, DataTypes.LONG, ImmutableList.of("disks", "bytes_written"))
 
-           .register("fs", objectArrayType, ImmutableList.of("data"))
-           .register("fs", DataTypes.STRING, ImmutableList.of("data", "dev"))
-           .register("fs", DataTypes.STRING, ImmutableList.of("data", "path"));
+           .register(SYS_COL_FS, objectArrayType, ImmutableList.of("data"))
+           .register(SYS_COL_FS, DataTypes.STRING, ImmutableList.of("data", "dev"))
+           .register(SYS_COL_FS, DataTypes.STRING, ImmutableList.of("data", "path"));
 
         infos = registrar.infos();
         columns = registrar.columns();

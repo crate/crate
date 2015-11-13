@@ -21,59 +21,55 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.monitor.os.OsInfo;
 
-public class NodeOsInfoExpression extends SysNodeObjectReference {
+public class NodeOsJvmExpression extends SysNodeObjectReference {
 
-    private static final String AVAILABLE_PROCESSORS = "available_processors";
-    private static final String OS = "name";
-    private static final String ARCH = "arch";
     private static final String VERSION = "version";
+    private static final String VM_NAME = "vm_name";
+    private static final String VM_VENDOR = "vm_vendor";
+    private static final String VM_VERSION = "vm_version";
 
-    private static final BytesRef OS_NAME = BytesRefs.toBytesRef(Constants.OS_NAME);
-    private static final BytesRef OS_ARCH = BytesRefs.toBytesRef(Constants.OS_ARCH);
-    private static final BytesRef OS_VERSION = BytesRefs.toBytesRef(Constants.OS_VERSION);
+    private static final BytesRef JAVA_VERSION = BytesRefs.toBytesRef(Constants.JAVA_VERSION);
+    private static final BytesRef JVM_NAME = BytesRefs.toBytesRef(Constants.JVM_NAME);
+    private static final BytesRef JVM_VENDOR = BytesRefs.toBytesRef(Constants.JVM_VENDOR);
+    private static final BytesRef JVM_VERSION = BytesRefs.toBytesRef(Constants.JVM_VERSION);
 
-
-    abstract class OsInfoExpression extends SysNodeExpression<Object> {
+    abstract class JvmExpression extends SysNodeExpression<Object> {
     }
 
-    public NodeOsInfoExpression(OsInfo info) {
-        addChildImplementations(info);
+    public NodeOsJvmExpression() {
+        addChildImplementations();
     }
 
-    private void addChildImplementations(final OsInfo info) {
-        childImplementations.put(AVAILABLE_PROCESSORS, new OsInfoExpression() {
-            @Override
-            public Integer value() {
-                return info.availableProcessors();
-            }
-        });
-        childImplementations.put(OS, new OsInfoExpression() {
+    private void addChildImplementations() {
+        childImplementations.put(VERSION, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return OS_NAME;
+                return JAVA_VERSION;
             }
         });
-        childImplementations.put(ARCH, new OsInfoExpression() {
+        childImplementations.put(VM_NAME, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return OS_ARCH;
+                return JVM_NAME;
             }
         });
-        childImplementations.put(VERSION, new OsInfoExpression() {
+        childImplementations.put(VM_VENDOR, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return OS_VERSION;
+                return JVM_VENDOR;
             }
         });
-        childImplementations.put(SysNodesTableInfo.SYS_COL_OS_INFO_JVM, new NodeOsJvmExpression());
+        childImplementations.put(VM_VERSION, new JvmExpression() {
+            @Override
+            public BytesRef value() {
+                return JVM_VERSION;
+            }
+        });
     }
-
 }
-

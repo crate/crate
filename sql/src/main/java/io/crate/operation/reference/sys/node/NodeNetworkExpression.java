@@ -21,13 +21,13 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.network.NetworkStats;
 
 public class NodeNetworkExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "network";
     public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     @Inject
@@ -38,7 +38,7 @@ public class NodeNetworkExpression extends SysNodeObjectReference {
                 return stats.timestamp();
             }
         });
-        childImplementations.put(NodeNetworkTCPExpression.NAME,
+        childImplementations.put(SysNodesTableInfo.SYS_COL_NETWORK_TCP,
                 new NodeNetworkTCPExpression(stats));
     }
 
