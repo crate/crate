@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: properly restrict partitioned by columns to primitive types
+        during analysis
+
  - added functionality to index and match geo shapes
 
  - restrict WITHIN function to only accept geo_point (and compatible types)

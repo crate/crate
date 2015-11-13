@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -257,10 +259,11 @@ public class AnalyzedTableElements {
             }
             throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
         }
-        if (columnDefinition.dataType().equals("object")) {
+        DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
+        if (!DataTypes.isPrimitive(columnType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use object column '%s' in PARTITIONED BY clause",
-                    columnDefinition.ident().sqlFqn()));
+                    "Cannot use column '%s' of type %s in PARTITIONED BY clause",
+                    columnDefinition.ident().sqlFqn(), columnDefinition.dataType()));
         }
         if (columnDefinition.isArrayOrInArray()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
