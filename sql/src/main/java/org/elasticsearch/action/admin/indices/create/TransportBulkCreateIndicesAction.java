@@ -650,7 +650,7 @@ public class TransportBulkCreateIndicesAction
 
     @Override
     protected ClusterBlockException checkBlock(BulkCreateIndicesRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA, Iterables.toArray(request.indices(), String.class));
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, Iterables.toArray(request.indices(), String.class));
     }
 
     @Override

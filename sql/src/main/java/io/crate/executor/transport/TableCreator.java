@@ -36,6 +36,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -176,8 +177,7 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = clusterService.state().metaData().concreteIndices(
-                new String[]{partitionWildCard});
+        String[] orphans = clusterService.state().metaData().concreteIndices(IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
