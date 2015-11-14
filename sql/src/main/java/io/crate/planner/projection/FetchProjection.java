@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -104,11 +103,11 @@ public class FetchProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 }
