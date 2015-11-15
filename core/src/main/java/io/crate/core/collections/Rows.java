@@ -59,10 +59,6 @@ public class Rows implements Iterable<Row>, Streamable {
         return entries.add(new Entry(row.materialize()));
     }
 
-    public boolean add(Object[] row) {
-        return entries.add(new Entry(row));
-    }
-
     @Override
     public Iterator<Row> iterator() {
         return entries.iterator();

@@ -30,7 +30,7 @@ public class Buckets {
 
     public static Function<Object[], Row> arrayToRowFunction() {
         return new Function<Object[], Row>() {
-            ArrayRow row = new ArrayRow();
+            final ArrayRow row = new ArrayRow();
 
             @Override
             public Row apply(Object[] input) {

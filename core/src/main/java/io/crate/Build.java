@@ -59,9 +59,9 @@ public class Build {
         CURRENT = new Build(hash, hashShort, timestamp);
     }
 
-    private String hash;
-    private String hashShort;
-    private String timestamp;
+    private final String hash;
+    private final String hashShort;
+    private final String timestamp;
 
     Build(String hash, String hashShort, String timestamp) {
         this.hash = hash;

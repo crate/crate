@@ -46,13 +46,11 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
 
     private final ESLogger logger;
     private final CrateComponentLoader crateComponentLoader;
-    private final Settings settings;
     private final PluginLoader pluginLoader;
 
 
     public CrateCoreModule(Settings settings, CrateComponentLoader crateComponentLoader, PluginLoader pluginLoader) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
-        this.settings = settings;
         this.crateComponentLoader = crateComponentLoader;
         this.pluginLoader = pluginLoader;
     }

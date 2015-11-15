@@ -50,15 +50,14 @@ public class CrateRestFilter extends RestFilter {
     // handle possible (wrong) URL '//' too
     // as some http clients create wrong requests to the ``root`` path '/' with '//'
     // we do handle arbitrary numbers of '/' in the path
-    public static Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
+    public static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
 
-    private final ESLogger logger;
     private final boolean esApiEnabled;
 
     @Inject
     public CrateRestFilter(Settings settings) {
         this.esApiEnabled = settings.getAsBoolean(ES_API_ENABLED_SETTING, false);
-        logger =  Loggers.getLogger(getClass().getPackage().getName(), settings);
+        ESLogger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
 
