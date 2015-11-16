@@ -433,19 +433,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(308L, response.rowCount());
+        assertEquals(310L, response.rowCount());
     }
 
     @Test
     public void testColumnsColumns() throws Exception {
         execute("select * from information_schema.columns where schema_name='information_schema' and table_name='columns' order by ordinal_position asc");
-        assertEquals(5, response.rowCount());
-        short ordinal = 1;
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", "schema_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "columns", "table_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "columns", "column_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "columns", "ordinal_position", ordinal++, "short"});
-        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "columns", "data_type", ordinal, "string"});
+        assertThat(response.rowCount(), is(7L));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("information_schema| columns| schema_name| 1| string| false| NULL\n" +
+                   "information_schema| columns| table_name| 2| string| false| NULL\n" +
+                   "information_schema| columns| column_name| 3| string| false| NULL\n" +
+                   "information_schema| columns| ordinal_position| 4| short| false| NULL\n" +
+                   "information_schema| columns| data_type| 5| string| false| NULL\n" +
+                   "information_schema| columns| is_generated| 6| boolean| false| NULL\n" +
+                   "information_schema| columns| generation_expression| 7| string| false| NULL\n"));
     }
 
     @Test
