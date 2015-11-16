@@ -149,9 +149,7 @@ public class WriterProjection extends Projection {
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
-            ColumnIdent columnIdent = new ColumnIdent();
-            columnIdent.readFrom(in);
-            overwrites.put(columnIdent, Symbol.fromStream(in));
+            overwrites.put(ColumnIdent.fromStream(in), Symbol.fromStream(in));
         }
     }
 

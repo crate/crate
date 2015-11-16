@@ -55,7 +55,12 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     private String name;
     private List<String> path;
 
-    public ColumnIdent() {
+    private ColumnIdent() { }
+
+    public static ColumnIdent fromStream(StreamInput in) throws IOException {
+        ColumnIdent columnIdent = new ColumnIdent();
+        columnIdent.readFrom(in);
+        return columnIdent;
     }
 
     public ColumnIdent(String name) {
@@ -85,6 +90,9 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     public static ColumnIdent getChild(ColumnIdent parent, String name) {
+        if (parent.isColumn()) {
+            return new ColumnIdent(parent.name, name);
+        }
         List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
         return new ColumnIdent(parent.name, childPath);
     }

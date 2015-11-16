@@ -98,8 +98,7 @@ public class ReferenceIdent implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        columnIdent = new ColumnIdent();
-        columnIdent.readFrom(in);
+        columnIdent = ColumnIdent.fromStream(in);
         tableIdent = TableIdent.fromStream(in);
     }
 

@@ -226,32 +226,22 @@ public class DocIndexMetaData {
         return ReferenceInfo.IndexType.NOT_ANALYZED;
     }
 
-    private ColumnIdent childIdent(ColumnIdent ident, String name) {
+    private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
         if (ident == null) {
             return new ColumnIdent(name);
         }
-        if (ident.isColumn()) {
-            return new ColumnIdent(ident.name(), name);
-        } else {
-            ImmutableList.Builder<String> builder = ImmutableList.builder();
-            for (String s : ident.path()) {
-                builder.add(s);
-            }
-            builder.add(name);
-            return new ColumnIdent(ident.name(), builder.build());
-        }
+        return ColumnIdent.getChild(ident, name);
     }
 
     /**
      * extracts index definitions as well
      */
     @SuppressWarnings("unchecked")
-    private void internalExtractColumnDefinitions(ColumnIdent columnIdent,
-                                                  Map<String, Object> propertiesMap) {
+    private void internalExtractColumnDefinitions(@Nullable ColumnIdent columnIdent,
+                                                  @Nullable Map<String, Object> propertiesMap) {
         if (propertiesMap == null) {
             return;
         }
-
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnProperties);
