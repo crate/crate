@@ -82,8 +82,6 @@ arguments and returns a formatted string::
 
 For details about the format string syntax see `formatter`_
 
-.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-
 substr('string', from, [ count ]) returns string
 ------------------------------------------------
 
@@ -524,6 +522,8 @@ Returns the absolute value of the given number in the datatype of the given numb
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-ceil:
+
 ceil(number) returns long or integer
 ------------------------------------
 
@@ -542,6 +542,7 @@ long::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-floor:
 
 floor(number) returns long or integer
 -------------------------------------
@@ -628,6 +629,8 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
     Every call to ``random`` will yield a new random number.
 
+
+.. _scalar-round:
 
 round(number) returns long or integer
 -------------------------------------
@@ -1039,6 +1042,7 @@ It can be used to remove elements from array fields.
 
 .. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 
+.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
 .. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formular`: https://en.wikipedia.org/wiki/Haversine_formula
