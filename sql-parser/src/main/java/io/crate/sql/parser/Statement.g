@@ -598,7 +598,6 @@ specialFunction
     | TRY_CAST '(' expr AS dataType ')'            -> ^(TRY_CAST expr dataType)
     ;
 
-
 caseExpression
     : NULLIF '(' expr ',' expr ')'          -> ^(NULLIF expr expr)
     | COALESCE '(' expr (',' expr)* ')'     -> ^(COALESCE expr+)
@@ -932,8 +931,8 @@ columnDefinition
     ;
 
 generatedColumnDefinition
-    : ident GENERATED ALWAYS AS ('(' qnameOrFunction ')' | qnameOrFunction) -> ^(GENERATED_COLUMN_DEF ident qnameOrFunction)
-    | ident (dataType GENERATED ALWAYS)? AS ('(' qnameOrFunction ')' | qnameOrFunction) -> ^(GENERATED_COLUMN_DEF ident qnameOrFunction dataType?)
+    : ident GENERATED ALWAYS AS expr -> ^(GENERATED_COLUMN_DEF ident expr)
+    | ident (dataType GENERATED ALWAYS)? AS expr -> ^(GENERATED_COLUMN_DEF ident expr dataType?)
     ;
 
 dataType
