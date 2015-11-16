@@ -99,6 +99,7 @@ tokens {
     ADD_COLUMN;
     COLUMN_DEF;
     NESTED_COLUMN_DEF;
+    GENERATED_COLUMN_DEF;
     NOT_NULL;
     ALIASED_RELATION;
     SAMPLED_RELATION;
@@ -916,7 +917,8 @@ tableElementList
 
 
 tableElement
-    :   columnDefinition
+    : (generatedColumnDefinition) => generatedColumnDefinition
+    |   columnDefinition
     |   indexDefinition
     |   primaryKeyConstraint
     ;
@@ -927,6 +929,11 @@ nestedColumnDefinition
 
 columnDefinition
     : ident dataType columnConstDef* -> ^(COLUMN_DEF ident dataType columnConstDef*)
+    ;
+
+generatedColumnDefinition
+    : ident GENERATED ALWAYS AS ('(' qnameOrFunction ')' | qnameOrFunction) -> ^(GENERATED_COLUMN_DEF ident qnameOrFunction)
+    | ident (dataType GENERATED ALWAYS)? AS ('(' qnameOrFunction ')' | qnameOrFunction) -> ^(GENERATED_COLUMN_DEF ident qnameOrFunction dataType?)
     ;
 
 dataType
@@ -1259,6 +1266,8 @@ PERSISTENT: 'PERSISTENT';
 
 MATCH: 'MATCH';
 
+GENERATED: 'GENERATED';
+ALWAYS: 'ALWAYS';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
