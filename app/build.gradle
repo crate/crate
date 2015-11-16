@@ -279,7 +279,7 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_crateadmin_version = '0.15.3'
+    plugin_crateadmin_version = '0.16.0'
     plugin_repository_hdfs_version = '2.1.1-1'
     crash_version = '0.14.2'
 }

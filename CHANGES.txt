@@ -5,6 +5,17 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.16.0 which includes following changes:
+
+   - The table list is now fully searchable and sorted by table name within
+     its schemas.
+
+   - fix: charts are not correctly displayed in Microsoft Edge browser.
+
+   - UDC: identify anonymous user with cluster id.
+     Both user id and cluster id are anonymous traits.
+     Note: You can disable UDC via the `udc.enabled` setting on the Crate server.
+
  - implement ``intersects`` scalar function
 
  - fix: properly restrict partitioned by columns to primitive types
