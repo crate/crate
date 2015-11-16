@@ -44,6 +44,11 @@ UDC, and secondly, we want to keep pings from automatic tests to a minimum. By
 default, UDC is sending pings every 24 hours. The ping to the UDC servers is
 done with a HTTP GET.
 
+Admin UI tracking
+=================
+Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to 
+know how many active users are currently using Crate.
+
 Configuration
 =============
 The Usage Data Collector can be configured by adapting the ``crate.yml``
