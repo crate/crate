@@ -189,6 +189,43 @@ def tearDownColors(test):
     cmd.stmt("""drop table colors""")
 
 
+def setUpEmployees(test):
+    test.globs['cmd'] = cmd
+    cmd.stmt("""
+        create table employees (
+          id integer primary key,
+          name string,
+          surname string,
+          dept_id integer
+          sex string
+        ) with (number_of_replicas=0)""".strip())
+    emp_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "employees.json"))
+    cmd.stmt("""copy employees from '{0}'""".format(emp_file))
+    cmd.stmt("""refresh table employees""")
+
+
+def tearDownEmployees(test):
+    cmd.stmt("""drop table employees""")
+
+
+def setUpDepartments(test):
+    test.globs['cmd'] = cmd
+    cmd.stmt("""
+        create table departments (
+          id integer primary key,
+          name string,
+          manager_id integer,
+          location integer
+        ) with (number_of_replicas=0)""".strip())
+    dept_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "departments.json"))
+    cmd.stmt("""copy departments from '{0}'""".format(dept_file))
+    cmd.stmt("""refresh table departments""")
+
+
+def tearDownDepartments(test):
+    cmd.stmt("""drop table departments""")
+
+
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
     cmd.stmt("""
@@ -246,6 +283,16 @@ def setUpLocationsQuotesAndArticles(test):
 def tearDownLocationsQuotesAndArticles(test):
     tearDownLocationsAndQuotes(test)
     tearDownColorsAndArticles(test)
+
+
+def setUpEmployeesAndDepartments(test):
+    setUpEmployees(test)
+    setUpDepartments(test)
+
+
+def tearDownEmployeesAndDepartments(test):
+    tearDownEmployees(test)
+    tearDownDepartments(test)
 
 
 def setUpTutorials(test):
@@ -314,11 +361,21 @@ def test_suite():
         s.layer = empty_layer
         docs_suite.addTest(s)
 
+    for fn in ('sql/joins.txt', ):
+        s = doctest.DocFileSuite('../../' + fn,
+                                   parser=crash_parser,
+                                   setUp=setUpEmployeesAndDepartments,
+                                   tearDown=tearDownEmployeesAndDepartments,
+                                   optionflags=doctest.NORMALIZE_WHITESPACE |
+                                   doctest.ELLIPSIS)
+        s.layer = empty_layer
+        docs_suite.addTest(s)
+
     for fn in ('sql/queries.txt', ):
         s = doctest.DocFileSuite('../../' + fn,
                                    parser=crash_parser,
                                    setUp=setUpLocationsQuotesAndArticles,
-                                   tearDown=setUpLocationsQuotesAndArticles,
+                                   tearDown=tearDownLocationsQuotesAndArticles,
                                    optionflags=doctest.NORMALIZE_WHITESPACE |
                                    doctest.ELLIPSIS)
         s.layer = empty_layer
