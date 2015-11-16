@@ -616,6 +616,13 @@ public class TestStatementBuilder
         printStatement("create table test (col1 int, col2 GENERATED ALWAYS AS (date_trunc('day', col1)))");
         printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS (date_trunc('day', col1)))");
+
+        printStatement("create table test (col1 int, col2 AS cast(col1 as string))");
+        printStatement("create table test (col1 int, col2 AS (cast(col1 as string)))");
+        printStatement("create table test (col1 int, col2 AS col1 + 1)");
+        printStatement("create table test (col1 int, col2 AS (col1 + 1))");
+
+        printStatement("create table test (col1 int, col2 AS col1['name'] + 1)");
     }
 
     private static void printStatement(String sql)
