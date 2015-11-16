@@ -106,27 +106,25 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
                 context.multiRelation = true;
                 return function;
             } else if (leftMultiRel) {
+                context.multiRelation = true;
                 if (rightRelation != null) {
                     context.queries.put(rightRelation, right);
                     function.arguments().set(1, Literal.BOOLEAN_TRUE);
                     context.seenRelation = null;
                     return function;
-                } else {
-                    // pass up, since we are multirel anyways
-                    context.multiRelation = true;
-                    return function;
                 }
+                // pass up, since we are multirel anyways
+                return function;
             } else if (rightMultiRel) {
+                context.multiRelation = true;
                 if (leftRelation != null) {
                     context.queries.put(leftRelation, left);
                     function.arguments().set(0, Literal.BOOLEAN_TRUE);
                     context.seenRelation = null;
                     return function;
-                } else {
-                    // pass up, since we are multirel anyways
-                    context.multiRelation = true;
-                    return function;
                 }
+                // pass up, since we are multirel anyways
+                return function;
             }
             if (leftRelation != rightRelation) {
                 if (leftRelation == null) {

@@ -231,4 +231,14 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a"));
         assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.b"));
     }
+
+    @Test
+    public void testSplitOfSingleRelationTree() throws Exception {
+        QuerySpec querySpec = fromQuery("t1.a = t2.b and t1.a = 'employees'");
+        RelationSplitter splitter = split(querySpec);
+
+        assertThat(querySpec, isSQL("SELECT true WHERE doc.t1.a = doc.t2.b and true"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a WHERE doc.t1.a = 'employees'"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.b"));
+    }
 }
