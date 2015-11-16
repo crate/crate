@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/11/16 0.53.0
+=================
+
  - Updated crate-admin to 0.16.0 which includes following changes:
 
    - The table list is now fully searchable and sorted by table name within
