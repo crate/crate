@@ -608,6 +608,16 @@ public class TestStatementBuilder
         assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "my_schema.foo");
     }
 
+    @Test
+    public void testCreateTableWithGeneratedColumn() throws Exception {
+        printStatement("create table test (col1 int, col2 AS date_trunc('day', col1))");
+        printStatement("create table test (col1 int, col2 AS (date_trunc('day', col1)))");
+        printStatement("create table test (col1 int, col2 GENERATED ALWAYS AS date_trunc('day', col1))");
+        printStatement("create table test (col1 int, col2 GENERATED ALWAYS AS (date_trunc('day', col1)))");
+        printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS date_trunc('day', col1))");
+        printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS (date_trunc('day', col1)))");
+    }
+
     private static void printStatement(String sql)
     {
         println(sql.trim());

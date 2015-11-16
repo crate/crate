@@ -319,6 +319,22 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitGeneratedColumnDefinition(GeneratedColumnDefinition node, Integer indent) {
+            builder.append(quoteIdentifierIfNeeded(node.ident()))
+                    .append(" ");
+            ColumnType columnType = node.type();
+            if (columnType != null) {
+                columnType.accept(this, indent);
+                builder.append(" GENERATED ALWAYS ");
+            }
+
+            builder.append(" AS ")
+                    .append(formatExpression(node.expression()));
+
+            return null;
+        }
+
+        @Override
         public Void visitColumnType(ColumnType node, Integer indent) {
             builder.append(node.name().toUpperCase(Locale.ENGLISH));
             return null;

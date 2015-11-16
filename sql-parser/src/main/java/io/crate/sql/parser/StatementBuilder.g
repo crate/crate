@@ -842,7 +842,8 @@ tableElementList returns [List<TableElement> value = new ArrayList<>()]
     ;
 
 tableElement returns [TableElement value]
-    : columnDefinition { $value = $columnDefinition.value; }
+    : generatedColumnDefinition { $value = $generatedColumnDefinition.value; }
+    | columnDefinition { $value = $columnDefinition.value; }
     | indexDefinition  { $value = $indexDefinition.value; }
     | primaryKeyConstraint { $value = $primaryKeyConstraint.value; }
     ;
@@ -861,6 +862,13 @@ columnDefinition returns [ColumnDefinition value]
     : ^(COLUMN_DEF ident dataType columnConstraints)
         {
             $value = new ColumnDefinition($ident.value, $dataType.value, $columnConstraints.value);
+        }
+    ;
+
+generatedColumnDefinition returns [GeneratedColumnDefinition value]
+    : ^(GENERATED_COLUMN_DEF ident functionCall dataType?)
+        {
+            $value = new GeneratedColumnDefinition($ident.value, $functionCall.value, $dataType.value);
         }
     ;
 
