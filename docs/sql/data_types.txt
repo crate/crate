@@ -292,7 +292,7 @@ Each grid cell on each layer is addressed in 2d space either by a `Geohash`_ for
 or by tightly packed coordinates in a `Quadtree`_.
 Those addresses have the neat attribute that grid cells of lower layers inside a cell of an upper layer
 share the same address-prefix. So we are able to use a `Trie`_ to represent our grids.
-And `Tries <Trie>`_ can be queried very efficiently.
+And `Tries`_ can be queried very efficiently.
 Their complexity is determined by the tree depth only.
 
 A geo shape is transformed into these grid cells. Think of this transformation process
@@ -682,4 +682,5 @@ Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
 .. _GeoJSON geometry objects: http://geojson.org/geojson-spec.html#geometry-objects
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
-.. _Trie: https://de.wikipedia.org/wiki/Trie
+.. _Trie: https://en.wikipedia.org/wiki/Trie
+.. _Tries: https://en.wikipedia.org/wiki/Trie
