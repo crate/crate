@@ -122,6 +122,14 @@ public class SysNodesTableInfo extends SysTableInfo {
 
         register("os_info", DataTypes.OBJECT, null);
         register("os_info", DataTypes.INTEGER, ImmutableList.of("available_processors"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("name"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("arch"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("version"));
+        register("os_info", DataTypes.OBJECT, ImmutableList.of("jvm"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("jvm", "version"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("jvm", "vm_name"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("jvm", "vm_vendor"));
+        register("os_info", DataTypes.STRING, ImmutableList.of("jvm", "vm_version"));
 
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));

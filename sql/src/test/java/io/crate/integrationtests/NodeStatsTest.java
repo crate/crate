@@ -25,6 +25,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -32,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -196,6 +198,25 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) 0));
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
+    }
+
+    @Test
+    public void testSysNodsOsInfo() throws Exception {
+        SQLResponse response = executor.exec("select os_info from sys.nodes limit 1");
+        Map results = (Map) response.rows()[0][0];
+        assertThat(response.rowCount(), is(1L));
+
+        assertThat((Integer) results.get("available_processors"), greaterThan(0));
+        assertEquals(Constants.OS_NAME, results.get("name"));
+        assertEquals(Constants.OS_ARCH, results.get("arch"));
+        assertEquals(Constants.OS_VERSION, results.get("version"));
+
+        Map<String, Object> jvmObj = new HashMap<>(4);
+        jvmObj.put("version", Constants.JAVA_VERSION);
+        jvmObj.put("vm_name", Constants.JVM_NAME);
+        jvmObj.put("vm_vendor", Constants.JVM_VENDOR);
+        jvmObj.put("vm_version", Constants.JVM_VERSION);
+        assertEquals(jvmObj, results.get("jvm"));
     }
 
     @Test
