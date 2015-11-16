@@ -79,7 +79,8 @@ recognizable as partitioned table by a non null ``partitioned_by`` column::
 
 ::
 
-    cr> SELECT * FROM information_schema.columns
+    cr> SELECT schema_name, table_name, column_name, ordinal_position, data_type
+    ... FROM information_schema.columns
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY schema_name, table_name, column_name;
     +-------------+--------------+-------------+------------------+-----------+

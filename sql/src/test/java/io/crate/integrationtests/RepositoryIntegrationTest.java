@@ -77,10 +77,10 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from sys.repositories where name ='myRepo'");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("myRepo"));
-        assertThat((String) response.rows()[0][1], is("fs"));
-        HashMap<String, String> settings = (HashMap)response.rows()[0][2];
+        HashMap<String, String> settings = (HashMap)response.rows()[0][1];
         assertThat(settings.get("compress"), is("true"));
         assertThat(new File(settings.get("location")).getAbsolutePath(), is(repoLocation));
+        assertThat((String) response.rows()[0][2], is("fs"));
     }
 
     @Test

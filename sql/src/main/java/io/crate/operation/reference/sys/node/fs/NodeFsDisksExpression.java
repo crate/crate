@@ -22,10 +22,9 @@
 package io.crate.operation.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.SysNodeObjectArrayReference;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import io.crate.operation.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -38,14 +37,13 @@ import org.hyperic.sigar.SigarPermissionDeniedException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
+public class NodeFsDisksExpression extends SysObjectArrayReference {
 
     public static final String NAME = "disks";
     private static final ESLogger logger = Loggers.getLogger(NodeFsDisksExpression.class);
     private final SigarService sigarService;
 
     NodeFsDisksExpression(SigarService sigarService) {
-        super(new ColumnIdent(NodeFsExpression.NAME, ImmutableList.of(NAME)));
         this.sigarService = sigarService;
     }
 

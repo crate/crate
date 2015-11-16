@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -42,8 +41,8 @@ public class SysChecksTableInfo extends SysTableInfo {
     private static final ImmutableList<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    private final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -53,28 +52,22 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     }
 
-    private ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), GRANULARITY, type);
-        if (info.ident().isColumn()) {
-            columns.add(info);
-        }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
-    }
-
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
-        register(Columns.ID, DataTypes.INTEGER);
-        register(Columns.SEVERITY, DataTypes.INTEGER);
-        register(Columns.DESCRIPTION, DataTypes.STRING);
-        register(Columns.PASSED, DataTypes.BOOLEAN);
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
+            .register(Columns.ID, DataTypes.INTEGER)
+            .register(Columns.SEVERITY, DataTypes.INTEGER)
+            .register(Columns.DESCRIPTION, DataTypes.STRING)
+            .register(Columns.PASSED, DataTypes.BOOLEAN);
+        infos = registrar.infos();
+        columns = registrar.columns();
     }
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
@@ -108,6 +101,6 @@ public class SysChecksTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

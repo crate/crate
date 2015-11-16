@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -38,8 +37,8 @@ public class SysJobsTableInfo extends SysTableInfo {
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(new ColumnIdent("id"));
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -47,29 +46,20 @@ public class SysJobsTableInfo extends SysTableInfo {
         public static final ColumnIdent STARTED = new ColumnIdent("started");
     }
 
-    static {
-        register(Columns.ID, DataTypes.STRING, null);
-        register(Columns.STMT, DataTypes.STRING, null);
-        register(Columns.STARTED, DataTypes.TIMESTAMP, null);
-    }
-
     @Inject
     public SysJobsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
         super(service, sysSchemaInfo);
-    }
-
-    private static ReferenceInfo register(ColumnIdent column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
-        if (info.ident().isColumn()) {
-            columns.add(info);
-        }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.ID, DataTypes.STRING)
+            .register(Columns.STMT, DataTypes.STRING)
+            .register(Columns.STARTED, DataTypes.TIMESTAMP);
+        infos = registrar.infos();
+        columns = registrar.columns();
     }
 
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
@@ -99,6 +89,6 @@ public class SysJobsTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

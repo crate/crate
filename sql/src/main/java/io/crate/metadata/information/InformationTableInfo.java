@@ -110,7 +110,7 @@ public class InformationTableInfo extends AbstractTableInfo {
                                    ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   LinkedHashMap<ColumnIdent, ReferenceInfo> references) {
+                                   Map<ColumnIdent, ReferenceInfo> references) {
         this(schemaInfo, clusterService, ident, primaryKeyIdentList, references, null);
     }
 
@@ -118,7 +118,7 @@ public class InformationTableInfo extends AbstractTableInfo {
                                    ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   LinkedHashMap<ColumnIdent, ReferenceInfo> references,
+                                   Map<ColumnIdent, ReferenceInfo> references,
                                    @Nullable ImmutableList<ReferenceInfo> columns) {
         super(schemaInfo);
         this.clusterService = clusterService;

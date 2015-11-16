@@ -41,8 +41,8 @@ public class SysShardsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
 
-    private final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
-    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -84,31 +84,25 @@ public class SysShardsTableInfo extends SysTableInfo {
         super(service, sysSchemaInfo);
         nodesTableColumn = sysNodesTableInfo.tableColumn();
 
-        register(Columns.SCHEMA_NAME, StringType.INSTANCE);
-        register(Columns.TABLE_NAME, StringType.INSTANCE);
-        register(Columns.ID, IntegerType.INSTANCE);
-        register(Columns.PARTITION_IDENT, StringType.INSTANCE);
-        register(Columns.NUM_DOCS, LongType.INSTANCE);
-        register(Columns.PRIMARY, BooleanType.INSTANCE);
-        register(Columns.RELOCATING_NODE, StringType.INSTANCE);
-        register(Columns.SIZE, LongType.INSTANCE);
-        register(Columns.STATE, StringType.INSTANCE);
-        register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE);
-
-        INFOS.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
-    }
-
-    private void register(ColumnIdent column, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.SHARD, type);
-        if (column.isColumn()){
-            columns.add(info);
-        }
-        INFOS.put(column, info);
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.SHARD)
+            .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
+            .register(Columns.TABLE_NAME, StringType.INSTANCE)
+            .register(Columns.ID, IntegerType.INSTANCE)
+            .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
+            .register(Columns.NUM_DOCS, LongType.INSTANCE)
+            .register(Columns.PRIMARY, BooleanType.INSTANCE)
+            .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
+            .register(Columns.SIZE, LongType.INSTANCE)
+            .register(Columns.STATE, StringType.INSTANCE)
+            .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
+            .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+        infos = registrar.infos();
+        columns = registrar.columns();
     }
 
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = INFOS.get(columnIdent);
+        ReferenceInfo info = infos.get(columnIdent);
         if (info == null) {
             return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
         }
@@ -181,6 +175,6 @@ public class SysShardsTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

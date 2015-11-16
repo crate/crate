@@ -554,7 +554,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
-            names.add((String) objects[2]);
+            names.add((String) objects[4]);
         }
         assertThat(names, Matchers.anyOf(
                 Matchers.hasItems("distributing collect", "distributing collect"),

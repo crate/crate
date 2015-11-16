@@ -21,11 +21,9 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.operation.reference.sys.SysNodeStaticObjectArrayReference;
+import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -37,7 +35,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
+public class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
     public static final String NAME = "data";
 
@@ -48,7 +46,6 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     protected NodeFsDataExpression(SigarService sigarService, NodeEnvironment nodeEnvironment) {
-        super(new ColumnIdent(NodeFsExpression.NAME, ImmutableList.of(NAME)));
         this.sigarService = sigarService;
         this.nodeEnvironment = nodeEnvironment;
     }

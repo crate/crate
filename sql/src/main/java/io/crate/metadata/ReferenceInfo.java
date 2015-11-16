@@ -32,8 +32,16 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class ReferenceInfo implements Streamable {
+
+    public static Comparator<ReferenceInfo> COMPARE_BY_COLUMN_IDENT = new Comparator<ReferenceInfo>() {
+        @Override
+        public int compare(ReferenceInfo o1, ReferenceInfo o2) {
+            return o1.ident().columnIdent().compareTo(o2.ident().columnIdent());
+        }
+    };
 
     public static class Builder {
         private ReferenceIdent ident;

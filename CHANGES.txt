@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - sort columns in ``sys`` and `` information_schema`` tables
+   alphabetically when selecting all columns with ``*``
+
 2015/11/16 0.53.0
 =================
 

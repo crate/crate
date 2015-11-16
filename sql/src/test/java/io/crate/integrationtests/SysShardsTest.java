@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
@@ -151,8 +150,17 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec("select * from sys.shards");
         assertEquals(30L, response.rowCount());
         assertEquals(10, response.cols().length);
-        assertEquals("schema_name, table_name, id, partition_ident, num_docs, primary, relocating_node, size, state, orphan_partition",
-            Joiner.on(", ").join(response.cols()));
+        assertThat(response.cols(), arrayContaining(
+                "id",
+                "num_docs",
+                "orphan_partition",
+                "partition_ident",
+                "primary",
+                "relocating_node",
+                "schema_name",
+                "size",
+                "state",
+                "table_name"));
     }
 
     @Test
@@ -193,7 +201,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         String[] tableNames = {"blobs", "characters", "quotes"};
         for (int i=0; i<response.rowCount(); i++) {
             int idx = i/10;
-            assertEquals(tableNames[idx], response.rows()[i][1]);
+            assertEquals(tableNames[idx], response.rows()[i][9]);
         }
     }
 

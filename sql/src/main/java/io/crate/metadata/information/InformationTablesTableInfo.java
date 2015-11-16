@@ -22,13 +22,12 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-
-import java.util.LinkedHashMap;
 
 public class InformationTablesTableInfo extends InformationTableInfo {
 
@@ -116,53 +115,53 @@ public class InformationTablesTableInfo extends InformationTableInfo {
               clusterService,
                 IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME, Columns.TABLE_NAME),
-                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{
-                    put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME);
-                    put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME);
-                    put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS);
-                    put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS);
-                    put(Columns.CLUSTERED_BY, ReferenceInfos.CLUSTERED_BY);
-                    put(Columns.PARTITIONED_BY, ReferenceInfos.PARTITIONED_BY);
-                    put(Columns.BLOBS_PATH, ReferenceInfos.BLOBS_PATH);
-                    put(Columns.COLUMN_POLICY, ReferenceInfos.COLUMN_POLICY);
-                    put(Columns.TABLE_SETTINGS, ReferenceInfos.TABLE_SETTINGS);
-                    put(Columns.TABLE_SETTINGS_BLOCKS, ReferenceInfos.TABLE_SETTINGS_BLOCKS);
-                    put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY);
-                    put(Columns.TABLE_SETTINGS_BLOCKS_READ, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ);
-                    put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE);
-                    put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG, ReferenceInfos.TABLE_SETTINGS_TRANSLOG);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH);
-                    put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL);
-                    put(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, ReferenceInfos.TABLE_SETTINGS_REFRESH_INTERVAL);
-                    put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING);
-                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION);
-                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE);
-                    put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE);
-                    put(Columns.TABLE_SETTINGS_RECOVERY, ReferenceInfos.TABLE_SETTINGS_RECOVERY);
-                    put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS);
-                    put(Columns.TABLE_SETTINGS_WARMER, ReferenceInfos.TABLE_SETTINGS_WARMER);
-                    put(Columns.TABLE_SETTINGS_WARMER_ENABLED, ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED);
-                    put(Columns.TABLE_SETTINGS_GATEWAY, ReferenceInfos.TABLE_SETTINGS_GATEWAY);
-                    put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL);
-                    put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC);
-                    put(Columns.TABLE_SETTINGS_UNASSIGNED, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED);
-                    put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT);
-                    put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT);
-                }},
+                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()
+                   .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
+                   .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
+                   .put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS)
+                   .put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS)
+                   .put(Columns.CLUSTERED_BY, ReferenceInfos.CLUSTERED_BY)
+                   .put(Columns.PARTITIONED_BY, ReferenceInfos.PARTITIONED_BY)
+                   .put(Columns.BLOBS_PATH, ReferenceInfos.BLOBS_PATH)
+                   .put(Columns.COLUMN_POLICY, ReferenceInfos.COLUMN_POLICY)
+                   .put(Columns.TABLE_SETTINGS, ReferenceInfos.TABLE_SETTINGS)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS, ReferenceInfos.TABLE_SETTINGS_BLOCKS)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG, ReferenceInfos.TABLE_SETTINGS_TRANSLOG)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL)
+                   .put(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, ReferenceInfos.TABLE_SETTINGS_REFRESH_INTERVAL)
+                   .put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
+                   .put(Columns.TABLE_SETTINGS_RECOVERY, ReferenceInfos.TABLE_SETTINGS_RECOVERY)
+                   .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
+                   .put(Columns.TABLE_SETTINGS_WARMER, ReferenceInfos.TABLE_SETTINGS_WARMER)
+                   .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED)
+                   .put(Columns.TABLE_SETTINGS_GATEWAY, ReferenceInfos.TABLE_SETTINGS_GATEWAY)
+                   .put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL)
+                   .put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+                .build(),
                 ImmutableList.of(
-                        ReferenceInfos.SCHEMA_NAME,
-                        ReferenceInfos.TABLE_NAME,
-                        ReferenceInfos.NUMBER_OF_SHARDS,
-                        ReferenceInfos.NUMBER_OF_REPLICAS,
-                        ReferenceInfos.CLUSTERED_BY,
-                        ReferenceInfos.PARTITIONED_BY,
                         ReferenceInfos.BLOBS_PATH,
+                        ReferenceInfos.CLUSTERED_BY,
                         ReferenceInfos.COLUMN_POLICY,
-                        ReferenceInfos.TABLE_SETTINGS
+                        ReferenceInfos.NUMBER_OF_REPLICAS,
+                        ReferenceInfos.NUMBER_OF_SHARDS,
+                        ReferenceInfos.PARTITIONED_BY,
+                        ReferenceInfos.SCHEMA_NAME,
+                        ReferenceInfos.TABLE_SETTINGS,
+                        ReferenceInfos.TABLE_NAME
                 )
         );
     }

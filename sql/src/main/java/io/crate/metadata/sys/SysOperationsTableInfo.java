@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -47,14 +46,8 @@ public class SysOperationsTableInfo extends SysTableInfo {
     }
 
     private final TableColumn nodesTableColumn;
-    private final Map<ColumnIdent, ReferenceInfo> infos = new LinkedHashMap<>();
-    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-
-    private void register(ColumnIdent column, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
-        columns.add(info);
-        infos.put(column, info);
-    }
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
 
     @Inject
     public SysOperationsTableInfo(ClusterService clusterService,
@@ -62,12 +55,15 @@ public class SysOperationsTableInfo extends SysTableInfo {
                                   SysNodesTableInfo sysNodesTableInfo) {
         super(clusterService, sysSchemaInfo);
         nodesTableColumn = sysNodesTableInfo.tableColumn();
-        register(Columns.ID, DataTypes.STRING);
-        register(Columns.JOB_ID, DataTypes.STRING);
-        register(Columns.NAME, DataTypes.STRING);
-        register(Columns.STARTED, DataTypes.TIMESTAMP);
-        register(Columns.USED_BYTES, DataTypes.LONG);
-        infos.put(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+        ColumnRegistrar columnRegistrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.ID, DataTypes.STRING)
+            .register(Columns.JOB_ID, DataTypes.STRING)
+            .register(Columns.NAME, DataTypes.STRING)
+            .register(Columns.STARTED, DataTypes.TIMESTAMP)
+            .register(Columns.USED_BYTES, DataTypes.LONG)
+            .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+        infos = columnRegistrar.infos();
+        columns = columnRegistrar.columns();
     }
 
 

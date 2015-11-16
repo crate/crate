@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -48,46 +47,39 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
         public static final ColumnIdent STATE = new ColumnIdent("state");
     }
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
+
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-    private static final LinkedHashSet<ReferenceInfo> COLUMNS = new LinkedHashSet<>();
 
-    static {
-        register(Columns.NAME, DataTypes.STRING);
-        register(Columns.REPOSITORY, DataTypes.STRING);
-        register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING));
-        register(Columns.STARTED, DataTypes.TIMESTAMP);
-        register(Columns.FINISHED, DataTypes.TIMESTAMP);
-        register(Columns.VERSION, DataTypes.STRING);
-        register(Columns.STATE, DataTypes.STRING);
-    }
-
-    private static ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), GRANULARITY, type);
-        if (info.ident().isColumn()) {
-            COLUMNS.add(info);
-        }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
-    }
+    private final Set<ReferenceInfo> columns;
+    private final Map<ColumnIdent, ReferenceInfo> infos;
 
     private Random random = new Random();
 
     public SysSnapshotsTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
+            .register(Columns.NAME, DataTypes.STRING)
+            .register(Columns.REPOSITORY, DataTypes.STRING)
+            .register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING))
+            .register(Columns.STARTED, DataTypes.TIMESTAMP)
+            .register(Columns.FINISHED, DataTypes.TIMESTAMP)
+            .register(Columns.VERSION, DataTypes.STRING)
+            .register(Columns.STATE, DataTypes.STRING);
+        columns = registrar.columns();
+        infos = registrar.infos();
     }
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
     public Collection<ReferenceInfo> columns() {
-        return COLUMNS;
+        return columns;
     }
 
     @Override
@@ -133,6 +125,6 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

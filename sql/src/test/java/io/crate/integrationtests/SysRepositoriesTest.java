@@ -28,7 +28,10 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -91,15 +94,16 @@ public class SysRepositoriesTest extends SQLTransportIntegrationTest {
         execute("select * from sys.repositories");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols().length, is(3));
-        assertThat(response.cols(), is(new String[]{"name", "type", "settings"}));
-        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, StringType.INSTANCE, ObjectType.INSTANCE}));
+        assertThat(response.cols(), is(new String[]{"name", "settings", "type"}));
+        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, ObjectType.INSTANCE, StringType.INSTANCE}));
         assertThat((String) response.rows()[0][0], is("test-repo"));
-        assertThat((String) response.rows()[0][1], is("fs"));
 
-        Map<String, Object> settings = (Map<String, Object>) response.rows()[0][2];
+        Map<String, Object> settings = (Map<String, Object>) response.rows()[0][1];
         assertThat(settings.size(), is(3));
         assertThat((String) settings.get("location"), is(new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()));
         assertThat((String) settings.get("chunk_size"), is("5k"));
         assertThat((String) settings.get("compress"), is("false"));
+
+        assertThat((String) response.rows()[0][2], is("fs"));
     }
 }

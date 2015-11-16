@@ -22,6 +22,7 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterService;
@@ -40,7 +41,7 @@ public class InformationSchemaInfo implements SchemaInfo {
 
     @Inject
     public InformationSchemaInfo(ClusterService clusterService) {
-        this.tableInfoMap = ImmutableMap.<String, TableInfo>builder()
+        this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
                 .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this, clusterService))
                 .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this, clusterService))
                 .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this, clusterService))

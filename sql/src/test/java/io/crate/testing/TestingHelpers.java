@@ -21,12 +21,12 @@
 
 package io.crate.testing;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
@@ -52,6 +52,7 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -626,9 +627,15 @@ public class TestingHelpers {
         return result;
     }
 
-    public static Matcher<Bucket> isSorted(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
-        Ordering ordering = Ordering.natural();
-        if (reverse) {
+    public static <T, K extends Comparable> Matcher<Iterable<T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction) {
+        return isSortedBy(extractSortingKeyFunction, false, null);
+    }
+
+    public static <T, K extends Comparable> Matcher<Iterable<T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction,
+                                                                            final boolean descending,
+                                                                            @Nullable final Boolean nullsFirst) {
+        Ordering<K> ordering = Ordering.natural();
+        if (descending) {
             ordering = ordering.reverse();
         }
         if (nullsFirst != null && nullsFirst) {
@@ -636,23 +643,22 @@ public class TestingHelpers {
         } else {
             ordering = ordering.nullsLast();
         }
-        final Ordering ord = ordering;
-        return new TypeSafeDiagnosingMatcher<Bucket>() {
+        final Ordering<K> ord = ordering;
 
-
+        return new TypeSafeDiagnosingMatcher<Iterable<T>>() {
             @Override
-            protected boolean matchesSafely(Bucket item, Description mismatchDescription) {
-                Object previous = null;
+            protected boolean matchesSafely(Iterable<T> item, Description mismatchDescription) {
+                K previous = null;
                 int i = 0;
-                for (Row row : item) {
-                    Object current = row.get(sortingPos);
+                for (T elem : item) {
+                    K current = extractSortingKeyFunction.apply(elem);
                     if (previous != null) {
                         if (ord.compare(previous, current) > 0) {
                             mismatchDescription
                                     .appendText("element ").appendValue(current)
                                     .appendText(" at position ").appendValue(i)
                                     .appendText(" is ")
-                                    .appendText(reverse ? "bigger" : "smaller")
+                                    .appendText(descending ? "bigger" : "smaller")
                                     .appendText(" than previous element ")
                                     .appendValue(previous);
                             return false;
@@ -666,14 +672,25 @@ public class TestingHelpers {
 
             @Override
             public void describeTo(Description description) {
-                description.appendText("expected bucket to be sorted by position: ")
-                        .appendValue(sortingPos);
-                if (reverse) {
-                    description.appendText(" reverse ");
+                description.appendText("expected iterable to be sorted ");
+                if (descending) {
+                    description.appendText("in DESCENDING order");
+                } else {
+                    description.appendText("in ASCENDING order");
                 }
-                description.appendText(" nulls ").appendText(nullsFirst != null && nullsFirst ? "first" : "last");
             }
         };
+    }
+
+    public static Matcher<Iterable<Row>> hasSortedRows(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
+        return TestingHelpers.<Row, Comparable>isSortedBy(new com.google.common.base.Function<Row, Comparable>() {
+            @Nullable
+            @Override
+            public Comparable apply(@Nullable Row input) {
+                assert input != null;
+                return (Comparable)input.get(sortingPos);
+            }
+        }, reverse, nullsFirst);
     }
 
     public static DataType randomPrimitiveType() {

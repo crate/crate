@@ -924,7 +924,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
         assertThat(response.rowCount(), is(100L));
-        assertThat(new ArrayBucket(response.rows()), TestingHelpers.isSorted(0, true, null));
+        assertThat(new ArrayBucket(response.rows()), TestingHelpers.hasSortedRows(0, true, null));
     }
 
     @Test

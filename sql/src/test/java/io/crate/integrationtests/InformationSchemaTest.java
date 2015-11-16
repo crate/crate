@@ -67,22 +67,22 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(16L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "information_schema| columns| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "information_schema| routines| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "information_schema| schemata| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "information_schema| table_constraints| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "information_schema| table_partitions| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "information_schema| tables| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| checks| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| cluster| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| jobs| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| jobs_log| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| nodes| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| operations| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| operations_log| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| repositories| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| shards| 1| 0| NULL| NULL| NULL| strict| NULL\n" +
-                "sys| snapshots| 1| 0| NULL| NULL| NULL| strict| NULL\n"));
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| columns\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| routines\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| schemata\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_constraints\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_partitions\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| tables\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| checks\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| cluster\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| jobs\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| jobs_log\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| nodes\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| operations\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| operations_log\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| repositories\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards\n" +
+                "NULL| NULL| strict| 0| 1| NULL| sys| NULL| snapshots\n"));
     }
 
     @Test
@@ -140,17 +140,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc' order by table_name asc");
         assertEquals(2L, response.rowCount());
-        assertEquals("doc", response.rows()[0][0]);
-        assertEquals("foo", response.rows()[0][1]);
-        assertEquals(3, response.rows()[0][2]);
+        assertEquals("doc", response.rows()[0][6]);
+        assertEquals("foo", response.rows()[0][8]);
+        assertEquals(3, response.rows()[0][4]); //
         assertEquals("1", response.rows()[0][3]);
-        assertEquals("col1", response.rows()[0][4]);
+        assertEquals("col1", response.rows()[0][1]);
 
-        assertEquals("doc", response.rows()[1][0]);
-        assertEquals("test", response.rows()[1][1]);
-        assertEquals(5, response.rows()[1][2]);
+        assertEquals("doc", response.rows()[1][6]);
+        assertEquals("test", response.rows()[1][8]);
+        assertEquals(5, response.rows()[1][4]);
         assertEquals("1", response.rows()[1][3]);
-        assertEquals("col1", response.rows()[1][4]);
+        assertEquals("col1", response.rows()[1][1]);
     }
 
     @Test
@@ -158,7 +158,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc' order by table_name asc limit 1");
+        execute("select schema_name, table_name, number_of_shards, number_of_replicas " +
+                "from INFORMATION_SCHEMA.Tables where schema_name='doc' " +
+                "order by table_name asc limit 1");
         assertEquals(1L, response.rowCount());
         assertEquals("doc", response.rows()[0][0]);
         assertEquals("foo", response.rows()[0][1]);
@@ -176,10 +178,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "order by number_of_shards desc, table_name asc limit 2");
         assertEquals(2L, response.rowCount());
 
-        assertEquals("bar", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals("foo", response.rows()[1][0]);
-        assertEquals(3, response.rows()[1][1]);
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "bar| 3\n" +
+                "foo| 3\n"));
     }
 
     @Test
@@ -189,11 +190,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc' order by table_name asc limit 1 offset 1");
         assertEquals(1L, response.rowCount());
-        assertEquals("doc", response.rows()[0][0]);
-        assertEquals("test", response.rows()[0][1]);
-        assertEquals(5, response.rows()[0][2]);
-        assertEquals("1", response.rows()[0][3]);
-        assertEquals("col1", response.rows()[0][4]);
+
+        assertEquals("doc", response.rows()[0][6]); // schema_name
+        assertEquals("test", response.rows()[0][8]); // table_name
+        assertEquals(5, response.rows()[0][4]); // number_of_shards
+        assertEquals("1", response.rows()[0][3]); // number_of_replicas
+        assertEquals("col1", response.rows()[0][1]); // primary key
     }
 
     @Test
@@ -205,7 +207,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
-                "clustered_by from INFORMATION_SCHEMA.Tables where schema_name='doc' ");
+                "clustered_by from INFORMATION_SCHEMA.Tables where schema_name='doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
@@ -253,11 +255,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where schema_name='doc'");
         assertEquals(1L, response.rowCount());
-        assertEquals("doc", response.rows()[0][0]);
-        assertEquals("test", response.rows()[0][1]);
-        assertEquals(5, response.rows()[0][2]);
+        assertEquals("doc", response.rows()[0][6]);
+        assertEquals("test", response.rows()[0][8]);
+        assertEquals(5, response.rows()[0][4]);
         assertEquals("1", response.rows()[0][3]);
-        assertEquals("_id", response.rows()[0][4]);
+        assertEquals("_id", response.rows()[0][1]);
     }
 
     @Test
@@ -265,19 +267,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select * from INFORMATION_SCHEMA.table_constraints order by schema_name asc, table_name asc");
         assertEquals(10L, response.rowCount());
-        assertThat(response.cols(), arrayContaining("schema_name", "table_name", "constraint_name",
-                "constraint_type"));
+        assertThat(response.cols(),
+                arrayContaining("constraint_name", "constraint_type", "schema_name", "table_name"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "information_schema| columns| [schema_name, table_name, column_name]| PRIMARY_KEY\n" +
-                "information_schema| schemata| [schema_name]| PRIMARY_KEY\n" +
-                "information_schema| tables| [schema_name, table_name]| PRIMARY_KEY\n" +
-                "sys| checks| [id]| PRIMARY_KEY\n" +
-                "sys| jobs| [id]| PRIMARY_KEY\n" +
-                "sys| jobs_log| [id]| PRIMARY_KEY\n" +
-                "sys| nodes| [id]| PRIMARY_KEY\n" +
-                "sys| repositories| [name]| PRIMARY_KEY\n" +
-                "sys| shards| [schema_name, table_name, id, partition_ident]| PRIMARY_KEY\n" +
-                "sys| snapshots| [name, repository]| PRIMARY_KEY\n"
+                "[schema_name, table_name, column_name]| PRIMARY_KEY| information_schema| columns\n" +
+                "[schema_name]| PRIMARY_KEY| information_schema| schemata\n" +
+                "[schema_name, table_name]| PRIMARY_KEY| information_schema| tables\n" +
+                "[id]| PRIMARY_KEY| sys| checks\n" +
+                "[id]| PRIMARY_KEY| sys| jobs\n" +
+                "[id]| PRIMARY_KEY| sys| jobs_log\n" +
+                "[id]| PRIMARY_KEY| sys| nodes\n" +
+                "[name]| PRIMARY_KEY| sys| repositories\n" +
+                "[schema_name, table_name, id, partition_ident]| PRIMARY_KEY| sys| shards\n" +
+                "[name, repository]| PRIMARY_KEY| sys| snapshots\n"
         ));
 
         execute("create table test (col1 integer primary key, col2 string)");
@@ -440,12 +442,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testColumnsColumns() throws Exception {
         execute("select * from information_schema.columns where schema_name='information_schema' and table_name='columns' order by ordinal_position asc");
         assertEquals(5, response.rowCount());
-        short ordinal = 1;
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", "schema_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "columns", "table_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "columns", "column_name", ordinal++, "string"});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "columns", "ordinal_position", ordinal++, "short"});
-        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "columns", "data_type", ordinal, "string"});
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "column_name| string| 1| information_schema| columns\n" +
+                "data_type| string| 2| information_schema| columns\n" +
+                "ordinal_position| short| 3| information_schema| columns\n" +
+                "schema_name| string| 4| information_schema| columns\n" +
+                "table_name| string| 5| information_schema| columns\n"));
     }
 
     @Test
@@ -454,16 +456,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where schema_name='doc'");
         assertEquals(3L, response.rowCount());
-        assertEquals("doc", response.rows()[0][0]);
-        assertEquals("test", response.rows()[0][1]);
-        assertEquals("age", response.rows()[0][2]);
+        assertEquals("doc", response.rows()[0][3]);
+        assertEquals("test", response.rows()[0][4]);
+        assertEquals("age", response.rows()[0][0]);
         short expected = 1;
-        assertEquals(expected, response.rows()[0][3]);
-        assertEquals("integer", response.rows()[0][4]);
+        assertEquals(expected, response.rows()[0][2]);
+        assertEquals("integer", response.rows()[0][1]);
 
-        assertEquals("col1", response.rows()[1][2]);
+        assertEquals("col1", response.rows()[1][0]);
 
-        assertEquals("col2", response.rows()[2][2]);
+        assertEquals("col2", response.rows()[2][0]);
     }
 
     @Test

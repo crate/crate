@@ -430,7 +430,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         List<String> fqColumnNames = new ArrayList<>();
         for (Object[] row : response.rows()) {
-            fqColumnNames.add((String) row[2]);
+            fqColumnNames.add((String) row[0]);
         }
         assertThat(fqColumnNames, Matchers.contains("o", "o['x']", "o['y']"));
     }

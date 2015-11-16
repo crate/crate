@@ -78,7 +78,7 @@ class GracefulStopTest(unittest.TestCase):
 
     def settings(self, settings):
         client = self.random_client()
-        for key, value in settings.iteritems():
+        for key, value in settings.items():
             client.sql("set global transient {}=?".format(key), (value,))
 
     def wait_for_deallocation(self, nodename, client):

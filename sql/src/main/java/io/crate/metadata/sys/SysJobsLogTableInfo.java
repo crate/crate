@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -37,11 +36,6 @@ import java.util.*;
 public class SysJobsLogTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs_log");
-
-    private final Map<ColumnIdent, ReferenceInfo> infos = new LinkedHashMap<>();
-    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-    private final List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
-
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
         public static final ColumnIdent STMT = new ColumnIdent("stmt");
@@ -50,24 +44,21 @@ public class SysJobsLogTableInfo extends SysTableInfo {
         public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
+    private final List<ColumnIdent> primaryKeys = ImmutableList.of(Columns.ID);
 
     @Inject
     public SysJobsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
-
-        register(Columns.ID, DataTypes.STRING);
-        register(Columns.STMT, DataTypes.STRING);
-        register(Columns.STARTED, DataTypes.TIMESTAMP);
-        register(Columns.ENDED, DataTypes.TIMESTAMP);
-        register(Columns.ERROR, DataTypes.STRING);
-    }
-
-    private void register(ColumnIdent column, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
-        if (column.isColumn()) {
-            columns.add(info);
-        }
-        infos.put(column, info);
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.ID, DataTypes.STRING)
+            .register(Columns.STMT, DataTypes.STRING)
+            .register(Columns.STARTED, DataTypes.TIMESTAMP)
+            .register(Columns.ENDED, DataTypes.TIMESTAMP)
+            .register(Columns.ERROR, DataTypes.STRING);
+        infos = registrar.infos();
+        columns = registrar.columns();
     }
 
     @Nullable

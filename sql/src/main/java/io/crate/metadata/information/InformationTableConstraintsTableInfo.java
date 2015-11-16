@@ -22,13 +22,12 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-
-import java.util.LinkedHashMap;
 
 public class InformationTableConstraintsTableInfo extends InformationTableInfo {
 
@@ -58,12 +57,12 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
               clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
-                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{
-                    put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME);
-                    put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME);
-                    put(Columns.CONSTRAINT_NAME, ReferenceInfos.CONSTRAINT_NAME);
-                    put(Columns.CONSTRAINT_TYPE, ReferenceInfos.CONSTRAINT_TYPE);
-                }}
+                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()
+                    .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
+                    .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
+                    .put(Columns.CONSTRAINT_NAME, ReferenceInfos.CONSTRAINT_NAME)
+                    .put(Columns.CONSTRAINT_TYPE, ReferenceInfos.CONSTRAINT_TYPE)
+                    .build()
         );
     }
 }

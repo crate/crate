@@ -131,16 +131,24 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         execute("select * from sys.snapshots");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols().length, is(7));
-        assertThat(response.cols(), is(new String[]{"name", "repository", "concrete_indices", "started", "finished", "version", "state"}));
+        assertThat(response.cols(), is(new String[]{"concrete_indices", "finished", "name", "repository", "started", "state", "version"}));
         assertThat(response.columnTypes(), is(
-                new DataType[]{StringType.INSTANCE, StringType.INSTANCE, new ArrayType(StringType.INSTANCE),
-                        TimestampType.INSTANCE, TimestampType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE}));
-        assertThat((String) response.rows()[0][0], is("test_snap_1"));
-        assertThat((String) response.rows()[0][1], is(REPOSITORY_NAME));
-        assertThat((String[]) response.rows()[0][2], arrayContaining("test_table"));
-        assertThat((Long) response.rows()[0][3], greaterThanOrEqualTo(createdTime));
-        assertThat((Long) response.rows()[0][4], lessThanOrEqualTo(finishedTime));
-        assertThat((String) response.rows()[0][5], is(Version.CURRENT.toString()));
-        assertThat((String) response.rows()[0][6], is(SnapshotState.SUCCESS.name()));
+                new DataType[]{
+                        new ArrayType(StringType.INSTANCE),
+                            TimestampType.INSTANCE,
+                            StringType.INSTANCE,
+                            StringType.INSTANCE,
+                            TimestampType.INSTANCE,
+                            StringType.INSTANCE,
+                            StringType.INSTANCE
+                }));
+        assertThat((String[]) response.rows()[0][0], arrayContaining("test_table"));
+        assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
+        assertThat((String) response.rows()[0][2], is("test_snap_1"));
+        assertThat((String) response.rows()[0][3], is(REPOSITORY_NAME));
+        assertThat((Long) response.rows()[0][4], greaterThanOrEqualTo(createdTime));
+        assertThat((String) response.rows()[0][5], is(SnapshotState.SUCCESS.name()));
+        assertThat((String) response.rows()[0][6], is(Version.CURRENT.toString()));
+
     }
 }

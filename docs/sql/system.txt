@@ -86,74 +86,60 @@ currently applied cluster settings.
     | column_name                                                                       | data_type |
     +-----------------------------------------------------------------------------------+-----------+
     | settings                                                                          | object    |
-    | settings['stats']                                                                 | object    |
-    | settings['stats']['jobs_log_size']                                                | integer   |
-    | settings['stats']['operations_log_size']                                          | integer   |
-    | settings['stats']['enabled']                                                      | boolean   |
+    | settings['bulk']                                                                  | object    |
+    | settings['bulk']['partition_creation_timeout']                                    | string    |
+    | settings['bulk']['request_timeout']                                               | string    |
+    | settings['cluster']                                                               | object    |
+    | settings['cluster']['graceful_stop']                                              | object    |
+    | settings['cluster']['graceful_stop']['force']                                     | boolean   |
+    | settings['cluster']['graceful_stop']['min_availability']                          | string    |
+    | settings['cluster']['graceful_stop']['reallocate']                                | boolean   |
+    | settings['cluster']['graceful_stop']['timeout']                                   | string    |
+    | settings['cluster']['info']                                                       | object    |
+    | settings['cluster']['info']['update']                                             | object    |
+    | settings['cluster']['info']['update']['interval']                                 | string    |
+    | settings['cluster']['routing']                                                    | object    |
+    | settings['cluster']['routing']['allocation']                                      | object    |
+    | settings['cluster']['routing']['allocation']['allow_rebalance']                   | string    |
+    | settings['cluster']['routing']['allocation']['balance']                           | object    |
+    | settings['cluster']['routing']['allocation']['balance']['index']                  | float     |
+    | settings['cluster']['routing']['allocation']['balance']['primary']                | float     |
+    | settings['cluster']['routing']['allocation']['balance']['shard']                  | float     |
+    | settings['cluster']['routing']['allocation']['balance']['threshold']              | float     |
+    | settings['cluster']['routing']['allocation']['cluster_concurrent_rebalance']      | integer   |
+    | settings['cluster']['routing']['allocation']['disk']                              | object    |
+    | settings['cluster']['routing']['allocation']['disk']['threshold_enabled']         | boolean   |
+    | settings['cluster']['routing']['allocation']['disk']['watermark']                 | object    |
+    | settings['cluster']['routing']['allocation']['disk']['watermark']['high']         | string    |
+    | settings['cluster']['routing']['allocation']['disk']['watermark']['low']          | string    |
+    | settings['cluster']['routing']['allocation']['enable']                            | string    |
+    | settings['cluster']['routing']['allocation']['exclude']                           | object    |
+    | settings['cluster']['routing']['allocation']['exclude']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_name']                  | string    |
+    | settings['cluster']['routing']['allocation']['include']                           | object    |
+    | settings['cluster']['routing']['allocation']['include']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['include']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['include']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['include']['_name']                  | string    |
+    | settings['cluster']['routing']['allocation']['node_concurrent_recoveries']        | integer   |
+    | settings['cluster']['routing']['allocation']['node_initial_primaries_recoveries'] | integer   |
+    | settings['cluster']['routing']['allocation']['require']                           | object    |
+    | settings['cluster']['routing']['allocation']['require']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['require']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['require']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['require']['_name']                  | string    |
     | settings['discovery']                                                             | object    |
     | settings['discovery']['zen']                                                      | object    |
     | settings['discovery']['zen']['minimum_master_nodes']                              | integer   |
     | settings['discovery']['zen']['ping_timeout']                                      | string    |
     | settings['discovery']['zen']['publish_timeout']                                   | string    |
-    | settings['cluster']                                                               | object    |
-    | settings['cluster']['graceful_stop']                                              | object    |
-    | settings['cluster']['graceful_stop']['min_availability']                          | string    |
-    | settings['cluster']['graceful_stop']['reallocate']                                | boolean   |
-    | settings['cluster']['graceful_stop']['timeout']                                   | string    |
-    | settings['cluster']['graceful_stop']['force']                                     | boolean   |
-    | settings['cluster']['routing']                                                    | object    |
-    | settings['cluster']['routing']['allocation']                                      | object    |
-    | settings['cluster']['routing']['allocation']['enable']                            | string    |
-    | settings['cluster']['routing']['allocation']['allow_rebalance']                   | string    |
-    | settings['cluster']['routing']['allocation']['cluster_concurrent_rebalance']      | integer   |
-    | settings['cluster']['routing']['allocation']['node_initial_primaries_recoveries'] | integer   |
-    | settings['cluster']['routing']['allocation']['node_concurrent_recoveries']        | integer   |
-    | settings['cluster']['routing']['allocation']['include']                           | object    |
-    | settings['cluster']['routing']['allocation']['include']['_ip']                    | string    |
-    | settings['cluster']['routing']['allocation']['include']['_id']                    | string    |
-    | settings['cluster']['routing']['allocation']['include']['_host']                  | string    |
-    | settings['cluster']['routing']['allocation']['include']['_name']                  | string    |
-    | settings['cluster']['routing']['allocation']['exclude']                           | object    |
-    | settings['cluster']['routing']['allocation']['exclude']['_ip']                    | string    |
-    | settings['cluster']['routing']['allocation']['exclude']['_id']                    | string    |
-    | settings['cluster']['routing']['allocation']['exclude']['_host']                  | string    |
-    | settings['cluster']['routing']['allocation']['exclude']['_name']                  | string    |
-    | settings['cluster']['routing']['allocation']['require']                           | object    |
-    | settings['cluster']['routing']['allocation']['require']['_ip']                    | string    |
-    | settings['cluster']['routing']['allocation']['require']['_id']                    | string    |
-    | settings['cluster']['routing']['allocation']['require']['_host']                  | string    |
-    | settings['cluster']['routing']['allocation']['require']['_name']                  | string    |
-    | settings['cluster']['routing']['allocation']['balance']                           | object    |
-    | settings['cluster']['routing']['allocation']['balance']['shard']                  | float     |
-    | settings['cluster']['routing']['allocation']['balance']['index']                  | float     |
-    | settings['cluster']['routing']['allocation']['balance']['primary']                | float     |
-    | settings['cluster']['routing']['allocation']['balance']['threshold']              | float     |
-    | settings['cluster']['routing']['allocation']['disk']                              | object    |
-    | settings['cluster']['routing']['allocation']['disk']['threshold_enabled']         | boolean   |
-    | settings['cluster']['routing']['allocation']['disk']['watermark']                 | object    |
-    | settings['cluster']['routing']['allocation']['disk']['watermark']['low']          | string    |
-    | settings['cluster']['routing']['allocation']['disk']['watermark']['high']         | string    |
+    | settings['gateway']                                                               | object    |
+    | settings['gateway']['expected_nodes']                                             | integer   |
+    | settings['gateway']['recover_after_nodes']                                        | integer   |
+    | settings['gateway']['recover_after_time']                                         | string    |
     | settings['indices']                                                               | object    |
-    | settings['indices']['recovery']                                                   | object    |
-    | settings['indices']['recovery']['concurrent_streams']                             | integer   |
-    | settings['indices']['recovery']['file_chunk_size']                                | string    |
-    | settings['indices']['recovery']['translog_ops']                                   | integer   |
-    | settings['indices']['recovery']['translog_size']                                  | string    |
-    | settings['indices']['recovery']['compress']                                       | boolean   |
-    | settings['indices']['recovery']['max_bytes_per_sec']                              | string    |
-    | settings['indices']['recovery']['retry_delay_state_sync']                         | string    |
-    | settings['indices']['recovery']['retry_delay_network']                            | string    |
-    | settings['indices']['recovery']['internal_action_timeout']                        | string    |
-    | settings['indices']['recovery']['internal_action_long_timeout']                   | string    |
-    | settings['indices']['recovery']['activity_timeout']                               | string    |
-    | settings['indices']['store']                                                      | object    |
-    | settings['indices']['store']['throttle']                                          | object    |
-    | settings['indices']['store']['throttle']['type']                                  | string    |
-    | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string    |
-    | settings['indices']['fielddata']                                                  | object    |
-    | settings['indices']['fielddata']['breaker']                                       | object    |
-    | settings['indices']['fielddata']['breaker']['limit']                              | string    |
-    | settings['indices']['fielddata']['breaker']['overhead']                           | double    |
     | settings['indices']['breaker']                                                    | object    |
     | settings['indices']['breaker']['query']                                           | object    |
     | settings['indices']['breaker']['query']['limit']                                  | string    |
@@ -161,16 +147,30 @@ currently applied cluster settings.
     | settings['indices']['breaker']['request']                                         | object    |
     | settings['indices']['breaker']['request']['limit']                                | string    |
     | settings['indices']['breaker']['request']['overhead']                             | double    |
-    | settings['cluster']['info']                                                       | object    |
-    | settings['cluster']['info']['update']                                             | object    |
-    | settings['cluster']['info']['update']['interval']                                 | string    |
-    | settings['bulk']                                                                  | object    |
-    | settings['bulk']['request_timeout']                                               | string    |
-    | settings['bulk']['partition_creation_timeout']                                    | string    |
-    | settings['gateway']                                                               | object    |
-    | settings['gateway']['expected_nodes']                                             | integer   |
-    | settings['gateway']['recover_after_nodes']                                        | integer   |
-    | settings['gateway']['recover_after_time']                                         | string    |
+    | settings['indices']['fielddata']                                                  | object    |
+    | settings['indices']['fielddata']['breaker']                                       | object    |
+    | settings['indices']['fielddata']['breaker']['limit']                              | string    |
+    | settings['indices']['fielddata']['breaker']['overhead']                           | double    |
+    | settings['indices']['recovery']                                                   | object    |
+    | settings['indices']['recovery']['activity_timeout']                               | string    |
+    | settings['indices']['recovery']['compress']                                       | boolean   |
+    | settings['indices']['recovery']['concurrent_streams']                             | integer   |
+    | settings['indices']['recovery']['file_chunk_size']                                | string    |
+    | settings['indices']['recovery']['internal_action_long_timeout']                   | string    |
+    | settings['indices']['recovery']['internal_action_timeout']                        | string    |
+    | settings['indices']['recovery']['max_bytes_per_sec']                              | string    |
+    | settings['indices']['recovery']['retry_delay_network']                            | string    |
+    | settings['indices']['recovery']['retry_delay_state_sync']                         | string    |
+    | settings['indices']['recovery']['translog_ops']                                   | integer   |
+    | settings['indices']['recovery']['translog_size']                                  | string    |
+    | settings['indices']['store']                                                      | object    |
+    | settings['indices']['store']['throttle']                                          | object    |
+    | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string    |
+    | settings['indices']['store']['throttle']['type']                                  | string    |
+    | settings['stats']                                                                 | object    |
+    | settings['stats']['enabled']                                                      | boolean   |
+    | settings['stats']['jobs_log_size']                                                | integer   |
+    | settings['stats']['operations_log_size']                                          | integer   |
     | settings['udc']                                                                   | object    |
     | settings['udc']['enabled']                                                        | boolean   |
     | settings['udc']['initial_delay']                                                  | string    |
@@ -689,7 +689,8 @@ After a job or operation finishes the entries will be moved into the ``_log``
 table. The ``_log`` tables are bound in size and once a table has reached its
 limit old entries will be discarded as new entries are added::
 
-    cr> select * from sys.jobs_log order by ended desc limit 2;
+    cr> select id, stmt, started, ended, error
+    ... from sys.jobs_log order by ended desc limit 2;
     +-...+------------------------------------...-+-...-----+-...---+-------+
     | id | stmt                                   | started | ended | error |
     +-...+------------------------------------...-+-...-----+-...---+-------+
@@ -821,7 +822,7 @@ settings were misconfigured then the SQL query bellow would have the following
 results
 ::
 
-    cr> select *
+    cr> select id, severity, description, passed
     ... from sys.checks
     ... order by id asc;
     +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
@@ -868,7 +869,7 @@ create, manage and restore snapshots (see :ref:`snapshot-restore`).
 
 ::
 
-    cr> SELECT * FROM sys.repositories
+    cr> SELECT name, type, settings FROM sys.repositories
     ... ORDER BY name;
     +---------+------+---------------------------------------------------...--+
     | name    | type | settings                                               |

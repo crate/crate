@@ -51,7 +51,7 @@ public class SysJobsTest extends ClassLifecycleIntegrationTest {
 
         for (Object[] objects : response.rows()) {
             assertNotNull(objects[0]);
-            statements.add((String)objects[1]);
+            statements.add((String)objects[2]);
         }
         assertTrue(statements.contains(stmt));
         e.exec("set global stats.enabled = false");

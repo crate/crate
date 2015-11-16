@@ -22,12 +22,11 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-
-import java.util.LinkedHashMap;
 
 public class InformationSchemataTableInfo extends InformationTableInfo {
 
@@ -49,7 +48,9 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     protected InformationSchemataTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
         super(schemaInfo, clusterService, IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME),
-                new LinkedHashMap<ColumnIdent, ReferenceInfo>() {{ put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME); }}
+                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder ()
+                        .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
+                        .build()
         );
     }
 }

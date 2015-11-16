@@ -35,6 +35,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.operation.reference.sys.cluster.ClusterNameExpression;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.projection.Projection;
@@ -50,12 +51,12 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
-
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
@@ -92,7 +93,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Schemas schemas =  internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
-        Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
+        Reference clusterNameRef = new Reference(new ReferenceInfo(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING));
         CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
@@ -116,7 +117,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (ReferenceInfo info : tablesTableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        Symbol tableNameRef = toCollect.get(1);
+        Symbol tableNameRef = toCollect.get(8);
 
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
@@ -125,8 +126,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
-        System.out.println(TestingHelpers.printedTable(result));
-        assertEquals("sys| shards| 1| 0| NULL| NULL| NULL| strict| NULL\n", TestingHelpers.printedTable(result));
+        assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards\n"));
     }
 
     @Test
@@ -142,18 +142,20 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
-
-        String expected = "sys| cluster| id| 1| string\n" +
-                "sys| cluster| name| 2| string\n" +
-                "sys| cluster| master_node| 3| string\n" +
-                "sys| cluster| settings| 4| object";
-
-
-        assertTrue(TestingHelpers.printedTable(result).contains(expected));
+        assertThat(TestingHelpers.printedTable(result), containsString(
+                "id| string| 1| sys| cluster\n" +
+                "master_node| string| 2| sys| cluster\n" +
+                "name| string| 3| sys| cluster\n" +
+                "settings| object| 4| sys| cluster"
+        ));
 
         // second time - to check if the internal iterator resets
-        System.out.println(TestingHelpers.printedTable(result));
         result = collect(collectNode);
-        assertTrue(TestingHelpers.printedTable(result).contains(expected));
+        assertThat(TestingHelpers.printedTable(result), containsString(
+                "id| string| 1| sys| cluster\n" +
+                "master_node| string| 2| sys| cluster\n" +
+                "name| string| 3| sys| cluster\n" +
+                "settings| object| 4| sys| cluster"
+        ));
     }
 }

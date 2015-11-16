@@ -115,11 +115,11 @@ You can even query this tables' own columns (attention: this might lead to infin
     +------------------+-----------+------------------+
     | column_name      | data_type | ordinal_position |
     +------------------+-----------+------------------+
-    | schema_name      | string    | 1                |
-    | table_name       | string    | 2                |
-    | column_name      | string    | 3                |
-    | ordinal_position | short     | 4                |
-    | data_type        | string    | 5                |
+    | column_name      | string    |                1 |
+    | data_type        | string    |                2 |
+    | ordinal_position | short     |                3 |
+    | schema_name      | string    |                4 |
+    | table_name       | string    |                5 |
     +------------------+-----------+------------------+
     SELECT 5 rows in set (... sec)
 

@@ -68,8 +68,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     private NestedReferenceResolver resolver;
     private Schemas schemas;
 
-    private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
-    private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+    private ReferenceInfo loadInfo;
+    private ReferenceInfo load1Info;
     private ThreadPool threadPool;
 
 
@@ -83,6 +83,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         ).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
         schemas = injector.getInstance(Schemas.class);
+        loadInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReferenceInfo(new ColumnIdent("load"));
+        load1Info = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReferenceInfo(new ColumnIdent("load", "1"));
     }
 
     @After
@@ -122,21 +124,21 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-            b.addBinding(SysNodesTableInfo.INFOS.get(new ColumnIdent("load")).ident()).toInstance(loadExpr);
+            b.addBinding(new ReferenceIdent(SysNodesTableInfo.IDENT, "load")).toInstance(loadExpr);
 
-            b.addBinding(SysClusterTableInfo.INFOS.get(new ColumnIdent("settings")).ident()).to(
+            b.addBinding(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterSettingsExpression.NAME))).to(
                     ClusterSettingsExpression.class).asEagerSingleton();
         }
     }
 
     @Test
     public void testInfoLookup() throws Exception {
-        ReferenceIdent ident = LOAD_INFO.ident();
+        ReferenceIdent ident = loadInfo.ident();
         TableInfo sysNodesTableInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT);
-        assertEquals(LOAD_INFO, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
+        assertEquals(loadInfo, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
 
-        ident = LOAD1_INFO.ident();
-        assertEquals(sysNodesTableInfo.getReferenceInfo(ident.columnIdent()), LOAD1_INFO);
+        ident = load1Info.ident();
+        assertEquals(sysNodesTableInfo.getReferenceInfo(ident.columnIdent()), load1Info);
     }
 
 
@@ -148,7 +150,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Input ci = load.getChildImplementation("1");
         assertEquals(1D, ci.value());
 
-        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(LOAD1_INFO);
+        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(load1Info);
         assertTrue(ci == l1);
     }
 

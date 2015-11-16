@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 
@@ -41,40 +40,31 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
         public static final ColumnIdent SETTINGS = new ColumnIdent("settings");
     }
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-    private static final LinkedHashSet<ReferenceInfo> COLUMNS = new LinkedHashSet<>();
 
-    static {
-        register(Columns.NAME, DataTypes.STRING);
-        register(Columns.TYPE, DataTypes.STRING);
-        register(Columns.SETTINGS, DataTypes.OBJECT);
-    }
-
-    private static ReferenceInfo register(ColumnIdent columnIdent, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), GRANULARITY, type);
-        if (info.ident().isColumn()) {
-            COLUMNS.add(info);
-        }
-        INFOS.put(info.ident().columnIdent(), info);
-        return info;
-    }
+    private final Map<ColumnIdent, ReferenceInfo> infos;
+    private final Set<ReferenceInfo> columns;
 
     public SysRepositoriesTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
         super(clusterService, sysSchemaInfo);
+        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
+            .register(Columns.NAME, DataTypes.STRING)
+            .register(Columns.TYPE, DataTypes.STRING)
+            .register(Columns.SETTINGS, DataTypes.OBJECT);
+        infos = registrar.infos();
+        columns = registrar.columns();
     }
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
     public Collection<ReferenceInfo> columns() {
-        return COLUMNS;
+        return columns;
     }
 
     @Override
@@ -103,6 +93,6 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return infos.values().iterator();
     }
 }

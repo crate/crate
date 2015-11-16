@@ -234,7 +234,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS'");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][1], is("locations"));
+        assertThat((String) response.rows()[0][9], is("locations"));
 
     }
 
@@ -247,7 +247,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards where table_name ~* 'LOCATIONS'");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][1], is("locations"));
+        assertThat((String) response.rows()[0][9], is("locations"));
     }
 
 }

@@ -286,7 +286,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select id, * from sys.nodes");
         List<String> outputNames = outputNames(analysis.relation());
         assertThat(outputNames.get(0), is("id"));
-        assertThat(outputNames.get(1), is("id"));
+        assertThat(outputNames.get(1), is("fs"));
         assertThat(outputNames.size(), is(16));
         assertThat(analysis.relation().querySpec().outputs().size(), is(16));
     }
@@ -1776,7 +1776,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputs = statement.relation().querySpec().outputs();
         assertThat(outputs.size(), is(3));
         //noinspection unchecked
-        assertThat(outputs, Matchers.contains(isReference("id"), isReference("stmt"), isReference("started")));
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt")    ));
     }
 
     @Test
@@ -1792,7 +1792,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputs = statement.relation().querySpec().outputs();
         assertThat(outputs.size(), is(3));
         //noinspection unchecked
-        assertThat(outputs, Matchers.contains(isReference("id"), isReference("stmt"), isReference("started")));
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt")));
     }
 
     @Test
