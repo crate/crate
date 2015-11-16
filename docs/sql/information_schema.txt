@@ -127,7 +127,7 @@ You can even query this tables' own columns (attention: this might lead to infin
 
 .. note::
 
-  Columns at Crate are always sorted alphabetically in ascending order despite in which order
+  Columns are always sorted alphabetically in ascending order regardless of the order
   they were defined on table creation. Thus the ``ordinal_position`` reflects the alphabetical
   position.
 
