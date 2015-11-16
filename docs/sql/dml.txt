@@ -11,8 +11,9 @@ Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
 
 .. note::
 
-    The column list at ``Crate`` is always ordered alphabetically by column name
-    and so must the inserted column values.
+    The column list is always ordered alphabetically by column name.
+    If the insert columns are omitted, the values in the ``VALUES`` clauses
+    must correspond to the table columns in that order.
 
 Inserting a row::
 
@@ -48,6 +49,33 @@ multiple values for the ``INSERT`` statement::
     ...   10
     ... );
     INSERT OK, 2 rows affected (... sec)
+
+
+When inserting into tables containing :ref:`ref-generated-columns`,
+their value can be safely omitted. It is *generated* upon insert:
+
+.. Hidden: create debit_card table::
+
+    cr> CREATE TABLE debit_card (
+    ...   owner string,
+    ...   num_part1 int,
+    ...   num_part2 int,
+    ...   check_sum int GENERATED ALWAYS AS ((num_part1 + num_part2) * 42)
+    ... );
+    CREATE OK (... sec)
+
+::
+    cr> insert into debit_card (owner, num_part1, num_part2) values
+    ... ('Zaphod Beeblebrox', 1234, 5678);
+    INSERT OK, 1 row affected (... sec)
+
+If a value is given, it is validated against the *generation clause*
+of the column and the currently inserted row::
+
+    cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
+    ... ('Arthur Dent', 9876, 5432, 642935);
+    SQLActionException[Given value 642935 for generated column does not match defined generated expression value 642936]
+
 
 Inserting Data By Query
 -----------------------
@@ -112,7 +140,7 @@ table with data partitioned by year::
     ...     select
     ...         id,
     ...         name,
-    ...         format('%tY', date_trunc('year', date)),
+    ...         date_format('%Y', date),
     ...         date,
     ...         kind,
     ...         position
