@@ -20,9 +20,7 @@ Unreleased
  - Changed crate launch scripts to no longer support extending the
    CRATE_CLASSPATH environment variable
 
- - Added support for join conditions
-
- - Added initial limited cross-join support
+ - Added initial limited cross and inner join support
 
  - Updated crate/elasticsearch for improved logging on graceful shutdown errors
 

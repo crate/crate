@@ -735,8 +735,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     public void testJoin() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
+        SelectAnalyzedStatement analysis = analyze("select * from users, users_multi_pk where users.id = users_multi_pk.id");
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
+    }
+
+    public void testInnerJoinExplicitFails() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(containsString("Explicit INNER join syntax is not supported"));
+        analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
     }
 
     @Test

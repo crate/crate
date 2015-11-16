@@ -80,6 +80,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
+    protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
+        if (node.getType() != Join.Type.CROSS){
+            throw new UnsupportedOperationException("Explicit " + node.getType().name() + " join syntax is not supported");
+        }
+        return super.visitJoin(node, context);
+    }
+
+    @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
