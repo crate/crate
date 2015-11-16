@@ -49,8 +49,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
-                        context.expressionAnalyzer.generateWhereClause(node.getWhere(),
-                                context.expressionAnalysisContext, context.tableRelation));
+                        context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
                 if (!whereClause.docKeys().isPresent() && HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
                 }
@@ -108,11 +107,12 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                     "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
         assert analyzedRelation instanceof DocTableRelation;
-        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement((DocTableRelation) analyzedRelation);
+        DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 deleteAnalyzedStatement.analyzedRelation(),
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
-                        new FullQualifedNameFieldProvider(relationAnalysisContext.sources())),
+                        new FullQualifedNameFieldProvider(relationAnalysisContext.sources()), docTableRelation),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement,
                 new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())

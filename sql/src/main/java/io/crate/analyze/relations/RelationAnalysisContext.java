@@ -77,8 +77,7 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalyzer expressionAnalyzer(){
         if (expressionAnalyzer == null){
-            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext(),
-                    fieldProvider());
+            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext(), fieldProvider(), null);
         }
         return expressionAnalyzer;
     }

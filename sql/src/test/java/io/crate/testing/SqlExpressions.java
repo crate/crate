@@ -66,7 +66,8 @@ public class SqlExpressions {
         expressionAnalyzer =  new ExpressionAnalyzer(
                 analysisMetaData,
                 new ParameterContext(new Object[0], new Object[0][], null),
-                new FullQualifedNameFieldProvider(sources));
+                new FullQualifedNameFieldProvider(sources),
+                null);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
     }
 

@@ -532,7 +532,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for awesome: Invalid value of type 'MATCH_PREDICATE' in insert statement");
+        expectedException.expectMessage("Validation failed for awesome: " +
+                                        "Invalid value 'match(object, string, string, object)' in insert statement");
         analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 

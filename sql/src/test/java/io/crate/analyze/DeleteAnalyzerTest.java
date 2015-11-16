@@ -42,7 +42,9 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isField;
 import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -87,7 +89,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testDeleteWhere() throws Exception {
         DeleteAnalyzedStatement statement = analyze("delete from users where name='Trillian'");
-        DocTableRelation tableRelation = ((DocTableRelation) statement.analyzedRelation);
+        DocTableRelation tableRelation = statement.analyzedRelation;
         TableInfo tableInfo = tableRelation.tableInfo();
         assertThat(TEST_DOC_TABLE_IDENT, equalTo(tableInfo.ident()));
 
@@ -97,8 +99,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
-        assertThat(tableRelation.resolve(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
-
+        assertThat(whereClause.arguments().get(0), isReference("name"));
         assertThat(whereClause.arguments().get(1), isLiteral("Trillian"));
     }
 

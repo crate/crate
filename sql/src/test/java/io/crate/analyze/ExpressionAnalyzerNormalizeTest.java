@@ -134,7 +134,8 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
                 new ParameterContext(new Object[0], new Object[0][], null),
                 new FullQualifedNameFieldProvider(
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                                new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo)))
+                                new QualifiedName(Arrays.asList("doc", "test1")), new TableRelation(userTableInfo))),
+                null
         );
         context = new ExpressionAnalysisContext();
     }

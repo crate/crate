@@ -29,8 +29,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLBaseRequest;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.exceptions.ColumnUnknownException;
@@ -98,14 +98,15 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
-                              FieldProvider fieldProvider) {
+                              FieldProvider fieldProvider,
+                              @Nullable FieldResolver fieldResolver) {
         functions = analysisMetaData.functions();
         schemas = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
-                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
+                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), fieldResolver, false);
     }
 
     @Nullable
@@ -140,12 +141,9 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
-    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context,
-                                           AbstractTableRelation tableRelation) {
+    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)), null, null);
-            whereClause = tableRelation.resolve(whereClause);
-            return whereClause;
+            return new WhereClause(normalize(convert(whereExpression.get(), context)), null, null);
         } else {
             return WhereClause.MATCH_ALL;
         }

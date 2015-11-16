@@ -65,14 +65,14 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
      */
     public interface ValuesResolver {
 
-        public Symbol allocateAndResolve(Field argumentColumn);
+        Symbol allocateAndResolve(Field argumentColumn);
     }
 
     public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                                          ParameterContext parameterContext,
                                          FieldProvider fieldProvider,
                                          ValuesResolver valuesResolver) {
-        super(analysisMetaData, parameterContext, fieldProvider);
+        super(analysisMetaData, parameterContext, fieldProvider, null);
         this.valuesResolver = valuesResolver;
     }
 

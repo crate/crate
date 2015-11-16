@@ -139,7 +139,8 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                                           Analysis analysis,
                                           FieldProvider fieldProvider,
                                           List<Assignment> assignments) {
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
@@ -156,7 +157,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     columnName,
                     expressionAnalysisContext);
-            assignmentExpression = tableRelation.resolve(assignmentExpression);
 
             UpdateStatementAnalyzer.ensureUpdateIsAllowed(
                     tableRelation.tableInfo(), columnName.ident().columnIdent(), assignmentExpression);

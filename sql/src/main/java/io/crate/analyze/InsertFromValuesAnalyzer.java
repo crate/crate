@@ -27,10 +27,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
@@ -97,7 +94,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         expressionAnalyzer.resolveWritableFields(true);
 
@@ -210,7 +207,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             } catch (ClassCastException e) {
                 // symbol is no Input
                 throw new ColumnValidationException(columnIdent.name(),
-                        String.format("Invalid value of type '%s' in insert statement", valuesSymbol.symbolType().name()));
+                        String.format("Invalid value '%s' in insert statement", SymbolFormatter.format(valuesSymbol)));
             }
 
             if (context.primaryKeyColumnIndices().contains(i)) {
@@ -262,7 +259,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         columnName,
                         expressionAnalysisContext);
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
-                onDupKeyAssignments[i] = tableRelation.resolve(assignmentExpression);
+                onDupKeyAssignments[i] = assignmentExpression;
 
                 UpdateStatementAnalyzer.ensureUpdateIsAllowed(
                         tableRelation.tableInfo(), columnName.ident().columnIdent(), onDupKeyAssignments[i]);

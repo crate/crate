@@ -134,7 +134,8 @@ public class CompoundLiteralTest extends CrateUnitTest {
                 new FullQualifedNameFieldProvider(
                         ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                             new QualifiedName("dummy"), new DummyRelation()
-                ))
+                )),
+                null
         );
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }

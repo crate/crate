@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
@@ -154,8 +155,8 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyToWithColumnList() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users (id, name) to DIRECTORY '/tmp'");
         assertThat(analysis.selectedColumns().size(), is(2));
-        assertThat(((Reference)analysis.selectedColumns().get(0)).info().ident().columnIdent().name(), is("id"));
-        assertThat(((Reference)analysis.selectedColumns().get(1)).info().ident().columnIdent().name(), is("name"));
+        assertThat(analysis.selectedColumns().get(0), isReference("id"));
+        assertThat(analysis.selectedColumns().get(1), isReference("name"));
     }
 
     @Test

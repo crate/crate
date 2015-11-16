@@ -104,13 +104,13 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, tableRelation);
         columnExpressionAnalyzer.resolveWritableFields(true);
 
         assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == tableRelation;
         FieldProvider fieldProvider = new FullQualifedNameFieldProvider(relationAnalysisContext.sources());
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
@@ -122,11 +122,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
 
-            WhereClause whereClause = expressionAnalyzer.generateWhereClause(
-                    node.whereClause(),
-                    expressionAnalysisContext,
-                    tableRelation);
-
+            WhereClause whereClause = expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext);
             whereClause = whereClauseAnalyzer.analyze(whereClause);
 
             if (!whereClause.docKeys().isPresent() && HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION)) {
@@ -161,7 +157,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                                   ExpressionAnalysisContext expressionAnalysisContext) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) columnExpressionAnalyzer.normalize(
-                tableRelation.resolve(columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
+                columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext));
 
         final ColumnIdent ident = reference.info().ident().columnIdent();
         if (ident.name().startsWith("_")) {
@@ -173,7 +169,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
         Symbol value = expressionAnalyzer.normalize(
-                tableRelation.resolve(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
+                expressionAnalyzer.convert(node.expression(), expressionAnalysisContext));
         try {
             value = expressionAnalyzer.normalizeInputForReference(value, reference, expressionAnalysisContext);
             ensureUpdateIsAllowed(tableRelation.tableInfo(), ident, value);

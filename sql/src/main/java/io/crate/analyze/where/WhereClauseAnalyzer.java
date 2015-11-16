@@ -52,7 +52,6 @@ public class WhereClauseAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
                 analysisMetaData.referenceResolver(), tableRelation, false);
         this.eqExtractor = new EqualityExtractor(normalizer);
-
     }
 
     public WhereClause analyze(WhereClause whereClause) {
@@ -104,9 +103,7 @@ public class WhereClauseAnalyzer {
             whereClause.clusteredBy(clusteredBy);
         }
         if (tableInfo.isPartitioned()){
-            if (whereClause.docKeys().isPresent()){
-
-            } else{
+            if (!whereClause.docKeys().isPresent()){
                 whereClause = resolvePartitions(whereClause, tableInfo,analysisMetaData);
             }
         }
@@ -250,5 +247,4 @@ public class WhereClauseAnalyzer {
                 "logical conjunction of the conditions in the WHERE clause which " +
                         "involve partitioned columns led to a query that can't be executed.");
     }
-
 }

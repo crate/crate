@@ -25,8 +25,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -36,7 +36,10 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
 
@@ -51,7 +54,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected T tableInfo;
     private List<Field> outputs;
-    private final static FieldUnwrappingVisitor FIELD_UNWRAPPING_VISITOR = new FieldUnwrappingVisitor();
     private Map<Path, Reference> allocatedFields = new HashMap<>();
 
     public AbstractTableRelation(T tableInfo) {
@@ -170,15 +172,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return tableInfo.hashCode();
     }
 
-    @Deprecated
-    public WhereClause resolve(WhereClause whereClause) {
-        if (whereClause.hasQuery()) {
-            return new WhereClause(resolve(whereClause.query()), whereClause.docKeys().orNull(),
-                    whereClause.partitions());
-        }
-        return whereClause;
-    }
-
     @Override
     @Nullable
     public Reference resolveField(Field field) {
@@ -188,57 +181,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return null;
     }
 
-    @Deprecated
-    public Symbol resolve(Symbol symbol) {
-        assert symbol != null : "can't resolve symbol that is null";
-        return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
-    }
-
-    @Deprecated
-    private static class FieldUnwrappingVisitor extends SymbolVisitor<AbstractTableRelation, Symbol> {
-
-        private Reference resolveField(Field field, AbstractTableRelation relation) {
-            return relation.resolveField(field);
-        }
-
-        @Override
-        public Symbol visitField(Field field, AbstractTableRelation context) {
-            return resolveField(field, context);
-        }
-
-        @Override
-        public Symbol visitFunction(Function symbol, AbstractTableRelation context) {
-            for (int i = 0; i < symbol.arguments().size(); i++) {
-                symbol.setArgument(i, process(symbol.arguments().get(i), context));
-            }
-            return symbol;
-        }
-
-        @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, AbstractTableRelation context) {
-            Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
-            Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
-
-            for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
-                fqnBoostMap.put(resolveField(entry.getKey(), context).info().ident().columnIdent().fqn(), entry.getValue());
-            }
-
-            return new Function(
-                    io.crate.operation.predicate.MatchPredicate.INFO,
-                    Arrays.<Symbol>asList(
-                            Literal.newLiteral(fqnBoostMap),
-                            Literal.newLiteral(matchPredicate.columnType(), matchPredicate.queryTerm()),
-                            Literal.newLiteral(matchPredicate.matchType()),
-                            Literal.newLiteral(matchPredicate.options())));
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, AbstractTableRelation context) {
-            return symbol;
-        }
-    }
-
     public void validateOrderBy(Optional<OrderBy> orderBy) {
-        return;
     }
 }

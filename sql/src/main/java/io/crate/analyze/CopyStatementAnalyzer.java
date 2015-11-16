@@ -72,11 +72,12 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.parameterContext(),
-                new NameFieldProvider(tableRelation));
+                new NameFieldProvider(tableRelation),
+                tableRelation);
         expressionAnalyzer.resolveWritableFields(true);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        Symbol pathSymbol = tableRelation.resolve(expressionAnalyzer.convert(node.path(), expressionAnalysisContext));
+        Symbol pathSymbol = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
         statement.uri(pathSymbol);
         if (tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned())) {
             throw new UnsupportedOperationException(
@@ -117,7 +118,8 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.parameterContext(),
-                new NameFieldProvider(tableRelation));
+                new NameFieldProvider(tableRelation),
+                tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         if (node.genericProperties().isPresent()) {
@@ -138,13 +140,13 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
             }
             statement.partitionIdent(partitionIdent);
         }
-        Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
-        statement.uri(tableRelation.resolve(uri));
+        Symbol uri = expressionAnalyzer.normalize(expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext));
+        statement.uri(uri);
         statement.directoryUri(node.directoryUri());
 
         List<Symbol> columns = new ArrayList<>(node.columns().size());
         for (Expression expression : node.columns()) {
-            columns.add(tableRelation.resolve(expressionAnalyzer.convert(expression, expressionAnalysisContext)));
+            columns.add(expressionAnalyzer.normalize(expressionAnalyzer.convert(expression, expressionAnalysisContext)));
         }
         statement.selectedColumns(columns);
         return statement;

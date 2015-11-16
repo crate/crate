@@ -34,28 +34,28 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     /**
      * the schemaInfo for the schema that contains this table.
      */
-    public SchemaInfo schemaInfo();
+    SchemaInfo schemaInfo();
 
     /**
      * returns information about a column with the given ident.
      * returns null if this table contains no such column.
      */
     @Nullable
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
+    ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
 
     /**
      * returns the top level columns of this table with predictable order
      */
-    public Collection<ReferenceInfo> columns();
+    Collection<ReferenceInfo> columns();
 
-    public RowGranularity rowGranularity();
+    RowGranularity rowGranularity();
 
-    public TableIdent ident();
+    TableIdent ident();
 
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference);
+    Routing getRouting(WhereClause whereClause, @Nullable String preference);
 
-    public List<ColumnIdent> primaryKey();
+    List<ColumnIdent> primaryKey();
 
-    public ImmutableMap<String, Object> tableParameters();
+    ImmutableMap<String, Object> tableParameters();
 
 }
