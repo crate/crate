@@ -745,23 +745,14 @@ public class LuceneQueryBuilder {
                 String fieldName = prepare.v1().info().ident().columnIdent().fqn();
                 Object value = prepare.v2().value();
 
-                // FIXME: nobody knows how Strings can arrive here
-                if (value instanceof String) {
-                    if (isPcrePattern(value)) {
-                        return new RegexQuery(new Term(fieldName, (String) value));
-                    } else {
-                        return toLuceneRegexpQuery(fieldName, BytesRefs.toBytesRef(value), context);
-                    }
-                }
-
                 if (value instanceof BytesRef) {
-                    if (isPcrePattern(value)) {
-                        return new RegexQuery(new Term(fieldName, (BytesRef) value));
+                    BytesRef pattern = ((BytesRef) value);
+                    if (isPcrePattern(pattern)) {
+                        return new RegexQuery(new Term(fieldName, pattern));
                     } else {
-                        return toLuceneRegexpQuery(fieldName, (BytesRef) value, context);
+                        return toLuceneRegexpQuery(fieldName, pattern, context);
                     }
                 }
-
                 throw new IllegalArgumentException("Can only use ~ with patterns of type string");
             }
         }
@@ -775,8 +766,7 @@ public class LuceneQueryBuilder {
                 String fieldName = prepare.v1().info().ident().columnIdent().fqn();
                 Object value = prepare.v2().value();
 
-                // FIXME: nobody knows how Strings can arrive here
-                if (value instanceof String || value instanceof BytesRef) {
+                if (value instanceof BytesRef) {
                     RegexQuery query = new RegexQuery(new Term(fieldName, BytesRefs.toBytesRef(value)));
                     query.setRegexImplementation(new JavaUtilRegexCapabilities(
                             JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |

@@ -855,7 +855,7 @@ public class ESQueryBuilder {
                         value == null || value instanceof String,
                         "Can only use ~ with patterns of type string");
                 Preconditions.checkArgument(
-                        !RegexMatcher.isPcrePattern(value),
+                        !RegexMatcher.isPcrePattern((String) value),
                         "Using ~ with PCRE regular expressions currently not supported for this type of query");
                 context.builder.startObject("regexp").startObject(columnName)
                         .field("value", value)

@@ -161,14 +161,11 @@ public class RegexMatcher {
      * @see java.util.regex.Pattern
      *
      */
-    public static boolean isPcrePattern(Object pattern) {
-        if (pattern instanceof String) {
-            return pcre_pattern.matcher((String) pattern).matches();
-        }
-        if (pattern instanceof BytesRef) {
-            return pcre_pattern.matcher(((BytesRef) pattern).utf8ToString()).matches();
-        }
-        return false;
+    public static boolean isPcrePattern(BytesRef pattern) {
+        return isPcrePattern(pattern.utf8ToString());
     }
 
+    public static boolean isPcrePattern(String pattern) {
+        return pcre_pattern.matcher(pattern).matches();
+    }
 }
