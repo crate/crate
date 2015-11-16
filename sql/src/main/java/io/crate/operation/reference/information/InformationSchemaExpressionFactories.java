@@ -23,6 +23,7 @@ package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -34,6 +35,7 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
 import java.util.Map;
@@ -193,6 +195,31 @@ public class InformationSchemaExpressionFactories {
                     @Override
                     public RowCollectExpression create() {
                         return new InformationColumnsExpression.ColumnsDataTypeExpression();
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.IS_GENERATED, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression<Boolean>() {
+                            @Override
+                            public Boolean value() {
+                                return row.info instanceof GeneratedReferenceInfo;
+                            }
+                        };
+                    }
+                })
+                .put(InformationColumnsTableInfo.Columns.GENERATION_EXPRESSION, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression<BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                if (row.info instanceof GeneratedReferenceInfo) {
+                                    return BytesRefs.toBytesRef(((GeneratedReferenceInfo) row.info).generatedExpression());
+                                }
+                                return null;
+                            }
+                        };
                     }
                 }).build();
     }

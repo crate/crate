@@ -79,19 +79,19 @@ recognizable as partitioned table by a non null ``partitioned_by`` column::
 
 ::
 
-    cr> SELECT schema_name, table_name, column_name, ordinal_position, data_type
+    cr> SELECT schema_name as schema, table_name, column_name, data_type
     ... FROM information_schema.columns
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY schema_name, table_name, column_name;
-    +-------------+--------------+-------------+------------------+-----------+
-    | schema_name | table_name   | column_name | ordinal_position | data_type |
-    +-------------+--------------+-------------+------------------+-----------+
-    | doc         | parted_table | content     | 1                | string    |
-    | doc         | parted_table | day         | 2                | timestamp |
-    | doc         | parted_table | id          | 3                | long      |
-    | doc         | parted_table | title       | 4                | string    |
-    | doc         | parted_table | width       | 5                | double    |
-    +-------------+--------------+-------------+------------------+-----------+
+    +--------+--------------+-------------+-----------+
+    | schema | table_name   | column_name | data_type |
+    +--------+--------------+-------------+-----------+
+    | doc    | parted_table | content     | string    |
+    | doc    | parted_table | day         | timestamp |
+    | doc    | parted_table | id          | long      |
+    | doc    | parted_table | title       | string    |
+    | doc    | parted_table | width       | double    |
+    +--------+--------------+-------------+-----------+
     SELECT 5 rows in set (... sec)
 
 And so on.
