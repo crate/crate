@@ -39,11 +39,11 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -73,10 +73,8 @@ public class DocIndexMetaData {
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
-    private Map<String, Object> metaMap;
-    private Map<String, Object> metaColumnsMap;
-    private Map<String, Object> indicesMap;
-    private List<List<String>> partitionedByList;
+    private final Map<String, Object> indicesMap;
+    private final List<List<String>> partitionedByList;
     private ImmutableList<ReferenceInfo> columns;
     private ImmutableMap<ColumnIdent, IndexReferenceInfo> indices;
     private ImmutableList<ReferenceInfo> partitionedByColumns;
@@ -95,18 +93,20 @@ public class DocIndexMetaData {
         this.metaData = metaData;
         this.isAlias = !metaData.getIndex().equals(ident.indexName());
         this.numberOfShards = metaData.numberOfShards();
-        final Settings settings = metaData.getSettings();
+        Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
         this.aliases = ImmutableSet.copyOf(metaData.aliases().keys().toArray(String.class));
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (defaultMappingMetaData == null) {
-            this.defaultMappingMap = new HashMap<>();
+            this.defaultMappingMap = ImmutableMap.of();
         } else {
             this.defaultMappingMap = this.defaultMappingMetaData.sourceAsMap();
         }
         this.tableParameters = TableParameterInfo.tableParametersFromIndexMetaData(metaData);
 
-        prepareCrateMeta();
+        Map<String, Object> metaMap = getNested(defaultMappingMap, "_meta");
+        indicesMap = getNested(metaMap, "indices", ImmutableMap.<String, Object>of());
+        partitionedByList = getNested(metaMap, "partitioned_by", ImmutableList.<List<String>>of());
     }
 
     @SuppressWarnings("unchecked")
@@ -114,27 +114,16 @@ public class DocIndexMetaData {
         return (T) map.get(key);
     }
 
-    private void prepareCrateMeta() {
-        metaMap = getNested(defaultMappingMap, "_meta");
-        if (metaMap != null) {
-            indicesMap = getNested(metaMap, "indices");
-            if (indicesMap == null) {
-                indicesMap = ImmutableMap.of();
-            }
-            metaColumnsMap = getNested(metaMap, "columns");
-            if (metaColumnsMap == null) {
-                metaColumnsMap = ImmutableMap.of();
-            }
-            partitionedByList = getNested(metaMap, "partitioned_by");
-            if (partitionedByList == null) {
-                partitionedByList = ImmutableList.of();
-            }
-        } else {
-            metaMap = new HashMap<>();
-            indicesMap = new HashMap<>();
-            metaColumnsMap = new HashMap<>();
-            partitionedByList = ImmutableList.of();
+    private static <T> T getNested(@Nullable Map map, String key, T defaultValue) {
+        if (map == null) {
+            return defaultValue;
         }
+        Object o = map.get(key);
+        if (o == null) {
+            return defaultValue;
+        }
+        //noinspection unchecked
+        return (T)o;
     }
 
     private void addPartitioned(ColumnIdent column, DataType type) {
