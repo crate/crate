@@ -435,19 +435,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(316L, response.rowCount());
+        assertEquals(318L, response.rowCount());
     }
 
     @Test
     public void testColumnsColumns() throws Exception {
         execute("select * from information_schema.columns where schema_name='information_schema' and table_name='columns' order by ordinal_position asc");
-        assertEquals(5, response.rowCount());
+        assertThat(response.rowCount(), is(7L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "column_name| string| 1| information_schema| columns\n" +
-                "data_type| string| 2| information_schema| columns\n" +
-                "ordinal_position| short| 3| information_schema| columns\n" +
-                "schema_name| string| 4| information_schema| columns\n" +
-                "table_name| string| 5| information_schema| columns\n"));
+                "column_name| string| NULL| false| 1| information_schema| columns\n" +
+                "data_type| string| NULL| false| 2| information_schema| columns\n" +
+                "generation_expression| string| NULL| false| 3| information_schema| columns\n" +
+                "is_generated| boolean| NULL| false| 4| information_schema| columns\n" +
+                "ordinal_position| short| NULL| false| 5| information_schema| columns\n" +
+                "schema_name| string| NULL| false| 6| information_schema| columns\n" +
+                "table_name| string| NULL| false| 7| information_schema| columns\n"));
     }
 
     @Test
@@ -456,15 +458,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where schema_name='doc'");
         assertEquals(3L, response.rowCount());
-        assertEquals("doc", response.rows()[0][3]);
-        assertEquals("test", response.rows()[0][4]);
         assertEquals("age", response.rows()[0][0]);
-        short expected = 1;
-        assertEquals(expected, response.rows()[0][2]);
         assertEquals("integer", response.rows()[0][1]);
+        assertEquals(null, response.rows()[0][2]);
+        assertEquals(false, response.rows()[0][3]);
+        short expected = 1;
+        assertEquals(expected, response.rows()[0][4]);
+        assertEquals("doc", response.rows()[0][5]);
+        assertEquals("test", response.rows()[0][6]);
 
         assertEquals("col1", response.rows()[1][0]);
-
         assertEquals("col2", response.rows()[2][0]);
     }
 
