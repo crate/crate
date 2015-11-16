@@ -196,14 +196,7 @@ public class WhereClause extends QueryClause implements Streamable {
         return result;
     }
 
-    /**
-     * @deprecated versions are now on the docKeys
-     */
-    @Deprecated
     public boolean hasVersions() {
-        if (docKeys.isPresent()){
-            return docKeys.get().withVersions();
-        }
-        return false;
+        return docKeys.isPresent() && docKeys.get().withVersions();
     }
 }
