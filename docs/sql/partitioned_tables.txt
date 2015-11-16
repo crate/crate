@@ -6,7 +6,7 @@ Partitioned Tables
 ==================
 
 A partitioned table is a virtual table that can be created
-by naming one or more columns by which it is splitted into
+by naming one or more columns by which it is split into
 separate internal tables, called ``partitions``.
 
 When a record with a new distinct combination of values for
@@ -17,7 +17,7 @@ You will end up with separate partitions under the hood that
 can be queried like a single table.
 
 If you are usually interested in separate partitions of your data only,
-as might be the case for e.g. analyzing time based log data.
+as might be the case for e.g. analyzing time based log data,
 you can query them much much faster because you don't have to
 iterate over all rows of all partitions.
 
@@ -28,12 +28,12 @@ as a whole table can be deleted and no expensive query is involved.
 
    Keep in mind that the values of the columns used for
    partitioning are internally base32 encoded into the partition name
-   (which is a own table). So for every partition, the partition table
+   (which is a separate table). So for every partition, the partition table
    name includes:
    ``(optional)schema_name + table_name + base32 encoded partition
    column value(s) + an internal overhead of 14 bytes``
 
-   Alltogether this must not exceed the 255 bytes length
+   Altogether this must not exceed the 255 bytes length
    limitation. See :ref:`sql_ddl_naming_restrictions`.
 
 
@@ -41,7 +41,7 @@ Creation
 ========
 
 It can be created using the :ref:`ref-create-table` statement
-using the :ref:`ref_clustered_clause`::
+using the :ref:`partitioned_by_clause`::
 
     cr> CREATE TABLE parted_table (
     ...   id long,
@@ -55,11 +55,27 @@ using the :ref:`ref_clustered_clause`::
 This creates an empty partitioned table which is not yet backed by
 real partitions. Nonetheless does it behave like a *normal* table.
 
+When the value to partition by references one or more :ref:`ref-base-columns`,
+their values must be supplied upon :ref:`ref-insert` or :ref:`copy_from`.
+Often these values are computed on client side.
+If this is not possible, a :ref:`generated column <ref-generated-columns>`
+can be used to create a suitable partition value from the given values on database-side::
+
+    cr> CREATE TABLE computed_parted_table (
+    ...   id long,
+    ...   data double,
+    ...   created_at timestamp,
+    ...   month timestamp GENERATED ALWAYS AS date_trunc('month', created_at)
+    ... ) PARTITIONED BY (month);
+    CREATE OK (... sec)
+
+
 Information Schema
 ==================
 
 This table shows up in the ``information_schema.tables`` table,
-recognizable as partitioned table by a non null ``partitioned_by`` column::
+recognizable as partitioned table by a non null ``partitioned_by`` column
+(aliased as ``p_b`` here)::
 
     cr> SELECT schema_name as schema,
     ...   table_name,
@@ -172,6 +188,13 @@ atomic operation and could lead to inconsistent state::
     ... WHERE id = 1;
     SQLActionException[Validation failed for day: Updating a partitioned-by column is not supported]
 
+When using a :ref:`generated column <ref-generated-columns>` as ``PARTITIONED BY`` column
+all the columns referenced in its *generation expression* cannot be updated as well::
+
+    cr> UPDATE computed_parted_table set created_at='1970-01-01'
+    ... WHERE id = 1;
+    SQLActionException[Validation failed for created_at: Updating a column which is referenced in a partitioned by generated column expression is not supported]
+
 ::
 
     cr> UPDATE parted_table set content = 'now panic!'
@@ -196,7 +219,7 @@ atomic operation and could lead to inconsistent state::
 Delete
 ======
 
-Deleting with a where clause matching all rows of a partition
+Deleting with a ``WHERE`` clause matching all rows of a partition
 will drop the whole partition instead of deleting every
 matching document, which is a lot faster::
 
@@ -216,6 +239,102 @@ matching document, which is a lot faster::
     +-----------------+
     SELECT 1 row in set (... sec)
 
+
+.. _partitioned_tables_querying:
+
+Querying
+========
+
+``UPDATE``, ``DELETE`` and ``SELECT`` queries are all optimized
+to only affect as few partitions as possible based on
+the partitions referenced in the ``WHERE`` clause.
+
+The ``WHERE`` clause is analyzed for referenced partitions by
+checking conditions on columns used in the ``PARTITIONED BY`` clause.
+For example the following query will only operate
+on the partition for ``day=1396915200000``:
+
+.. Hidden: insert some rows::
+
+    cr> INSERT INTO parted_table (id, title, content, width, day) VALUES
+    ... (1, 'The incredible foo', 'foo is incredible', 12.9, '2015-11-16'),
+    ... (2, 'The dark bar rises', 'na, na, na, na, na, na, na, na, barman!', 0.5, '1970-01-01'),
+    ... (3, 'Kill baz', '*splatter*, *oommph*, *zip*', 13.5, '1970-01-01'),
+    ... (4, 'Spice Pork And haM', 'want some roses?', -0.0, '1999-12-12');
+    INSERT OK, 4 rows affected (... sec)
+
+.. Hidden: refresh
+
+    cr> REFRESH TABLE parted_table;
+    REFRESH OK (... sec)
+
+::
+
+    cr> SELECT count(*) FROM parted_table
+    ... WHERE day='1970-01-01'
+    ... ORDER by 1;
+    +----------+
+    | count(*) |
+    +----------+
+    | 2        |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+Any combination of conditions that can be evaluated to a partition
+before actually executing the query is supported::
+
+    cr> SELECT id, title FROM parted_table
+    ... WHERE date_trunc('year', day) > '1970-01-01'
+    ... OR extract(day_of_week from day) = 1
+    ... ORDER BY id DESC;
+    +----+--------------------+
+    | id | title              |
+    +----+--------------------+
+    |  4 | Spice Pork And haM |
+    |  1 | The incredible foo |
+    +----+--------------------+
+    SELECT 2 rows in set (... sec)
+
+Internally the ``WHERE`` clause is evaluated against the existing partitions and their
+partition values. These partitions are then filtered to obtain the
+list of partitions that need to be accessed.
+
+.. Hidden: delete::
+
+    cr> DELETE FROM parted_table;
+    DELETE OK, -1 rows affected (... sec)
+
+
+Generated Columns in PARTITIONED BY
+-----------------------------------
+
+Querying on tables partitioned by generated columns is also optimized to infer a minimum
+list of partitions from the ``PARTITIONED BY`` columns referenced in the ``WHERE`` clause:
+
+.. Hidden: insert some stuff::
+
+    cr> INSERT INTO computed_parted_table (id, data, created_at) VALUES
+    ... (1, 42.0, '2015-11-16T14:27:00+01:00'),
+    ... (2, 0.0, '2015-11-16T00:00:00Z'),
+    ... (3, 23.0,'1970-01-01');
+    INSERT OK, 3 rows affected (... sec)
+
+.. Hidden: refresh::
+
+    cr> REFRESH TABLE computed_parted_table;
+    REFRESH OK (... sec)
+
+::
+
+    cr> SELECT id, date_format('%Y-%m', month) as m FROM computed_parted_table
+    ... WHERE created_at = '2015-11-16T13:27:00.000Z'
+    ... ORDER BY id;
+    +----+---------+
+    | id | m       |
+    +----+---------+
+    | 1  | 2015-11 |
+    +----+---------+
+    SELECT 1 row in set (... sec)
 
 .. _partitioned_tables_alter:
 
@@ -334,3 +453,7 @@ Limitations
     cr> drop table parted_table;
     DROP OK (... sec)
 
+.. Hidden: drop computed table::
+
+    cr> DROP TABLE computed_parted_table;
+    DROP OK (... sec)
