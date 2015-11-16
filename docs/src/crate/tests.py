@@ -111,7 +111,7 @@ def setUpLocations(test):
         create table locations (
           id string primary key,
           name string,
-          date timestamp,
+          "date" timestamp,
           kind string,
           position integer,
           description string,
