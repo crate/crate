@@ -307,29 +307,14 @@ public final class SqlFormatter {
         public Void visitColumnDefinition(ColumnDefinition node, Integer indent) {
             builder.append(quoteIdentifierIfNeeded(node.ident()))
                     .append(" ");
-            node.type().accept(this, indent);
-
-            if (!node.constraints().isEmpty()) {
-                for (ColumnConstraint constraint : node.constraints()) {
-                    builder.append(" ");
-                    constraint.accept(this, indent);
-                }
+            if (node.type() != null) {
+                node.type().accept(this, indent);
             }
-            return null;
-        }
-
-        @Override
-        public Void visitGeneratedColumnDefinition(GeneratedColumnDefinition node, Integer indent) {
-            builder.append(quoteIdentifierIfNeeded(node.ident()))
-                    .append(" ");
-            ColumnType columnType = node.type();
-            if (columnType != null) {
-                columnType.accept(this, indent);
-                builder.append(" GENERATED ALWAYS ");
-            }
-
-            builder.append(" AS ")
+            if (node.expression() != null) {
+                builder.append(" GENERATED ALWAYS ")
+                    .append(" AS ")
                     .append(formatExpression(node.expression()));
+            }
 
             if (!node.constraints().isEmpty()) {
                 for (ColumnConstraint constraint : node.constraints()) {
