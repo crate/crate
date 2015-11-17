@@ -35,10 +35,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-cross-joins-history", labelWith = LabelType.CUSTOM_KEY)
@@ -127,11 +124,13 @@ public class CrossJoinBenchmark extends BenchmarkBase {
     }
 
 
+    /*
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQTF() {
         execute("select * from articles, colors", new Object[0]);
     }
+
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
@@ -155,7 +154,7 @@ public class CrossJoinBenchmark extends BenchmarkBase {
                 QTF_WITH_OFFSET_SQL_STMT,
                 2, TimeUnit.MINUTES
         );
-    }
+    }*/
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
@@ -189,16 +188,20 @@ public class CrossJoinBenchmark extends BenchmarkBase {
                 execute(stmt);
             }
         }));
-        executor.invokeAll(tasks);
+        List<Future<Object>> futures = executor.invokeAll(tasks);
+        for (Future<Object> future : futures) {
+            future.get(1, TimeUnit.MINUTES);
+        }
         executor.shutdown();
         executor.awaitTermination(timeout, timeoutUnit);
         executor.shutdownNow();
     }
 
+    /*
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQAF3Tables() {
         execute("select articles.name as article, colors.name as color, small.info['size'] as size " +
                 "from articles, colors, small order by article, color limit 20000");
-    }
+    }*/
 }
