@@ -39,6 +39,14 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
         this.generatedExpression = generatedExpression;
     }
 
+    public GeneratedReferenceInfo(ReferenceIdent ident,
+                                  RowGranularity granularity,
+                                  DataType type,
+                                  String generatedExpression) {
+        super(ident, granularity, type);
+        this.generatedExpression = generatedExpression;
+    }
+
     public String generatedExpression() {
         return generatedExpression;
     }

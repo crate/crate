@@ -24,9 +24,14 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -44,6 +49,7 @@ public class AnalyzedTableElements {
     List<String> primaryKeys;
     List<List<String>> partitionedBy;
 
+
     /**
      * additional primary keys that are not inline with a column definition
      */
@@ -56,11 +62,15 @@ public class AnalyzedTableElements {
         Map<String, Object> meta = new HashMap<>();
         Map<String, Object> properties = new HashMap<>(columns.size());
 
+        Map<String, String> generatedColumns = new HashMap<>();
         Map<String, Object> indicesMap = new HashMap<>();
         for (AnalyzedColumnDefinition column : columns) {
             properties.put(column.name(), column.toMapping());
             if (column.isIndex()) {
                 indicesMap.put(column.name(), column.toMetaIndicesMapping());
+            }
+            if (column.formattedGeneratedExpression() != null) {
+                generatedColumns.put(column.name(), column.formattedGeneratedExpression());
             }
         }
 
@@ -73,6 +83,10 @@ public class AnalyzedTableElements {
         if (!primaryKeys().isEmpty()) {
             meta.put("primary_keys", primaryKeys());
         }
+        if (!generatedColumns.isEmpty()) {
+            meta.put("generated_columns", generatedColumns);
+        }
+
         mapping.put("_meta", meta);
         mapping.put("properties", properties);
         mapping.put("_all", ImmutableMap.of("enabled", false));
@@ -148,14 +162,72 @@ public class AnalyzedTableElements {
         return builder.build();
     }
 
-    public void finalizeAndValidate() {
+    public void finalizeAndValidate(TableIdent tableIdent,
+                                    AnalysisMetaData analysisMetaData,
+                                    ParameterContext parameterContext) {
         expandColumnIdents();
+        validateGeneratedColumns(tableIdent, analysisMetaData, parameterContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
         }
         validateIndexDefinitions();
         validatePrimaryKeys();
+    }
+
+    private void validateGeneratedColumns(TableIdent tableIdent,
+                                          AnalysisMetaData analysisMetaData,
+                                          ParameterContext parameterContext) {
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
+                analysisMetaData, parameterContext, buildReferences(tableIdent));
+
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
+            if (columnDefinition.generatedExpression() != null) {
+                processGeneratedExpression(expressionAnalyzer, columnDefinition);
+            }
+        }
+    }
+
+    private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer, AnalyzedColumnDefinition columnDefinition) {
+        // validate expression
+        Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), new ExpressionAnalysisContext());
+
+        String formattedExpression = ExpressionFormatter.formatExpression(columnDefinition.generatedExpression());
+        DataType valueType = function.valueType();
+        String definedType = columnDefinition.dataType();
+
+        // check for optional defined type and add `cast` to expression if possible
+        if (definedType != null && !definedType.equals(valueType.getName())) {
+            Preconditions.checkArgument(valueType.isConvertableTo(DataTypes.ofMappingNameSafe(definedType)),
+                    "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType);
+
+            formattedExpression = String.format(Locale.ENGLISH, "cast(%s as %s)", formattedExpression, definedType);
+        } else {
+            columnDefinition.dataType(function.valueType().getName());
+        }
+
+        columnDefinition.formattedGeneratedExpression(formattedExpression);
+    }
+
+    private List<Reference> buildReferences(TableIdent tableIdent) {
+        List<Reference> references = new ArrayList<>(columns.size());
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
+            ReferenceInfo referenceInfo;
+            if (columnDefinition.generatedExpression() == null) {
+                referenceInfo = new ReferenceInfo(
+                        new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                        RowGranularity.DOC,
+                        DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
+            } else {
+                referenceInfo = new GeneratedReferenceInfo(
+                        new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                        RowGranularity.DOC,
+                        columnDefinition.dataType() == null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
+                        "dummy expression, real one not needed here");
+            }
+            references.add(new Reference(referenceInfo));
+        }
+        return references;
     }
 
     private void addCopyToInfo(AnalyzedColumnDefinition column) {
