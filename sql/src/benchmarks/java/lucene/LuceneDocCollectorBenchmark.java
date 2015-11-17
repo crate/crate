@@ -212,6 +212,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         CrateCollector docCollector = createCollector(
                 "select continent from countries order by continent limit ?",
                 rowReceiver,
+                NUMBER_OF_DOCUMENTS,
                 NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         rowReceiver.result(); // call result to make sure there were no errors
@@ -225,6 +226,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         CrateCollector docCollector = createCollector(
                 "select continent from countries order by continent limit ?",
                 rowReceiver,
+                NUMBER_OF_DOCUMENTS,
                 NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {

@@ -84,6 +84,17 @@ task benchmarks(type: Test) {
     testClassesDir = project.sourceSets.benchmarks.output.classesDir
     classpath = project.sourceSets.benchmarks.runtimeClasspath
 
+    def benchmark_dir = project.projectDir.path + '/reports/bench/'
+
+    // Properties for JUnit Benchmarks
+    systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
+    systemProperty 'jub.db.file', benchmark_dir + 'results-sql'
+    systemProperty 'jub.xml.file', benchmark_dir + 'results-sql.xml'
+    systemProperty 'jub.charts.dir', benchmark_dir
+
+    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
+    outputs.upToDateWhen { false }
+
     jacoco {
         enabled = false
     }
