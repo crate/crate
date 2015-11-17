@@ -42,6 +42,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final AnalysisMetaData analysisMetaData;
 
     static class Context {
         Analysis analysis;
@@ -59,9 +60,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     @Inject
     public CreateTableStatementAnalyzer(Schemas schemas,
-                                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                        AnalysisMetaData analysisMetaData) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        this.analysisMetaData = analysisMetaData;
     }
 
     @Override
@@ -87,7 +90,10 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
                 context.analysis.parameterContext(),
                 context.statement.fulltextAnalyzerResolver()));
 
-        context.statement.analyzedTableElements().finalizeAndValidate();
+        // validate table elements
+        context.statement.analyzedTableElements().finalizeAndValidate(
+                context.statement.tableIdent(), analysisMetaData, context.analysis.parameterContext());
+
         // update table settings
         context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
 

@@ -86,7 +86,12 @@ public class TableElementsAnalyzer {
             for (ColumnConstraint columnConstraint : node.constraints()) {
                 process(columnConstraint, context);
             }
-            process(node.type(), context);
+            if (node.type() != null) {
+                process(node.type(), context);
+            }
+            if (node.expression() != null) {
+                context.analyzedColumnDefinition.generatedExpression(node.expression());
+            }
             return null;
         }
 
@@ -118,7 +123,13 @@ public class TableElementsAnalyzer {
             for (ColumnConstraint columnConstraint : node.constraints()) {
                 process(columnConstraint, context);
             }
-            process(node.type(), context);
+            if (node.type() != null) {
+                process(node.type(), context);
+            }
+            if (node.generatedExpression() !=null) {
+                throw new UnsupportedOperationException("Adding a generated column is not supported");
+            }
+
             context.analyzedColumnDefinition = root;
             return null;
         }
