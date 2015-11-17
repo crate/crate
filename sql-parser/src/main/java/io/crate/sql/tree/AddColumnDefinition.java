@@ -27,24 +27,41 @@ import com.google.common.collect.ImmutableList;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class NestedColumnDefinition extends TableElement {
+public class AddColumnDefinition extends TableElement {
 
     private final Expression name;
+    @Nullable
+    private final Expression generatedExpression;
+    @Nullable
     private final ColumnType type;
     private final List<ColumnConstraint> constraints;
 
-    public NestedColumnDefinition(Expression name,
-                                  ColumnType type,
-                                  @Nullable List<ColumnConstraint> constraints) {
+    public AddColumnDefinition(Expression name,
+                               @Nullable Expression generatedExpression,
+                               @Nullable ColumnType type,
+                               @Nullable List<ColumnConstraint> constraints) {
         this.name = name;
+        this.generatedExpression = generatedExpression;
         this.type = type;
         this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
+    }
+
+    public AddColumnDefinition(Expression name,
+                               Expression generatedExpression,
+                               List<ColumnConstraint> constraints) {
+        this(name, generatedExpression, null, constraints);
     }
 
     public Expression name() {
         return name;
     }
 
+    @Nullable
+    public Expression generatedExpression() {
+        return generatedExpression;
+    }
+
+    @Nullable
     public ColumnType type() {
         return type;
     }
@@ -54,9 +71,34 @@ public class NestedColumnDefinition extends TableElement {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AddColumnDefinition that = (AddColumnDefinition) o;
+
+        if (!name.equals(that.name)) return false;
+        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
+                that.generatedExpression != null) return false;
+        if (type != null ? !type.equals(that.type) : that.type != null) return false;
+        return constraints.equals(that.constraints);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + (generatedExpression != null ? generatedExpression.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + constraints.hashCode();
+        return result;
+    }
+
+    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("name", name)
+                .add("generatedExpression", generatedExpression)
                 .add("type", type)
                 .add("constraints", constraints)
                 .toString();
@@ -64,28 +106,6 @@ public class NestedColumnDefinition extends TableElement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitNestedColumnDefinition(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof NestedColumnDefinition)) return false;
-
-        NestedColumnDefinition that = (NestedColumnDefinition) o;
-
-        if (!constraints.equals(that.constraints)) return false;
-        if (!name.equals(that.name)) return false;
-        if (!type.equals(that.type)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + type.hashCode();
-        result = 31 * result + constraints.hashCode();
-        return result;
+        return visitor.visitAddColumnDefinition(this, context);
     }
 }
