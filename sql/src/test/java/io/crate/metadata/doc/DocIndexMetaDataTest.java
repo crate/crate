@@ -5,10 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.analyze.CreateTableStatementAnalyzer;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -840,7 +837,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                     clusterService,
                     threadPool,
                     transportPutIndexTemplateAction),
-            new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
+            new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
+            mock(AnalysisMetaData.class)
         );
 
         Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][], null));
