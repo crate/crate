@@ -23,17 +23,13 @@ package io.crate.benchmark;
 
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -42,9 +38,6 @@ import static org.hamcrest.Matchers.nullValue;
 @BenchmarkHistoryChart(filePrefix="benchmark-partitioned-bulk-insert-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-partitioned-bulk-insert")
 public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     public static final String INDEX_NAME = "motiondata";
     public static final int BENCHMARK_ROUNDS = 3;

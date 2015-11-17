@@ -22,7 +22,6 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
@@ -30,10 +29,7 @@ import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.Vector;
@@ -54,9 +50,6 @@ public class AnyBenchmark extends BenchmarkBase  {
     static final String SELECT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value = ANY (?)";
 
     static final String SELECT_NOT_ANY_PARAM = "select * from "+ INDEX_NAME + " where value != ANY (?)";
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean generateData() {

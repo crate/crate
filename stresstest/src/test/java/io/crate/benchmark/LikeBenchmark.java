@@ -22,16 +22,12 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,9 +47,6 @@ public class LikeBenchmark extends BenchmarkBase {
     static final String DEFAULT_MAPPING_TYPE = "default";
 
     static AtomicInteger ID_VALUE = new AtomicInteger(0);
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean generateData() {

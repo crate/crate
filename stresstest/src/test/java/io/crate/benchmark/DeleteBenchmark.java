@@ -22,7 +22,6 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
@@ -35,10 +34,7 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,9 +49,6 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     private static final String DELETE_BY_ID_STMT = "DELETE FROM countries WHERE \"_id\" = ?";
     private static final String DELETE_BY_QUERY_STMT = "DELETE FROM countries WHERE \"countryCode\" = ?";
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     private List<String> ids = new ArrayList<>(250);
     private List<String> countryCodes = new ArrayList<>(250);

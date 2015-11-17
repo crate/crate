@@ -21,6 +21,7 @@
 
 package io.crate.benchmark;
 
+import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -45,8 +46,6 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -72,10 +71,10 @@ public abstract class BenchmarkBase extends RandomizedTest {
     public static final String INDEX_NAME = "countries";
     public static final String DATA = "/setup/data/bench.json";
 
-    public final ESLogger logger = Loggers.getLogger(getClass());
-
     @Rule
-    public TestRule ruleChain = RuleChain.emptyRuleChain();
+    public BenchmarkRule benchmarkRun = new BenchmarkRule();
+
+    public final ESLogger logger = Loggers.getLogger(getClass());
 
     public SQLResponse execute(String stmt, Object[] args) {
         return execute(new SQLRequest(stmt, args));
@@ -135,10 +134,12 @@ public abstract class BenchmarkBase extends RandomizedTest {
 
     @AfterClass
     public static void tearDownClass() throws IOException {
-        try {
-            CLUSTER.client().admin().indices().prepareDelete("_all").execute().actionGet();
-        } catch (IndexMissingException e) {
-            // fine
+        if (CLUSTER != null) {
+            try {
+                CLUSTER.client().admin().indices().prepareDelete("_all").execute().actionGet();
+            } catch (IndexMissingException e) {
+                // fine
+            }
         }
         CLUSTER.afterTest();
         CLUSTER.close();

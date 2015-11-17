@@ -22,17 +22,13 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.Random;
@@ -47,10 +43,6 @@ public class GroupByArbitraryBenchmark extends BenchmarkBase {
 
     public static final String GROUP_BY_STMT = String.format("select continent, \"countryName\" from %s group by 1, 2 ", INDEX_NAME);
     public static final String ARBITRARY_STMT = String.format("select continent, arbitrary(\"countryName\") from %s group by 1", INDEX_NAME);
-
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean importData() {

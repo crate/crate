@@ -23,7 +23,6 @@ package io.crate.benchmark;
 
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
@@ -32,10 +31,7 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLRequest;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.util.Collections;
 
@@ -43,9 +39,6 @@ import java.util.Collections;
 @BenchmarkHistoryChart(filePrefix="benchmark-bulk-insert-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-insert")
 public class BulkInsertBenchmark extends BenchmarkBase {
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     public static final int BENCHMARK_ROUNDS = 10;
     public static final int ROWS = 10000;

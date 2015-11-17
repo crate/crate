@@ -21,17 +21,13 @@
 
 package io.crate.benchmark;
 
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import org.elasticsearch.action.count.CountAction;
 import org.elasticsearch.action.count.CountRequest;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-count-history", labelWith = LabelType.CUSTOM_KEY)
@@ -40,9 +36,6 @@ public class CountBenchmark extends BenchmarkBase {
 
     public static final int NUM_REQUESTS_PER_TEST = 200;
     public static final int BENCHMARK_ROUNDS = 100;
-
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean importData() {

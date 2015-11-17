@@ -22,17 +22,13 @@
 package io.crate.benchmark;
 
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.Random;
@@ -55,8 +51,6 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static final String GROUP_BY_ROUTING_STMT = String.format("select sum(population), type from %s group by type order by 1", INDEX_NAME);
     public static final String GROUP_BY_ROUTING_HIGH_LIMIT_STMT = String.format("select sum(population), type from %s group by type order by 1 limit 100000", INDEX_NAME);
 
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean importData() {
