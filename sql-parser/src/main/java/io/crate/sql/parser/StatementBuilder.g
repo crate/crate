@@ -866,9 +866,9 @@ columnDefinition returns [ColumnDefinition value]
     ;
 
 generatedColumnDefinition returns [GeneratedColumnDefinition value]
-    : ^(GENERATED_COLUMN_DEF ident expr dataType?)
+    : ^(GENERATED_COLUMN_DEF ident expr dataType? columnConstraints)
         {
-            $value = new GeneratedColumnDefinition($ident.value, $expr.value, $dataType.value);
+            $value = new GeneratedColumnDefinition($ident.value, $expr.value, $dataType.value, $columnConstraints.value);
         }
     ;
 
