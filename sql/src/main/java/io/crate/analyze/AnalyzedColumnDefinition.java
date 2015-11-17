@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -55,6 +56,11 @@ public class AnalyzedColumnDefinition {
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
+
+    @Nullable
+    private String formattedGeneratedExpression;
+    @Nullable
+    private Expression generatedExpression;
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
@@ -329,4 +335,23 @@ public class AnalyzedColumnDefinition {
     public boolean isParentColumn() {
         return isParentColumn;
     }
+
+    public void formattedGeneratedExpression(String formattedGeneratedExpression) {
+        this.formattedGeneratedExpression = formattedGeneratedExpression;
+    }
+
+    @Nullable
+    public String formattedGeneratedExpression() {
+        return formattedGeneratedExpression;
+    }
+
+    public void generatedExpression(Expression generatedExpression) {
+        this.generatedExpression = generatedExpression;
+    }
+
+    @Nullable
+    public Expression generatedExpression() {
+        return generatedExpression;
+    }
+
 }

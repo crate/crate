@@ -38,12 +38,15 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
 
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final AnalysisMetaData analysisMetaData;
 
     @Inject
     public AlterTableAddColumnAnalyzer(Schemas schemas,
-                                       FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                       AnalysisMetaData analysisMetaData) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        this.analysisMetaData = analysisMetaData;
     }
 
     public AddColumnAnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -73,7 +76,8 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         }
         addExistingPrimaryKeys(statement);
         ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
-        statement.analyzedTableElements().finalizeAndValidate();
+        statement.analyzedTableElements().finalizeAndValidate(
+                statement.table().ident(), analysisMetaData, analysis.parameterContext());
 
         int numCurrentPks = statement.table().primaryKey().size();
         if (statement.table().primaryKey().contains(new ColumnIdent("_id"))) {

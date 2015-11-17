@@ -29,6 +29,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
@@ -82,7 +83,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                         new MetaDataInformationModule(),
                         new TestMetaDataModule(),
                         new MetaDataSysModule(),
-                        new OperatorModule())
+                        new OperatorModule(),
+                        new ScalarFunctionModule())
         );
         return modules;
     }
@@ -784,4 +786,71 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
     }
 
+    @Test
+    public void testCreateTableWithGeneratedColumn() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (ts timestamp, day as date_trunc('day', ts))");
+
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        assertThat(metaMapping.size(), is(1));
+        Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
+        assertThat(generatedColumnsMapping.size(), is(1));
+        assertThat(generatedColumnsMapping.get("day"), is("date_trunc('day', \"ts\")"));
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mappingProperties.size(), is(2));
+        Map<String, Object> dayMapping = (Map<String, Object>)mappingProperties.get("day");
+        assertThat((String) dayMapping.get("type"), is("date"));
+        Map<String, Object> tsMapping = (Map<String, Object>)mappingProperties.get("ts");
+        assertThat((String) tsMapping.get("type"), is("date"));
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnWithType() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (ts timestamp, day long GENERATED ALWAYS as date_trunc('day', ts))");
+
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
+        assertThat(generatedColumnsMapping.get("day"), is("cast(date_trunc('day', \"ts\") as long)"));
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> dayMapping = (Map<String, Object>)mappingProperties.get("day");
+        assertThat((String) dayMapping.get("type"), is("long"));
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnWithInvalidType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("generated expression value type 'timestamp' not supported for conversion to 'string'");
+        analyze("create table foo (ts timestamp, day string GENERATED ALWAYS as date_trunc('day', ts))");
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnWithMatch() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("can only MATCH on columns, not on foo.name");
+        analyze("create table foo (name string, bar as match(name, 'crate'))");
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnBasedOnGeneratedColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("A generated column cannot be based on a generated column");
+        analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(day as string))");
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnBasedOnUnknownColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column unknown_col unknown");
+        analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(unknown_col as string))");
+    }
+
+    @Test
+    public void testAlterTableAddGeneratedColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Adding a generated column is not supported");
+        analyze("alter table users add column day as date_trunc('day', ts)");
+    }
 }
