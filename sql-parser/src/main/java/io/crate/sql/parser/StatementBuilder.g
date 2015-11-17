@@ -774,9 +774,9 @@ alterTable returns [Statement value]
         {
             $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
-    | ^(ADD_COLUMN namedTable nestedColumnDefinition)
+    | ^(ADD_COLUMN namedTable addColumnDefinition)
         {
-            $value = new AlterTableAddColumn($namedTable.value, $nestedColumnDefinition.value);
+            $value = new AlterTableAddColumn($namedTable.value, $addColumnDefinition.value);
         }
     ;
 
@@ -842,33 +842,30 @@ tableElementList returns [List<TableElement> value = new ArrayList<>()]
     ;
 
 tableElement returns [TableElement value]
-    : generatedColumnDefinition { $value = $generatedColumnDefinition.value; }
-    | columnDefinition { $value = $columnDefinition.value; }
+    : columnDefinition { $value = $columnDefinition.value; }
     | indexDefinition  { $value = $indexDefinition.value; }
     | primaryKeyConstraint { $value = $primaryKeyConstraint.value; }
     ;
 
 
-nestedColumnDefinition returns [NestedColumnDefinition value]
-    : ^(NESTED_COLUMN_DEF expr dataType columnConstraints)
+addColumnDefinition returns [AddColumnDefinition value]
+    : ^(ADD_COLUMN_DEF name=expr generated=expr? dataType? columnConstraints)
         {
-            $value = new NestedColumnDefinition($expr.value,
-                                                $dataType.value,
-                                                $columnConstraints.value);
+            $value = new AddColumnDefinition($name.value,
+                                             $generated.value,
+                                             $dataType.value,
+                                             $columnConstraints.value);
         }
     ;
 
 columnDefinition returns [ColumnDefinition value]
-    : ^(COLUMN_DEF ident dataType columnConstraints)
+    : ^(COLUMN_DEF ident expr dataType? columnConstraints)
+        {
+            $value = new ColumnDefinition($ident.value, $expr.value, $dataType.value, $columnConstraints.value);
+        }
+    | ^(COLUMN_DEF ident dataType columnConstraints)
         {
             $value = new ColumnDefinition($ident.value, $dataType.value, $columnConstraints.value);
-        }
-    ;
-
-generatedColumnDefinition returns [GeneratedColumnDefinition value]
-    : ^(GENERATED_COLUMN_DEF ident expr dataType? columnConstraints)
-        {
-            $value = new GeneratedColumnDefinition($ident.value, $expr.value, $dataType.value, $columnConstraints.value);
         }
     ;
 

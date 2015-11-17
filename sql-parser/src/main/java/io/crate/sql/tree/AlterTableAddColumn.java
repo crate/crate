@@ -26,15 +26,15 @@ import com.google.common.base.MoreObjects;
 public class AlterTableAddColumn extends Statement {
 
     private final Table table;
-    private final NestedColumnDefinition nestedColumnDefinition;
+    private final AddColumnDefinition addColumnDefinition;
 
-    public AlterTableAddColumn(Table table, NestedColumnDefinition nestedColumnDefinition) {
+    public AlterTableAddColumn(Table table, AddColumnDefinition addColumnDefinition) {
         this.table = table;
-        this.nestedColumnDefinition = nestedColumnDefinition;
+        this.addColumnDefinition = addColumnDefinition;
     }
 
     public TableElement tableElement() {
-        return nestedColumnDefinition;
+        return addColumnDefinition;
     }
 
     public Table table() {
@@ -49,14 +49,14 @@ public class AlterTableAddColumn extends Statement {
         AlterTableAddColumn that = (AlterTableAddColumn) o;
 
         if (!table.equals(that.table)) return false;
-        if (!nestedColumnDefinition.equals(that.nestedColumnDefinition)) return false;
+        if (!addColumnDefinition.equals(that.addColumnDefinition)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = nestedColumnDefinition.hashCode();
+        int result = addColumnDefinition.hashCode();
         result = 31 * result + table.hashCode();
         return result;
     }
@@ -65,7 +65,7 @@ public class AlterTableAddColumn extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("table", table)
-                .add("element", nestedColumnDefinition).toString();
+                .add("element", addColumnDefinition).toString();
     }
 
     @Override
