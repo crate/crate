@@ -98,7 +98,7 @@ tokens {
     TABLE_PARTITION_LIST;
     ADD_COLUMN;
     COLUMN_DEF;
-    NESTED_COLUMN_DEF;
+    ADD_COLUMN_DEF;
     GENERATED_COLUMN_DEF;
     NOT_NULL;
     ALIASED_RELATION;
@@ -875,7 +875,7 @@ alterBlobTableStmt
 
 alterTableStmt
     : (alterTableDefinition SET) => alterTableDefinition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties alterTableDefinition)
-    | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? nestedColumnDefinition -> ^(ADD_COLUMN tableWithPartition nestedColumnDefinition)
+    | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? addColumnDefinition -> ^(ADD_COLUMN tableWithPartition addColumnDefinition)
     | alterTableDefinition RESET identList -> ^(ALTER_TABLE identList alterTableDefinition)
     ;
 
@@ -916,23 +916,29 @@ tableElementList
 
 
 tableElement
-    : (generatedColumnDefinition) => generatedColumnDefinition
-    |   columnDefinition
+    :   columnDefinition
     |   indexDefinition
     |   primaryKeyConstraint
     ;
 
-nestedColumnDefinition
-    : expr dataType columnConstDef* -> ^(NESTED_COLUMN_DEF expr dataType columnConstDef*)
+addColumnDefinition
+    : (addGeneratedColumnDefinition) => addGeneratedColumnDefinition
+    | subscriptSafe dataType columnConstDef* -> ^(ADD_COLUMN_DEF subscriptSafe dataType columnConstDef*)
     ;
 
 columnDefinition
-    : ident dataType columnConstDef* -> ^(COLUMN_DEF ident dataType columnConstDef*)
+    : (generatedColumnDefinition) => generatedColumnDefinition
+    | ident dataType columnConstDef* -> ^(COLUMN_DEF ident dataType columnConstDef*)
     ;
 
 generatedColumnDefinition
-    : ident GENERATED ALWAYS AS expr columnConstDef* -> ^(GENERATED_COLUMN_DEF ident expr columnConstDef*)
-    | ident (dataType GENERATED ALWAYS)? AS expr columnConstDef* -> ^(GENERATED_COLUMN_DEF ident expr dataType? columnConstDef*)
+    : ident GENERATED ALWAYS AS expr columnConstDef* -> ^(COLUMN_DEF ident expr columnConstDef*)
+    | ident (dataType GENERATED ALWAYS)? AS expr columnConstDef* -> ^(COLUMN_DEF ident expr dataType? columnConstDef*)
+    ;
+
+addGeneratedColumnDefinition
+    : (subscriptSafe GENERATED ALWAYS AS) => subscriptSafe GENERATED ALWAYS AS expr columnConstDef* -> ^(ADD_COLUMN_DEF subscriptSafe expr columnConstDef*)
+    | subscriptSafe (dataType GENERATED ALWAYS)? AS expr columnConstDef* -> ^(ADD_COLUMN_DEF subscriptSafe expr dataType? columnConstDef*)
     ;
 
 dataType
