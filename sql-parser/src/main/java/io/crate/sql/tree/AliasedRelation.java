@@ -110,15 +110,4 @@ public class AliasedRelation
         return result;
     }
 
-    public static Function<QualifiedName, QualifiedName> applyAlias(final AliasedRelation node)
-    {
-        return new Function<QualifiedName, QualifiedName>()
-        {
-            @Override
-            public QualifiedName apply(QualifiedName input)
-            {
-                return QualifiedName.of(node.getAlias(), input.getSuffix()); // TODO: handle column aliases
-            }
-        };
-    }
 }

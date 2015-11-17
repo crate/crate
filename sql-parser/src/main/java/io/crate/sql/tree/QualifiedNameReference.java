@@ -38,11 +38,6 @@ public class QualifiedNameReference
         return name;
     }
 
-    public QualifiedName getSuffix()
-    {
-        return QualifiedName.of(Iterables.getLast(name.getParts()));
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {

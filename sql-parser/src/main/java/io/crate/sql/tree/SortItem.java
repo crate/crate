@@ -113,15 +113,4 @@ public class SortItem
         return result;
     }
 
-    public static Function<SortItem, Expression> sortKeyGetter()
-    {
-        return new Function<SortItem, Expression>()
-        {
-            @Override
-            public Expression apply(SortItem input)
-            {
-                return input.getSortKey();
-            }
-        };
-    }
 }

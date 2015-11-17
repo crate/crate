@@ -96,28 +96,4 @@ public class FunctionCall
     {
         return Objects.hashCode(name, distinct, window, arguments);
     }
-
-    public static Function<FunctionCall, List<Expression>> argumentsGetter()
-    {
-        return new Function<FunctionCall, List<Expression>>()
-        {
-            @Override
-            public List<Expression> apply(FunctionCall input)
-            {
-                return input.getArguments();
-            }
-        };
-    }
-
-    public static Predicate<FunctionCall> distinctPredicate()
-    {
-        return new Predicate<FunctionCall>()
-        {
-            @Override
-            public boolean apply(FunctionCall input)
-            {
-                return input.isDistinct();
-            }
-        };
-    }
 }

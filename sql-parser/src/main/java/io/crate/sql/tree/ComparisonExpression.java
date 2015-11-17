@@ -22,8 +22,6 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
 
 public class ComparisonExpression
         extends Expression
@@ -42,19 +40,6 @@ public class ComparisonExpression
         REGEX_MATCH_CI("~*"),
         REGEX_NO_MATCH_CI("!~*");
 
-        public static ImmutableMap<Type, Type> INVERSE_MAP = ImmutableMap.<Type, Type>builder()
-                .put(EQUAL, NOT_EQUAL)
-                .put(NOT_EQUAL, EQUAL)
-                .put(LESS_THAN, GREATER_THAN_OR_EQUAL)
-                .put(LESS_THAN_OR_EQUAL, GREATER_THAN)
-                .put(GREATER_THAN, LESS_THAN_OR_EQUAL)
-                .put(GREATER_THAN_OR_EQUAL, LESS_THAN)
-                .put(REGEX_MATCH, REGEX_NO_MATCH)
-                .put(REGEX_NO_MATCH, REGEX_MATCH)
-                .put(REGEX_MATCH_CI, REGEX_NO_MATCH_CI)
-                .put(REGEX_NO_MATCH_CI, REGEX_MATCH_CI)
-                .build();
-
         private final String value;
 
         Type(String value)
@@ -67,9 +52,6 @@ public class ComparisonExpression
             return value;
         }
 
-        public Type inverse() {
-            return INVERSE_MAP.get(this);
-        }
     }
 
     private final Type type;
@@ -140,20 +122,6 @@ public class ComparisonExpression
         result = 31 * result + left.hashCode();
         result = 31 * result + right.hashCode();
         return result;
-    }
-
-    public static Predicate<ComparisonExpression> matchesPattern(final Type type, final Class<?> left, final Class<?> right)
-    {
-        return new Predicate<ComparisonExpression>()
-        {
-            @Override
-            public boolean apply(ComparisonExpression expression)
-            {
-                return expression.getType() == type &&
-                        left.isAssignableFrom(expression.getLeft().getClass()) &&
-                        right.isAssignableFrom(expression.getRight().getClass());
-            }
-        };
     }
 }
 

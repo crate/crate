@@ -41,11 +41,6 @@ public class ShowTables
         return schema;
     }
 
-    public String getLikePattern()
-    {
-        return likePattern;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {

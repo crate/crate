@@ -68,17 +68,4 @@ public class Input
                 .add("channel", channel)
                 .toString();
     }
-
-    public static Function<Input, Integer> channelGetter()
-    {
-        return new Function<Input, Integer>()
-        {
-            @Override
-            public Integer apply(Input input)
-            {
-                return input.getChannel();
-            }
-        };
-    }
-
 }
