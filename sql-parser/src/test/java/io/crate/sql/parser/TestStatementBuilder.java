@@ -628,6 +628,26 @@ public class TestStatementBuilder
         printStatement("create table test (col1 int, col2 AS col1['name'] + 1)");
     }
 
+    @Test
+    public void testAddGeneratedColumn() throws Exception {
+        printStatement("alter table t add col2 AS date_trunc('day', col1)");
+        printStatement("alter table t add col2 AS date_trunc('day', col1) INDEX USING PLAIN");
+        printStatement("alter table t add col2 AS (date_trunc('day', col1))");
+
+        printStatement("alter table t add col2 GENERATED ALWAYS AS date_trunc('day', col1)");
+        printStatement("alter table t add col2 GENERATED ALWAYS AS (date_trunc('day', col1))");
+
+        printStatement("alter table t add col2 string GENERATED ALWAYS AS date_trunc('day', col1)");
+        printStatement("alter table t add col2 string GENERATED ALWAYS AS (date_trunc('day', col1))");
+
+        printStatement("alter table t add col2 AS cast(col1 as string)");
+        printStatement("alter table t add col2 AS (cast(col1 as string))");
+        printStatement("alter table t add col2 AS col1 + 1");
+        printStatement("alter table t add col2 AS (col1 + 1)");
+
+        printStatement("alter table t add col2 AS col1['name'] + 1");
+    }
+
     private static void printStatement(String sql)
     {
         println(sql.trim());
