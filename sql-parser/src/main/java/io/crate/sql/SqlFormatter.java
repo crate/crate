@@ -331,6 +331,12 @@ public final class SqlFormatter {
             builder.append(" AS ")
                     .append(formatExpression(node.expression()));
 
+            if (!node.constraints().isEmpty()) {
+                for (ColumnConstraint constraint : node.constraints()) {
+                    builder.append(" ");
+                    constraint.accept(this, indent);
+                }
+            }
             return null;
         }
 
