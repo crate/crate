@@ -91,7 +91,7 @@ public class TableElementsAnalyzer {
         }
 
         @Override
-        public Void visitNestedColumnDefinition(NestedColumnDefinition node, ColumnDefinitionContext context) {
+        public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
             String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameterContext.parameters());
             ColumnIdent ident = ColumnIdent.fromPath(columnName);
             context.analyzedColumnDefinition.name(ident.name());
