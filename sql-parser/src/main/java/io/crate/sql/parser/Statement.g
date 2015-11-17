@@ -931,8 +931,8 @@ columnDefinition
     ;
 
 generatedColumnDefinition
-    : ident GENERATED ALWAYS AS expr -> ^(GENERATED_COLUMN_DEF ident expr)
-    | ident (dataType GENERATED ALWAYS)? AS expr -> ^(GENERATED_COLUMN_DEF ident expr dataType?)
+    : ident GENERATED ALWAYS AS expr columnConstDef* -> ^(GENERATED_COLUMN_DEF ident expr columnConstDef*)
+    | ident (dataType GENERATED ALWAYS)? AS expr columnConstDef* -> ^(GENERATED_COLUMN_DEF ident expr dataType? columnConstDef*)
     ;
 
 dataType
