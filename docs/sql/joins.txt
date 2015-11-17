@@ -56,8 +56,9 @@ the ``FROM`` list::
 Inner Joins
 -----------
 
-``INNER JOIN`` requires each record of one table to have matching records on
-the other table. In Crate an ``INNER JOIN`` needs to be done implicitly::
+Inner Joins require each record of one table to have matching records on
+the other table. In Crate an inner join needs to be done implicitly.
+At the moment we don't support the ``INNER JOIN`` syntax::
 
     cr> select s.id, s.table_name, t.number_of_shards
     ... from sys.shards s, information_schema.tables t
@@ -76,7 +77,8 @@ the other table. In Crate an ``INNER JOIN`` needs to be done implicitly::
     SELECT 5 rows in set (... sec)
 
 Currently **only system tables** (``sys``, ``information_schema``)
-fully support ``INNER JOIN``. For a list of limitations when joining user tables
+fully support inner joins. User tables support them to a 
+certain extend. For a list of limitations when joining user tables
 see :ref:`sql_joins_limitations`.
 
 Join Conditions
