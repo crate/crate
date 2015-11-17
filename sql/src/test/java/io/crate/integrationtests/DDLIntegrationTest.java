@@ -627,4 +627,20 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("select schema_name from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testCreateTableWithGeneratedColumn() throws Exception {
+        execute("create table test (ts timestamp, day as date_trunc('day', ts)) with (number_of_replicas=0)");
+        ensureYellow();
+        String expectedMapping = "{\"default\":{" +
+                                 "\"dynamic\":\"true\"," +
+                                 "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', \\\"ts\\\")\"}}," +
+                                 "\"_all\":{\"enabled\":false}," +
+                                 "\"properties\":{" +
+                                 "\"day\":{\"type\":\"date\",\"doc_values\":true,\"format\":\"dateOptionalTime\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"doc_values\":true,\"format\":\"dateOptionalTime\"}" +
+                                 "}}}";
+
+        assertEquals(expectedMapping, getIndexMapping("test"));
+    }
 }
