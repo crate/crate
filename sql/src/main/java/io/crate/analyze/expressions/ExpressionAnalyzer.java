@@ -86,12 +86,12 @@ public class ExpressionAnalyzer {
     private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
-    private final InnerExpressionAnalyzer innerAnalyzer;
     private final EvaluatingNormalizer normalizer;
     private final FieldProvider fieldProvider;
     private final Functions functions;
     private final Schemas schemas;
-    private final ParameterContext parameterContext;
+    protected final ParameterContext parameterContext;
+    protected InnerExpressionAnalyzer innerAnalyzer;
     private boolean forWrite = false;
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
@@ -149,7 +149,7 @@ public class ExpressionAnalyzer {
         }
     }
 
-    private FunctionInfo getFunctionInfo(FunctionIdent ident) {
+    protected FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
     }
 
@@ -588,7 +588,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
+                subscriptSymbol = resolveQualifiedName(subscriptContext.qName(), subscriptContext.parts());
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -792,7 +792,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             try {
-                return fieldProvider.resolveField(node.getName(), forWrite);
+                return resolveQualifiedName(node.getName(), null);
             } catch (ColumnUnknownException exception) {
                 if ((parameterContext.headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
@@ -805,6 +805,10 @@ public class ExpressionAnalyzer {
                     throw exception;
                 }
             }
+        }
+
+        protected Symbol resolveQualifiedName(QualifiedName qualifiedName, @Nullable List<String> path) {
+            return fieldProvider.resolveField(qualifiedName, path, forWrite);
         }
 
         @Override
