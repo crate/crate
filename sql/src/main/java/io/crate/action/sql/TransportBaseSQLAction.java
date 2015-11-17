@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.*;
 import io.crate.executor.Executor;
@@ -98,7 +99,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private final ClusterService clusterService;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
-    protected final Analyzer analyzer;
+    private final Analyzer analyzer;
     protected final Planner planner;
     private final Provider<Executor> executorProvider;
     private final StatsTables statsTables;
@@ -123,7 +124,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
     }
 
-    public abstract Analysis getAnalysis(Statement statement, TRequest request);
+    public abstract ParameterContext getParamContext(TRequest request);
 
 
     /**
@@ -198,7 +199,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         }
         try {
             Statement statement = statementCache.get(request.stmt());
-            Analysis analysis = getAnalysis(statement, request);
+            Analysis analysis = analyzer.analyze(statement, getParamContext(request));
             processAnalysis(analysis, request, listener, attempt, jobId);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
