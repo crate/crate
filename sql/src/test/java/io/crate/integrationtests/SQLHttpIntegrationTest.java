@@ -44,7 +44,9 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     protected Settings nodeSettings(int nodeOrdinal) {
         return ImmutableSettings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
-                .put("http.enabled", true).build();
+                .put("http.host", "127.0.0.1")
+                .put("http.enabled", true)
+                .build();
     }
 
     @Before
