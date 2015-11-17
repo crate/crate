@@ -612,8 +612,11 @@ public class TestStatementBuilder
     public void testCreateTableWithGeneratedColumn() throws Exception {
         printStatement("create table test (col1 int, col2 AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 AS (date_trunc('day', col1)))");
+        printStatement("create table test (col1 int, col2 AS date_trunc('day', col1) INDEX OFF)");
+
         printStatement("create table test (col1 int, col2 GENERATED ALWAYS AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 GENERATED ALWAYS AS (date_trunc('day', col1)))");
+
         printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 string GENERATED ALWAYS AS (date_trunc('day', col1)))");
 

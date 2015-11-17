@@ -23,8 +23,10 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class GeneratedColumnDefinition extends TableElement {
 
@@ -32,15 +34,22 @@ public class GeneratedColumnDefinition extends TableElement {
     private final Expression expression;
     @Nullable
     private final ColumnType type;
+    private final List<ColumnConstraint> constraints;
 
-    public GeneratedColumnDefinition(String ident, Expression expression, @Nullable ColumnType type) {
+    public GeneratedColumnDefinition(String ident,
+                                     Expression expression,
+                                     @Nullable ColumnType type,
+                                     @Nullable List<ColumnConstraint> constraints) {
         this.ident = ident;
         this.expression = expression;
         this.type = type;
+        this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
     }
 
-    public GeneratedColumnDefinition(String ident, Expression expression) {
-        this(ident, expression, null);
+    public GeneratedColumnDefinition(String ident,
+                                     Expression expression,
+                                     @Nullable List<ColumnConstraint> constraints) {
+        this(ident, expression, null, constraints);
     }
 
     public String ident() {
@@ -56,6 +65,10 @@ public class GeneratedColumnDefinition extends TableElement {
         return type;
     }
 
+    public List<ColumnConstraint> constraints() {
+        return constraints;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -65,7 +78,8 @@ public class GeneratedColumnDefinition extends TableElement {
 
         if (!ident.equals(that.ident)) return false;
         if (!expression.equals(that.expression)) return false;
-        return !(type != null ? !type.equals(that.type) : that.type != null);
+        if (type != null ? !type.equals(that.type) : that.type != null) return false;
+        return constraints.equals(that.constraints);
 
     }
 
@@ -74,16 +88,18 @@ public class GeneratedColumnDefinition extends TableElement {
         int result = ident.hashCode();
         result = 31 * result + expression.hashCode();
         result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + constraints.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("ident", ident)
-                .add("type", type)
-                .add("expression", expression)
-                .toString();
+        return "GeneratedColumnDefinition{" +
+               "ident='" + ident + '\'' +
+               ", expression=" + expression +
+               ", type=" + type +
+               ", constraints=" + constraints +
+               '}';
     }
 
     @Override
