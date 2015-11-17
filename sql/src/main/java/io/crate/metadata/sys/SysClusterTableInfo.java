@@ -23,7 +23,6 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
@@ -377,12 +376,7 @@ public class SysClusterTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return new Routing(
-                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                        clusterService.localNode().id(),
-                        TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
-                ).map()
-        );
+        return Routing.forTableOnNode(IDENT, clusterService.localNode().id());
     }
 
     @Override

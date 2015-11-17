@@ -208,6 +208,17 @@ public class Routing implements Streamable {
         return true;
     }
 
+    /**
+     * Return a routing for the given table on the given node id.
+     */
+    public static Routing forTableOnNode(TableIdent tableIdent, String nodeId) {
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, List<Integer>> tableLocation = new TreeMap<>();
+        tableLocation.put(tableIdent.fqn(), null);
+        locations.put(nodeId, tableLocation);
+        return new Routing(locations);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

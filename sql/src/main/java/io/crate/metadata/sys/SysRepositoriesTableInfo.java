@@ -79,11 +79,7 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(IDENT.fqn(), null);
-        locations.put(clusterService.localNode().id(), tableLocation);
-        return new Routing(locations);
+        return Routing.forTableOnNode(IDENT, clusterService.localNode().id());
     }
 
     @Override
