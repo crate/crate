@@ -44,8 +44,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.util.Random;
@@ -60,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
+    public BenchmarkRule benchmarkRun = new BenchmarkRule();
 
     public static boolean dataGenerated = false;
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
