@@ -28,9 +28,14 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -49,6 +54,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -99,6 +105,10 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
+    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"), new Routing())
+            .add("nope", DataTypes.BOOLEAN)
+            .build();
+
 
     private class TestModule extends MetaDataModule {
 
@@ -108,7 +118,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
             bind(ThreadPool.class).toInstance(newMockedThreadPool());
             statsService = mock(TableStatsService.class);
             when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT))).thenReturn(10L);
-            when(statsService.numDocs(eq(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.userTableInfoMultiPk.ident()))).thenReturn(5000L);
+            when(statsService.numDocs(eq(EMPTY_ROUTING_TABLE.ident()))).thenReturn(0L);
             bind(TableStatsService.class).toInstance(statsService);
         }
 
@@ -116,8 +127,9 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo("users")).thenReturn(BaseAnalyzerTest.userTableInfo);
-            when(schemaInfo.getTableInfo("users_multi_pk")).thenReturn(BaseAnalyzerTest.userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.userTableInfo);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(BaseAnalyzerTest.userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(EMPTY_ROUTING_TABLE.ident().name())).thenReturn(EMPTY_ROUTING_TABLE);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -335,5 +347,11 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
         CollectPhase cpRight = ((CollectAndMerge) nl.right().plan()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
+    }
+
+    @Test
+    public void testEmptyRoutingSource() throws Exception {
+        Plan plan = plan("select e.nope, u.name from empty e, users u order by e.nope, u.name");
+        assertThat(plan, instanceOf(NoopPlan.class));
     }
 }

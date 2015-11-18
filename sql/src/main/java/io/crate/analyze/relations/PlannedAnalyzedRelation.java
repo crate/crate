@@ -21,11 +21,21 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Predicate;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
+
 public interface PlannedAnalyzedRelation extends AnalyzedRelation {
+
+    Predicate<PlannedAnalyzedRelation> IS_NOOP = new Predicate<PlannedAnalyzedRelation>() {
+        @Override
+        public boolean apply(@Nullable PlannedAnalyzedRelation input) {
+            return input == null || input.resultPhase().executionNodes().isEmpty();
+        }
+    };
 
     /**
      * Returns a plan for this relation.

@@ -35,10 +35,11 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
+@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0) // was: minNumDataNodes = 2,
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -349,5 +350,13 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
                 new Object[]{"large"},
         });
         execute("refresh table colors, sizes");
+    }
+
+    @Test
+    public void testJoinTableWithEmptyRouting() throws Exception {
+        // no shards in sys.shards -> empty routing
+        execute("SELECT s.id, n.name FROM sys.shards s, sys.nodes n");
+        assertThat(response.cols(), arrayContaining("s.id", "n.name"));
+        assertThat(response.rowCount(), is(0L));
     }
 }
