@@ -1045,4 +1045,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select table_name from information_schema.tables where schema_name='doc'");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testSelectGeneratedColumnFromInformationSchemaColumns() throws Exception {
+        execute("create table t (lastname string, firstname string, name as (lastname || '_' || firstname)) " +
+                "with (number_of_replicas = 0)");
+        execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = true");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("name| true| concat(concat(\"lastname\", '_'), \"firstname\")\n"));
+    }
 }
