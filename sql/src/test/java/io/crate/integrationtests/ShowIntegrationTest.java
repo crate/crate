@@ -200,6 +200,37 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "WITH (\n");
     }
 
+    @Test
+    public void testShowCreateTableWithGeneratedColumn() throws Exception {
+        execute("create table test_generated_column (" +
+                " day1 AS date_trunc('day', ts)," +
+                " day2 AS (date_trunc('day', ts)) INDEX OFF," +
+                " day3 GENERATED ALWAYS AS date_trunc('day', ts)," +
+                " day4 GENERATED ALWAYS AS (date_trunc('day', ts))," +
+                " col1 AS ts + 1," +
+                " col2 string GENERATED ALWAYS AS ts + 1," +
+                " col3 string GENERATED ALWAYS AS (ts + 1)," +
+                " name AS concat(user['name'], 'foo')," +
+                " ts timestamp," +
+                " user object AS (name string)" +
+                ")");
+        execute("show create table test_generated_column");
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
+                  "   \"col1\" LONG GENERATED ALWAYS AS (\"ts\" + 1),\n" +
+                  "   \"col2\" STRING GENERATED ALWAYS AS CAST((\"ts\" + 1) AS string),\n" +
+                  "   \"col3\" STRING GENERATED ALWAYS AS CAST((\"ts\" + 1) AS string),\n" +
+                  "   \"day1\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"day2\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
+                  "   \"day3\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"day4\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"name\" STRING GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
+                  "   \"ts\" TIMESTAMP,\n" +
+                  "   \"user\" OBJECT (DYNAMIC) AS (\n" +
+                  "      \"name\" STRING\n" +
+                  "   )\n" +
+                  ")");
+    }
+
     private void assertRow(String expected) {
         assertEquals(1L, response.rowCount());
         try {
