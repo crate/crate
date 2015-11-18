@@ -176,18 +176,19 @@ public class TransportExecutor implements Executor, TaskExecutor {
                 }
             }
             if (!nonIterablePlans.isEmpty()) {
-                tasks.add(executionPhasesTask(new Upsert(nonIterablePlans, context.id()), context));
+                tasks.add(executionPhasesTask(
+                        new Upsert(nonIterablePlans, context.id()), context, ExecutionPhasesTask.OperationType.BULK));
             }
             return tasks;
         }
 
         @Override
         protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionPhasesTask task = executionPhasesTask(plan, job);
+            ExecutionPhasesTask task = executionPhasesTask(plan, job, ExecutionPhasesTask.OperationType.UNKNOWN);
             return ImmutableList.of(task);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job, ExecutionPhasesTask.OperationType operationType) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
             return new ExecutionPhasesTask(
@@ -197,7 +198,8 @@ public class TransportExecutor implements Executor, TaskExecutor {
                     jobContextService,
                     indicesService,
                     transportActionProvider.transportJobInitAction(),
-                    nodeOperationTrees
+                    nodeOperationTrees,
+                    operationType
             );
         }
 
