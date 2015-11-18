@@ -2013,6 +2013,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select _id, * from t");
         assertThat(response.rowCount(), is(1L));
     }
+
+
+    @Test
+    public void testSelectFrom_Doc() throws Exception {
+        execute("create table t (name string) with (number_of_replicas = 0)");
+        execute("insert into t (name) values ('Marvin')");
+        execute("refresh table t");
+
+        execute("select _doc['name'] from t");
+        assertThat(((String) response.rows()[0][0]), is("Marvin"));
+    }
 }
 
 

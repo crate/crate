@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
-    private static ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.DOCID);
+    private static final ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.DOCID);
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {

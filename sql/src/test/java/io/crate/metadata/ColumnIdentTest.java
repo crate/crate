@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -45,5 +46,30 @@ public class ColumnIdentTest {
 
         ident = new ColumnIdent("a.b", Collections.singletonList("c"));
         assertThat(ident.sqlFqn(), is("a.b['c']"));
+    }
+
+    @Test
+    public void testShiftRight() throws Exception {
+        assertThat(new ColumnIdent("foo", "bar").shiftRight(), is(new ColumnIdent("bar")));
+        assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight(),
+                is(new ColumnIdent("x", Arrays.asList("y", "z"))));
+        assertThat(new ColumnIdent("foo").shiftRight(), Matchers.nullValue());
+    }
+
+    @Test
+    public void testIsChildOf() throws Exception {
+        ColumnIdent root = new ColumnIdent("root");
+        ColumnIdent rootX = new ColumnIdent("root", "x");
+        ColumnIdent rootXY = new ColumnIdent("root", Arrays.asList("x", "y"));
+        ColumnIdent rootYX = new ColumnIdent("root", Arrays.asList("y", "x"));
+
+        assertThat(root.isChildOf(root), is(false));
+
+        assertThat(rootX.isChildOf(root), is(true));
+        assertThat(rootXY.isChildOf(root), is(true));
+        assertThat(rootXY.isChildOf(rootX), is(true));
+
+        assertThat(rootYX.isChildOf(root), is(true));
+        assertThat(rootYX.isChildOf(rootX), is(false));
     }
 }

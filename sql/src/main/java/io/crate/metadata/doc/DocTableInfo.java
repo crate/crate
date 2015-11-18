@@ -135,8 +135,25 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     @Override
     @Nullable
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return references.get(columnIdent);
+        ReferenceInfo referenceInfo = references.get(columnIdent);
+        if (referenceInfo == null) {
+            if (columnIdent.isChildOf(DocSysColumns.DOC)) {
+                // columnIdent is something like _doc['foo']
+                // get 'foo' for type and then create ReferenceInfo for _doc['foo']
+                ColumnIdent newCi = columnIdent.shiftRight();
+                referenceInfo = references.get(newCi);
+                if (referenceInfo == null) {
+                    return null;
+                }
+                return new ReferenceInfo(
+                        new ReferenceIdent(referenceInfo.ident().tableIdent(), columnIdent),
+                        referenceInfo.granularity(),
+                        referenceInfo.type());
+            }
+        }
+        return referenceInfo;
     }
+
 
     @Override
     public Collection<ReferenceInfo> columns() {

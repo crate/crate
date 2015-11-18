@@ -35,6 +35,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
@@ -103,16 +104,18 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
      * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
      */
     public boolean isChildOf(ColumnIdent parentIdent) {
-        boolean result = false;
-        ColumnIdent parent = getParent();
-        while (parent != null) {
-            if (parent.equals(parentIdent)) {
-                result = true;
-                break;
+        if (!name.equals(parentIdent.name)) return false;
+        if (path.size() > parentIdent.path.size()) {
+            Iterator<String> parentIt = parentIdent.path.iterator();
+            Iterator<String> it = path.iterator();
+            while (parentIt.hasNext()) {
+                if (!parentIt.next().equals(it.next())) {
+                    return false;
+                }
             }
-            parent = parent.getParent();
+            return true;
         }
-        return result;
+        return false;
     }
 
     /**
@@ -129,6 +132,30 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
             return new ColumnIdent(name(), path.subList(0, path.size() - 1));
         }
         return new ColumnIdent(name());
+    }
+
+
+    /**
+     * creates a new columnIdent which just consists of the path of the given columnIdent
+     * e.g.
+     * <pre>foo['x']['y']</pre>
+     * becomes
+     * <pre> x['y']</pre>
+     *
+     * If the columnIdent doesn't have a path the return value is null
+     */
+    @Nullable
+    public ColumnIdent shiftRight() {
+        if (path.isEmpty()) {
+            return null;
+        }
+        ColumnIdent newCi;
+        if (path.size() > 1) {
+            newCi = new ColumnIdent(path.get(0), path.subList(1, path.size()));
+        } else {
+            newCi = new ColumnIdent(path.get(0));
+        }
+        return newCi;
     }
 
     /**
