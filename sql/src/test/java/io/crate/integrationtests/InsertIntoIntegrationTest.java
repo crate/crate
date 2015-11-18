@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
@@ -736,5 +737,29 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
         ensureYellow();
         execute("insert into import (col1, col2) values (1, 1)");
+    }
+
+    @Test
+    public void testInsertWithGeneratedColumn() throws Exception {
+        execute("create table test_generated_column (" +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)," +
+                " user object as (name string)," +
+                " name as concat(user['name'], 'bar')" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test_generated_column (ts, user) values (?, ?)", new Object[][]{
+                new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
+                new Object[]{"2015-11-18T17:41:00", null},
+        });
+        refresh();
+        execute("select ts, day, name from test_generated_column order by ts");
+        assertThat((Long) response.rows()[0][0], is(1447845060000L));
+        assertThat((Long) response.rows()[0][1], is(1447804800000L));
+        assertThat((String) response.rows()[0][2], is("foobar"));
+
+        assertThat((Long) response.rows()[1][0], is(1447868460000L));
+        assertThat((Long) response.rows()[1][1], is(1447804800000L));
+        assertThat((String) response.rows()[1][2], is("bar"));
     }
 }
