@@ -317,8 +317,8 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         // which employee fits in which office?
         // TODO: once fetch is supported for cross joins, reset query to:
         // select employees.name, offices.name from employees, offices where size < height order by height - size limit 3
-        execute("select employees.name, offices.name from employees, offices " +
-                "where size < height order by height - size, employees.name, offices.name limit 3");
+        execute("select employees.name, offices.name from employees inner join offices on size < height " +
+                "order by height - size, employees.name, offices.name limit 3");
         assertThat(printedTable(response.rows()), is("" +
                 "Douglas Adams| Chief Office\n" +
                 "Trillian| Entresol\n" +

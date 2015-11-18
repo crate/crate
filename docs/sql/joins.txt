@@ -57,8 +57,7 @@ Inner Joins
 -----------
 
 Inner Joins require each record of one table to have matching records on
-the other table. In Crate an inner join needs to be done implicitly.
-At the moment we don't support the ``INNER JOIN`` syntax::
+the other table::
 
     cr> select s.id, s.table_name, t.number_of_shards
     ... from sys.shards s, information_schema.tables t

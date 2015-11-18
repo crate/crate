@@ -50,6 +50,8 @@ import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
+import io.crate.sql.parser.ParsingException;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.SleepScalarFunction;
 import io.crate.types.ArrayType;
@@ -734,15 +736,61 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("select id, name from parted where not date");
     }
 
+    @Test
     public void testJoin() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users, users_multi_pk where users.id = users_multi_pk.id");
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
     }
 
-    public void testInnerJoinExplicitFails() throws Exception {
+    @Test
+    public void testInnerJoinSyntaxExtendsWhereClause() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select * from users inner join users_multi_pk on users.id = users_multi_pk.id");
+        assertThat(analysis.relation().querySpec().where().query(),
+                isSQL("doc.users.id = doc.users_multi_pk.id"));
+    }
+
+    @Test
+    public void testCrossJoinWithJoinCondition() throws Exception {
+        expectedException.expect(ParsingException.class);
+        analyze("select * from users cross join users_multi_pk on users.id = users_multi_pk.id");
+    }
+
+    @Test
+    public void testLeftOuterJoinSyntaxIsNotSupported() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(containsString("Explicit INNER join syntax is not supported"));
-        analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
+        analyze("select * from users left outer join users_multi_pk on users.id = users_multi_pk.id");
+    }
+
+    @Test
+    public void testFullOuterJoinSyntaxIsNotSupported() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("select * from users full outer join users_multi_pk on users.id = users_multi_pk.id");
+    }
+
+    @Test
+    public void testJoinUsingSyntax() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("select * from users join users_multi_pk using (id)");
+    }
+
+    @Test
+    public void testNaturalJoinSyntax() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("select * from users natural join users_multi_pk");
+    }
+
+    @Test
+    public void testInnerJoinSyntaxWithWhereClause() throws Exception {
+        SelectAnalyzedStatement analysis = analyze(
+                "select * from users join users_multi_pk on users.id = users_multi_pk.id " +
+                "where users.name = 'Arthur'");
+        assertThat(analysis.relation().querySpec().where().query(),
+                isSQL("true and doc.users.id = doc.users_multi_pk.id"));
+
+        // make sure that where clause was pushed down and didn't disappear somehow
+        MultiSourceSelect.Source users =
+                ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("", "users"));
+        assertThat(users.querySpec().where().query(), isSQL("doc.users.name = 'Arthur'"));
     }
 
     @Test

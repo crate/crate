@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for explicit INNER JOIN .. ON syntax.
+
  - Fixed an issue that could cause bulk update requests to fail if the
    ``bulkArgs`` contained only one item
 

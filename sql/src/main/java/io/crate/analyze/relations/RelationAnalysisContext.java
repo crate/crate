@@ -25,8 +25,10 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,6 +43,8 @@ public class RelationAnalysisContext {
     private ParameterContext parameterContext;
     private AnalysisMetaData analysisMetaData;
     private FullQualifedNameFieldProvider fieldProvider;
+    @Nullable
+    private Expression joinExpression;
 
     public RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
         this.parameterContext = parameterContext;
@@ -91,5 +95,14 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalysisContext expressionAnalysisContext() {
         return expressionAnalysisContext;
+    }
+
+    public void setJoinExpression(Expression joinExpression) {
+        this.joinExpression = joinExpression;
+    }
+
+    @Nullable
+    public Expression joinExpression() {
+        return joinExpression;
     }
 }

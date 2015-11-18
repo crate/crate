@@ -128,10 +128,15 @@ Joined Relation
 
 If more than one table references are listed the tables are joined, see :ref:`sql_dql_joins` ::
 
-    relation { , | CROSS JOIN } relation
+    relation { , | join_type JOIN } relation [ ON join_condition ]
 
-The explicit join syntax uses ``CROSS JOIN`` as join operator and the implicit
-join syntax uses a ``,`` (comma).
+
+:join_type: Either CROSS or INNER. Other types are not supported
+
+:join_condition: An expression which specifies which rows in a join are
+                 considered a match. The join_condition is only applicable for
+                 joins of type INNER and must have a returning value of type
+                 ``boolean``.
 
 
 WHERE Clause

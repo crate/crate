@@ -37,16 +37,14 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
@@ -54,6 +52,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
 
     private final AnalysisMetaData analysisMetaData;
+    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES = EnumSet.of(Join.Type.CROSS, Join.Type.INNER);
 
     @Inject
     public RelationAnalyzer(AnalysisMetaData analysisMetaData) {
@@ -81,10 +80,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
-        if (node.getType() != Join.Type.CROSS){
+        if (!ALLOWED_JOIN_TYPES.contains(node.getType())) {
             throw new UnsupportedOperationException("Explicit " + node.getType().name() + " join syntax is not supported");
         }
-        return super.visitJoin(node, context);
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
+
+        Optional<JoinCriteria> optCriteria = node.getCriteria();
+        if (optCriteria.isPresent()) {
+            JoinCriteria joinCriteria = optCriteria.get();
+            if (joinCriteria instanceof JoinOn) {
+                context.setJoinExpression(((JoinOn) joinCriteria).getExpression());
+            } else {
+                throw new UnsupportedOperationException(String.format("join criteria %s not supported",
+                        joinCriteria.getClass().getSimpleName()));
+            }
+        }
+        return null;
     }
 
     @Override
@@ -96,7 +108,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             process(relation, context);
         }
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
-
         WhereClause whereClause = analyzeWhere(node.getWhere(), context);
 
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
@@ -261,13 +272,22 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        if (!where.isPresent()) {
+        Expression joinExpression = context.joinExpression();
+        if (!where.isPresent() && joinExpression == null) {
             return WhereClause.MATCH_ALL;
         }
-        return new WhereClause(
-                context.expressionAnalyzer().normalize(context.expressionAnalyzer().convert(where.get(),
-                        context.expressionAnalysisContext())),
-                null, null);
+        Symbol query;
+        if (where.isPresent()) {
+            query = context.expressionAnalyzer().convert(where.get(), context.expressionAnalysisContext());
+        } else {
+            query = Literal.BOOLEAN_TRUE;
+        }
+        if (joinExpression != null) {
+            Symbol joinCondition = context.expressionAnalyzer().convert(joinExpression, context.expressionAnalysisContext());
+            query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
+        }
+        query = context.expressionAnalyzer().normalize(query);
+        return new WhereClause(query);
     }
 
 
