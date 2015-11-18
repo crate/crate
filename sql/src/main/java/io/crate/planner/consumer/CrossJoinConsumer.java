@@ -23,10 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
@@ -191,6 +188,11 @@ public class CrossJoinConsumer implements Consumer {
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
+
+            if (Iterables.any(Arrays.asList(leftPlan, rightPlan), PlannedAnalyzedRelation.IS_NOOP)) {
+                // one of the plans or both are noops
+                return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
+            }
 
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
             Collection<String> nlExecutionNodes = localExecutionNodes;
