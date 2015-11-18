@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
 import org.elasticsearch.common.Nullable;
@@ -116,7 +117,13 @@ public class MetaDataToASTNodeResolver {
                     }
                     constraints.add(new IndexColumnConstraint(geoReferenceInfo.geoTree(), properties));
                 }
-                ColumnDefinition column = new ColumnDefinition(columnName, columnType, constraints);
+                Expression expression = null;
+                if (info instanceof GeneratedReferenceInfo) {
+                    String formattedExpression = ((GeneratedReferenceInfo) info).generatedExpression();
+                    expression = SqlParser.createExpression(formattedExpression);
+                }
+
+                ColumnDefinition column = new ColumnDefinition(columnName, expression, columnType, constraints);
                 elements.add(column);
             }
             return elements;

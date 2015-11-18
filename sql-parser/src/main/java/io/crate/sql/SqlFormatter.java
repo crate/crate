@@ -311,8 +311,7 @@ public final class SqlFormatter {
                 node.type().accept(this, indent);
             }
             if (node.expression() != null) {
-                builder.append(" GENERATED ALWAYS ")
-                    .append(" AS ")
+                builder.append(" GENERATED ALWAYS AS ")
                     .append(formatExpression(node.expression()));
             }
 
