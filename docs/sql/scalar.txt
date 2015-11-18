@@ -408,7 +408,8 @@ distance(geo_point1, geo_point2) returns double
 -----------------------------------------------
 
 The ``distance`` function can be used to calculate the distance between two
-points on earth.
+points on earth. It uses the `Haversine formular`_ which gives great-circle
+distances between 2 points on a sphere based on their latitude and longitude.
 
 The return value is the distance in meters.
 
@@ -1040,3 +1041,5 @@ It can be used to remove elements from array fields.
 
 .. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _`Haversine formular`: https://en.wikipedia.org/wiki/Haversine_formula
+
