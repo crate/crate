@@ -45,8 +45,8 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
 
     public static final String INDEX_NAME = "motiondata";
     public static final int BENCHMARK_ROUNDS = 3;
-    public static final int ROWS = 5000;
-    public static final int UNIQUE_PARTITIONS = 200;
+    public static final int ROWS = 1000;
+    public static final int UNIQUE_PARTITIONS = 100;
 
     private static final String[] partitions = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
     private int partitionIndex = 0;
@@ -114,7 +114,7 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
             }
         }
         assertThat(errors, is(0L));
-        assertThat(inserted, is(5000L));
+        assertThat(inserted, is((long)ROWS));
     }
 
     @Test
