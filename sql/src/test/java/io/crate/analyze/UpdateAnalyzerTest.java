@@ -61,7 +61,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     private final static TableIdent NESTED_CLUSTERED_BY_TABLE_IDENT = new TableIdent("doc", "nestedclustered");
     private final static TableInfo NESTED_CLUSTERED_BY_TABLE_INFO = TestingTableInfo.builder(
-            NESTED_CLUSTERED_BY_TABLE_IDENT, shardRouting)
+            NESTED_CLUSTERED_BY_TABLE_IDENT, SHARD_ROUTING)
             .add("obj", DataTypes.OBJECT, null)
             .add("obj", DataTypes.STRING, Arrays.asList("name"))
             .add("other_obj", DataTypes.OBJECT, null)
@@ -78,9 +78,9 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
@@ -280,15 +280,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         new Object[]{"Jeltz", 0, friends, "9"}).nestedStatements().get(0);
         assertThat(analysis.assignments().size(), is(3));
         assertThat(
-                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("name")))),
+                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("name")))),
                 isLiteral("Jeltz")
         );
         assertThat(
-                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends")))),
+                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("friends")))),
                 isLiteral(friends, new ArrayType(DataTypes.OBJECT))
         );
         assertThat(
-                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("other_id")))),
+                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("other_id")))),
                 isLiteral(0L)
         );
 
@@ -315,7 +315,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{ new Map[0], 0 }).nestedStatements().get(0);
 
         Literal friendsLiteral = (Literal)analysis.assignments().get(
-                new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends"))));
+                new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("friends"))));
         assertThat(friendsLiteral.valueType().id(), is(ArrayType.ID));
         assertEquals(DataTypes.OBJECT, ((ArrayType)friendsLiteral.valueType()).innerType());
         assertThat(((Object[]) friendsLiteral.value()).length, is(0));

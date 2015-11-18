@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent ALIAS_IDENT = new TableIdent(DocSchemaInfo.NAME, "alias_table");
-    private static final TableInfo ALIAS_INFO = TestingTableInfo.builder(ALIAS_IDENT, shardRouting)
+    private static final TableInfo ALIAS_INFO = TestingTableInfo.builder(ALIAS_IDENT, SHARD_ROUTING)
             .add("col", DataTypes.STRING, ImmutableList.<String>of())
             .isAlias(true)
             .build();
@@ -62,7 +62,7 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(ALIAS_IDENT.name())).thenReturn(ALIAS_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
@@ -117,20 +117,20 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropExistingTable() throws Exception {
-        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
+        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
         assertThat(dropTableAnalysis.dropIfExists(), is(false));
-        assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
+        assertThat(dropTableAnalysis.index(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test
     public void testDropIfExistExistingTable() throws Exception {
-        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table if exists %s", TEST_DOC_TABLE_IDENT.name()));
+        AnalyzedStatement analyzedStatement = analyze(format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
         assertThat(dropTableAnalysis.dropIfExists(), is(true));
-        assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
+        assertThat(dropTableAnalysis.index(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test

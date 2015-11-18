@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0) // was: minNumDataNodes = 2,
+@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

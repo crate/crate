@@ -102,7 +102,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                     ImmutableMap.<String, Object>of(),
                     null
             );
-            myBlobsInfo.routing(shardRouting);
+            myBlobsInfo.routing(SHARD_ROUTING);
             when(schemaInfo.getTableInfo(myBlobsIdent.name())).thenReturn(myBlobsInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }

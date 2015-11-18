@@ -72,9 +72,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(nestedPkTableInfo);
+            when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(NESTED_PK_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_NESTED_PARTITIONED_TABLE_IDENT.name()))
@@ -109,7 +109,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (1, 'Trillian')");
-        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -127,7 +127,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithTwistedColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (name, id) values ('Trillian', 2)");
-        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("name"));
@@ -190,7 +190,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithFunction() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
-        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -208,7 +208,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1, 1, 'Trillian')");
-        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -230,7 +230,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1)");
-        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));

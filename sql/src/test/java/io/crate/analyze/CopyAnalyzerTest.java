@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
@@ -61,7 +60,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
@@ -82,7 +81,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyFromExistingTable() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users from '/some/distant/file.ext'");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
     }
 
@@ -125,7 +124,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromParameter() throws Exception {
         String path = "/some/distant/file.ext";
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users from ?", new Object[]{path});
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
         Object value = ((Literal) analysis.uri()).value();
         assertThat(BytesRefs.toString(value), is(path));
     }
@@ -133,7 +132,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFile() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to '/blah.txt'");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
         assertThat(analysis.uri(), isLiteral("/blah.txt"));
     }
@@ -162,7 +161,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFileWithParams() throws Exception {
         CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to '/blah.txt' with (compression='gzip')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
 
         assertThat(analysis.uri(), isLiteral("/blah.txt"));

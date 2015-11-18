@@ -94,19 +94,19 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             DocSchemaInfo fooSchema = mock(DocSchemaInfo.class);
             when(fooSchema.name()).thenReturn("foo");
-            DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), shardRouting)
+            DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
                     .add("id", DataTypes.LONG, null)
                     .add("name", DataTypes.STRING, null)
                     .schemaInfo(fooSchema)
                     .addPrimaryKey("id")
                     .build();
-            when(fooSchema.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
+            when(fooSchema.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
             schemaBinder.addBinding("foo").toInstance(fooSchema);
             
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(USER_TABLE_INFO_MULTI_PK);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);

@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.RowGranularity;
@@ -36,7 +35,6 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -57,7 +55,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
@@ -91,7 +89,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         DeleteAnalyzedStatement statement = analyze("delete from users where name='Trillian'");
         DocTableRelation tableRelation = statement.analyzedRelation;
         TableInfo tableInfo = tableRelation.tableInfo();
-        assertThat(TEST_DOC_TABLE_IDENT, equalTo(tableInfo.ident()));
+        assertThat(USER_TABLE_IDENT, equalTo(tableInfo.ident()));
 
         assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
 
