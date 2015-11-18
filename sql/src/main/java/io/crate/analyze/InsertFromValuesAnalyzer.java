@@ -24,17 +24,22 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionReferenceValueAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.symbol.*;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.Input;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromValues;
@@ -46,10 +51,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
@@ -106,6 +108,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 tableInfo, analysis.parameterContext().hasBulkParams());
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
+        ExpressionReferenceValueAnalyzer referenceValueAnalyzer = new ExpressionReferenceValueAnalyzer(
+                tableInfo, statement.columns(), analysisMetaData, analysis.parameterContext());
+
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                     tableRelation,
@@ -116,7 +121,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     valuesList,
                     node.onDuplicateKeyAssignments(),
                     statement,
-                    analysis.parameterContext());
+                    analysis.parameterContext(),
+                    referenceValueAnalyzer);
         }
         return statement;
     }
@@ -129,7 +135,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                ValuesList node,
                                List<Assignment> assignments,
                                InsertFromValuesAnalyzedStatement statement,
-                               ParameterContext parameterContext) {
+                               ParameterContext parameterContext,
+                               ExpressionReferenceValueAnalyzer referenceValueAnalyzer) {
         if (node.values().size() != statement.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
@@ -148,6 +155,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                             expressionAnalysisContext,
                             valuesResolver,
                             valuesAwareExpressionAnalyzer,
+                            referenceValueAnalyzer,
                             node,
                             assignments,
                             statement,
@@ -162,6 +170,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         expressionAnalysisContext,
                         valuesResolver,
                         valuesAwareExpressionAnalyzer,
+                        referenceValueAnalyzer,
                         node,
                         assignments,
                         statement,
@@ -179,6 +188,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ExpressionAnalysisContext expressionAnalysisContext,
                            ValuesResolver valuesResolver,
                            ExpressionAnalyzer valuesAwareExpressionAnalyzer,
+                           ExpressionReferenceValueAnalyzer referenceValueAnalyzer,
                            ValuesList node,
                            List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,
@@ -244,9 +254,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         if (!assignments.isEmpty()) {
-            Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
             valuesResolver.insertValues = insertValues;
             valuesResolver.columns = context.columns();
+            Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
             valuesResolver.assignmentColumns = new ArrayList<>(assignments.size());
             for (int i = 0; i < assignments.size(); i++) {
                 Assignment assignment = assignments.get(i);
@@ -271,6 +281,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             context.addOnDuplicateKeyAssignmentsColumns(
                     valuesResolver.assignmentColumns.toArray(new String[valuesResolver.assignmentColumns.size()]));
         }
+
+        // process generated column expressions and add columns + values
+        insertValues = processGeneratedExpressions(tableRelation, expressionAnalysisContext, referenceValueAnalyzer, context, insertValues);
+
         context.sourceMaps().add(insertValues);
         context.addIdAndRouting(idFunction.apply(primaryKeyValues), routingValue);
     }
@@ -330,4 +344,48 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
         return null;
     }
+
+    private Object[] processGeneratedExpressions(DocTableRelation tableRelation,
+                                             ExpressionAnalysisContext expressionAnalysisContext,
+                                             ExpressionReferenceValueAnalyzer referenceValueAnalyzer,
+                                             InsertFromValuesAnalyzedStatement context,
+                                             Object[] insertValues) {
+        referenceValueAnalyzer.values(insertValues);
+        for (ReferenceInfo referenceInfo : tableRelation.tableInfo().columns()) {
+            if (referenceInfo instanceof GeneratedReferenceInfo) {
+                Reference reference = new Reference(referenceInfo);
+                String formattedExpression = ((GeneratedReferenceInfo) referenceInfo).generatedExpression();
+                Expression expression = SqlParser.createExpression(formattedExpression);
+                Symbol valueSymbol;
+                try {
+                    valueSymbol = referenceValueAnalyzer.normalize(referenceValueAnalyzer.convert(expression, expressionAnalysisContext));
+                } catch (ColumnUnknownException e) {
+                    // this should never happen because expression was already validated on table creation
+                    throw new IllegalStateException("Expression is invalid, referenced column not found", e);
+                }
+                Object value = null;
+                if (valueSymbol.isLiteral()) {
+                    value =  ((Input) valueSymbol).value();
+                }
+                int idx = context.columns().indexOf(reference);
+                if (idx == -1) {
+                    // add column & value
+                    context.columns().add(reference);
+                    int valuesIdx = insertValues.length;
+                    insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
+                    insertValues[valuesIdx] = value;
+                } else if (insertValues.length <= idx) {
+                    // only add value
+                    insertValues = Arrays.copyOf(insertValues, idx + 1);
+                    insertValues[idx] = value;
+                } else if (!insertValues[idx].equals(value)) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Given value %s for generated column does not match defined generated expression value %s",
+                            insertValues[idx], value));
+                }
+            }
+        }
+        return insertValues;
+    }
+
 }
