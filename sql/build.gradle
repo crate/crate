@@ -33,6 +33,8 @@ dependencies {
     }
 
     benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
+    benchmarksCompile 'com.h2database:h2:1.3.173'
+
 }
 
 buildscript {
