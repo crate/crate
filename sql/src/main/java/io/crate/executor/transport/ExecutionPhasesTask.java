@@ -54,6 +54,7 @@ public class ExecutionPhasesTask extends JobTask {
 
     private final TransportJobAction transportJobAction;
     private final List<NodeOperationTree> nodeOperationTrees;
+    private final OperationType operationType;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
@@ -63,13 +64,22 @@ public class ExecutionPhasesTask extends JobTask {
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
 
+    public enum OperationType {
+        BULK,
+        /**
+         * UNKNOWN means it will depend on the number of nodeOperationTrees, if > 1 it will use bulk, otherwise QueryResult
+         */
+        UNKNOWN
+    }
+
     protected ExecutionPhasesTask(UUID jobId,
                                   ClusterService clusterService,
                                   ContextPreparer contextPreparer,
                                   JobContextService jobContextService,
                                   IndicesService indicesService,
                                   TransportJobAction transportJobAction,
-                                  List<NodeOperationTree> nodeOperationTrees) {
+                                  List<NodeOperationTree> nodeOperationTrees,
+                                  OperationType operationType) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -77,6 +87,7 @@ public class ExecutionPhasesTask extends JobTask {
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
         this.nodeOperationTrees = nodeOperationTrees;
+        this.operationType = operationType;
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             results.add(SettableFuture.<TaskResult>create());
@@ -104,7 +115,7 @@ public class ExecutionPhasesTask extends JobTask {
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
 
-        if (nodeOperationTrees.size() > 1) {
+        if (operationType == OperationType.BULK || nodeOperationTrees.size() > 1) {
             // bulk Operation with rowCountResult
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
                 SettableFuture<TaskResult> result = results.get(i);

@@ -27,7 +27,10 @@ import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.executor.*;
+import io.crate.executor.Executor;
+import io.crate.executor.Job;
+import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
@@ -177,18 +180,19 @@ public class TransportExecutor implements Executor {
                 }
             }
             if (!nonIterablePlans.isEmpty()) {
-                tasks.add(executionPhasesTask(new Upsert(nonIterablePlans, context.id()), context));
+                tasks.add(executionPhasesTask(
+                        new Upsert(nonIterablePlans, context.id()), context, ExecutionPhasesTask.OperationType.BULK));
             }
             return tasks;
         }
 
         @Override
         protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionPhasesTask task = executionPhasesTask(plan, job);
+            ExecutionPhasesTask task = executionPhasesTask(plan, job, ExecutionPhasesTask.OperationType.UNKNOWN);
             return ImmutableList.of(task);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job, ExecutionPhasesTask.OperationType operationType) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
             return new ExecutionPhasesTask(
@@ -198,7 +202,8 @@ public class TransportExecutor implements Executor {
                     jobContextService,
                     indicesService,
                     transportActionProvider.transportJobInitAction(),
-                    nodeOperationTrees
+                    nodeOperationTrees,
+                    operationType
             );
         }
 

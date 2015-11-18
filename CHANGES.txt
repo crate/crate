@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause bulk update requests to fail if the
+   ``bulkArgs`` contained only one item
+
 2015/11/16 0.53.0
 =================
 
