@@ -29,7 +29,11 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLBulkResponse;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -48,6 +52,14 @@ public class PartitionedBulkInsertBenchmark extends BenchmarkBase {
     private int partitionIndex = 0;
     private static final long TS = TimestampFormat.parseTimestampString("2015-01-01");
     public static final String SINGLE_INSERT_SQL_STMT = "insert into motiondata (d, device_id, ts, ax) values (?,?,?,?)";
+
+    @Override
+    public Settings getNodeSettings() {
+        return ImmutableSettings.builder().put(super.getNodeSettings())
+                .put("bulk.request_timeout", 5, TimeUnit.MINUTES)
+                .put("bulk.partition_creation_timeout", 5, TimeUnit.MINUTES)
+                .build();
+    }
 
     @Override
     protected String tableName() {
