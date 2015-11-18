@@ -178,8 +178,13 @@ public class AnalyzedTableElements {
     private void validateGeneratedColumns(TableIdent tableIdent,
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext) {
+        List<Reference> tableReferences = new ArrayList<>();
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
+            buildReference(tableIdent, columnDefinition, tableReferences);
+        }
+
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
-                analysisMetaData, parameterContext, buildReferences(tableIdent));
+                analysisMetaData, parameterContext, tableReferences);
 
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
@@ -209,25 +214,24 @@ public class AnalyzedTableElements {
         columnDefinition.formattedGeneratedExpression(formattedExpression);
     }
 
-    private List<Reference> buildReferences(TableIdent tableIdent) {
-        List<Reference> references = new ArrayList<>(columns.size());
-        for (AnalyzedColumnDefinition columnDefinition : columns) {
-            ReferenceInfo referenceInfo;
-            if (columnDefinition.generatedExpression() == null) {
-                referenceInfo = new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, columnDefinition.ident()),
-                        RowGranularity.DOC,
-                        DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
-            } else {
-                referenceInfo = new GeneratedReferenceInfo(
-                        new ReferenceIdent(tableIdent, columnDefinition.ident()),
-                        RowGranularity.DOC,
-                        columnDefinition.dataType() == null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
-                        "dummy expression, real one not needed here");
-            }
-            references.add(new Reference(referenceInfo));
+    private void buildReference(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<Reference> referenceList) {
+        ReferenceInfo referenceInfo;
+        if (columnDefinition.generatedExpression() == null) {
+            referenceInfo = new ReferenceInfo(
+                    new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                    RowGranularity.DOC,
+                    DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
+        } else {
+            referenceInfo = new GeneratedReferenceInfo(
+                    new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                    RowGranularity.DOC,
+                    columnDefinition.dataType() == null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
+                    "dummy expression, real one not needed here");
         }
-        return references;
+        referenceList.add(new Reference(referenceInfo));
+        for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
+            buildReference(tableIdent, childDefinition, referenceList);
+        }
     }
 
     private void addCopyToInfo(AnalyzedColumnDefinition column) {
