@@ -820,6 +820,16 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableGeneratedColumnWithSubscript() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (user object as (name string), name as concat(user['name'], 'foo'))");
+
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
+        assertThat(generatedColumnsMapping.get("name"), is("concat(\"user\"['name'], 'foo')"));
+    }
+
+    @Test
     public void testCreateTableGeneratedColumnWithInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("generated expression value type 'timestamp' not supported for conversion to 'string'");
