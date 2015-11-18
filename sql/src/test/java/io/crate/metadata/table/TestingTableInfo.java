@@ -189,6 +189,24 @@ public class TestingTableInfo extends DocTableInfo {
             return this;
         }
 
+        public Builder addGeneratedColumn(String column, DataType type, String expression, boolean partitionBy) {
+            RowGranularity rowGranularity = RowGranularity.DOC;
+            if (partitionBy) {
+                rowGranularity = RowGranularity.PARTITION;
+            }
+            ReferenceInfo info = new GeneratedReferenceInfo(new ReferenceIdent(ident, column),
+                    rowGranularity, type, expression);
+            if (info.ident().isColumn()) {
+                columns.add(info);
+            }
+            references.put(info.ident().columnIdent(), info);
+            if (partitionBy) {
+                partitionedByColumns.add(info);
+                partitionedBy.add(info.ident().columnIdent());
+            }
+            return this;
+        }
+
         public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType) {
             IndexReferenceInfo.Builder builder = new IndexReferenceInfo.Builder()
                     .ident(new ReferenceIdent(ident, columnIdent))
