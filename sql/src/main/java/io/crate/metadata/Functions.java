@@ -24,6 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.Joiner;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 public class Functions {
@@ -68,8 +69,10 @@ public class Functions {
     }
 
     /**
-     * returns the functionImplementation for the given ident.
+     * returns the functionImplementation for the given ident
+     * or null if nothing was found
      */
+    @Nullable
     public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
         FunctionImplementation implementation = functionImplementations.get(ident);
         if (implementation != null) {
