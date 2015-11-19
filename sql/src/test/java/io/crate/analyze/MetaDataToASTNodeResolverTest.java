@@ -83,7 +83,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         }
     }
 
-
     private static ReferenceInfo newReferenceInfo(TableIdent tableIdent, String name, DataType type) {
         return newReferenceInfo(tableIdent, name, type, null, null, false);
     }
