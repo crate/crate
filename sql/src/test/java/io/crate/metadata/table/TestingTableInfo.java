@@ -26,15 +26,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import static org.mockito.Mockito.mock;
 
 public class TestingTableInfo extends DocTableInfo {
 
@@ -75,43 +83,6 @@ public class TestingTableInfo extends DocTableInfo {
     }
 
     public static class Builder {
-        public DocTableInfo build() {
-            addDocSysColumns();
-            ImmutableList<ColumnIdent> pk = primaryKey.build();
-            ImmutableList<PartitionName> partitionsList = partitions.build();
-            String[] concreteIndices;
-            if (partitionsList.isEmpty()) {
-                concreteIndices = new String[]{ident.indexName()};
-            } else {
-                concreteIndices = Lists.transform(partitionsList, new Function<PartitionName, String>() {
-                    @Nullable
-                    @Override
-                    public String apply(@Nullable PartitionName input) {
-                        assert input != null;
-                        return input.asIndexName();
-                    }
-                }).toArray(new String[partitionsList.size()]);
-            }
-            return new TestingTableInfo(
-                    ident,
-                    columns.build(),
-                    partitionedByColumns.build(),
-                    indexColumns.build(),
-                    references.build(),
-                    pk,
-                    clusteredBy,
-                    isAlias,
-                    pk.isEmpty(),
-                    concreteIndices,
-                    numberOfShards,
-                    numberOfReplicas,
-                    null, // tableParameters
-                    partitionedBy.build(),
-                    partitionsList,
-                    columnPolicy,
-                    routing
-                    );
-        }
 
         private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
@@ -133,6 +104,51 @@ public class TestingTableInfo extends DocTableInfo {
         public Builder(TableIdent ident, Routing routing) {
             this.routing = routing;
             this.ident = ident;
+        }
+
+        public DocTableInfo build() {
+            return build(mock(Functions.class));
+        }
+
+        public DocTableInfo build(Functions functions) {
+            addDocSysColumns();
+            ImmutableList<ColumnIdent> pk = primaryKey.build();
+            ImmutableList<PartitionName> partitionsList = partitions.build();
+            String[] concreteIndices;
+            if (partitionsList.isEmpty()) {
+                concreteIndices = new String[]{ident.indexName()};
+            } else {
+                concreteIndices = Lists.transform(partitionsList, new Function<PartitionName, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable PartitionName input) {
+                        assert input != null;
+                        return input.asIndexName();
+                    }
+                }).toArray(new String[partitionsList.size()]);
+            }
+
+            initializeGeneratedExpressions(functions, references.build().values());
+
+            return new TestingTableInfo(
+                    ident,
+                    columns.build(),
+                    partitionedByColumns.build(),
+                    indexColumns.build(),
+                    references.build(),
+                    pk,
+                    clusteredBy,
+                    isAlias,
+                    pk.isEmpty(),
+                    concreteIndices,
+                    numberOfShards,
+                    numberOfReplicas,
+                    null, // tableParameters
+                    partitionedBy.build(),
+                    partitionsList,
+                    columnPolicy,
+                    routing
+            );
         }
 
         private ReferenceInfo genInfo(ColumnIdent columnIdent, DataType type) {
@@ -237,5 +253,18 @@ public class TestingTableInfo extends DocTableInfo {
             }
             return this;
         }
+
+        private void initializeGeneratedExpressions(Functions functions, Collection<ReferenceInfo> columns) {
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
+                    functions, null, null, null, columns);
+            for (ReferenceInfo referenceInfo : columns) {
+                if (referenceInfo instanceof GeneratedReferenceInfo) {
+                    GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
+                    Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
+                    generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, new ExpressionAnalysisContext()));
+                }
+            }
+        }
+
     }
 }

@@ -27,10 +27,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.ParsingException;
@@ -88,7 +85,8 @@ public class CompoundLiteralTest extends CrateUnitTest {
                         Collections.<String, SchemaInfo>emptyMap(),
                         clusterService,
                         threadPool,
-                        transportPutIndexTemplateAction),
+                        transportPutIndexTemplateAction,
+                        mock(Functions.class)),
                 new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
     }
