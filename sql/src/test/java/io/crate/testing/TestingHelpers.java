@@ -391,6 +391,27 @@ public class TestingHelpers {
 
     }
 
+    public static Matcher<ReferenceInfo> isReferenceInfo(final String expectedName) {
+        return new TypeSafeDiagnosingMatcher<ReferenceInfo>() {
+
+            @Override
+            public boolean matchesSafely(ReferenceInfo item, Description desc) {
+                String name = item.ident().columnIdent().outputName();
+                if (!name.equals(expectedName)) {
+                    desc.appendText("different name ").appendValue(name);
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                StringBuilder builder = new StringBuilder("a ReferenceInfo with name ").append(expectedName);
+                description.appendText(builder.toString());
+            }
+        };
+
+    }
 
     public static Matcher<Symbol> isReference(String expectedName) {
         return isReference(expectedName, null);
