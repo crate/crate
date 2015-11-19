@@ -87,9 +87,9 @@ public abstract class AddFunction extends ArithmeticFunction {
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
-                return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes));
+                return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes, true));
             }
-            return new LongAddFunction(genLongInfo(NAME, dataTypes));
+            return new LongAddFunction(genLongInfo(NAME, dataTypes, true));
         }
     }
 }
