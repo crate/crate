@@ -60,6 +60,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final ExecutorService executorService;
+    private final Functions functions;
 
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
@@ -68,9 +69,11 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
                           ClusterService clusterService,
                           ThreadPool threadPool,
-                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+                          TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Functions functions) {
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.functions = functions;
         this.executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
@@ -191,7 +194,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      * @return an instance of SchemaInfo for the given name
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
-        return new DocSchemaInfo(name, executorService, clusterService, transportPutIndexTemplateAction);
+        return new DocSchemaInfo(name, executorService, clusterService, transportPutIndexTemplateAction, functions);
     }
 
     /**

@@ -178,13 +178,13 @@ public class AnalyzedTableElements {
     private void validateGeneratedColumns(TableIdent tableIdent,
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext) {
-        List<Reference> tableReferences = new ArrayList<>();
+        List<ReferenceInfo> tableReferenceInfos = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            buildReference(tableIdent, columnDefinition, tableReferences);
+            buildReferenceInfo(tableIdent, columnDefinition, tableReferenceInfos);
         }
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
-                analysisMetaData, parameterContext, tableReferences);
+                analysisMetaData, parameterContext, tableReferenceInfos);
 
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
@@ -214,7 +214,7 @@ public class AnalyzedTableElements {
         columnDefinition.formattedGeneratedExpression(formattedExpression);
     }
 
-    private void buildReference(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<Reference> referenceList) {
+    private void buildReferenceInfo(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<ReferenceInfo> referenceInfos) {
         ReferenceInfo referenceInfo;
         if (columnDefinition.generatedExpression() == null) {
             referenceInfo = new ReferenceInfo(
@@ -225,12 +225,13 @@ public class AnalyzedTableElements {
             referenceInfo = new GeneratedReferenceInfo(
                     new ReferenceIdent(tableIdent, columnDefinition.ident()),
                     RowGranularity.DOC,
-                    columnDefinition.dataType() == null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
+                    columnDefinition.dataType() ==
+                    null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
                     "dummy expression, real one not needed here");
         }
-        referenceList.add(new Reference(referenceInfo));
+        referenceInfos.add(referenceInfo);
         for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
-            buildReference(tableIdent, childDefinition, referenceList);
+            buildReferenceInfo(tableIdent, childDefinition, referenceInfos);
         }
     }
 
@@ -268,12 +269,12 @@ public class AnalyzedTableElements {
     }
 
     public void addCopyTo(String sourceColumn, String targetIndex) {
-         Set<String> targetColumns = copyToMap.get(sourceColumn);
-         if (targetColumns == null) {
-             targetColumns = new HashSet<>();
-             copyToMap.put(sourceColumn, targetColumns);
-         }
-         targetColumns.add(targetIndex);
+        Set<String> targetColumns = copyToMap.get(sourceColumn);
+        if (targetColumns == null) {
+            targetColumns = new HashSet<>();
+            copyToMap.put(sourceColumn, targetColumns);
+        }
+        targetColumns.add(targetIndex);
     }
 
     public Set<ColumnIdent> columnIdents() {
@@ -346,7 +347,8 @@ public class AnalyzedTableElements {
                     "Cannot use array column '%s' in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
 
 
-        }if (columnDefinition.index().equals("analyzed")) {
+        }
+        if (columnDefinition.index().equals("analyzed")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Cannot use column '%s' with fulltext index in PARTITIONED BY clause",
                     columnDefinition.ident().sqlFqn()));

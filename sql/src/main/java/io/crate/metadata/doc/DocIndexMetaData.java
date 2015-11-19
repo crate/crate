@@ -25,10 +25,15 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.analyze.TableParameterInfo;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
 import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -69,6 +74,7 @@ public class DocIndexMetaData {
     private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableSortedMap.naturalOrder();
     private final ImmutableList.Builder<ReferenceInfo> partitionedByColumnsBuilder = ImmutableList.builder();
 
+    private final Functions functions;
     private final TableIdent ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
@@ -89,7 +95,8 @@ public class DocIndexMetaData {
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private Map<String, String> generatedColumns;
 
-    public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
+    public DocIndexMetaData(Functions functions, IndexMetaData metaData, TableIdent ident) throws IOException {
+        this.functions = functions;
         this.ident = ident;
         this.metaData = metaData;
         this.isAlias = !metaData.getIndex().equals(ident.indexName());
@@ -424,6 +431,19 @@ public class DocIndexMetaData {
         return ID_IDENT;
     }
 
+    private void initializeGeneratedExpressions() {
+        Collection<ReferenceInfo> referenceInfos = references.values();
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
+                functions, null, null, null, referenceInfos);
+        for (ReferenceInfo referenceInfo : referenceInfos) {
+            if (referenceInfo instanceof GeneratedReferenceInfo) {
+                GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
+                Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
+                generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, new ExpressionAnalysisContext()));
+            }
+        }
+    }
+
     public DocIndexMetaData build() {
         partitionedBy = getPartitionedBy();
         columnPolicy = getColumnPolicy();
@@ -438,6 +458,8 @@ public class DocIndexMetaData {
         references = referencesBuilder.build();
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
+
+        initializeGeneratedExpressions();
         return this;
     }
 
@@ -497,7 +519,10 @@ public class DocIndexMetaData {
                 // number_of_shards and number_of_replicas
                 updateTemplate(other, transportPutIndexTemplateAction, this.metaData.settings());
                 // merge the new mapping with the template settings
-                return new DocIndexMetaData(IndexMetaData.builder(other.metaData).settings(this.metaData.settings()).build(), other.ident).build();
+                return new DocIndexMetaData(
+                        functions,
+                        IndexMetaData.builder(other.metaData).settings(this.metaData.settings()).build(),
+                        other.ident).build();
             } else if (references().size() == other.references().size() &&
                     !references().keySet().equals(other.references().keySet())) {
                 XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);

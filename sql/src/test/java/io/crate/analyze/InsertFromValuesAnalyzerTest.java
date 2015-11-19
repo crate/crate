@@ -42,14 +42,15 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
@@ -69,20 +70,22 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .build();
 
     private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
-    private static final TableInfo GENERATED_COLUMN_INFO = new TestingTableInfo.Builder(
+    private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
             GENERATED_COLUMN_TABLE_IDENT, new Routing())
             .add("ts", DataTypes.TIMESTAMP, null)
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false)
-            .build();
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false);
+    private static TableInfo GENERATED_COLUMN_INFO;
+
+    @Mock
+    private static SchemaInfo schemaInfo;
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(NESTED_PK_TABLE_INFO);
@@ -94,8 +97,6 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(DEEPLY_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(NESTED_CLUSTERED_TABLE_IDENT.name()))
                     .thenReturn(NESTED_CLUSTERED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(GENERATED_COLUMN_TABLE_IDENT.name()))
-                    .thenReturn(GENERATED_COLUMN_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
@@ -117,6 +118,15 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new PredicateModule()
         ));
         return modules;
+    }
+
+    @Before
+    public void bindGeneratedColumnTable() {
+        if (GENERATED_COLUMN_INFO == null) {
+            GENERATED_COLUMN_INFO = GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
+        }
+        when(schemaInfo.getTableInfo(GENERATED_COLUMN_TABLE_IDENT.name()))
+                .thenReturn(GENERATED_COLUMN_INFO);
     }
 
     @Test

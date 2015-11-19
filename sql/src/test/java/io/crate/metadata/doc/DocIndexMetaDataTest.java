@@ -9,6 +9,7 @@ import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateUnitTest;
@@ -23,6 +24,9 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -42,7 +46,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
@@ -51,6 +55,27 @@ import static org.mockito.Mockito.when;
 public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private ThreadPool threadPool;
+
+    private Functions functions;
+
+    private class TestModule extends AbstractModule {
+
+        @Override
+        protected void configure() {
+            bind(ThreadPool.class).toInstance(threadPool);
+            ClusterService clusterService = mock(ClusterService.class);
+            ClusterState state = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(state.metaData()).thenReturn(metaData);
+            when(clusterService.state()).thenReturn(state);
+            bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
+            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+        }
+    }
+
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS, null);
@@ -79,12 +104,20 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
-        return new DocIndexMetaData(metaData, new TableIdent(null, name)).build();
+        return new DocIndexMetaData(functions, metaData, new TableIdent(null, name)).build();
     }
 
     @Before
     public void before() throws Exception {
         threadPool = newMockedThreadPool();
+
+        ModulesBuilder builder = new ModulesBuilder().add(
+                new ScalarFunctionModule(),
+                new TestModule(),
+                new MetaDataModule());
+        Injector injector = builder.createInjector();
+
+        functions = injector.getInstance(Functions.class);
     }
 
     @After
@@ -833,10 +866,11 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
                 ImmutableMap.<String, SchemaInfo>of("doc",
-                    new DocSchemaInfo(clusterService, threadPool, transportPutIndexTemplateAction)),
+                    new DocSchemaInfo(clusterService, threadPool, transportPutIndexTemplateAction, functions)),
                     clusterService,
                     threadPool,
-                    transportPutIndexTemplateAction),
+                    transportPutIndexTemplateAction,
+                    functions),
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
             mock(AnalysisMetaData.class)
         );
@@ -1220,7 +1254,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         ReferenceInfo week = md.references().get(new ColumnIdent("week"));
         assertThat(week, Matchers.notNullValue());
         assertThat(week, instanceOf(GeneratedReferenceInfo.class));
-        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), is("date_trunc('week', ts)"));
+        assertThat(((GeneratedReferenceInfo) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
+        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
     }
 }
 
