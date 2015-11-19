@@ -39,8 +39,8 @@ public class InputCreatingVisitorTest extends CrateUnitTest {
 
     @Test
     public void testNonDeterministicFunctionsReplacement() throws Exception {
-        Function fn1 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false);
-        Function fn2 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false);
+        Function fn1 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
+        Function fn2 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
         List<Symbol> inputSymbols = Arrays.<Symbol>asList(
                 Literal.BOOLEAN_FALSE,
                 TestingHelpers.createFunction("deterministic", DataTypes.INTEGER, Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)),
@@ -48,8 +48,8 @@ public class InputCreatingVisitorTest extends CrateUnitTest {
                 fn2
         );
 
-        Function newSameFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false);
-        Function newDifferentFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref2", DataTypes.INTEGER)), false);
+        Function newSameFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
+        Function newDifferentFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref2", DataTypes.INTEGER)), false, false);
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputSymbols);
 
         Symbol replaced1 = InputCreatingVisitor.INSTANCE.process(fn1, context);

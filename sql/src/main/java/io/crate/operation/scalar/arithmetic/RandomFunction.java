@@ -41,7 +41,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     protected final static FunctionInfo info = new FunctionInfo(
             new FunctionIdent(NAME, Collections.<DataType>emptyList()), DataTypes.DOUBLE,
-            FunctionInfo.Type.SCALAR, false);
+            FunctionInfo.Type.SCALAR, false, false);
 
     private final Random random = new Random();
 

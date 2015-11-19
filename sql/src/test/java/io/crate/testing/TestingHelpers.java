@@ -134,7 +134,7 @@ public class TestingHelpers {
      */
     @Deprecated
     public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
-        return createFunction(functionName, returnType, Arrays.asList(arguments), true);
+        return createFunction(functionName, returnType, Arrays.asList(arguments), true, false);
     }
 
     /**
@@ -142,17 +142,22 @@ public class TestingHelpers {
      */
     @Deprecated
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
-        return createFunction(functionName, returnType, arguments, true);
+        return createFunction(functionName, returnType, arguments, true, false);
     }
 
     /**
      * @deprecated use {@link SqlExpressions} instead
      */
     @Deprecated
-    public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments, boolean deterministic) {
+    public static Function createFunction(String functionName,
+                                          DataType returnType,
+                                          List<Symbol> arguments,
+                                          boolean deterministic,
+                                          boolean comparisonReplacementPossible) {
         List<DataType> dataTypes = Symbols.extractTypes(arguments);
         return new Function(
-                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType, FunctionInfo.Type.SCALAR, deterministic),
+                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType, FunctionInfo.Type.SCALAR,
+                        deterministic, comparisonReplacementPossible),
                 arguments
         );
     }
@@ -695,6 +700,10 @@ public class TestingHelpers {
 
     public static DataType randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
+    }
+
+    public static DataType randomNumericPrimitiveType() {
+        return DataTypes.NUMERIC_PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.NUMERIC_PRIMITIVE_TYPES.size()));
     }
 
     public static Map<String, Object> jsonMap(String json) {
