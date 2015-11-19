@@ -119,7 +119,7 @@ public class MetaDataToASTNodeResolver {
                 }
                 Expression expression = null;
                 if (info instanceof GeneratedReferenceInfo) {
-                    String formattedExpression = ((GeneratedReferenceInfo) info).generatedExpression();
+                    String formattedExpression = ((GeneratedReferenceInfo) info).formattedGeneratedExpression();
                     expression = SqlParser.createExpression(formattedExpression);
                 }
 
