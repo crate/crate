@@ -71,11 +71,19 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
     }
 
     protected static FunctionInfo genDoubleInfo(String functionName, List<DataType> dataTypes) {
-             return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.DOUBLE);
+        return genDoubleInfo(functionName, dataTypes, false);
+    }
+
+    protected static FunctionInfo genDoubleInfo(String functionName, List<DataType> dataTypes, boolean comparisonReplacementPossible) {
+        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.DOUBLE, FunctionInfo.Type.SCALAR, true, comparisonReplacementPossible);
     }
 
     protected static FunctionInfo genLongInfo(String functionName, List<DataType> dataTypes) {
-        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.LONG);
+        return genLongInfo(functionName, dataTypes, false);
+    }
+
+    protected static FunctionInfo genLongInfo(String functionName, List<DataType> dataTypes, boolean comparisonReplacementPossible) {
+        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.LONG, FunctionInfo.Type.SCALAR, true, comparisonReplacementPossible);
     }
 
     protected static void validateTypes(List<DataType> dataTypes) {
