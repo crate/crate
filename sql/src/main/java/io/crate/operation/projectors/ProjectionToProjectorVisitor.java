@@ -250,6 +250,10 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
+        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbols().size());
+        for (Symbol symbol : projection.columnSymbols()) {
+            insertInputs.add(symbolVisitor.process(symbol, symbolContext));
+        }
         return new ColumnIndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
@@ -261,7 +265,7 @@ public class ProjectionToProjectorVisitor
                 projection.clusteredBy(),
                 projection.clusteredByIdent(),
                 projection.columnReferences(),
-                projection.columnSymbols(),
+                insertInputs,
                 symbolContext.collectExpressions(),
                 projection.onDuplicateKeyAssignments(),
                 projection.bulkActions(),

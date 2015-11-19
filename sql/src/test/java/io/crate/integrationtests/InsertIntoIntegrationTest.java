@@ -624,8 +624,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
-        assertThat((Long)response.rows()[0][1], is(2L));
-        assertThat((Long) response.rows()[0][1], is(2L));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("false| 2\n" +
+                   "true| 2\n"));
     }
 
     @Test

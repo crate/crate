@@ -24,28 +24,28 @@ package io.crate.operation.projectors;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Futures;
+import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.Input;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.action.bulk.AssignmentVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ColumnIndexWriterProjector extends AbstractProjector {
@@ -54,21 +54,12 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
 
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
-    private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private final TransportActionProvider transportActionProvider;
-    private BulkShardProcessor bulkShardProcessor;
+    private final Symbol[] assignments;
+    private final InputRow insertValues;
+    private SymbolBasedBulkShardProcessor bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
 
-    /**
-     * 3 states:
-     *
-     * <ul>
-     * <li> writing into a normal table - <code>partitionIdent = null, partitionedByInputs = []</code></li>
-     * <li> writing into a partitioned table - <code>partitionIdent = null, partitionedByInputs = [...]</code></li>
-     * <li> writing into a single partition - <code>partitionIdent = "...", partitionedByInputs = []</code></li>
-     * </ul>
-     */
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Settings settings,
                                          Supplier<String> indexNameResolver,
@@ -79,71 +70,46 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                                          @Nullable Symbol routingSymbol,
                                          ColumnIdent clusteredByColumn,
                                          List<Reference> columnReferences,
-                                         List<Symbol> columnSymbols,
+                                         List<Input<?>> insertInputs,
                                          Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                         @Nullable
-                                           Map<Reference, Symbol> updateAssignments,
+                                         @Nullable Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
                                          boolean autoCreateIndices,
                                          UUID jobId) {
-        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
-        this.transportActionProvider = transportActionProvider;
         this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
         rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        assert columnReferences.size() == columnSymbols.size();
+        assert columnReferences.size() == insertInputs.size();
 
-        Map<Reference, Symbol> insertAssignments = new HashMap<>(columnReferences.size());
-        for (int i = 0; i < columnReferences.size(); i++) {
-            insertAssignments.put(columnReferences.get(i), columnSymbols.get(i));
+        String[] updateColumnNames;
+        if (updateAssignments == null) {
+            updateColumnNames = null;
+            assignments = null;
+        } else {
+            Tuple<String[], Symbol[]> convert = Assignments.convert(updateAssignments);
+            updateColumnNames = convert.v1();
+            assignments = convert.v2();
         }
-        createBulkShardProcessor(
-                clusterService,
-                settings,
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                bulkActions,
-                autoCreateIndices,
-                false, // overwriteDuplicates
-                updateAssignments,
-                insertAssignments,
-                jobId);
-    }
-
-    protected void createBulkShardProcessor(ClusterService clusterService,
-                                            Settings settings,
-                                            TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                                            @Nullable Integer bulkActions,
-                                            boolean autoCreateIndices,
-                                            boolean overwriteDuplicates,
-                                            @Nullable Map<Reference, Symbol> updateAssignments,
-                                            @Nullable Map<Reference, Symbol> insertAssignments,
-                                            UUID jobId) {
-
-        AssignmentVisitor.AssignmentVisitorContext visitorContext = AssignmentVisitor.processAssignments(
-                updateAssignments,
-                insertAssignments
-        );
-        ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
-                visitorContext.dataTypes(),
-                visitorContext.columnIndicesToStream(),
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
-                true,
-                overwriteDuplicates,
-                updateAssignments,
-                insertAssignments,
-                null,
-                jobId
-        );
-        bulkShardProcessor = new BulkShardProcessor(
+                false, // overwriteDuplicates
+                true, // continueOnErrors
+                updateColumnNames,
+                columnReferences.toArray(new Reference[columnReferences.size()]),
+                jobId);
+
+        insertValues = new InputRow(insertInputs);
+        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
-                transportBulkCreateIndicesAction,
-                rowShardResolver,
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                settings,
+                bulkRetryCoordinatorPool,
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),
-                bulkRetryCoordinatorPool,
-                requestBuilder,
-                transportActionProvider.transportShardUpsertActionDelegate(),
-                jobId);
+                builder,
+                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                jobId
+        );
     }
 
     @Override
@@ -157,7 +123,15 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        return bulkShardProcessor.add(indexNameResolver.get(), row, null);
+        rowShardResolver.setNextRow(row);
+        return bulkShardProcessor.add(
+                indexNameResolver.get(),
+                rowShardResolver.id(),
+                assignments,
+                insertValues.materialize(),
+                rowShardResolver.routing(),
+                null
+        );
     }
 
     @Override
@@ -169,10 +143,6 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     public void fail(Throwable throwable) {
         failed.set(true);
         downstream.fail(throwable);
-        if (throwable instanceof CancellationException) {
-            bulkShardProcessor.kill();
-        } else {
-            bulkShardProcessor.close();
-        }
+        bulkShardProcessor.kill(throwable);
     }
 }

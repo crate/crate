@@ -35,7 +35,6 @@ import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
 import io.crate.executor.transport.TransportExecutor;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -132,11 +131,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @After
     public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        final Field activeOperations = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
         final Field activeOperationsSb = SymbolBasedTransportShardUpsertAction.class.getDeclaredField("activeOperations");
 
         activeContexts.setAccessible(true);
-        activeOperations.setAccessible(true);
         activeOperationsSb.setAccessible(true);
         try {
             assertBusy(new Runnable() {
@@ -147,14 +144,6 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                             //noinspection unchecked
                             Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
                             assertThat(contexts.size(), is(0));
-                        } catch (IllegalAccessException e) {
-                            throw Throwables.propagate(e);
-                        }
-                    }
-                    for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
-                        try {
-                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperations.get(action);
-                            assertThat(operations.size(), is(0));
                         } catch (IllegalAccessException e) {
                             throw Throwables.propagate(e);
                         }

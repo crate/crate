@@ -42,7 +42,6 @@ import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemp
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.SymbolBasedTransportShardUpsertActionDelegateImpl;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegateImpl;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -66,7 +65,6 @@ public class TransportActionProvider {
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
     private final Provider<SymbolBasedTransportShardUpsertAction> symbolBasedTransportShardUpsertActionProvider;
-    private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
@@ -99,7 +97,6 @@ public class TransportActionProvider {
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<SymbolBasedTransportShardUpsertAction> symbolBasedTransportShardUpsertActionProvider,
                                    Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
-                                   Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
@@ -124,7 +121,6 @@ public class TransportActionProvider {
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.symbolBasedTransportShardUpsertActionProvider = symbolBasedTransportShardUpsertActionProvider;
         this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
-        this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
@@ -182,10 +178,6 @@ public class TransportActionProvider {
 
     public TransportMultiGetAction transportMultiGetAction() {
         return transportMultiGetActionProvider.get();
-    }
-
-    public BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate() {
-        return new TransportShardUpsertActionDelegateImpl(transportShardUpsertActionProvider.get());
     }
 
     public BulkRequestExecutor<SymbolBasedShardUpsertRequest> symbolBasedTransportShardUpsertActionDelegate() {

@@ -29,6 +29,7 @@ import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -37,18 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RowShardResolver {
-
-    private static final com.google.common.base.Function<Input<?>, BytesRef> INPUT_BYTES_REF_FUNCTION =
-            new com.google.common.base.Function<Input<?>, BytesRef>() {
-        @javax.annotation.Nullable
-        @Override
-        public BytesRef apply(@Nullable Input<?> input) {
-            if (input == null) {
-                return null;
-            }
-            return BytesRefs.toBytesRef(input.value());
-        }
-    };
 
     private static final Visitor VISITOR = new Visitor();
 
@@ -92,7 +81,7 @@ public class RowShardResolver {
         if (primaryKeyInputs.isEmpty()) {
             return ImmutableList.of(); // avoid object creation in Lists.transform if the list is empty
         }
-        return Lists.transform(primaryKeyInputs, INPUT_BYTES_REF_FUNCTION);
+        return Lists.transform(primaryKeyInputs, Inputs.TO_BYTES_REF);
     }
 
     /**

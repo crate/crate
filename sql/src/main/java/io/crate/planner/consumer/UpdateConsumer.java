@@ -28,10 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -56,7 +53,6 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Singleton
 public class UpdateConsumer implements Consumer {
@@ -95,7 +91,7 @@ public class UpdateConsumer implements Consumer {
                 }
                 if (whereClause.docKeys().isPresent()) {
                     if (upsertByIdNode == null) {
-                        Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
+                        Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
                         upsertByIdNode = new SymbolBasedUpsertByIdNode(context.plannerContext().nextExecutionPhaseId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
                         childNodes.add(new IterablePlan(context.plannerContext().jobId(), upsertByIdNode));
                     }
@@ -133,7 +129,7 @@ public class UpdateConsumer implements Consumer {
                                 new ReferenceIdent(tableInfo.ident(), "_uid"),
                                 RowGranularity.DOC, DataTypes.STRING));
 
-                Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
+                Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 
                 Long version = null;
                 if (versionSymbol != null){
@@ -179,8 +175,7 @@ public class UpdateConsumer implements Consumer {
             String[] indices = Planner.indices(tableInfo, whereClause);
             assert tableInfo.isPartitioned() || indices.length == 1;
 
-            Tuple<String[], Symbol[]> assignments = convertAssignments(nestedAnalysis.assignments());
-
+            Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 
             for (DocKeys.DocKey key : whereClause.docKeys().get()) {
                 String index;
@@ -196,20 +191,6 @@ public class UpdateConsumer implements Consumer {
                         assignments.v2(),
                         key.version().orNull());
             }
-        }
-
-
-        private Tuple<String[], Symbol[]> convertAssignments(Map<Reference, Symbol> assignments) {
-            String[] assignmentColumns = new String[assignments.size()];
-            Symbol[] assignmentSymbols = new Symbol[assignments.size()];
-            int i = 0;
-            for (Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
-                Reference key = entry.getKey();
-                assignmentColumns[i] = key.ident().columnIdent().fqn();
-                assignmentSymbols[i] = entry.getValue();
-                i++;
-            }
-            return new Tuple<>(assignmentColumns, assignmentSymbols);
         }
     }
 }

@@ -291,7 +291,8 @@ public class SymbolBasedTransportShardUpsertAction
 
         updatedSourceAsMap = sourceAndContent.v2();
 
-        final SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, item.updateAssignments().length);
+        final SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(
+                functions, item.updateAssignments().length, item.insertValues());
         Map<String, FieldExtractor> extractors = new HashMap<>(item.updateAssignments().length);
         for (int i = 0; i < request.updateColumns().length; i++) {
             extractors.put(request.updateColumns()[i], SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx));
@@ -393,13 +394,16 @@ public class SymbolBasedTransportShardUpsertAction
 
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
 
-        public SymbolToFieldExtractorContext(Functions functions, int size) {
+        private final Object[] insertValues;
+
+        public SymbolToFieldExtractorContext(Functions functions, int size, Object[] insertValues) {
             super(functions, size);
+            this.insertValues = insertValues;
         }
 
         @Override
         public Object inputValueFor(InputColumn inputColumn) {
-            throw new UnsupportedOperationException("SymbolToFieldExtractorContext does not support resolving InputColumn");
+            return insertValues[inputColumn.index()];
         }
     }
 
