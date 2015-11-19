@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
@@ -28,6 +29,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
+import io.crate.analyze.symbol.Reference;
 import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
@@ -439,7 +441,18 @@ public class DocIndexMetaData {
             if (referenceInfo instanceof GeneratedReferenceInfo) {
                 GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
-                generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, new ExpressionAnalysisContext()));
+                ExpressionAnalysisContext context = new ExpressionAnalysisContext();
+                generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
+                generatedReferenceInfo.referencedReferenceInfos(Lists.transform(context.references(), new Function<Reference, ReferenceInfo>() {
+                    @Nullable
+                    @Override
+                    public ReferenceInfo apply(@Nullable Reference input) {
+                        if (input == null) {
+                            return null;
+                        }
+                        return input.info();
+                    }
+                }));
             }
         }
     }
