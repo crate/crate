@@ -47,7 +47,7 @@ public class FunctionTest extends CrateUnitTest {
                                 randomAsciiOfLength(10),
                                 ImmutableList.<DataType>of(DataTypes.BOOLEAN)
                         ),
-                        TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomBoolean()),
+                        TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomBoolean(), randomBoolean()),
                 Arrays.<Symbol>asList(TestingHelpers.createReference(randomAsciiOfLength(2), DataTypes.BOOLEAN))
         );
 
@@ -70,7 +70,7 @@ public class FunctionTest extends CrateUnitTest {
                                 randomAsciiOfLength(10),
                                 ImmutableList.<DataType>of(DataTypes.BOOLEAN)
                         ),
-                        TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomBoolean()),
+                        TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomBoolean(), randomBoolean()),
                 Arrays.<Symbol>asList(TestingHelpers.createReference(randomAsciiOfLength(2), DataTypes.BOOLEAN))
         );
 
