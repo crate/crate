@@ -215,7 +215,7 @@ public class InformationSchemaExpressionFactories {
                             @Override
                             public BytesRef value() {
                                 if (row.info instanceof GeneratedReferenceInfo) {
-                                    return BytesRefs.toBytesRef(((GeneratedReferenceInfo) row.info).generatedExpression());
+                                    return BytesRefs.toBytesRef(((GeneratedReferenceInfo) row.info).formattedGeneratedExpression());
                                 }
                                 return null;
                             }

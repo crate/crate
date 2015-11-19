@@ -27,11 +27,12 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.*;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,31 +40,44 @@ public class ExpressionReferenceAnalyzer extends ExpressionAnalyzer {
 
     private final TableReferenceResolver tableReferenceResolver;
 
-    public ExpressionReferenceAnalyzer(AnalysisMetaData analysisMetaData,
-                                       ParameterContext parameterContext,
-                                       List<Reference> tableReferences) {
-        super(analysisMetaData, parameterContext, null, null);
+    public ExpressionReferenceAnalyzer(Functions functions,
+                                       ReferenceResolver referenceResolver,
+                                       @Nullable Schemas schemas,
+                                       @Nullable ParameterContext parameterContext,
+                                       Collection<ReferenceInfo> tableReferences) {
+        super(functions, referenceResolver, schemas, parameterContext, null, null);
         this.innerAnalyzer = new InnerReferenceExpressionAnalyzer();
         this.tableReferenceResolver = new TableReferenceResolver(tableReferences);
+    }
+
+    public ExpressionReferenceAnalyzer(AnalysisMetaData analysisMetaData,
+                                       @Nullable ParameterContext parameterContext,
+                                       Collection<ReferenceInfo> tableReferences) {
+        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(), analysisMetaData.referenceInfos(),
+                parameterContext, tableReferences);
     }
 
     class InnerReferenceExpressionAnalyzer extends ExpressionAnalyzer.InnerExpressionAnalyzer {
 
         @Override
-        protected Symbol resolveQualifiedName(QualifiedName qualifiedName, @Nullable List<String> path) {
-            return tableReferenceResolver.resolveReference(qualifiedName, path);
+        protected Symbol resolveQualifiedName(QualifiedName qualifiedName,
+                                              @Nullable List<String> path,
+                                              ExpressionAnalysisContext context) {
+            return tableReferenceResolver.resolveReference(qualifiedName, path, context);
         }
     }
 
     static class TableReferenceResolver {
 
-        private final List<Reference> tableReferences;
+        private final Collection<ReferenceInfo> tableReferenceInfos;
 
-        public TableReferenceResolver(List<Reference> tableReferences) {
-            this.tableReferences = tableReferences;
+        public TableReferenceResolver(Collection<ReferenceInfo> tableReferenceInfos) {
+            this.tableReferenceInfos = tableReferenceInfos;
         }
 
-        public Reference resolveReference(QualifiedName qualifiedName, @Nullable List<String> path) {
+        public Reference resolveReference(QualifiedName qualifiedName,
+                                          @Nullable List<String> path,
+                                          ExpressionAnalysisContext context) {
             List<String> parts = qualifiedName.getParts();
             ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
             if(parts.size() != 1){
@@ -72,11 +86,13 @@ public class ExpressionReferenceAnalyzer extends ExpressionAnalyzer {
                         "A column must not have a schema or a table here.", qualifiedName));
             }
 
-            for (Reference reference : tableReferences) {
-                if (reference.ident().columnIdent().equals(columnIdent)) {
-                    if (reference.info() instanceof GeneratedReferenceInfo) {
+            for (ReferenceInfo referenceInfo : tableReferenceInfos) {
+                if (referenceInfo.ident().columnIdent().equals(columnIdent)) {
+                    if (referenceInfo instanceof GeneratedReferenceInfo) {
                         throw new IllegalArgumentException("A generated column cannot be based on a generated column");
                     }
+                    Reference reference = new Reference(referenceInfo);
+                    context.addReference(reference);
                     return reference;
                 }
             }
