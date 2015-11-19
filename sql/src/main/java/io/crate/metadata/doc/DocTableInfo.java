@@ -131,7 +131,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
             tableParameterInfo = new TableParameterInfo();
         }
         // scale the fetchrouting timeout by n# of partitions
-        this.routingFetchTimeout = new TimeValue(5 * this.partitions.size(), TimeUnit.SECONDS);
+        this.routingFetchTimeout = new TimeValue(5 * Math.max(1, this.partitions.size()), TimeUnit.SECONDS);
     }
 
     @Override
