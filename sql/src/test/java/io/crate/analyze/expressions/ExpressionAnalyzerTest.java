@@ -173,6 +173,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
                 new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
                 DataTypes.INTEGER,
                 FunctionInfo.Type.SCALAR,
+                false,
                 false
         );
         Function fn1 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
