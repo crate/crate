@@ -25,6 +25,7 @@ package io.crate.metadata.doc;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
@@ -36,6 +37,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.Locale;
@@ -47,6 +49,9 @@ import static org.mockito.Mockito.when;
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
     private ExecutorService executorService;
+
+    @Mock
+    Functions functions;
 
     @Before
     public void prepare() throws Exception {
@@ -88,6 +93,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         when(clusterState.metaData()).thenReturn(metaData);
 
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
+                functions,
                 new TableIdent(schemaName, "test"),
                 clusterService,
                 mock(TransportPutIndexTemplateAction.class),

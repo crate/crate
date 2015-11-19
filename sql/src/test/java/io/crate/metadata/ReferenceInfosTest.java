@@ -58,6 +58,9 @@ public class ReferenceInfosTest {
     @Mock
     public MetaData metaData;
 
+    @Mock
+    public Functions functions;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -107,6 +110,7 @@ public class ReferenceInfosTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
-        return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class), mock(TransportPutIndexTemplateAction.class));
+        return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class),
+                mock(TransportPutIndexTemplateAction.class), functions);
     }
 }
