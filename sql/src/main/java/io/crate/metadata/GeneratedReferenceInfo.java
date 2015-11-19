@@ -22,32 +22,43 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class GeneratedReferenceInfo extends ReferenceInfo {
 
-    private final String generatedExpression;
+    private final String formattedGeneratedExpression;
+    private Symbol generatedExpression;
 
     public GeneratedReferenceInfo(ReferenceIdent ident,
                                   RowGranularity granularity,
                                   DataType type,
                                   ColumnPolicy columnPolicy,
                                   IndexType indexType,
-                                  String generatedExpression) {
+                                  String formattedGeneratedExpression) {
         super(ident, granularity, type, columnPolicy, indexType);
-        this.generatedExpression = generatedExpression;
+        this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 
     public GeneratedReferenceInfo(ReferenceIdent ident,
                                   RowGranularity granularity,
                                   DataType type,
-                                  String generatedExpression) {
+                                  String formattedGeneratedExpression) {
         super(ident, granularity, type);
+        this.formattedGeneratedExpression = formattedGeneratedExpression;
+    }
+
+    public String formattedGeneratedExpression() {
+        return formattedGeneratedExpression;
+    }
+
+    public void generatedExpression(Symbol generatedExpression) {
         this.generatedExpression = generatedExpression;
     }
 
-    public String generatedExpression() {
+    public Symbol generatedExpression() {
+        assert generatedExpression != null : "Generated expression symbol must not be NULL, initialize first";
         return generatedExpression;
     }
 }
