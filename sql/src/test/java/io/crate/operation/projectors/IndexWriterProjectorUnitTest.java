@@ -69,7 +69,6 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
-        InputColumn sourceInputColumn = new InputColumn(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
@@ -84,7 +83,6 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 null,
                 null,
                 sourceInput,
-                sourceInputColumn,
                 collectExpressions,
                 20,
                 null, null,
@@ -110,7 +108,6 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(0);
-        InputColumn sourceInputColumn = new InputColumn(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
@@ -124,7 +121,6 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 null,
                 null,
                 sourceInput,
-                sourceInputColumn,
                 collectExpressions,
                 20,
                 null, null,

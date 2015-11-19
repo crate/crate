@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Suppliers;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -33,13 +32,11 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.Input;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -69,7 +66,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
-        InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         IndexWriterProjector writerProjector = new IndexWriterProjector(
@@ -84,7 +80,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 null,
                 null,
                 sourceInput,
-                sourceInputColumn,
                 collectExpressions,
                 20,
                 null,

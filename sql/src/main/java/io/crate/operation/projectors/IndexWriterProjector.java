@@ -21,18 +21,22 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Supplier;
-import io.crate.analyze.symbol.InputColumn;
+import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
+import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.RowShardResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -46,46 +50,19 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class IndexWriterProjector extends AbstractIndexWriterProjector {
+public class IndexWriterProjector extends AbstractProjector {
 
-    private final SourceInjectorRow row;
-
-    private static final class SourceInjectorRow implements Row {
-
-        private final int idx;
-        private final BytesRefGenerator generator;
-        Row delegate = null;
-
-        private SourceInjectorRow(int idx, BytesRefGenerator generator) {
-            this.idx = idx;
-            this.generator = generator;
-        }
-
-
-        @Override
-        public int size() {
-            return delegate.size();
-        }
-
-        @Override
-        public Object get(int index) {
-            if (index == idx){
-                return generator.generateSource();
-            }
-            return delegate.get(index);
-        }
-
-        @Override
-        public Object[] materialize() {
-            return Buckets.materialize(this);
-        }
-    }
-
+    private final BytesRefGenerator sourceGenerator;
+    private final RowShardResolver rowShardResolver;
+    private final Supplier<String> indexNameResolver;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor;
+    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
@@ -98,7 +75,6 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable Symbol routingSymbol,
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
-                                InputColumn sourceInputColumn,
                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
@@ -106,44 +82,68 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
                                 UUID jobId) {
-        super(bulkRetryCoordinatorPool,
-                transportActionProvider,
-                indexNameResolver,
-                primaryKeyIdents,
-                primaryKeySymbols,
-                routingSymbol,
-                clusteredByColumn,
-                collectExpressions);
-
-
+        this.indexNameResolver = indexNameResolver;
+        this.collectExpressions = collectExpressions;
         if (includes == null && excludes == null) {
             //noinspection unchecked
-            row = new SourceInjectorRow(sourceInputColumn.index(), new BytesRefInput((Input<BytesRef>) sourceInput));
+            sourceGenerator = new BytesRefInput((Input<BytesRef>) sourceInput);
         } else {
             //noinspection unchecked
-            row = new SourceInjectorRow(sourceInputColumn.index(),
-                    new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes));
+            sourceGenerator =
+                    new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
-
-        Map<Reference, Symbol> insertAssignments = new HashMap<>(1);
-        insertAssignments.put(rawSourceReference, sourceInputColumn);
-
-        createBulkShardProcessor(
-                clusterService,
-                settings,
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                bulkActions,
-                autoCreateIndices,
+        rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 overwriteDuplicates,
+                true,
                 null,
-                insertAssignments,
+                new Reference[]{rawSourceReference},
                 jobId);
+
+        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+                clusterService,
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                settings,
+                bulkRetryCoordinatorPool,
+                autoCreateIndices,
+                MoreObjects.firstNonNull(bulkActions, 100),
+                builder,
+                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                jobId
+        );
     }
 
     @Override
-    protected Row updateRow(Row row) {
-        this.row.delegate = row;
-        return this.row;
+    public void downstream(RowReceiver rowReceiver) {
+        super.downstream(rowReceiver);
+        Futures.addCallback(bulkShardProcessor.result(), new BulkProcessorFutureCallback(failed, rowReceiver));
+    }
+
+    @Override
+    public boolean setNextRow(Row row) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
+        }
+        rowShardResolver.setNextRow(row);
+        return bulkShardProcessor.add(
+                indexNameResolver.get(),
+                rowShardResolver.id(),
+                new Object[] { sourceGenerator.generateSource() },
+                rowShardResolver.routing(),
+                null);
+    }
+
+    @Override
+    public void finish() {
+        bulkShardProcessor.close();
+    }
+
+    @Override
+    public void fail(Throwable throwable) {
+        failed.set(true);
+        downstream.fail(throwable);
+        bulkShardProcessor.kill(throwable);
     }
 
     private interface BytesRefGenerator {
@@ -196,5 +196,6 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
             return null;
         }
     }
+
 }
 
