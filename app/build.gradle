@@ -399,6 +399,10 @@ task downloadPlugins << {
         into 'plugins/hdfs'
     }
 }
+downloadPlugins.outputs.dir files(
+    "$projectDir/plugins/crate-admin",
+    "$projectDir/plugins/hdfs"
+)
 
 task downloadCrash << {
     def dest = download(
@@ -443,3 +447,5 @@ sourceSets {
         }
     }
 }
+
+clean.dependsOn(cleanDownloadPlugins)
