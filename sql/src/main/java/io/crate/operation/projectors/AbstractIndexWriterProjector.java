@@ -64,7 +64,7 @@ import java.util.concurrent.ExecutionException;
 
 public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
-    private final CollectExpression<Row, ?>[] collectExpressions;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final TableIdent tableIdent;
 
     @Nullable
@@ -101,9 +101,8 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
                                            List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
                                            ColumnIdent clusteredByColumn,
-                                           CollectExpression<Row, ?>[] collectExpressions,
-                                           final TableIdent tableIdent,
-                                           UUID jobId) {
+                                           Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                           final TableIdent tableIdent) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.transportActionProvider = transportActionProvider;
         this.tableIdent = tableIdent;

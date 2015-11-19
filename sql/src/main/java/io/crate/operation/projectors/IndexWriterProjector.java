@@ -101,7 +101,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
                                 InputColumn sourceInputColumn,
-                                CollectExpression<Row, ?>[] collectExpressions,
+                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
@@ -109,7 +109,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 boolean overwriteDuplicates,
                                 UUID jobId) {
         super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols,
-                partitionedByInputs, routingSymbol, clusteredByColumn, collectExpressions, tableIdent, jobId);
+                partitionedByInputs, routingSymbol, clusteredByColumn, collectExpressions, tableIdent);
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -142,7 +142,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
     }
 
     private interface BytesRefGenerator {
-        public BytesRef generateSource();
+        BytesRef generateSource();
     }
 
     private static class BytesRefInput implements BytesRefGenerator {

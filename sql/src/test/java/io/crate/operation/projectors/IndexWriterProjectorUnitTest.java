@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
@@ -44,6 +45,8 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -67,7 +70,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         InputColumn sourceInputColumn = new InputColumn(1);
-        CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
+        List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
@@ -110,7 +113,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         InputColumn sourceInputColumn = new InputColumn(0);
-        CollectExpression[] collectExpressions = new CollectExpression[]{ sourceInput };
+        List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,

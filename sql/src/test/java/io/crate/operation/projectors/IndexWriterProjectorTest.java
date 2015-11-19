@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -45,6 +46,8 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -66,7 +69,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         InputColumn sourceInputColumn = new InputColumn(1, StringType.INSTANCE);
-        CollectExpression[] collectExpressions = new CollectExpression[]{sourceInput};
+        List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         IndexWriterProjector writerProjector = new IndexWriterProjector(
                 internalCluster().getInstance(ClusterService.class),

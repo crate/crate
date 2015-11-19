@@ -54,7 +54,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          ColumnIdent clusteredByColumn,
                                          List<Reference> columnReferences,
                                          List<Symbol> columnSymbols,
-                                         CollectExpression<Row, ?>[] collectExpressions,
+                                         Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                          @Nullable
                                          Map<Reference, Symbol> updateAssignments,
                                          @Nullable Integer bulkActions,
@@ -69,8 +69,7 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                 routingSymbol,
                 clusteredByColumn,
                 collectExpressions,
-                tableIdent,
-                jobId
+                tableIdent
         );
         assert columnReferences.size() == columnSymbols.size();
 
