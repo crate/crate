@@ -59,7 +59,7 @@ public class UpdateProjector extends AbstractProjector {
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor;
+    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,

@@ -59,13 +59,12 @@ public class BulkRetryCoordinator {
         return retryLock;
     }
 
-    public <Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> void retry(
-                                                            final Request request,
-                                                            final BulkRequestExecutor<Request, Response> executor,
-                                                            boolean repeatingRetry,
-                                                            ActionListener<Response> listener) {
+    public <Request extends BulkProcessorRequest> void retry(final Request request,
+                                                             final BulkRequestExecutor<Request> executor,
+                                                             boolean repeatingRetry,
+                                                             ActionListener<?> listener) {
         trace("doRetry");
-        final RetryBulkActionListener<Response> retryBulkActionListener = new RetryBulkActionListener<>(listener);
+        final RetryBulkActionListener retryBulkActionListener = new RetryBulkActionListener<>(listener);
         if (repeatingRetry) {
             try {
                 Thread.sleep(currentDelay.getAndAdd(DELAY_INCREMENT));

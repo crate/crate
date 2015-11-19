@@ -112,7 +112,7 @@ public class BulkShardProcessor {
 
 
     private final ShardUpsertRequest.Builder bulkRequestBuilder;
-    private final BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> bulkRequestExecutor;
+    private final BulkRequestExecutor<ShardUpsertRequest> bulkRequestExecutor;
 
     public BulkShardProcessor(ClusterService clusterService,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
@@ -121,7 +121,7 @@ public class BulkShardProcessor {
                               int bulkSize,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               ShardUpsertRequest.Builder bulkRequestBuilder,
-                              BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> bulkRequestExecutor,
+                              BulkRequestExecutor<ShardUpsertRequest> bulkRequestExecutor,
                               UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
@@ -451,21 +451,20 @@ public class BulkShardProcessor {
     }
 
     private void processResponse(ShardUpsertResponse response) {
-        trace("execute response");
-
+        trace("process response");
         for (int i = 0; i < response.itemIndices().size(); i++) {
             int location = response.itemIndices().get(i);
-            ShardUpsertResponse.Response innerResp = response.responses().get(i);
-            if (innerResp == null) {
-                ShardUpsertResponse.Failure failure = response.failures().get(i);
-                // TODO: maybe remove later, when we are super-stable
+            ShardUpsertResponse.Failure failure = response.failures().get(i);
+            boolean succeeded = failure == null;
+            if (LOGGER.isWarnEnabled() && !succeeded) {
                 LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
             }
             synchronized (responsesLock) {
-                responses.set(location, innerResp != null);
+                responses.set(location, succeeded);
             }
         }
         setResultIfDone(response.itemIndices().size());
+        trace("response executed.");
     }
 
     private void processFailure(Throwable e,

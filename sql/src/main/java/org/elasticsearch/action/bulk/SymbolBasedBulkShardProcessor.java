@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
@@ -60,7 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
+public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
@@ -93,7 +94,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final BulkRequestBuilder<Request> requestBuilder;
-    private final BulkRequestExecutor<Request, Response> requestExecutor;
+    private final BulkRequestExecutor<Request> requestExecutor;
 
     private static final ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
 
@@ -104,7 +105,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                                          final boolean autoCreateIndices,
                                          int bulkSize,
                                          BulkRequestBuilder<Request> requestBuilder,
-                                         BulkRequestExecutor<Request, Response> requestExecutor,
+                                         BulkRequestExecutor<Request> requestExecutor,
                                          UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
@@ -284,9 +285,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
                 Map.Entry<ShardId, Request> entry = it.next();
                 final Request request = entry.getValue();
                 final ShardId shardId = entry.getKey();
-                requestExecutor.execute(request, new ActionListener<Response>() {
+                requestExecutor.execute(request, new ActionListener<ShardUpsertResponse>() {
                     @Override
-                    public void onResponse(Response response) {
+                    public void onResponse(ShardUpsertResponse response) {
                         processResponse(response);
                     }
 
@@ -430,12 +431,17 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         }
     }
 
-    private void processResponse(Response response) {
-        trace("executing response...");
+    private void processResponse(ShardUpsertResponse response) {
+        trace("process response");
         for (int i = 0; i < response.itemIndices().size(); i++) {
             int location = response.itemIndices().get(i);
+            ShardUpsertResponse.Failure failure = response.failures().get(i);
+            boolean succeeded = failure == null;
+            if (LOGGER.isWarnEnabled() && !succeeded) {
+                LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
+            }
             synchronized (responsesLock) {
-                responses.set(location, response.responses().get(i) != null);
+                responses.set(location, succeeded);
             }
         }
         setResultIfDone(response.itemIndices().size());
@@ -458,9 +464,9 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest,
         }
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(request, requestExecutor, retryCoordinator.isPresent(), new ActionListener<Response>() {
+            coordinator.retry(request, requestExecutor, retryCoordinator.isPresent(), new ActionListener<ShardUpsertResponse>() {
                 @Override
-                public void onResponse(Response response) {
+                public void onResponse(ShardUpsertResponse response) {
                     processResponse(response);
                 }
 

@@ -184,11 +184,11 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate() {
+    public BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate() {
         return new TransportShardUpsertActionDelegateImpl(transportShardUpsertActionProvider.get());
     }
 
-    public BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> symbolBasedTransportShardUpsertActionDelegate() {
+    public BulkRequestExecutor<SymbolBasedShardUpsertRequest> symbolBasedTransportShardUpsertActionDelegate() {
         return new SymbolBasedTransportShardUpsertActionDelegateImpl(symbolBasedTransportShardUpsertActionProvider.get());
     }
 

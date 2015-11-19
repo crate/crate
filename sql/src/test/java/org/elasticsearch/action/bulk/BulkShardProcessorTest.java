@@ -88,7 +88,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse>() {
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest>() {
             @Override
             public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);
@@ -164,7 +164,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
 
-        BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest, ShardUpsertResponse>() {
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction = new BulkRequestExecutor<ShardUpsertRequest>() {
             @Override
             public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                 ref.set(listener);

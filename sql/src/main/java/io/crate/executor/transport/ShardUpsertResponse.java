@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.bulk.BulkProcessorResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -33,7 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardUpsertResponse extends ActionResponse implements BulkProcessorResponse<ShardUpsertResponse.Response> {
+public class ShardUpsertResponse extends ActionResponse {
 
     /**
      * Represents a failure.
@@ -94,56 +93,25 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
                     .toString();
         }
     }
-     
-    public static class Response implements Streamable {
-         
-        Response() {
-        }
-
-        public static Response readResponse(StreamInput in) throws IOException {
-            Response response = new Response();
-            response.readFrom(in);
-            return response;
-        }
-         
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-        }
-         
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-        }
-    }
-
-
 
     private IntArrayList locations = new IntArrayList();
-    private List<Response> responses = new ArrayList<>();
     private List<Failure> failures = new ArrayList<>();
 
     public ShardUpsertResponse() {
     }
 
-    public void add(int location, Response response) {
+    public void add(int location) {
         locations.add(location);
-        responses.add(response);
         failures.add(null);
     }
 
     public void add(int location, Failure failure) {
         locations.add(location);
-        responses.add(null);
         failures.add(failure);
     }
 
-    @Override
     public IntArrayList itemIndices() {
         return locations;
-    }
-
-    @Override
-    public List<Response> responses() {
-        return responses;
     }
 
     public List<Failure> failures() {
@@ -156,15 +124,9 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
         super.readFrom(in);
         int size = in.readVInt();
         locations = new IntArrayList(size);
-        responses = new ArrayList<>(size);
         failures = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             locations.add(in.readVInt());
-            if (in.readBoolean()) {
-                responses.add(Response.readResponse(in));
-            } else {
-                responses.add(null);
-            }
             if (in.readBoolean()) {
                 failures.add(Failure.readFailure(in));
             } else {
@@ -179,12 +141,6 @@ public class ShardUpsertResponse extends ActionResponse implements BulkProcessor
         out.writeVInt(locations.size());
         for (int i = 0; i < locations.size(); i++) {
             out.writeVInt(locations.get(i));
-            if (responses.get(i) == null) {
-                out.writeBoolean(false);
-            } else {
-                out.writeBoolean(true);
-                responses.get(i).writeTo(out);
-            }
             if (failures.get(i) == null) {
                 out.writeBoolean(false);
             } else {

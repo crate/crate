@@ -29,7 +29,6 @@ import io.crate.Constants;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.settings.CrateSettings;
@@ -59,7 +58,7 @@ import java.util.concurrent.CancellationException;
 
 public class SymbolBasedUpsertByIdTask extends JobTask {
 
-    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -76,7 +75,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     public SymbolBasedUpsertByIdTask(UUID jobId,
                                      ClusterService clusterService,
                                      Settings settings,
-                                     BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate,
+                                     BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate,
                                      TransportCreateIndexAction transportCreateIndexAction,
                                      TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                      BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -179,7 +178,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.insertColumns(),
                 jobId()
         );
-        SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
                 settings,

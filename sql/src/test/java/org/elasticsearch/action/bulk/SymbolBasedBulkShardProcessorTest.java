@@ -74,8 +74,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
-                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest>() {
                     @Override
                     public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -96,7 +96,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 new Reference[]{fooRef},
                 UUID.randomUUID()
         );
-        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
@@ -137,8 +137,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
 
-        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
-                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest>() {
                     @Override
                     public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -164,7 +164,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
@@ -220,8 +220,8 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardBulkAction =
-                new BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse>() {
+        BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<SymbolBasedShardUpsertRequest>() {
                     @Override
                     public void execute(SymbolBasedShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -246,7 +246,7 @@ public class SymbolBasedBulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,

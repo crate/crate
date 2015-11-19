@@ -21,8 +21,9 @@
 
 package org.elasticsearch.action.bulk;
 
+import io.crate.executor.transport.ShardUpsertResponse;
 import org.elasticsearch.action.ActionListener;
 
-public interface BulkRequestExecutor<Request extends BulkProcessorRequest, Response extends BulkProcessorResponse<?>> {
-    void execute(Request request, ActionListener<Response> listener);
+public interface BulkRequestExecutor<Request extends BulkProcessorRequest> {
+    void execute(Request request, ActionListener<ShardUpsertResponse> listener);
 }

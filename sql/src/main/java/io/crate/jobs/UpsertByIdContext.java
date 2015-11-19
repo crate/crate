@@ -44,13 +44,13 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
     private final SymbolBasedShardUpsertRequest request;
     private final SymbolBasedUpsertByIdNode.Item item;
     private final SettableFuture<TaskResult> futureResult;
-    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
                              SymbolBasedShardUpsertRequest request,
                              SymbolBasedUpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
-                             BulkRequestExecutor<SymbolBasedShardUpsertRequest, ShardUpsertResponse> transportShardUpsertActionDelegate) {
+                             BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate) {
         super(id);
         this.request = request;
         this.item = item;
@@ -67,10 +67,11 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                     return;
                 }
                 int location = updateResponse.itemIndices().get(0);
-                if (updateResponse.responses().get(location) != null) {
+
+                ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
+                if (failure == null) {
                     futureResult.set(TaskResult.ONE_ROW);
                 } else {
-                    ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
                     if (logger.isDebugEnabled()) {
                         if (failure.versionConflict()) {
                             logger.debug("Upsert of document with id {} failed because of a version conflict", failure.id());

@@ -238,7 +238,7 @@ public class TransportShardUpsertAction
                         implContextInsert,
                         request.insertAssignments() != null, // try insert first
                         0);
-                shardUpsertResponse.add(item.location(), new ShardUpsertResponse.Response());
+                shardUpsertResponse.add(item.location());
             } catch (Throwable t) {
                 if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
                     throw t;

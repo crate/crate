@@ -207,8 +207,7 @@ public class SymbolBasedTransportShardUpsertAction
                         shardId,
                         item.insertValues() != null, // try insert first
                         0);
-                shardUpsertResponse.add(location,
-                        new ShardUpsertResponse.Response());
+                shardUpsertResponse.add(location);
             } catch (Throwable t) {
                 if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
                     throw t;
