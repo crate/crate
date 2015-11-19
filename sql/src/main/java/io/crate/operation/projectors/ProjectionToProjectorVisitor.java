@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Supplier;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
@@ -218,17 +219,17 @@ public class ProjectionToProjectorVisitor
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
+        Supplier<String> indexNameResolver =
+                IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
                 clusterService,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
+                indexNameResolver,
                 bulkRetryCoordinatorPool,
-                projection.tableIdent(),
-                projection.partitionIdent(),
                 projection.rawSourceReference(),
                 projection.primaryKeys(),
                 projection.ids(),
-                partitionedByInputs,
                 projection.clusteredBy(),
                 projection.clusteredByIdent(),
                 sourceInput,

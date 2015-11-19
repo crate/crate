@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Suppliers;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -75,13 +76,11 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 internalCluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 internalCluster().getInstance(TransportActionProvider.class),
+                IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
                 internalCluster().getInstance(BulkRetryCoordinatorPool.class),
-                new TableIdent(null, "bulk_import"),
-                null,
                 new Reference(new ReferenceInfo(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING)),
                 Arrays.asList(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(0)),
-                Arrays.<Input<?>>asList(),
                 null,
                 null,
                 sourceInput,

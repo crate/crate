@@ -21,12 +21,8 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Lists;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Reference;
@@ -37,20 +33,14 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.AssignmentVisitor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
@@ -60,29 +50,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 
 public abstract class AbstractIndexWriterProjector extends AbstractProjector {
 
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private final TableIdent tableIdent;
 
-    @Nullable
-    private final String partitionIdent;
-    private final List<Input<?>> partitionedByInputs;
-    private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
-        @Nullable
-        @Override
-        public BytesRef apply(Input<?> input) {
-            return BytesRefs.toBytesRef(input.value());
-        }
-    };
     private final RowShardResolver rowShardResolver;
+    private final Supplier<String> indexNameResolver;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final TransportActionProvider transportActionProvider;
     private BulkShardProcessor bulkShardProcessor;
 
-    private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
     /**
      * 3 states:
@@ -95,33 +73,16 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
      */
     protected AbstractIndexWriterProjector(BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                            TransportActionProvider transportActionProvider,
-                                           @Nullable String partitionIdent,
+                                           Supplier<String> indexNameResolver,
                                            List<ColumnIdent> primaryKeyIdents,
                                            List<Symbol> primaryKeySymbols,
-                                           List<Input<?>> partitionedByInputs,
                                            @Nullable Symbol routingSymbol,
                                            ColumnIdent clusteredByColumn,
-                                           Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                           final TableIdent tableIdent) {
+                                           Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.transportActionProvider = transportActionProvider;
-        this.tableIdent = tableIdent;
-        this.partitionIdent = partitionIdent;
-        this.partitionedByInputs = partitionedByInputs;
+        this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
-        if (partitionedByInputs.size() > 0) {
-            partitionIdentCache = CacheBuilder.newBuilder()
-                    .initialCapacity(10)
-                    .maximumSize(20)
-                    .build(new CacheLoader<List<BytesRef>, String>() {
-                        @Override
-                        public String load(@Nonnull List<BytesRef> key) throws Exception {
-                            return new PartitionName(tableIdent, key).asIndexName();
-                        }
-                    });
-        } else {
-            partitionIdentCache = null;
-        }
         rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
     }
 
@@ -175,7 +136,7 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-        return bulkShardProcessor.add(getIndexName(), updateRow(row), null);
+        return bulkShardProcessor.add(indexNameResolver.get(), updateRow(row), null);
     }
 
     @Override
@@ -207,21 +168,6 @@ public abstract class AbstractIndexWriterProjector extends AbstractProjector {
                 downstream.fail(t);
             }
         });
-    }
-
-    private String getIndexName() {
-        if (partitionedByInputs.size() > 0) {
-            List<BytesRef> partitions = Lists.transform(partitionedByInputs, inputToBytesRef);
-            try {
-                return partitionIdentCache.get(partitions);
-            } catch (ExecutionException e) {
-                throw ExceptionsHelper.convertToRuntime(e);
-            }
-        } else if (partitionIdent != null) {
-            return PartitionName.indexName(tableIdent, partitionIdent);
-        } else {
-            return tableIdent.indexName();
-        }
     }
 
     @Override

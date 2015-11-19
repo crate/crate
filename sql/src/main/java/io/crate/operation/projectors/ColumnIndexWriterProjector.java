@@ -62,14 +62,12 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          UUID jobId) {
         super(bulkRetryCoordinatorPool,
                 transportActionProvider,
-                partitionIdent,
+                IndexNameResolver.create(tableIdent, partitionIdent, partitionedByInputs),
                 primaryKeyIdents,
                 primaryKeySymbols,
-                partitionedByInputs,
                 routingSymbol,
                 clusteredByColumn,
-                collectExpressions,
-                tableIdent
+                collectExpressions
         );
         assert columnReferences.size() == columnSymbols.size();
 

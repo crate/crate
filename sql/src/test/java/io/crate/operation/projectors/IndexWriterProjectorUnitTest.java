@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
@@ -30,7 +31,6 @@ import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
@@ -76,13 +76,11 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
+                Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class),
-                new TableIdent(null, "bulk_import"),
-                null,
                 rawSourceReference,
                 ImmutableList.of(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(0)),
-                ImmutableList.<Input<?>>of(),
                 null,
                 null,
                 sourceInput,
@@ -118,13 +116,11 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
+                Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
-                new TableIdent(null, "bulk_import"),
-                null,
                 rawSourceReference,
                 ImmutableList.of(ID_IDENT),
                 Arrays.<Symbol>asList(new InputColumn(1)),
-                ImmutableList.<Input<?>>of(),
                 null,
                 null,
                 sourceInput,

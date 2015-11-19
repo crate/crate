@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Supplier;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -28,7 +29,6 @@ import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
@@ -90,13 +90,11 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
                                 TransportActionProvider transportActionProvider,
+                                Supplier<String> indexNameResolver,
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                TableIdent tableIdent,
-                                @Nullable String partitionIdent,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<Symbol> primaryKeySymbols,
-                                List<Input<?>> partitionedByInputs,
                                 @Nullable Symbol routingSymbol,
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
@@ -108,8 +106,15 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
                                 UUID jobId) {
-        super(bulkRetryCoordinatorPool, transportActionProvider, partitionIdent, primaryKeyIdents, primaryKeySymbols,
-                partitionedByInputs, routingSymbol, clusteredByColumn, collectExpressions, tableIdent);
+        super(bulkRetryCoordinatorPool,
+                transportActionProvider,
+                indexNameResolver,
+                primaryKeyIdents,
+                primaryKeySymbols,
+                routingSymbol,
+                clusteredByColumn,
+                collectExpressions);
+
 
         if (includes == null && excludes == null) {
             //noinspection unchecked
