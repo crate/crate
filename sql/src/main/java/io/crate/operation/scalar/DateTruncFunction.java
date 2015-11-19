@@ -39,6 +39,7 @@ import org.elasticsearch.common.rounding.Rounding;
 import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,16 +64,16 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         List<DataType> supportedTimestampTypes = ImmutableList.<DataType>of(
                 DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
-            module.register(new DateTruncFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING, dataType)),
-                    DataTypes.TIMESTAMP)
-            ));
+            module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
             // time zone aware variant
-            module.register(new DateTruncFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING, dataType)),
-                    DataTypes.TIMESTAMP)
-            ));
+            module.register(new DateTruncFunction(info(DataTypes.STRING, DataTypes.STRING, dataType)));
         }
+    }
+
+    private static FunctionInfo info(DataType ... types) {
+        return new FunctionInfo(
+                new FunctionIdent(NAME, Arrays.asList(types)),
+                DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, true, true);
     }
 
 
