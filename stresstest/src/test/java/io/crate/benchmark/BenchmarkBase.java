@@ -61,7 +61,7 @@ public abstract class BenchmarkBase extends RandomizedTest {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
     private static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "1")), TimeUnit.MINUTES);
 
     private static final long SEED = System.nanoTime();
     protected static String NODE1;
@@ -77,23 +77,43 @@ public abstract class BenchmarkBase extends RandomizedTest {
     public final ESLogger logger = Loggers.getLogger(getClass());
 
     public SQLResponse execute(String stmt, Object[] args) {
-        return execute(new SQLRequest(stmt, args));
+        return execute(new SQLRequest(stmt, args), REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
+        return execute(new SQLRequest(stmt, args), timeout);
     }
 
     public SQLResponse execute(String stmt) {
-        return execute(stmt, SQLRequest.EMPTY_ARGS);
+        return execute(stmt, SQLRequest.EMPTY_ARGS, REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse execute(String stmt, TimeValue timeout) {
+        return execute(stmt, SQLRequest.EMPTY_ARGS, timeout);
     }
 
     public SQLResponse execute(SQLRequest request) {
-        return CLUSTER.client().execute(SQLAction.INSTANCE, request).actionGet(REQUEST_TIMEOUT);
+        return execute(request, REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse execute(SQLRequest request, TimeValue timeout) {
+        return CLUSTER.client().execute(SQLAction.INSTANCE, request).actionGet(timeout);
     }
 
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
-        return execute(new SQLBulkRequest(stmt, bulkArgs));
+        return execute(new SQLBulkRequest(stmt, bulkArgs), REQUEST_TIMEOUT);
+    }
+
+    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+        return execute(new SQLBulkRequest(stmt, bulkArgs), timeout);
     }
 
     public SQLBulkResponse execute(SQLBulkRequest request) {
-        return CLUSTER.client().execute(SQLBulkAction.INSTANCE, request).actionGet(REQUEST_TIMEOUT);
+        return execute(request, REQUEST_TIMEOUT);
+    }
+
+    public SQLBulkResponse execute(SQLBulkRequest request, TimeValue timeout) {
+        return CLUSTER.client().execute(SQLBulkAction.INSTANCE, request).actionGet(timeout);
     }
 
     @BeforeClass
