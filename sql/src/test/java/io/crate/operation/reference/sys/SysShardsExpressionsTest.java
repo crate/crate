@@ -22,11 +22,13 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
+import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
@@ -49,6 +51,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.*;
 import org.elasticsearch.index.store.StoreStats;
+import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -56,6 +59,8 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.refInfo;
@@ -65,7 +70,7 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
-    private ShardReferenceResolver resolver;
+    private AbstractReferenceResolver resolver;
     private Schemas schemas;
 
     private String indexName = "wikipedia_de";
@@ -81,7 +86,9 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
                 new MetaDataShardModule(),
                 new SysShardExpressionModule()
         ).createInjector();
-        resolver = injector.getInstance(ShardReferenceResolver.class);
+        AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
+        IndexShard indexShard = injector.getInstance(IndexShard.class);
+        resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
         schemas = injector.getInstance(Schemas.class);
     }
 
@@ -131,6 +138,27 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
             when(docsStats.getCount()).thenReturn(654321L);
 
+            RecoveryState recoveryState = mock(RecoveryState.class);
+            when(indexShard.recoveryState()).thenReturn(recoveryState);
+
+            RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
+            RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
+
+            when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
+            when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
+            when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
+            when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
+
+            when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
+            when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
+            when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
+
+            when(recoveryStateIndex.totalFileCount()).thenReturn(2);
+            when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
+            when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
+
+            when(recoveryStateTimer.time()).thenReturn(10000L);
+
             ShardRouting shardRouting = mock(ShardRouting.class);
             when(indexShard.routingEntry()).thenReturn(shardRouting);
             when(shardRouting.primary()).thenReturn(true);
@@ -148,6 +176,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             ClusterState clusterState = mock(ClusterState.class);
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.metaData()).thenReturn(metaData);
+
         }
     }
 
@@ -181,7 +210,6 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNumDocs() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "num_docs");
         ReferenceInfo refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
         ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(654321), shardExpression.value());
@@ -292,5 +320,33 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
         // reset indexName
         indexName = "wikipedia_de";
+    }
+
+    @Test
+    public void testRecoveryShardField() throws Exception {
+        ReferenceInfo refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
+        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+        Map<String, Object> recovery = ref.value();
+        assertEquals(RecoveryState.Stage.DONE.name(), recovery.get("stage"));
+        assertEquals(RecoveryState.Type.REPLICA.name(), recovery.get("type"));
+        assertEquals(10_000L, recovery.get("total_time"));
+
+        Map<String, Object> expectedFiles = new HashMap<String, Object>(){{
+            put("used", 2);
+            put("reused", 1);
+            put("recovered", 1);
+            put("percent", 0.0f);
+        }};
+        assertEquals(expectedFiles, recovery.get("files"));
+
+        Map<String, Object> expectedBytes = new HashMap<String, Object>(){{
+            put("used", 2_048L);
+            put("reused", 1_024L);
+            put("recovered", 1_024L);
+            put("percent", 0.0f);
+        }};
+        assertEquals(expectedBytes, recovery.get("size"));
+
     }
 }

@@ -60,11 +60,14 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
             "with (number_of_replicas=2)");
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
-        execute("select * from sys.shards where table_name = 'locations' order by state, \"primary\"");
+        execute("select state, \"primary\", recovery from sys.shards where table_name = 'locations' order by state, \"primary\"");
         assertEquals(6L, response.rowCount());
-        assertEquals(10, response.cols().length);
-        assertEquals("UNASSIGNED", response.rows()[5][8]);
-        assertEquals(false, response.rows()[5][4]);
+        for (int i = 4; i < response.rowCount(); i++) {
+            Object[] row = response.rows()[i];
+            assertEquals("UNASSIGNED", row[0]);
+            assertEquals(false, row[1]);
+            assertEquals(null, row[2]);
+        }
     }
 
     @Test
@@ -105,19 +108,21 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         blobIndices.createBlobTable("blobs", indexSettings).get();
         ensureGreen();
 
-        execute("select * from sys.shards where table_name = 'blobs'");
+        execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");
         assertThat(response.rowCount(), is(2L));
         for (int i = 0; i<response.rowCount(); i++) {
-            assertThat((String)response.rows()[0][9], is("blobs"));
+            assertThat((String)response.rows()[i][0], is("blob"));
+            assertThat((String)response.rows()[i][1], is("blobs"));
         }
 
         execute("create blob table sbolb clustered into 4 shards with (number_of_replicas=3)");
         ensureYellow();
 
-        execute("select * from sys.shards where table_name = 'sbolb'");
+        execute("select schema_name, table_name from sys.shards where table_name = 'sbolb'");
         assertThat(response.rowCount(), is(16L));
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String)response.rows()[i][9], is("sbolb"));
+            assertThat((String)response.rows()[i][0], is("blob"));
+            assertThat((String)response.rows()[i][1], is("sbolb"));
         }
         execute("select count(*) from sys.shards " +
                 "where schema_name='blob' and table_name != 'blobs' " +

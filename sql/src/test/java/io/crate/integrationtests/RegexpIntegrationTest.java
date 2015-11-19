@@ -227,27 +227,24 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      */
     @Test
     public void testRegexpMatchQueryOperatorOnSysShards() throws Exception {
-
         this.setup.setUpLocations();
         ensureGreen();
         refresh();
 
-        execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS'");
+        execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS' order by table_name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][9], is("locations"));
-
+        assertThat((String) response.rows()[0][10], is("locations"));
     }
 
     @Test
     public void testRegexpMatchQueryOperatorWithCaseInsensitivityOnSysShards() throws Exception {
-
         this.setup.setUpLocations();
         ensureGreen();
         refresh();
 
-        execute("select * from sys.shards where table_name ~* 'LOCATIONS'");
+        execute("select * from sys.shards where table_name ~* 'LOCATIONS' order by table_name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][9], is("locations"));
+        assertThat((String) response.rows()[0][10], is("locations"));
     }
 
 }

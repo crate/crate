@@ -37,7 +37,6 @@ import java.util.Map;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
-    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
     private static final ESLogger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
 
     @Inject
@@ -80,12 +79,6 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
             }
         }
-        this.implementations = builder.build();
+        this.implementations.putAll(builder.build());
     }
-
-    @Override
-    protected Map<ReferenceIdent, ReferenceImplementation> implementations() {
-        return implementations;
-    }
-
 }

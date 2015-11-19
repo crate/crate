@@ -142,20 +142,21 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
-        assertEquals(10, response.cols().length);
+        assertEquals(11, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards");
         assertEquals(30L, response.rowCount());
-        assertEquals(10, response.cols().length);
+        assertEquals(11, response.cols().length);
         assertThat(response.cols(), arrayContaining(
                 "id",
                 "num_docs",
                 "orphan_partition",
                 "partition_ident",
                 "primary",
+                "recovery",
                 "relocating_node",
                 "schema_name",
                 "size",
@@ -168,7 +169,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(10, response.cols().length);
+        assertEquals(11, response.cols().length);
     }
 
     @Test
@@ -176,7 +177,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(20L, response.rowCount());
-        assertEquals(10, response.cols().length);
+        assertEquals(11, response.cols().length);
     }
 
     @Test
@@ -184,7 +185,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(10, response.cols().length);
+        assertEquals(11, response.cols().length);
     }
 
     @Test
@@ -199,9 +200,9 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec("select * from sys.shards order by table_name");
         assertEquals(30L, response.rowCount());
         String[] tableNames = {"blobs", "characters", "quotes"};
-        for (int i=0; i<response.rowCount(); i++) {
+        for (int i = 0; i < response.rowCount(); i++) {
             int idx = i/10;
-            assertEquals(tableNames[idx], response.rows()[i][9]);
+            assertEquals(tableNames[idx], response.rows()[i][10]);
         }
     }
 
@@ -356,6 +357,21 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             assertThat(response.rows()[12][0], is(nullValue()));
         } finally {
             transportExecutor.exec("drop table users");
+        }
+    }
+
+    @Test
+    public void testSelectRecoveryExpression() throws Exception {
+        SQLResponse response = transportExecutor.exec("select recovery, " +
+            "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
+            "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
+            "from sys.shards");
+        for (Object[] row : response.rows()) {
+            Map recovery = (Map) row[0];
+            Map<String, Integer> files = (Map<String, Integer>) row[1];
+            assertThat((( Map<String, Integer>)recovery.get("files")).entrySet(), equalTo(files.entrySet()));
+            Map<String, Long> size = (Map<String, Long>) row[5];
+            assertThat((( Map<String, Long>)recovery.get("size")).entrySet(), equalTo(size.entrySet()));
         }
     }
 }

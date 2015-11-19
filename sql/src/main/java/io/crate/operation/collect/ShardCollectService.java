@@ -30,10 +30,9 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -75,6 +74,7 @@ public class ShardCollectService {
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
     private final ShardId shardId;
+    private final IndexShard indexShard;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
@@ -82,6 +82,8 @@ public class ShardCollectService {
     private final BlobIndices blobIndices;
     private final MapperService mapperService;
     private final IndexFieldDataService indexFieldDataService;
+    private final Functions functions;
+    private final AbstractReferenceResolver shardResolver;
 
     @Inject
     public ShardCollectService(SearchContextFactory searchContextFactory,
@@ -91,6 +93,7 @@ public class ShardCollectService {
                                TransportActionProvider transportActionProvider,
                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                ShardId shardId,
+                               IndexShard indexShard,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
@@ -102,15 +105,18 @@ public class ShardCollectService {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
+        this.indexShard = indexShard;
         this.blobIndices = blobIndices;
         this.mapperService = mapperService;
         this.indexFieldDataService = indexFieldDataService;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
-        NestedReferenceResolver shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
+        shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
         docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
 
+        this.functions = functions;
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
+
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
@@ -132,6 +138,11 @@ public class ShardCollectService {
     public Object[] getRowForShard(CollectPhase collectPhase) {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
 
+        EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
+                functions,
+                RowGranularity.SHARD,
+                new RecoveryShardReferenceResolver(shardResolver, indexShard)
+        );
         collectPhase =  collectPhase.normalize(shardNormalizer);
         if (collectPhase.whereClause().noMatch()) {
             return null;
