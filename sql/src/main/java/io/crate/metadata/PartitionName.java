@@ -100,7 +100,7 @@ public class PartitionName {
     }
 
     @Nullable
-    private static String encodeIdent(Collection<? extends BytesRef> values) {
+    public static String encodeIdent(Collection<? extends BytesRef> values) {
         if (values.size() == 0) {
             return null;
         }

@@ -28,6 +28,7 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -72,13 +73,14 @@ public class IndexNameResolver {
                 .build(new CacheLoader<List<BytesRef>, String>() {
                     @Override
                     public String load(@Nonnull List<BytesRef> key) throws Exception {
-                        return new PartitionName(tableIdent, key).asIndexName();
+                        return PartitionName.indexName(tableIdent, PartitionName.encodeIdent(key));
                     }
                 });
         return new Supplier<String>() {
             @Override
             public String get() {
-                List<BytesRef> partitions = Lists.transform(partitionedByInputs, Inputs.TO_BYTES_REF);
+                // copy because transform returns a view and the values of the inputs are mutable
+                List<BytesRef> partitions = ImmutableList.copyOf(Lists.transform(partitionedByInputs, Inputs.TO_BYTES_REF));
                 try {
                     return cache.get(partitions);
                 } catch (ExecutionException e) {
