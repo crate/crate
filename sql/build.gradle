@@ -84,8 +84,14 @@ task benchmarks(type: Test) {
     description = "Run internal benchmarks"
 
     testClassesDir = project.sourceSets.benchmarks.output.classesDir
-    classpath = project.sourceSets.benchmarks.runtimeClasspath
 
+    // move lucene-test-framework to the beginning of the classpath
+    def cp = project.sourceSets.benchmarks.runtimeClasspath
+    def testFrameworkEntry = cp.find({it.name.contains("lucene-test-framework")})
+    if (testFrameworkEntry != null) {
+        cp = files(testFrameworkEntry) + cp.filter({ !it.name.contains("lucene-test-framework") })
+    }
+    classpath = cp
     def benchmark_dir = project.projectDir.path + '/reports/bench/'
 
     // Properties for JUnit Benchmarks
