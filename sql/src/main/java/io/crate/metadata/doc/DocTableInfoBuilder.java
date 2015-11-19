@@ -24,6 +24,7 @@ package io.crate.metadata.doc;
 import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -51,6 +52,7 @@ public class DocTableInfoBuilder {
     private final TableIdent ident;
     private ExecutorService executorService;
     private final boolean checkAliasSchema;
+    private final Functions functions;
     private final DocSchemaInfo docSchemaInfo;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -58,12 +60,14 @@ public class DocTableInfoBuilder {
     private String[] concreteIndices;
     private static final ESLogger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
-    public DocTableInfoBuilder(DocSchemaInfo docSchemaInfo,
+    public DocTableInfoBuilder(Functions functions,
+                               DocSchemaInfo docSchemaInfo,
                                TableIdent ident,
                                ClusterService clusterService,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                ExecutorService executorService,
                                boolean checkAliasSchema) {
+        this.functions = functions;
         this.docSchemaInfo = docSchemaInfo;
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -113,7 +117,7 @@ public class DocTableInfoBuilder {
     private DocIndexMetaData buildDocIndexMetaData(String index) {
         DocIndexMetaData docIndexMetaData;
         try {
-            docIndexMetaData = new DocIndexMetaData(metaData.index(index), ident);
+            docIndexMetaData = new DocIndexMetaData(functions, metaData.index(index), ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
         }
@@ -132,7 +136,7 @@ public class DocTableInfoBuilder {
             // default values
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
-            docIndexMetaData = new DocIndexMetaData(builder.build(), ident);
+            docIndexMetaData = new DocIndexMetaData(functions, builder.build(), ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetaData from template", e);
         }

@@ -25,6 +25,7 @@ import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
@@ -45,17 +46,20 @@ public class BlobTableInfoBuilder {
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
+    private final Functions functions;
     private String[] concreteIndices;
 
     public BlobTableInfoBuilder(BlobSchemaInfo blobSchemaInfo,
                                 TableIdent ident,
                                 ClusterService clusterService,
                                 BlobEnvironment blobEnvironment,
-                                Environment environment) {
+                                Environment environment,
+                                Functions functions) {
         this.blobSchemaInfo = blobSchemaInfo;
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
+        this.functions = functions;
         this.metaData = clusterService.state().metaData();
         this.ident = ident;
     }
@@ -75,7 +79,7 @@ public class BlobTableInfoBuilder {
     private DocIndexMetaData buildDocIndexMetaData(String index) {
         DocIndexMetaData docIndexMetaData;
         try {
-            docIndexMetaData = new DocIndexMetaData(metaData.index(index), ident);
+            docIndexMetaData = new DocIndexMetaData(functions, metaData.index(index), ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
         }

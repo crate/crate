@@ -31,6 +31,7 @@ import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -52,6 +53,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
+    private final Functions functions;
 
     private final LoadingCache<String, BlobTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -69,10 +71,12 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobEnvironment blobEnvironment,
-                          Environment environment) {
+                          Environment environment,
+                          Functions functions) {
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
+        this.functions = functions;
         clusterService.add(this);
         tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
@@ -85,7 +89,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private BlobTableInfo innerGetTableInfo(String name) {
         BlobTableInfoBuilder builder = new BlobTableInfoBuilder(this,
-                new TableIdent(NAME, name), clusterService, blobEnvironment, environment);
+                new TableIdent(NAME, name), clusterService, blobEnvironment, environment, functions);
         return builder.build();
     }
 

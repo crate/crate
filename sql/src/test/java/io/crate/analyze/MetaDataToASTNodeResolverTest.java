@@ -90,12 +90,14 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     static DocSchemaInfo DOC_SCHEMA_INFO = new DocSchemaInfo(mock(ClusterService.class),
             mock(ThreadPool.class),
-            mock(TransportPutIndexTemplateAction.class));
+            mock(TransportPutIndexTemplateAction.class),
+            mock(Functions.class));
 
     static DocSchemaInfo MY_SCHEMA_INFO = new DocSchemaInfo("myschema",
             mock(ExecutorService.class),
             mock(ClusterService.class),
-            mock(TransportPutIndexTemplateAction.class));
+            mock(TransportPutIndexTemplateAction.class),
+            mock(Functions.class));
 
     private static ReferenceInfo newReferenceInfo(TableIdent tableIdent, String name, DataType type) {
         return newReferenceInfo(tableIdent, name, type, null, null, false);

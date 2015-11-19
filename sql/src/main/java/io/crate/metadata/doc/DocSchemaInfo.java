@@ -38,6 +38,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -68,6 +69,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final Functions functions;
 
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
         @Override
@@ -109,11 +111,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
                          ThreadPool threadPool,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         Functions functions) {
         this(Schemas.DEFAULT_SCHEMA_NAME,
                 clusterService,
                 (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
-                transportPutIndexTemplateAction,
+                transportPutIndexTemplateAction, functions,
                 Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
                 AS_IS_FUNCTION);
     }
@@ -124,8 +127,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public DocSchemaInfo(final String schemaName,
                          ExecutorService executorService,
                          ClusterService clusterService,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        this(schemaName, clusterService, executorService, transportPutIndexTemplateAction,
+                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         Functions functions) {
+        this(schemaName, clusterService, executorService, transportPutIndexTemplateAction, functions,
                 createSchemaNamePredicate(schemaName), new Function<String, String>() {
             @Nullable
             @Override
@@ -143,6 +147,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                           ClusterService clusterService,
                           ExecutorService executorService,
                           TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Functions functions,
                           Predicate<String> tableFilter,
                           final Function<String, String> fqTableNameToTableName) {
         this.schemaName = schemaName;
@@ -150,6 +155,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         this.clusterService.add(this);
         this.executorService = executorService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.functions = functions;
         this.tablesFilter = tableFilter;
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
@@ -190,6 +196,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private DocTableInfo innerGetTableInfo(String name) {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
+                functions,
                 this,
                 new TableIdent(name(), name),
                 clusterService,

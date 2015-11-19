@@ -24,11 +24,13 @@ package io.crate.analyze.expressions;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.tree.CurrentTime;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,8 @@ public class ExpressionAnalysisContext {
     private final Map<CurrentTime, Literal> allocatedCurrentTimestamps = new HashMap<>();
 
     private final Map<Function, Function> deterministicFunctionSymbols = new HashMap<>();
+    private final List<Reference> references = new ArrayList<>();
+
     public boolean hasAggregates = false;
 
     public ExpressionAnalysisContext() {
@@ -76,5 +80,19 @@ public class ExpressionAnalysisContext {
             allocatedCurrentTimestamps.put(node, literal);
         }
         return literal;
+    }
+
+    /**
+     * Add a reference the expression is based on
+     */
+    public void addReference(Reference reference) {
+        references.add(reference);
+    }
+
+    /**
+     * Returns a list of references which the expression is based on
+     */
+    public List<Reference> references() {
+        return references;
     }
 }
