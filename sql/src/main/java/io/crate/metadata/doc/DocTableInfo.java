@@ -53,7 +53,7 @@ import java.util.concurrent.*;
 
 public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTable {
 
-    private static final TimeValue ROUTING_FETCH_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
+    private final TimeValue routingFetchTimeout;
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
@@ -130,6 +130,8 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
         } else {
             tableParameterInfo = new TableParameterInfo();
         }
+        // scale the fetchrouting timeout by n# of partitions
+        this.routingFetchTimeout = new TimeValue(5 * this.partitions.size(), TimeUnit.SECONDS);
     }
 
     @Override
@@ -232,7 +234,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
         Routing routing = getRouting(clusterService.state(), whereClause, preference, new ArrayList<ShardId>(0));
         if (routing != null) return routing;
 
-        ClusterStateObserver observer = new ClusterStateObserver(clusterService, ROUTING_FETCH_TIMEOUT, logger);
+        ClusterStateObserver observer = new ClusterStateObserver(clusterService, routingFetchTimeout, logger);
         final SettableFuture<Routing> routingSettableFuture = SettableFuture.create();
         observer.waitForNextChange(
                 new FetchRoutingListener(routingSettableFuture, whereClause, preference),
