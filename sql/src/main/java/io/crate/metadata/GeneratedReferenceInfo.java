@@ -26,10 +26,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 
+import java.util.List;
+
 public class GeneratedReferenceInfo extends ReferenceInfo {
 
     private final String formattedGeneratedExpression;
     private Symbol generatedExpression;
+    private List<ReferenceInfo> referencedReferenceInfos;
 
     public GeneratedReferenceInfo(ReferenceIdent ident,
                                   RowGranularity granularity,
@@ -60,5 +63,13 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
     public Symbol generatedExpression() {
         assert generatedExpression != null : "Generated expression symbol must not be NULL, initialize first";
         return generatedExpression;
+    }
+
+    public void referencedReferenceInfos(List<ReferenceInfo> referenceInfos) {
+        this.referencedReferenceInfos = referenceInfos;
+    }
+
+    public List<ReferenceInfo> referencedReferenceInfos() {
+        return referencedReferenceInfos;
     }
 }

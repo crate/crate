@@ -1256,6 +1256,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertThat(week, instanceOf(GeneratedReferenceInfo.class));
         assertThat(((GeneratedReferenceInfo) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
         assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
+        assertThat(((GeneratedReferenceInfo) week).referencedReferenceInfos(), contains(isReferenceInfo("ts")));
     }
 }
 
