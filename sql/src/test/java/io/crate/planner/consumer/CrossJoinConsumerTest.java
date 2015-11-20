@@ -51,7 +51,9 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -166,18 +168,14 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         QueryThenFetch plan = plan("select u1.name, u2.id from users u1, users u2 order by 2");
         NestedLoopPhase nlp = (NestedLoopPhase) ((NestedLoop) plan.subPlan()).resultPhase();
         assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
-        //TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
-        //assertThat(topN.outputs().get(0), isFunction("concat"));
     }
 
 
     @Test
     public void testFunctionWithJoinCondition() throws Exception {
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select u1.name || u2.name from users u1, users u2
-        NestedLoop plan = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u2.name");
-        TopNProjection topN = (TopNProjection) plan.nestedLoopPhase().projections().get(0);
-        assertThat(topN.outputs().get(0), isFunction("concat"));
+        QueryThenFetch qtf = plan("select u1.name || u2.name from users u1, users u2");
+        FetchProjection fetch = (FetchProjection) qtf.localMerge().projections().get(1);
+        assertThat(fetch.outputs(), isSQL("concat(FETCH(INPUT(0), users.name), FETCH(INPUT(1), users.name))"));
     }
 
     @Test
@@ -187,32 +185,36 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select u1.name, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'
-        NestedLoop plan = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar' order by u1.floats, u2.name");
+        QueryThenFetch plan = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'");
 
-        assertThat(plan.nestedLoopPhase().projections().size(), is(2));
-        FilterProjection fp = ((FilterProjection) plan.nestedLoopPhase().projections().get(0));
+        NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
+        assertThat(nestedLoop.nestedLoopPhase().projections(),
+                Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
+        FilterProjection fp = ((FilterProjection) nestedLoop.nestedLoopPhase().projections().get(0));
 
         assertThat(((Function)fp.query()).arguments().size(), is(2));
         assertThat(fp.outputs().size(), is(3));
 
-        TopNProjection topN = ((TopNProjection) plan.nestedLoopPhase().projections().get(1));
+        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(0));
-        // TODO: once fetch is supported and query is changed, output size will be 4 here
-        assertThat(topN.outputs().size(), is(2));
+        assertThat(topN.outputs().size(), is(3));
 
         assertThat(plan.resultPhase(), instanceOf(MergePhase.class));
         MergePhase localMergePhase = (MergePhase) plan.resultPhase();
-        assertThat(localMergePhase.projections().size(), is(1));
+        assertThat(localMergePhase.projections(),
+                Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
         TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
         assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(finalTopN.offset(), is(0));
-        assertThat(finalTopN.outputs().size(), is(2));
+        assertThat(finalTopN.outputs().size(), is(3));
+
+        FetchProjection fetchProjection = (FetchProjection) localMergePhase.projections().get(1);
+        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), users.floats), INPUT(2)"));
     }
 
     @Test

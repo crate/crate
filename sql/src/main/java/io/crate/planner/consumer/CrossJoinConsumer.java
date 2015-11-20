@@ -71,18 +71,6 @@ public class CrossJoinConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    private static Map<Symbol, Field> getFieldMap(Iterable<? extends QueriedRelation> subRelations) {
-        Map<Symbol, Field> fieldMap = new HashMap<>();
-        for (QueriedRelation subRelation : subRelations) {
-            List<Field> fields = subRelation.fields();
-            QuerySpec splitQuerySpec = subRelation.querySpec();
-            for (int i = 0; i < splitQuerySpec.outputs().size(); i++) {
-                fieldMap.put(splitQuerySpec.outputs().get(i), fields.get(i));
-            }
-        }
-        return fieldMap;
-    }
-
     private static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Symbol> symbolMap) {
         MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), symbolMap);
         WhereClause where = parentQuerySpec.where();
@@ -121,8 +109,7 @@ public class CrossJoinConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
-            boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
-            if (isUnsupportedStatement(statement, context, hasDocTables)) return null;
+            if (isUnsupportedStatement(statement, context)) return null;
             QuerySpec querySpec = statement.querySpec();
             if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
@@ -155,7 +142,6 @@ public class CrossJoinConsumer implements Consumer {
             OrderBy orderByBeforeSplit = querySpec.orderBy().orNull();
 
             // replace all the fields in the root query spec
-            //Map<Symbol, Field> fieldMap = getFieldMap(queriedTables);
             replaceFields(statement.querySpec(), symbolMap);
             if (statement.remainingOrderBy().isPresent()) {
                 querySpec.orderBy(statement.remainingOrderBy().get());
@@ -164,6 +150,7 @@ public class CrossJoinConsumer implements Consumer {
 
             WhereClause where = querySpec.where();
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
+            boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
             boolean isDistributed = hasDocTables && filterNeeded;
 
             QueriedTableRelation<?> left = queriedTables.get(0);
@@ -263,8 +250,6 @@ public class CrossJoinConsumer implements Consumer {
 
             List<Projection> projections = new ArrayList<>();
 
-            //List<RelationColumn> inputs = new ArrayList<>(left.fields().size() + right.fields().size());
-            //List<Field> inputs = concatFields(left, right);
             if (filterNeeded) {
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(nlOutputs, where.query());
                 projections.add(filterProjection);
@@ -397,7 +382,7 @@ public class CrossJoinConsumer implements Consumer {
             return orderByOrder;
         }
 
-        private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context, boolean hasDocTables) {
+        private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
             if (statement.sources().size() != 2) {
                 context.validationException(new ValidationException("Joining more than 2 relations is not supported"));
                 return true;

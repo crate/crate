@@ -186,12 +186,10 @@ public class QueryThenFetchConsumer implements Consumer {
                 );
                 localMergePhase.addProjection(finalTopN);
                 localMergePhase.addProjection(fp);
-                //throw new UnsupportedOperationException("distributed nested loop with fetch is not implemented");
             } else {
                 plannedSubQuery.addProjection(fp);
             }
-            QueryThenFetch qtf = new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, localMergePhase, context.plannerContext().jobId());
-            return qtf;
+            return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, localMergePhase, context.plannerContext().jobId());
         }
 
         @Override

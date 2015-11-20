@@ -44,13 +44,13 @@ public class FetchFieldExtractor {
         HashSet<Field> canBeFetched = new HashSet<>();
         Context ctx = new Context(subOutputs, canBeFetched);
         for (Symbol symbol : symbols) {
-            Boolean fetchable = FieldVisitor.INSTANCE.process(symbol, ctx);
+            FieldVisitor.INSTANCE.process(symbol, ctx);
         }
         return canBeFetched;
     }
 
     private static class Context {
-        Multimap<AnalyzedRelation, Symbol> outputs;
+        private final Multimap<AnalyzedRelation, Symbol> outputs;
         private final Collection<Field> canBeFetched;
         private final Collection<Symbol> skipSymbols;
 
@@ -92,7 +92,7 @@ public class FetchFieldExtractor {
     private static class IsFetchableVisitor extends AnalyzedRelationVisitor<Field, Boolean> {
 
         private static final IsFetchableVisitor INSTANCE = new IsFetchableVisitor();
-        public static final Set<Path> NOT_FETCHABLE = ImmutableSet.<Path>of(DocSysColumns.SCORE, DocSysColumns.DOCID);
+        private static final Set<Path> NOT_FETCHABLE = ImmutableSet.<Path>of(DocSysColumns.SCORE, DocSysColumns.DOCID);
 
         public static Boolean isFetchable(Field field){
             return INSTANCE.process(field.relation(), field);
