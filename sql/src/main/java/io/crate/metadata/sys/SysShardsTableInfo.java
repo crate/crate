@@ -94,6 +94,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
         public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
         public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
+        public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
     }
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(

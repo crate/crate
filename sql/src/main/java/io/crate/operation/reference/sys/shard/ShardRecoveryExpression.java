@@ -35,6 +35,8 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
     private static final String TOTAL_TIME = "total_time";
     private static final String STAGE = "stage";
     private static final String TYPE = "type";
+    private static final String SIZE = "size";
+    private static final String FILES = "files";
 
     abstract class RecoveryExpression implements ReferenceImplementation {
 
@@ -67,12 +69,8 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
                 return BytesRefs.toBytesRef(recoveryState.getType().name());
             }
         });
-
-        childImplementations.put(SysShardsTableInfo.Columns.RECOVERY_SIZE.name(),
-                new ShardRecoverySizeExpression(recoveryState));
-
-        childImplementations.put(SysShardsTableInfo.Columns.RECOVERY_FILES.name(),
-                new ShardRecoveryFilesExpression(recoveryState));
+        childImplementations.put(SIZE, new ShardRecoverySizeExpression(recoveryState));
+        childImplementations.put(FILES, new ShardRecoveryFilesExpression(recoveryState));
     }
 
 }

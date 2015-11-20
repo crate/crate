@@ -22,6 +22,7 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
+import io.crate.metadata.shard.DynamicShardReferenceResolver;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -58,6 +59,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -68,7 +70,7 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
-    private ShardReferenceResolver resolver;
+    private AbstractReferenceResolver resolver;
     private Schemas schemas;
 
     private String indexName = "wikipedia_de";
@@ -84,7 +86,9 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
                 new MetaDataShardModule(),
                 new SysShardExpressionModule()
         ).createInjector();
-        resolver = injector.getInstance(ShardReferenceResolver.class);
+        AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
+        IndexShard indexShard = injector.getInstance(IndexShard.class);
+        resolver = new DynamicShardReferenceResolver(shardRefResolver, indexShard);
         schemas = injector.getInstance(Schemas.class);
     }
 
@@ -138,25 +142,21 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             when(indexShard.recoveryState()).thenReturn(recoveryState);
 
             RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
-            RecoveryState.Stage recoveryStateStage = mock(RecoveryState.Stage.class);
-            RecoveryState.Type recoveryStateType = mock(RecoveryState.Type.class);
             RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
 
             when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
-            when(recoveryState.getStage()).thenReturn(recoveryStateStage);
+            when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
             when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
-            when(recoveryState.getType()).thenReturn(recoveryStateType);
+            when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
 
-            when(recoveryStateIndex.totalBytes()).thenReturn(1000L);
-            when(recoveryStateIndex.reusedBytes()).thenReturn(2000L);
-            when(recoveryStateIndex.recoveredBytes()).thenReturn(3000L);
+            when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
+            when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
+            when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
 
-            when(recoveryStateIndex.totalFileCount()).thenReturn(1);
-            when(recoveryStateIndex.reusedFileCount()).thenReturn(2);
-            when(recoveryStateIndex.recoveredFileCount()).thenReturn(3);
+            when(recoveryStateIndex.totalFileCount()).thenReturn(2);
+            when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
+            when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
 
-            when(recoveryStateStage.name()).thenReturn("done");
-            when(recoveryStateType.name()).thenReturn("replica");
             when(recoveryStateTimer.time()).thenReturn(10000L);
 
             ShardRouting shardRouting = mock(ShardRouting.class);
@@ -322,13 +322,29 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "wikipedia_de";
     }
 
-
     @Test
     public void testRecoveryShardField() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
         NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();
+        assertEquals(RecoveryState.Stage.DONE.name(), recovery.get("stage"));
+        assertEquals(RecoveryState.Type.REPLICA.name(), recovery.get("type"));
+        assertEquals(10_000L, recovery.get("total_time"));
+
+        Map<String, Integer> expectedFiles = new HashMap<String, Integer>(){{
+            put("used", 2);
+            put("reused", 1);
+            put("recovered", 1);
+        }};
+        assertEquals(expectedFiles, recovery.get("files"));
+
+        Map<String, Long> expectedBytes = new HashMap<String, Long>(){{
+            put("used", 2_048L);
+            put("reused", 1_024L);
+            put("recovered", 1_024L);
+        }};
+        assertEquals(expectedBytes, recovery.get("size"));
 
     }
 }

@@ -129,6 +129,22 @@ public class UnassignedShardsExpressionFactories {
                         };
                     }
                 })
+                .put(SysShardsTableInfo.Columns.RECOVERY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression() {
+                            @Override
+                            public Object value() {
+                                return null;
+                            }
+
+                            @Override
+                            public ReferenceImplementation getChildImplementation(String name) {
+                                return this;
+                            }
+                        };
+                    }
+                })
                 .put(SysNodesTableInfo.SYS_COL_IDENT, new RowCollectExpressionFactory() {
                     @Override
                     public RowContextCollectorExpression create() {

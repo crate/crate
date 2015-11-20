@@ -26,24 +26,14 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class BlobShardReferenceResolver extends AbstractReferenceResolver {
 
-    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
-
     @Inject
     public BlobShardReferenceResolver(final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                       final Map<ReferenceIdent, BlobShardReferenceImplementation> blobShardImplementations) {
-        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>();
-        implementations.putAll(globalImplementations);
-        implementations.putAll(blobShardImplementations);
-        this.implementations = implementations;
-    }
-
-    @Override
-    protected Map<ReferenceIdent, ReferenceImplementation> implementations() {
-        return implementations;
+        this.implementations.putAll(globalImplementations);
+        this.implementations.putAll(blobShardImplementations);
     }
 }
