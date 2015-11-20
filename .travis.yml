@@ -25,7 +25,7 @@ script:
   - ./gradlew -PtestForks=2 test itest -s
 
 after_success:
-  - ./gradlew jacocoReport coveralls
+  - ./gradlew jacocoReport
   - bash <(curl -s https://codecov.io/bash)
 
 

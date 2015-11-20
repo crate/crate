@@ -2,14 +2,6 @@ buildscript {
     repositories {
         mavenCentral()
     }
-
-    dependencies {
-        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.3.1'
-    }
-}
-
-plugins {
-    id "com.github.kt3k.coveralls" version "2.3.1"
 }
 
 allprojects {
@@ -126,18 +118,6 @@ def jacocoProjects() {
     subprojects.findAll {
         it.name != 'es' && it.name != 'testing'
     }
-}
-
-coveralls {
-    def tmpSources = []
-    jacocoProjects().each {
-        evaluationDependsOn(it.name)
-        if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
-            tmpSources << it.sourceSets.main.allSource.srcDirs.flatten()
-        }
-    }
-    sourceDirs = files(tmpSources).files.absolutePath
-    jacocoReportPath = "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
 }
 
 
