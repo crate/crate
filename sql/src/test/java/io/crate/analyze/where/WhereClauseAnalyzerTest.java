@@ -30,6 +30,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.any.AnyEqOperator;
@@ -53,6 +54,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +64,6 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
@@ -74,6 +75,9 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     private Analyzer analyzer;
     private AnalysisMetaData ctxMetaData;
     private ThreadPool threadPool;
+
+    @Mock
+    private static SchemaInfo schemaInfo;
 
     @Before
     public void setUp() throws Exception {
@@ -88,6 +92,14 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 .add(new TestMetaDataModule()).createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         ctxMetaData = injector.getInstance(AnalysisMetaData.class);
+
+        TableInfo genInfo =
+                TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing())
+                        .add("ts", DataTypes.TIMESTAMP, null)
+                        .add("x", DataTypes.INTEGER, null)
+                        .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+                        .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo("generated_col")).thenReturn(genInfo);
     }
 
     @After
@@ -106,7 +118,6 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         protected void bindSchemas() {
             super.bindSchemas();
             bind(ThreadPool.class).toInstance(threadPool);
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo("users")).thenReturn(
                     TestingTableInfo.builder(new TableIdent("doc", "users"), twoNodeRouting)
@@ -661,5 +672,17 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
         assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testEqualGenColOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts = '2015-01-01T12:00:00'");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.ts = 1420113600000 and doc.generated_col.day = 1420070400000"));
+    }
+
+    @Test
+    public void testEqualGenColOptimizationNested() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts = '2015-01-01T12:00:00' or x = 5");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.ts = 1420113600000 and doc.generated_col.day = 1420070400000 or doc.generated_col.x = 5"));
     }
 }
