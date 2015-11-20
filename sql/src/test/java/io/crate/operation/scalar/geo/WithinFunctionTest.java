@@ -182,7 +182,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
         Symbol normalized = normalize(
                 Literal.newLiteral("POINT (1.0 0.0)"),
                 Literal.newLiteral(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{0.0, 1.0})));
-        assertThat(normalized.isLiteral(), is(true));
+        assertThat(normalized.symbolType(), is(SymbolType.LITERAL));
         assertThat(((Literal)normalized).value(), is((Object)Boolean.FALSE));
     }
 }

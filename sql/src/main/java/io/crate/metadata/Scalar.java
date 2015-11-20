@@ -41,7 +41,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     private static final Predicate<Symbol> NULL_LITERAL = new Predicate<Symbol>() {
         @Override
         public boolean apply(@Nullable Symbol input) {
-            return input != null && input.isLiteral() && ((Input<?>) input).value() == null;
+            return input instanceof Input && ((Input) input).value() == null;
         }
     };
 

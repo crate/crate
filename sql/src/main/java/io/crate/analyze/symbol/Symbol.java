@@ -36,7 +36,7 @@ public abstract class Symbol implements Streamable {
     }
 
     public interface SymbolFactory<T extends Symbol> {
-        public T newInstance();
+        T newInstance();
     }
 
     public abstract SymbolType symbolType();
@@ -56,8 +56,4 @@ public abstract class Symbol implements Streamable {
     }
 
     public abstract DataType valueType();
-
-    public boolean isLiteral() {
-        return symbolType().isValueSymbol();
-    }
 }
