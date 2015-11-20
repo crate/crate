@@ -23,6 +23,7 @@ package io.crate.analyze.symbol;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
+import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 
 public class Symbols {
+
+    private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
     public static final com.google.common.base.Function<Symbol, DataType> TYPES_FUNCTION =
             new com.google.common.base.Function<Symbol, DataType>() {
@@ -53,5 +56,60 @@ public class Symbols {
             streamers[i] = iter.next().valueType().streamer();
         }
         return streamers;
+    }
+
+
+    /**
+     * returns true if the symbol contains the given columnIdent.
+     * If symbol is a Function the function tree will be traversed
+     */
+    public static boolean containsColumn(@Nullable Symbol symbol, ColumnIdent columnIdent) {
+        if (symbol == null) {
+            return false;
+        }
+        return HAS_COLUMN_VISITOR.process(symbol, columnIdent);
+    }
+
+    /**
+     * returns true if any of the symbols contains the given column
+     */
+    public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent columnIdent) {
+        for (Symbol symbol : symbols) {
+            if (containsColumn(symbol, columnIdent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
+
+        @Override
+        protected Boolean visitSymbol(Symbol symbol, ColumnIdent context) {
+            return false;
+        }
+
+        @Override
+        public Boolean visitFunction(Function symbol, ColumnIdent context) {
+            for (Symbol arg : symbol.arguments()) {
+                if (process(arg, context)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent context) {
+            if (process(fetchReference.docId(), context)) {
+                return true;
+            }
+            return process(fetchReference.ref(), context);
+        }
+
+        @Override
+        public Boolean visitReference(Reference symbol, ColumnIdent context) {
+            return context.equals(symbol.ident().columnIdent());
+        }
     }
 }

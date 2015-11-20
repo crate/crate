@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.where.HasColumn;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.doc.DocSysColumns;
@@ -50,7 +50,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
                         context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
-                if (!whereClause.docKeys().isPresent() && HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION)) {
+                if ( !whereClause.docKeys().isPresent() &&
+                     Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
                 }
                 context.deleteAnalyzedStatement.whereClauses.add(whereClause);

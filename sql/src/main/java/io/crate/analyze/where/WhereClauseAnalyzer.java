@@ -30,6 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -64,7 +65,7 @@ public class WhereClauseAnalyzer {
         }
 
         List<ColumnIdent> pkCols;
-        boolean versionInQuery = HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION);
+        boolean versionInQuery = Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION);
         if (versionInQuery) {
             pkCols = new ArrayList<>(tableInfo.primaryKey().size() + 1);
             pkCols.addAll(tableInfo.primaryKey());

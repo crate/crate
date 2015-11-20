@@ -26,13 +26,14 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.ScoreReferenceDetector;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -268,7 +269,7 @@ public class ShardCollectService {
         }
         return new OrderedDocCollector(
                 searchContext,
-                ScoreReferenceDetector.detect(collectPhase.toCollect()),
+                Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 batchSize,
                 collectorContext,
                 collectPhase.orderBy(),

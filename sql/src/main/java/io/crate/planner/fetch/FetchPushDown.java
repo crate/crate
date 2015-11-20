@@ -33,7 +33,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.ScoreReferenceDetector;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
 
@@ -122,7 +121,7 @@ public class FetchPushDown {
             outputs.add(docIdReference);
         }
         for (Symbol symbol : querySpec.outputs()) {
-            if (ScoreReferenceDetector.detect(symbol) && !outputs.contains(symbol)) {
+            if (Symbols.containsColumn(symbol, DocSysColumns.SCORE) && !outputs.contains(symbol)) {
                 outputs.add(symbol);
             }
         }
