@@ -29,6 +29,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.AbstractDynamicTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
@@ -68,6 +69,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
+    private final TableColumn docColumn;
     private ExecutorService executorService;
     private final ClusterService clusterService;
     private final TableParameterInfo tableParameterInfo;
@@ -132,6 +134,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
         }
         // scale the fetchrouting timeout by n# of partitions
         this.routingFetchTimeout = new TimeValue(5 * Math.max(1, this.partitions.size()), TimeUnit.SECONDS);
+        this.docColumn = new TableColumn(DocSysColumns.DOC, references);
     }
 
     @Override
@@ -139,19 +142,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         ReferenceInfo referenceInfo = references.get(columnIdent);
         if (referenceInfo == null) {
-            if (columnIdent.isChildOf(DocSysColumns.DOC)) {
-                // columnIdent is something like _doc['foo']
-                // get 'foo' for type and then create ReferenceInfo for _doc['foo']
-                ColumnIdent newCi = columnIdent.shiftRight();
-                referenceInfo = references.get(newCi);
-                if (referenceInfo == null) {
-                    return null;
-                }
-                return new ReferenceInfo(
-                        new ReferenceIdent(referenceInfo.ident().tableIdent(), columnIdent),
-                        referenceInfo.granularity(),
-                        referenceInfo.type());
-            }
+            return docColumn.getReferenceInfo(ident(), columnIdent);
         }
         return referenceInfo;
     }

@@ -25,38 +25,39 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
 
+import java.util.Map;
+
+/**
+ * A virtual column that is pointing to other columns.
+ *
+ * E.g.
+ *  _doc['foo'] is pointing to 'foo'
+ *
+ *  _node['name'] is pointing to 'name' of the sys.nodes table
+ */
 public class TableColumn {
 
-    private final TableInfo tableInfo;
-    private final String name;
+    private final ColumnIdent column;
+    private final Map<ColumnIdent, ReferenceInfo> columns;
 
-    public TableColumn(TableInfo tableInfo, String name) {
-        this.tableInfo = tableInfo;
-        this.name = name;
+    /**
+     * @param column the virtual column
+     * @param columns the columns this virtual column has underneath
+     */
+    public TableColumn(ColumnIdent column, Map<ColumnIdent, ReferenceInfo> columns) {
+        this.column = column;
+        this.columns = columns;
     }
 
     public ReferenceInfo getReferenceInfo(TableIdent tableIdent, ColumnIdent columnIdent) {
-        if (!name.equals(columnIdent.name())) {
+        if (!columnIdent.isChildOf(column)) {
             return null;
         }
-        ColumnIdent myColumnIdent = getImplementationIdent(columnIdent);
-        ReferenceInfo info = tableInfo.getReferenceInfo(myColumnIdent);
-        if (info != null) {
-            return info.getRelocated(new ReferenceIdent(tableIdent, columnIdent));
+        ReferenceInfo info = columns.get(columnIdent.shiftRight());
+        if (info == null) {
+            return null;
         }
-        return null;
-    }
-
-    private ColumnIdent getImplementationIdent(ColumnIdent columnIdent) {
-        ColumnIdent myColumnIdent;
-        if (columnIdent.isColumn()) {
-            myColumnIdent = new ColumnIdent(name);
-        } else {
-            myColumnIdent = new ColumnIdent(
-                    columnIdent.path().get(0), columnIdent.path().subList(1, columnIdent.path().size()));
-        }
-        return myColumnIdent;
+        return info.getRelocated(new ReferenceIdent(tableIdent, columnIdent));
     }
 }

@@ -74,7 +74,6 @@ public class SysNodesTableInfo extends SysTableInfo {
 
     public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
         super(service, sysSchemaInfo);
-        this.tableColumn = new TableColumn(this, SYS_COL_NAME);
         DataType objectArrayType = new ArrayType(DataTypes.OBJECT);
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.NODE)
@@ -193,6 +192,7 @@ public class SysNodesTableInfo extends SysTableInfo {
 
         infos = registrar.infos();
         columns = registrar.columns();
+        this.tableColumn = new TableColumn(SYS_COL_IDENT, infos);
     }
 
 
