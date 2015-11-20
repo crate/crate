@@ -50,10 +50,8 @@ public class SysOperationsTableInfo extends SysTableInfo {
     private final Set<ReferenceInfo> columns;
 
     @Inject
-    public SysOperationsTableInfo(ClusterService clusterService,
-                                  SysSchemaInfo sysSchemaInfo,
-                                  SysNodesTableInfo sysNodesTableInfo) {
-        super(clusterService, sysSchemaInfo);
+    public SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
+        super(clusterService);
         nodesTableColumn = sysNodesTableInfo.tableColumn();
         ColumnRegistrar columnRegistrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)

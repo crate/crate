@@ -84,7 +84,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     private BlobTableInfo innerGetTableInfo(String name) {
-        BlobTableInfoBuilder builder = new BlobTableInfoBuilder(this,
+        BlobTableInfoBuilder builder = new BlobTableInfoBuilder(
                 new TableIdent(NAME, name), clusterService, blobEnvironment, environment);
         return builder.build();
     }

@@ -45,8 +45,8 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationSchemataTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
-        super(schemaInfo, clusterService, IDENT,
+    protected InformationSchemataTableInfo(ClusterService clusterService) {
+        super(clusterService, IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME),
                 ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder ()
                         .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)

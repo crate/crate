@@ -26,7 +26,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -79,10 +78,6 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
 
         Symbol pathSymbol = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
         statement.uri(pathSymbol);
-        if (tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned())) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot COPY FROM %s INTO '%s', table is read-only", SymbolFormatter.format(pathSymbol), tableInfo));
-        }
         if (node.genericProperties().isPresent()) {
             statement.settings(settingsFromProperties(
                     node.genericProperties().get(),

@@ -52,9 +52,8 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationTableConstraintsTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
-        super(schemaInfo,
-              clusterService,
+    protected InformationTableConstraintsTableInfo(ClusterService clusterService) {
+        super(clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()

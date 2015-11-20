@@ -380,7 +380,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             tableRelation = new TableRelation(tableInfo);
         }
-        context.addSourceRelation(tableInfo.schemaInfo().name(), tableInfo.ident().name(), tableRelation);
+        context.addSourceRelation(tableInfo.ident().schema(), tableInfo.ident().name(), tableRelation);
         return tableRelation;
     }
 }

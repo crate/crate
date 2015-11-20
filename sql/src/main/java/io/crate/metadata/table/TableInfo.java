@@ -32,11 +32,6 @@ import java.util.List;
 public interface TableInfo extends Iterable<ReferenceInfo> {
 
     /**
-     * the schemaInfo for the schema that contains this table.
-     */
-    SchemaInfo schemaInfo();
-
-    /**
      * returns information about a column with the given ident.
      * returns null if this table contains no such column.
      */

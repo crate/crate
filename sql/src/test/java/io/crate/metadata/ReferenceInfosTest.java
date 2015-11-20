@@ -75,7 +75,6 @@ public class ReferenceInfosTest {
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         TableInfo tableInfo = mock(TableInfo.class);
-        when(tableInfo.schemaInfo()).thenReturn(schemaInfo);
         when(tableInfo.ident()).thenReturn(tableIdent);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
@@ -93,7 +92,6 @@ public class ReferenceInfosTest {
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         DocTableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.schemaInfo()).thenReturn(schemaInfo);
         when(tableInfo.ident()).thenReturn(tableIdent);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());

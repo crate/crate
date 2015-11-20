@@ -37,7 +37,7 @@ public abstract class InformationTableConstraintsExpression<T> extends RowContex
 
         @Override
         public BytesRef value() {
-            return new BytesRef(row.schemaInfo().name());
+            return new BytesRef(row.ident().schema());
         }
     }
 

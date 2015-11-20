@@ -59,13 +59,12 @@ public class WhereClauseAnalyzer {
             return whereClause;
         }
         Set<Symbol> clusteredBy = null;
-        if (whereClause.hasQuery() && !tableInfo.schemaInfo().systemSchema()){
+        if (whereClause.hasQuery()) {
             WhereClauseValidator.validate(whereClause);
         }
 
         List<ColumnIdent> pkCols;
-        boolean versionInQuery = (!tableInfo.schemaInfo().systemSchema() &&
-                HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION));
+        boolean versionInQuery = HasColumn.appliesTo(whereClause.query(), DocSysColumns.VERSION);
         if (versionInQuery) {
             pkCols = new ArrayList<>(tableInfo.primaryKey().size() + 1);
             pkCols.addAll(tableInfo.primaryKey());

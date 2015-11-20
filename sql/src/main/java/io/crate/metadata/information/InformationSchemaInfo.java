@@ -42,12 +42,12 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Inject
     public InformationSchemaInfo(ClusterService clusterService) {
         this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
-                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this, clusterService))
-                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this, clusterService))
-                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this, clusterService))
-                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(this, clusterService))
-                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(this, clusterService))
-                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(this, clusterService))
+                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(clusterService))
+                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(clusterService))
+                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(clusterService))
+                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(clusterService))
+                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(clusterService))
+                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(clusterService))
         .build();
     }
 
@@ -68,7 +68,6 @@ public class InformationSchemaInfo implements SchemaInfo {
 
     @Override
     public void invalidateTableCache(String tableName) {
-
     }
 
     @Override

@@ -41,8 +41,8 @@ public class SysClusterTableInfo extends SysTableInfo {
     private final Set<ReferenceInfo> columns;
 
     @Inject
-    protected SysClusterTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    protected SysClusterTableInfo(ClusterService clusterService) {
+        super(clusterService);
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.CLUSTER)
             .register("id", DataTypes.STRING, null)

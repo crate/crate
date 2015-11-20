@@ -28,7 +28,6 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.*;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
@@ -48,7 +47,6 @@ import java.util.*;
 
 public class BlobTableInfo implements TableInfo, ShardedTable {
 
-    private final BlobSchemaInfo blobSchemaInfo;
     private final TableIdent ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
@@ -68,15 +66,13 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
                 .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
                 .build();
 
-    public BlobTableInfo(BlobSchemaInfo blobSchemaInfo,
-                         TableIdent ident,
+    public BlobTableInfo(TableIdent ident,
                          String index,
                          ClusterService clusterService,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          ImmutableMap<String, Object> tableParameters,
                          BytesRef blobsPath) {
-        this.blobSchemaInfo = blobSchemaInfo;
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -87,11 +83,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
         this.tableParameters = tableParameters;
 
         registerStaticColumns();
-    }
-
-    @Override
-    public SchemaInfo schemaInfo() {
-        return blobSchemaInfo;
     }
 
     @Nullable

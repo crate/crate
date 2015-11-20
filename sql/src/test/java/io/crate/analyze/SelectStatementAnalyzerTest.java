@@ -99,7 +99,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
                     .add("id", DataTypes.LONG, null)
                     .add("name", DataTypes.STRING, null)
-                    .schemaInfo(fooSchema)
                     .addPrimaryKey("id")
                     .build();
             when(fooSchema.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
@@ -789,7 +788,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         // make sure that where clause was pushed down and didn't disappear somehow
         MultiSourceSelect.Source users =
-                ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("", "users"));
+                ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("doc.users.name = 'Arthur'"));
     }
 
@@ -1743,7 +1742,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectSameTableTwice() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\"users\" specified more than once in the FROM clause");
+        expectedException.expectMessage("\"doc.users\" specified more than once in the FROM clause");
 
         analyze("select * from users, users");
     }
@@ -1751,7 +1750,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectSameTableTwiceWithAndWithoutSchemaName() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\"users\" specified more than once in the FROM clause");
+        expectedException.expectMessage("\"doc.users\" specified more than once in the FROM clause");
 
         analyze("select * from doc.users, users");
     }

@@ -49,8 +49,8 @@ public class SysJobsLogTableInfo extends SysTableInfo {
     private final List<ColumnIdent> primaryKeys = ImmutableList.of(Columns.ID);
 
     @Inject
-    public SysJobsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    public SysJobsLogTableInfo(ClusterService clusterService) {
+        super(clusterService);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.STMT, DataTypes.STRING)

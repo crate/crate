@@ -29,7 +29,10 @@ import io.crate.metadata.table.AbstractTableInfo;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class InformationTableInfo extends AbstractTableInfo {
 
@@ -106,21 +109,18 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
     }
 
-    protected InformationTableInfo(InformationSchemaInfo schemaInfo,
-                                   ClusterService clusterService,
+    protected InformationTableInfo(ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
                                    Map<ColumnIdent, ReferenceInfo> references) {
-        this(schemaInfo, clusterService, ident, primaryKeyIdentList, references, null);
+        this(clusterService, ident, primaryKeyIdentList, references, null);
     }
 
-    protected InformationTableInfo(InformationSchemaInfo schemaInfo,
-                                   ClusterService clusterService,
+    protected InformationTableInfo(ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
                                    Map<ColumnIdent, ReferenceInfo> references,
                                    @Nullable ImmutableList<ReferenceInfo> columns) {
-        super(schemaInfo);
         this.clusterService = clusterService;
         this.ident = ident;
         this.primaryKeyIdentList = primaryKeyIdentList;

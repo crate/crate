@@ -62,7 +62,6 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
             when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
-            when(blobTableInfo.schemaInfo()).thenReturn(schemaInfo);
             when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
 

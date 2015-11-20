@@ -190,7 +190,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private DocTableInfo innerGetTableInfo(String name) {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-                this,
                 new TableIdent(name(), name),
                 clusterService,
                 transportPutIndexTemplateAction,

@@ -38,8 +38,7 @@ public abstract class SysTableInfo extends AbstractTableInfo {
 
     protected final ClusterService clusterService;
 
-    protected SysTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(sysSchemaInfo);
+    protected SysTableInfo(ClusterService clusterService) {
         this.clusterService = clusterService;
     }
 

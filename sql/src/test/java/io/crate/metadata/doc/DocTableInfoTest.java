@@ -17,8 +17,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.mock;
-
 public class DocTableInfoTest extends CrateUnitTest {
 
     ExecutorService executorService;
@@ -39,7 +37,6 @@ public class DocTableInfoTest extends CrateUnitTest {
         TableIdent tableIdent = new TableIdent(null, "dummy");
 
         DocTableInfo info = new DocTableInfo(
-                mock(DocSchemaInfo.class),
                 tableIdent,
                 ImmutableList.of(
                         new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
@@ -90,7 +87,6 @@ public class DocTableInfoTest extends CrateUnitTest {
                 .build();
 
         DocTableInfo info = new DocTableInfo(
-                mock(DocSchemaInfo.class),
                 dummy,
                 ImmutableList.<ReferenceInfo>of(strictParent),
                 ImmutableList.<ReferenceInfo>of(),

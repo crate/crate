@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.SqlFormatter;
@@ -34,10 +33,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -52,8 +49,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     class TestDocTableInfo extends DocTableInfo {
 
-        public TestDocTableInfo(DocSchemaInfo schemaInfo,
-                                TableIdent ident,
+        public TestDocTableInfo(TableIdent ident,
                                 int numberOfShards,
                                 String numberOfReplicas,
                                 List<ReferenceInfo> columns,
@@ -66,8 +62,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                 ImmutableMap<String, Object> tableParameters,
                                 List<ColumnIdent> partitionedBy,
                                 ColumnPolicy policy) {
-            super(schemaInfo,
-                    ident,
+            super(ident,
                     columns,
                     partitionedByColumns,
                     indexColumns,
@@ -88,14 +83,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         }
     }
 
-    static DocSchemaInfo DOC_SCHEMA_INFO = new DocSchemaInfo(mock(ClusterService.class),
-            mock(ThreadPool.class),
-            mock(TransportPutIndexTemplateAction.class));
-
-    static DocSchemaInfo MY_SCHEMA_INFO = new DocSchemaInfo("myschema",
-            mock(ExecutorService.class),
-            mock(ClusterService.class),
-            mock(TransportPutIndexTemplateAction.class));
 
     private static ReferenceInfo newReferenceInfo(TableIdent tableIdent, String name, DataType type) {
         return newReferenceInfo(tableIdent, name, type, null, null, false);
@@ -148,7 +135,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 newReferenceInfo(ident, "obj", DataTypes.STRING, Arrays.asList("col_2"), null, false)
         );
 
-        DocTableInfo tableInfo = new TestDocTableInfo(DOC_SCHEMA_INFO,
+        DocTableInfo tableInfo = new TestDocTableInfo(
                 ident,
                 5, "0-all",
                 columns,
@@ -206,7 +193,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 new ColumnIdent("pk_col_two")
         );
 
-        DocTableInfo tableInfo = new TestDocTableInfo(MY_SCHEMA_INFO,
+        DocTableInfo tableInfo = new TestDocTableInfo(
                 ident,
                 5, "0-all",
                 columns,
@@ -250,7 +237,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 }})
                 .put("index.translog.flush_interval", 100L);
 
-        DocTableInfo tableInfo = new TestDocTableInfo(MY_SCHEMA_INFO,
+        DocTableInfo tableInfo = new TestDocTableInfo(
                 ident,
                 5, "5",
                 columns,
@@ -290,7 +277,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 newReferenceInfo(ident, "cluster_column", DataTypes.STRING)
         );
 
-        DocTableInfo tableInfo = new TestDocTableInfo(MY_SCHEMA_INFO,
+        DocTableInfo tableInfo = new TestDocTableInfo(
                 ident,
                 5, "0-all",
                 columns,
@@ -348,7 +335,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                         new IndexReferenceInfo(new ReferenceIdent(ident, "col_d_a_ft"), ReferenceInfo.IndexType.ANALYZED,
                                 ImmutableList.of(colE), "custom_analyzer"));
 
-        DocTableInfo tableInfo = new TestDocTableInfo(MY_SCHEMA_INFO,
+        DocTableInfo tableInfo = new TestDocTableInfo(
                 ident,
                 5, "0-all",
                 columns,

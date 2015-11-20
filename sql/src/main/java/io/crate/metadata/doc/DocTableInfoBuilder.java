@@ -51,20 +51,17 @@ public class DocTableInfoBuilder {
     private final TableIdent ident;
     private ExecutorService executorService;
     private final boolean checkAliasSchema;
-    private final DocSchemaInfo docSchemaInfo;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
     private String[] concreteIndices;
     private static final ESLogger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
-    public DocTableInfoBuilder(DocSchemaInfo docSchemaInfo,
-                               TableIdent ident,
+    public DocTableInfoBuilder(TableIdent ident,
                                ClusterService clusterService,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                ExecutorService executorService,
                                boolean checkAliasSchema) {
-        this.docSchemaInfo = docSchemaInfo;
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.ident = ident;
@@ -158,7 +155,6 @@ public class DocTableInfoBuilder {
             }
         }
         return new DocTableInfo(
-                docSchemaInfo,
                 ident,
                 md.columns(),
                 md.partitionedByColumns(),

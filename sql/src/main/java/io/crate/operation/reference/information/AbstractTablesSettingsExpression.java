@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.information;
 
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
@@ -30,9 +31,9 @@ public abstract class AbstractTablesSettingsExpression extends RowCollectNestedO
 
     @Override
     public Map<String, Object> value() {
-        if (this.row.schemaInfo().systemSchema()) {
-            return null;
+        if (row instanceof DocTableInfo) {
+            return super.value();
         }
-        return super.value();
+        return null;
     }
 }

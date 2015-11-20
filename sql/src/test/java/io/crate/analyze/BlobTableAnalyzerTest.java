@@ -59,15 +59,14 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
         private Routing routing;
 
-        public TestingBlobTableInfo(BlobSchemaInfo blobSchemaInfo,
-                                    TableIdent ident,
+        public TestingBlobTableInfo(TableIdent ident,
                                     String index,
                                     ClusterService clusterService,
                                     int numberOfShards,
                                     BytesRef numberOfReplicas,
                                     ImmutableMap<String, Object> tableParameters,
                                     BytesRef blobsPath) {
-            super(blobSchemaInfo, ident, index, clusterService, numberOfShards, numberOfReplicas, tableParameters, blobsPath);
+            super(ident, index, clusterService, numberOfShards, numberOfReplicas, tableParameters, blobsPath);
         }
 
         @Override
@@ -93,7 +92,6 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             BlobSchemaInfo schemaInfo = mock(BlobSchemaInfo.class);
             TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "myblobs");
             TestingBlobTableInfo myBlobsInfo = new TestingBlobTableInfo(
-                    schemaInfo,
                     myBlobsIdent,
                     myBlobsIdent.indexName(),
                     null,

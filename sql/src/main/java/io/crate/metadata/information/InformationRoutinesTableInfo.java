@@ -47,9 +47,8 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationRoutinesTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
-        super(schemaInfo,
-              clusterService,
+    protected InformationRoutinesTableInfo(ClusterService clusterService) {
+        super(clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()

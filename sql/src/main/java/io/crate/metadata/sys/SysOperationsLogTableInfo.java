@@ -51,8 +51,8 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
     private final Set<ReferenceInfo> columns;
 
     @Inject
-    protected SysOperationsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    protected SysOperationsLogTableInfo(ClusterService clusterService) {
+        super(clusterService);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.JOB_ID, DataTypes.STRING)

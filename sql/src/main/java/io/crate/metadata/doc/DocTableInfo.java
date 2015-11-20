@@ -84,8 +84,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
 
     private final ColumnPolicy columnPolicy;
 
-    public DocTableInfo(DocSchemaInfo schemaInfo,
-                        TableIdent ident,
+    public DocTableInfo(TableIdent ident,
                         List<ReferenceInfo> columns,
                         List<ReferenceInfo> partitionedByColumns,
                         ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
@@ -104,7 +103,6 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
                         List<PartitionName> partitions,
                         ColumnPolicy columnPolicy,
                         ExecutorService executorService) {
-        super(schemaInfo);
         assert (partitionedBy.size() == partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.clusterService = clusterService;
         this.columns = columns;

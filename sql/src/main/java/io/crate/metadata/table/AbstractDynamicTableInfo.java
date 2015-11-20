@@ -30,10 +30,6 @@ import org.elasticsearch.common.Nullable;
 
 public abstract class AbstractDynamicTableInfo extends AbstractTableInfo {
 
-    protected AbstractDynamicTableInfo(SchemaInfo schemaInfo) {
-        super(schemaInfo);
-    }
-
     @Nullable
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;

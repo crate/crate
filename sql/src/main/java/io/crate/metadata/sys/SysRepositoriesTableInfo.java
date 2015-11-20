@@ -46,8 +46,8 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
     private final Map<ColumnIdent, ReferenceInfo> infos;
     private final Set<ReferenceInfo> columns;
 
-    public SysRepositoriesTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    public SysRepositoriesTableInfo(ClusterService clusterService) {
+        super(clusterService);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.TYPE, DataTypes.STRING)

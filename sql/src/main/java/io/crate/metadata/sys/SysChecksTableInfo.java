@@ -52,8 +52,8 @@ public class SysChecksTableInfo extends SysTableInfo {
     }
 
     @Inject
-    protected SysChecksTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    protected SysChecksTableInfo(ClusterService clusterService) {
+        super(clusterService);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.ID, DataTypes.INTEGER)
             .register(Columns.SEVERITY, DataTypes.INTEGER)

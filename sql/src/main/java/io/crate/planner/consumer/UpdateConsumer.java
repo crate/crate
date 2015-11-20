@@ -38,8 +38,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -77,10 +77,6 @@ public class UpdateConsumer implements Consumer {
             assert statement.sourceRelation() instanceof DocTableRelation : "sourceRelation of update statement must be a DocTableRelation";
             DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
             DocTableInfo tableInfo = tableRelation.tableInfo();
-
-            if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
-                return null;
-            }
 
             List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             UpsertByIdNode upsertByIdNode = null;

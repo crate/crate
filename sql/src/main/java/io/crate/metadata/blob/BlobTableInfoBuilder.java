@@ -41,18 +41,15 @@ public class BlobTableInfoBuilder {
 
     private final TableIdent ident;
     private final MetaData metaData;
-    private final BlobSchemaInfo blobSchemaInfo;
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
     private String[] concreteIndices;
 
-    public BlobTableInfoBuilder(BlobSchemaInfo blobSchemaInfo,
-                                TableIdent ident,
+    public BlobTableInfoBuilder(TableIdent ident,
                                 ClusterService clusterService,
                                 BlobEnvironment blobEnvironment,
                                 Environment environment) {
-        this.blobSchemaInfo = blobSchemaInfo;
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
@@ -85,7 +82,6 @@ public class BlobTableInfoBuilder {
     public BlobTableInfo build() {
         DocIndexMetaData md = docIndexMetaData();
         return new BlobTableInfo(
-                blobSchemaInfo,
                 ident,
                 concreteIndices[0],
                 clusterService,

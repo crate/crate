@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.types.*;
+import io.crate.types.BooleanType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.StringType;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -80,8 +83,8 @@ public class SysShardsTableInfo extends SysTableInfo {
     private final TableColumn nodesTableColumn;
 
     @Inject
-    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo, SysNodesTableInfo sysNodesTableInfo) {
-        super(service, sysSchemaInfo);
+    public SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
+        super(service);
         nodesTableColumn = sysNodesTableInfo.tableColumn();
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.SHARD)

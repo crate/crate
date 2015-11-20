@@ -104,9 +104,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationPartitionsTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
-        super(schemaInfo,
-              clusterService,
+    protected InformationPartitionsTableInfo(ClusterService clusterService) {
+        super(clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()

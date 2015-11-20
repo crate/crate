@@ -110,9 +110,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    public InformationTablesTableInfo(InformationSchemaInfo schemaInfo, ClusterService clusterService) {
-        super(schemaInfo,
-              clusterService,
+    public InformationTablesTableInfo(ClusterService clusterService) {
+        super(clusterService,
                 IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME, Columns.TABLE_NAME),
                 ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()

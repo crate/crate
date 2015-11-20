@@ -40,19 +40,19 @@ public class SysSchemaInfo implements SchemaInfo {
     @Inject
     public SysSchemaInfo(ClusterService clusterService) {
 
-        SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo(clusterService, this);
+        SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo(clusterService);
 
         tableInfos = ImmutableMap.<String, TableInfo>builder()
-                .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
+                .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService))
                 .put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo)
-                .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, this, sysNodesTableInfo))
-                .put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService, this))
-                .put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo(clusterService, this))
-                .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, this, sysNodesTableInfo))
-                .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService, this))
-                .put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo(clusterService, this))
-                .put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService, this))
-                .put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo(clusterService, this))
+                .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, sysNodesTableInfo))
+                .put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService))
+                .put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo(clusterService))
+                .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, sysNodesTableInfo))
+                .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService))
+                .put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo(clusterService))
+                .put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService))
+                .put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo(clusterService))
                 .build();
     }
 

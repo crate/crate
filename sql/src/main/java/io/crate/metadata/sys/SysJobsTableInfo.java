@@ -47,8 +47,8 @@ public class SysJobsTableInfo extends SysTableInfo {
     }
 
     @Inject
-    public SysJobsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
-        super(service, sysSchemaInfo);
+    public SysJobsTableInfo(ClusterService service) {
+        super(service);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.STMT, DataTypes.STRING)

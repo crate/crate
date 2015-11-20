@@ -88,7 +88,6 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         when(clusterState.metaData()).thenReturn(metaData);
 
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-                null,
                 new TableIdent(schemaName, "test"),
                 clusterService,
                 mock(TransportPutIndexTemplateAction.class),

@@ -168,7 +168,6 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(userTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -176,7 +175,6 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(charactersTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, partedRouting)
                     .add("name", DataTypes.STRING, null)
@@ -191,7 +189,6 @@ public class PlannerTest extends CrateUnitTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(partedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -226,7 +223,6 @@ public class PlannerTest extends CrateUnitTest {
                             new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
                             new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
                     .build();
-            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
@@ -243,7 +239,6 @@ public class PlannerTest extends CrateUnitTest {
             BlobSchemaInfo blobSchemaInfo = mock(BlobSchemaInfo.class);
             BlobTableInfo tableInfo = mock(BlobTableInfo.class);
             when(blobSchemaInfo.getTableInfo("screenshots")).thenReturn(tableInfo);
-            when(tableInfo.schemaInfo()).thenReturn(blobSchemaInfo);
             return blobSchemaInfo;
         }
 

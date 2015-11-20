@@ -57,8 +57,8 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
 
     private Random random = new Random();
 
-    public SysSnapshotsTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
-        super(clusterService, sysSchemaInfo);
+    public SysSnapshotsTableInfo(ClusterService clusterService) {
+        super(clusterService);
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.REPOSITORY, DataTypes.STRING)

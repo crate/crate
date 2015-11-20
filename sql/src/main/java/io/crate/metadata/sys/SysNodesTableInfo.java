@@ -72,8 +72,8 @@ public class SysNodesTableInfo extends SysTableInfo {
     public static final String SYS_COL_FS_DATA = "data";
 
 
-    public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
-        super(service, sysSchemaInfo);
+    public SysNodesTableInfo(ClusterService service) {
+        super(service);
         DataType objectArrayType = new ArrayType(DataTypes.OBJECT);
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.NODE)
