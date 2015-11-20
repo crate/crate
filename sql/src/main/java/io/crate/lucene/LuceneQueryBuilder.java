@@ -245,10 +245,10 @@ public class LuceneQueryBuilder {
                         "invalid argument for ANY expression");
                 if (left.symbolType().isValueSymbol()) {
                     // 1 = any (array_col) - simple eq
-                    assert collectionSymbol.symbolType().isReference() : "no reference found in ANY expression";
+                    assert collectionSymbol instanceof Reference: "no reference found in ANY expression";
                     return applyArrayReference((Reference)collectionSymbol, (Literal)left, context);
                 } else if (collectionSymbol.symbolType().isValueSymbol()) {
-                    assert left.symbolType().isReference() : "no reference found in ANY expression";
+                    assert left instanceof Reference : "no reference found in ANY expression";
                     return applyArrayLiteral((Reference)left, (Literal)collectionSymbol, context);
                 } else {
                     // should never get here - 2 literal arguments must have been normalized away yet

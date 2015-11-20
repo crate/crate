@@ -47,8 +47,4 @@ public enum SymbolType {
     public boolean isValueSymbol() {
         return ordinal() == LITERAL.ordinal();
     }
-
-    public boolean isReference() {
-        return ordinal() == REFERENCE.ordinal() || ordinal() == DYNAMIC_REFERENCE.ordinal();
-    }
 }
