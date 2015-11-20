@@ -37,7 +37,6 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -69,7 +68,7 @@ public class FetchPhaseTest {
                 ImmutableSet.<String>of("node1", "node2"),
                 bases,
                 tableIndices,
-                ImmutableList.<Collection<Reference>>of(ImmutableList.of(name))
+                ImmutableList.of(name)
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

@@ -22,12 +22,14 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -43,7 +45,7 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
+import java.util.Map;
 
 @Singleton
 public class QueryThenFetchConsumer implements Consumer {
@@ -107,17 +109,13 @@ public class QueryThenFetchConsumer implements Consumer {
                     readerAllocations.nodeReaders().keySet(),
                     readerAllocations.bases(),
                     readerAllocations.tableIndices(),
-                    ImmutableList.of(fetchPushDown.fetchRefs())
+                    fetchPushDown.fetchRefs()
             );
 
-            Collection<FetchSource> fetchSources = ImmutableList.of(
-                    new FetchSource(
-                            table.tableRelation().tableInfo().ident(),
-                            table.tableRelation().tableInfo().partitionedByColumns(),
+            Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
+                    new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
                             ImmutableList.of(fetchPushDown.docIdCol()),
-                            fetchPushDown.fetchRefs()
-                    )
-            );
+                            fetchPushDown.fetchRefs()));
 
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),

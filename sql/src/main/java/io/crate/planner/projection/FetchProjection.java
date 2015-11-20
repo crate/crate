@@ -23,12 +23,12 @@ package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -36,13 +36,13 @@ import java.util.TreeMap;
 public class FetchProjection extends Projection {
 
     private final int collectPhaseId;
-    private final Collection<FetchSource> fetchSources;
+    private final Map<TableIdent, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
     private final Map<String, IntSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
 
     public FetchProjection(int collectPhaseId,
-                           Collection<FetchSource> fetchSources,
+                           Map<TableIdent, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices) {
@@ -57,7 +57,7 @@ public class FetchProjection extends Projection {
         return collectPhaseId;
     }
 
-    public Collection<FetchSource> fetchSources() {
+    public Map<TableIdent, FetchSource> fetchSources() {
         return fetchSources;
     }
 
