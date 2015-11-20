@@ -29,4 +29,10 @@ public class Operators {
     public static final ImmutableSet<String> LOGICAL_OPERATORS = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
     );
+
+    public static final ImmutableSet<String> COMPARISON_OPERATORS = ImmutableSet.of(
+            EqOperator.NAME,
+            GtOperator.NAME, GteOperator.NAME,
+            LtOperator.NAME, LteOperator.NAME
+    );
 }
