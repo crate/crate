@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbols;
@@ -39,6 +38,7 @@ import org.elasticsearch.index.IndexService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 @Singleton
 public class NodeFetchOperation {
@@ -76,16 +76,11 @@ public class NodeFetchOperation {
     }
 
     private HashMap<TableIdent, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
-        HashMap<TableIdent, TableFetchInfo> result = new HashMap<>(fetchContext.fetchRefs().size());
-        for (Collection<Reference> references : fetchContext.fetchRefs()) {
-            Reference ref = Iterables.getFirst(references, null);
-            // if ref is null, there is nothing to fetch for this relation
-            if (ref != null) {
-                TableFetchInfo tableFetchInfo = new TableFetchInfo(references, fetchContext);
-                result.put(ref.ident().tableIdent(), tableFetchInfo);
-            }
+        HashMap<TableIdent, TableFetchInfo> result = new HashMap<>(fetchContext.toFetch().size());
+        for (Map.Entry<TableIdent, Collection<Reference>> entry : fetchContext.toFetch().entrySet()) {
+            TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchContext);
+            result.put(entry.getKey(), tableFetchInfo);
         }
-        assert !result.isEmpty(): "this class should not be used if no fetches will be requested";
         return result;
     }
 

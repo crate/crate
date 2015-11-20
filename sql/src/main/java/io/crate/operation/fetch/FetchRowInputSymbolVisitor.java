@@ -28,12 +28,13 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.FetchProjector;
 import io.crate.planner.node.fetch.FetchSource;
 
-import java.util.Collection;
+import java.util.Map;
 
 public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<FetchRowInputSymbolVisitor.Context> {
 
@@ -42,15 +43,16 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         private final FetchProjector.ArrayBackedRow[] fetchRows;
         private FetchProjector.ArrayBackedRow[] partitionRows;
 
-        private Collection<FetchSource> fetchSources;
+        private Map<TableIdent, FetchSource> fetchSources;
         private final FetchProjector.ArrayBackedRow inputRow = new FetchProjector.ArrayBackedRow();
         private final int[] docIdPositions;
 
-        public Context(Collection<FetchSource> fetchSources) {
+        public Context(Map<TableIdent, FetchSource> fetchSources) {
+            assert !fetchSources.isEmpty();
             this.fetchSources = fetchSources;
 
             int numDocIds = 0;
-            for (FetchSource fetchSource : fetchSources) {
+            for (FetchSource fetchSource : fetchSources.values()) {
                 numDocIds += fetchSource.docIdCols().size();
             }
 
@@ -59,7 +61,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             this.partitionRows = new FetchProjector.ArrayBackedRow[numDocIds];
 
             int idx = 0;
-            for (FetchSource fetchSource : fetchSources) {
+            for (FetchSource fetchSource : fetchSources.values()) {
                 for (InputColumn col : fetchSource.docIdCols()) {
                     fetchRows[idx] = new FetchProjector.ArrayBackedRow();
                     docIdPositions[idx] = col.index();
@@ -98,7 +100,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             int idx = -1;
             int fetchIdx = 0;
             FetchSource fs = null;
-            for (FetchSource fetchSource : fetchSources) {
+            for (FetchSource fetchSource : fetchSources.values()) {
                 idx = fetchSource.partitionedByColumns().indexOf(fetchReference.ref().info());
                 if (idx >= 0) {
                     for (InputColumn col : fetchSource.docIdCols()) {
@@ -128,13 +130,18 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         public Input<?> allocateInput(FetchReference fetchReference) {
             FetchSource fs = null;
             int fetchIdx = 0;
-            for (FetchSource fetchSource : fetchSources) {
-                for (InputColumn col : fetchSource.docIdCols()) {
-                    if (col.equals(fetchReference.docId())){
-                        fs = fetchSource;
-                        break;
+            for (Map.Entry<TableIdent, FetchSource> entry : fetchSources.entrySet()) {
+                if (entry.getKey().equals(fetchReference.ref().ident().tableIdent())){
+                    fs = entry.getValue();
+                    for (InputColumn col : fs.docIdCols()) {
+                        if (col.equals(fetchReference.docId())){
+                            break;
+                        }
+                        fetchIdx++;
                     }
-                    fetchIdx++;
+                    break;
+                } else {
+                    fetchIdx += entry.getValue().docIdCols().size();
                 }
             }
             assert fs != null;

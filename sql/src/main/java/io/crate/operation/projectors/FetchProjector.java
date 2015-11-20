@@ -81,7 +81,7 @@ public class FetchProjector extends AbstractProjector {
     private final ThreadPool threadPool;
     private final UUID jobId;
     private final int collectPhaseId;
-    private final Collection<FetchSource> fetchSources;
+    private final Map<TableIdent, FetchSource> fetchSources;
     private final TreeMap<Integer, String> readerIndices;
     private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
@@ -118,7 +118,7 @@ public class FetchProjector extends AbstractProjector {
                           Functions functions,
                           UUID jobId,
                           int collectPhaseId,
-                          Collection<FetchSource> fetchSources,
+                          Map<TableIdent, FetchSource> fetchSources,
                           List<Symbol> outputSymbols,
                           Map<String, IntSet> nodeReaders,
                           TreeMap<Integer, String> readerIndices) {
@@ -335,7 +335,7 @@ public class FetchProjector extends AbstractProjector {
         }
 
         public boolean fetchRequired() {
-            return fetchSource.fetchRequired();
+            return !fetchSource.references().isEmpty();
         }
 
         public Streamer[] streamers() {
@@ -348,18 +348,10 @@ public class FetchProjector extends AbstractProjector {
 
     private FetchSource getFetchSource(String index) {
         if (fetchSources.size() == 1) {
-            return Iterables.getOnlyElement(fetchSources);
+            return Iterables.getOnlyElement(fetchSources.values());
         }
         TableIdent ti = TableIdent.fromIndexName(index);
-        FetchSource res = null;
-        for (FetchSource source : fetchSources) {
-            if (source.tableIdent().equals(ti)) {
-                res = source;
-                break;
-            }
-        }
-        assert res != null;
-        return res;
+        return fetchSources.get(ti);
     }
 
     private class Fetches {
