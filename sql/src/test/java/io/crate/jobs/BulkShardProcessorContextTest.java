@@ -23,7 +23,7 @@ package io.crate.jobs;
 
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,16 +31,16 @@ import java.util.concurrent.CancellationException;
 
 import static org.mockito.Mockito.*;
 
-public class SymbolBasedBulkShardProcessorContextTest extends CrateUnitTest {
+public class BulkShardProcessorContextTest extends CrateUnitTest {
 
-    private SymbolBasedBulkShardProcessorContext context;
-    private SymbolBasedBulkShardProcessor processor;
+    private BulkShardProcessorContext context;
+    private BulkShardProcessor processor;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        processor = mock(SymbolBasedBulkShardProcessor.class);
-        context = new SymbolBasedBulkShardProcessorContext(1, processor);
+        processor = mock(BulkShardProcessor.class);
+        context = new BulkShardProcessorContext(1, processor);
     }
 
     @Test

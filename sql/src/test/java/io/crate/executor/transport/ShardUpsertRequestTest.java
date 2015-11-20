@@ -42,7 +42,7 @@ import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
-public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
+public class ShardUpsertRequestTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
@@ -57,7 +57,7 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
-        SymbolBasedShardUpsertRequest request = new SymbolBasedShardUpsertRequest(
+        ShardUpsertRequest request = new ShardUpsertRequest(
                 shardId,
                 assignmentColumns,
                 missingAssignmentColumns, jobId);
@@ -76,7 +76,7 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
         request.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        SymbolBasedShardUpsertRequest request2 = new SymbolBasedShardUpsertRequest();
+        ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 
         assertThat(request2.index(), is(shardId.getIndex()));
@@ -91,7 +91,7 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
 
         assertThat(request2.items().size(), is(2));
 
-        SymbolBasedShardUpsertRequest.Item item1 = request2.items().get(0);
+        ShardUpsertRequest.Item item1 = request2.items().get(0);
         assertThat(item1.id(), is("99"));
         assertNull(item1.updateAssignments());
         assertThat(item1.insertValues(), is(new Object[]{99, new BytesRef("Marvin")}));
@@ -99,7 +99,7 @@ public class SymbolBasedShardUpsertRequestTest extends CrateUnitTest {
         assertThat(item1.version(), is(Versions.MATCH_ANY));
         assertThat(item1.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
 
-        SymbolBasedShardUpsertRequest.Item item2 = request2.items().get(1);
+        ShardUpsertRequest.Item item2 = request2.items().get(1);
         assertThat(item2.id(), is("42"));
         assertThat(item2.updateAssignments(), is(new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") }));
         assertNull(item2.insertValues());

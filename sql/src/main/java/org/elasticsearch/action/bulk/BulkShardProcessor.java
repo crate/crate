@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest> {
+public class BulkShardProcessor<Request extends BulkProcessorRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
     public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
@@ -100,17 +100,17 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest>
     private final BulkRequestBuilder<Request> requestBuilder;
     private final BulkRequestExecutor<Request> requestExecutor;
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SymbolBasedBulkShardProcessor.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
-    public SymbolBasedBulkShardProcessor(ClusterService clusterService,
-                                         TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                                         final Settings settings,
-                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                         final boolean autoCreateIndices,
-                                         int bulkSize,
-                                         BulkRequestBuilder<Request> requestBuilder,
-                                         BulkRequestExecutor<Request> requestExecutor,
-                                         UUID jobId) {
+    public BulkShardProcessor(ClusterService clusterService,
+                              TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                              final Settings settings,
+                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                              final boolean autoCreateIndices,
+                              int bulkSize,
+                              BulkRequestBuilder<Request> requestBuilder,
+                              BulkRequestExecutor<Request> requestExecutor,
+                              UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
         this.autoCreateIndices = autoCreateIndices;
@@ -125,7 +125,7 @@ public class SymbolBasedBulkShardProcessor<Request extends BulkProcessorRequest>
                 public boolean apply(@Nullable String input) {
                     assert input != null;
                     return AUTO_CREATE_INDEX.shouldAutoCreate(input,
-                            SymbolBasedBulkShardProcessor.this.clusterService.state());
+                            BulkShardProcessor.this.clusterService.state());
                 }
             };
         } else {

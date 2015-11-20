@@ -24,8 +24,8 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
@@ -41,16 +41,16 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
 
-    private final SymbolBasedShardUpsertRequest request;
-    private final SymbolBasedUpsertByIdNode.Item item;
+    private final ShardUpsertRequest request;
+    private final UpsertByIdNode.Item item;
     private final SettableFuture<TaskResult> futureResult;
-    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
-                             SymbolBasedShardUpsertRequest request,
-                             SymbolBasedUpsertByIdNode.Item item,
+                             ShardUpsertRequest request,
+                             UpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
-                             BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate) {
+                             BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate) {
         super(id);
         this.request = request;
         this.item = item;

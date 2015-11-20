@@ -31,7 +31,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SymbolBasedUpsertByIdNode implements PlanNode {
+public class UpsertByIdNode implements PlanNode {
 
     /**
      * A single update item.
@@ -101,11 +101,11 @@ public class SymbolBasedUpsertByIdNode implements PlanNode {
     @Nullable
     private final Reference[] insertColumns;
 
-    public SymbolBasedUpsertByIdNode(int executionPhaseId,
-                                     boolean partitionedTable,
-                                     boolean bulkRequest,
-                                     String[] updateColumns,
-                                     @Nullable Reference[] insertColumns) {
+    public UpsertByIdNode(int executionPhaseId,
+                          boolean partitionedTable,
+                          boolean bulkRequest,
+                          String[] updateColumns,
+                          @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
         this.updateColumns = updateColumns;
@@ -158,6 +158,6 @@ public class SymbolBasedUpsertByIdNode implements PlanNode {
 
     @Override
     public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitSymbolBasedUpsertByIdNode(this, context);
+        return visitor.visitUpsertByIdNode(this, context);
     }
 }

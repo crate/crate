@@ -283,11 +283,11 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public ImmutableList<Task> visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, UUID jobId) {
-            return singleTask(new SymbolBasedUpsertByIdTask(jobId,
+        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
+            return singleTask(new UpsertByIdTask(jobId,
                     clusterService,
                     clusterService.state().metaData().settings(),
-                    transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                    transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
                     transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,

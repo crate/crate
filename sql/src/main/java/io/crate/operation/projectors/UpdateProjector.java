@@ -26,14 +26,13 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
-import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
@@ -59,7 +58,7 @@ public class UpdateProjector extends AbstractProjector {
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor;
+    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,
@@ -75,7 +74,7 @@ public class UpdateProjector extends AbstractProjector {
         this.collectUidExpression = collectUidExpression;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
-        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false,
                 false,
@@ -83,7 +82,7 @@ public class UpdateProjector extends AbstractProjector {
                 null,
                 jobId
         );
-        this.bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        this.bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,
@@ -91,7 +90,7 @@ public class UpdateProjector extends AbstractProjector {
                 false,
                 DEFAULT_BULK_SIZE,
                 builder,
-                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 jobId
         );
     }

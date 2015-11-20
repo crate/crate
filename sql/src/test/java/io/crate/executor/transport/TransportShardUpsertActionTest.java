@@ -49,9 +49,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class SymbolBasedTransportShardUpsertActionTest extends CrateUnitTest {
+public class TransportShardUpsertActionTest extends CrateUnitTest {
 
-    static class TestingTransportShardUpsertAction extends SymbolBasedTransportShardUpsertAction {
+    static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
         public TestingTransportShardUpsertAction(Settings settings,
                                                  ThreadPool threadPool,
@@ -68,8 +68,8 @@ public class SymbolBasedTransportShardUpsertActionTest extends CrateUnitTest {
         }
 
         @Override
-        protected IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
-                                          SymbolBasedShardUpsertRequest.Item item,
+        protected IndexResponse indexItem(ShardUpsertRequest request,
+                                          ShardUpsertRequest.Item item,
                                           ShardId shardId,
                                           boolean tryInsertFirst,
                                           int retryCount) throws ElasticsearchException {
@@ -77,7 +77,7 @@ public class SymbolBasedTransportShardUpsertActionTest extends CrateUnitTest {
         }
     }
 
-    private SymbolBasedTransportShardUpsertAction transportShardUpsertAction;
+    private TransportShardUpsertAction transportShardUpsertAction;
 
     @Before
     public void prepare() throws Exception {
@@ -102,7 +102,7 @@ public class SymbolBasedTransportShardUpsertActionTest extends CrateUnitTest {
                 new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.SHORT));
 
         ShardId shardId = new ShardId("characters", 0);
-        final SymbolBasedShardUpsertRequest request = new SymbolBasedShardUpsertRequest(
+        final ShardUpsertRequest request = new ShardUpsertRequest(
                 new ShardId("characters", 0), null, new Reference[]{idRef}, UUID.randomUUID());
         request.add(1, "1", null, new Object[]{1}, null, null);
 

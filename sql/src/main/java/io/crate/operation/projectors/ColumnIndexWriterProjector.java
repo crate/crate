@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
@@ -37,7 +37,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -56,7 +56,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     private final Supplier<String> indexNameResolver;
     private final Symbol[] assignments;
     private final InputRow insertValues;
-    private SymbolBasedBulkShardProcessor bulkShardProcessor;
+    private BulkShardProcessor bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
 
@@ -90,7 +90,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
             updateColumnNames = convert.v1();
             assignments = convert.v2();
         }
-        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false, // overwriteDuplicates
                 true, // continueOnErrors
@@ -99,7 +99,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                 jobId);
 
         insertValues = new InputRow(insertInputs);
-        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,
@@ -107,7 +107,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 builder,
-                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 jobId
         );
     }

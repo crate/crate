@@ -32,7 +32,7 @@ import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
@@ -204,7 +204,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
 
         @Override
-        public Void visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, PrintContext context) {
+        public Void visitUpsertByIdNode(UpsertByIdNode node, PrintContext context) {
             context.print(node.getClass().getSimpleName());
             context.indent();
             if (node.insertColumns() != null) {
@@ -215,7 +215,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             }
             context.print("items: ");
             context.indent();
-            for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
+            for (UpsertByIdNode.Item item : node.items()) {
                 context.print(printItem(item));
             }
             context.dedent();
@@ -225,7 +225,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             return null;
         }
 
-        private String printItem(SymbolBasedUpsertByIdNode.Item item) {
+        private String printItem(UpsertByIdNode.Item item) {
             MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(item)
                     .add("index", item.index())
                     .add("id", item.id())

@@ -22,16 +22,16 @@
 package io.crate.jobs;
 
 import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class SymbolBasedBulkShardProcessorContext extends AbstractExecutionSubContext {
+public class BulkShardProcessorContext extends AbstractExecutionSubContext {
 
-    private final SymbolBasedBulkShardProcessor bulkShardProcessor;
+    private final BulkShardProcessor bulkShardProcessor;
 
-    public SymbolBasedBulkShardProcessorContext(int id, SymbolBasedBulkShardProcessor bulkShardProcessor) {
+    public BulkShardProcessorContext(int id, BulkShardProcessor bulkShardProcessor) {
         super(id);
         this.bulkShardProcessor = bulkShardProcessor;
     }

@@ -3,8 +3,8 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertResponse;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionListener;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 public class UpsertByIdContextTest extends CrateUnitTest {
 
     @Mock
-    public BulkRequestExecutor<SymbolBasedShardUpsertRequest> delegate;
+    public BulkRequestExecutor<ShardUpsertRequest> delegate;
 
     private UpsertByIdContext context;
     private SettableFuture<TaskResult> future;
@@ -30,8 +30,8 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        SymbolBasedShardUpsertRequest request = mock(SymbolBasedShardUpsertRequest.class);
-        SymbolBasedUpsertByIdNode.Item item = mock(SymbolBasedUpsertByIdNode.Item.class);
+        ShardUpsertRequest request = mock(ShardUpsertRequest.class);
+        UpsertByIdNode.Item item = mock(UpsertByIdNode.Item.class);
         future = SettableFuture.create();
         context = new UpsertByIdContext(1, request, item, future, delegate);
     }
@@ -41,7 +41,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ArgumentCaptor<ActionListener> listener = ArgumentCaptor.forClass(ActionListener.class);
         context.prepare();
         context.start();
-        verify(delegate).execute(any(SymbolBasedShardUpsertRequest.class), listener.capture());
+        verify(delegate).execute(any(ShardUpsertRequest.class), listener.capture());
 
         // context is killed
         context.kill(null);
@@ -68,6 +68,6 @@ public class UpsertByIdContextTest extends CrateUnitTest {
 
         context.start();
         // start does nothing, because the context is already closed
-        verify(delegate, never()).execute(any(SymbolBasedShardUpsertRequest.class), any(ActionListener.class));
+        verify(delegate, never()).execute(any(ShardUpsertRequest.class), any(ActionListener.class));
     }
 }

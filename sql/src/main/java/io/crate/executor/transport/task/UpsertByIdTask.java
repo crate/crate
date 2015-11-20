@@ -29,10 +29,10 @@ import io.crate.Constants;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -41,7 +41,7 @@ import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesA
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -56,31 +56,31 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
-public class SymbolBasedUpsertByIdTask extends JobTask {
+public class UpsertByIdTask extends JobTask {
 
-    private final BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
-    private final SymbolBasedUpsertByIdNode node;
+    private final UpsertByIdNode node;
     private final List<SettableFuture<TaskResult>> resultList;
     private final AutoCreateIndex autoCreateIndex;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final JobContextService jobContextService;
 
     @Nullable
-    private SymbolBasedBulkShardProcessorContext bulkShardProcessorContext;
+    private BulkShardProcessorContext bulkShardProcessorContext;
     private JobExecutionContext jobExecutionContext;
 
-    public SymbolBasedUpsertByIdTask(UUID jobId,
-                                     ClusterService clusterService,
-                                     Settings settings,
-                                     BulkRequestExecutor<SymbolBasedShardUpsertRequest> transportShardUpsertActionDelegate,
-                                     TransportCreateIndexAction transportCreateIndexAction,
-                                     TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                                     BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                     SymbolBasedUpsertByIdNode node,
-                                     JobContextService jobContextService) {
+    public UpsertByIdTask(UUID jobId,
+                          ClusterService clusterService,
+                          Settings settings,
+                          BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate,
+                          TransportCreateIndexAction transportCreateIndexAction,
+                          TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                          UpsertByIdNode node,
+                          JobContextService jobContextService) {
         super(jobId);
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
@@ -109,7 +109,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 // directly execute upsert request without usage of bulk processor
                 @SuppressWarnings("unchecked")
                 SettableFuture<TaskResult> futureResult = (SettableFuture) resultList.get(0);
-                SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
+                UpsertByIdNode.Item item = node.items().get(0);
                 if (node.isPartitionedTable()
                         && autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
                     createIndexAndExecuteUpsertRequest(item, futureResult);
@@ -119,7 +119,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
 
             } else if (bulkShardProcessorContext != null) {
                 assert jobExecutionContext != null;
-                for (SymbolBasedUpsertByIdNode.Item item : node.items()) {
+                for (UpsertByIdNode.Item item : node.items()) {
                     bulkShardProcessorContext.add(
                             item.index(),
                             item.id(),
@@ -137,7 +137,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final SymbolBasedUpsertByIdNode.Item item, final SettableFuture futureResult) {
+    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
@@ -146,7 +146,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 item.routing()
         ).shardId();
 
-        SymbolBasedShardUpsertRequest upsertRequest = new SymbolBasedShardUpsertRequest(shardId, node.updateColumns(), node.insertColumns(), jobId());
+        ShardUpsertRequest upsertRequest = new ShardUpsertRequest(shardId, node.updateColumns(), node.insertColumns(), jobId());
         upsertRequest.continueOnError(false);
         upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version(), item.routing());
 
@@ -170,7 +170,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
     private List<SettableFuture<TaskResult>> initializeBulkShardProcessor(Settings settings) {
 
         assert node.updateColumns() != null | node.insertColumns() != null;
-        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false, // do not overwrite duplicates
                 node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
@@ -178,7 +178,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 node.insertColumns(),
                 jobId()
         );
-        SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
                 settings,
@@ -188,7 +188,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
                 builder,
                 transportShardUpsertActionDelegate,
                 jobId());
-        bulkShardProcessorContext = new SymbolBasedBulkShardProcessorContext(
+        bulkShardProcessorContext = new BulkShardProcessorContext(
                 node.executionPhaseId(), bulkShardProcessor);
         createJobExecutionContext(bulkShardProcessorContext);
 
@@ -262,7 +262,7 @@ public class SymbolBasedUpsertByIdTask extends JobTask {
         }
     }
 
-    private void createIndexAndExecuteUpsertRequest(final SymbolBasedUpsertByIdNode.Item item,
+    private void createIndexAndExecuteUpsertRequest(final UpsertByIdNode.Item item,
                                                     final SettableFuture futureResult) {
         transportCreateIndexAction.execute(
                 new CreateIndexRequest(item.index()).cause("upsert single item"),

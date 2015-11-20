@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
-import io.crate.executor.transport.SymbolBasedShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
@@ -36,7 +36,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -61,7 +61,7 @@ public class IndexWriterProjector extends AbstractProjector {
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private final SymbolBasedBulkShardProcessor<SymbolBasedShardUpsertRequest> bulkShardProcessor;
+    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     public IndexWriterProjector(ClusterService clusterService,
@@ -93,7 +93,7 @@ public class IndexWriterProjector extends AbstractProjector {
                     new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
         rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        SymbolBasedShardUpsertRequest.Builder builder = new SymbolBasedShardUpsertRequest.Builder(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 overwriteDuplicates,
                 true,
@@ -101,7 +101,7 @@ public class IndexWriterProjector extends AbstractProjector {
                 new Reference[]{rawSourceReference},
                 jobId);
 
-        bulkShardProcessor = new SymbolBasedBulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,
@@ -109,7 +109,7 @@ public class IndexWriterProjector extends AbstractProjector {
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),
                 builder,
-                transportActionProvider.symbolBasedTransportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
                 jobId
         );
     }

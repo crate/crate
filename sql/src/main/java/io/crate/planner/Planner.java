@@ -52,7 +52,7 @@ import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
@@ -647,7 +647,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
-        SymbolBasedUpsertByIdNode upsertByIdNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
                 context.nextExecutionPhaseId(),
                 analysis.tableInfo().isPartitioned(),
                 analysis.isBulkRequest(),

@@ -24,7 +24,7 @@ package io.crate.planner.node;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
@@ -61,7 +61,7 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitSymbolBasedUpsertByIdNode(SymbolBasedUpsertByIdNode node, C context) {
+    public R visitUpsertByIdNode(UpsertByIdNode node, C context) {
         return visitPlanNode(node, context);
     }
 

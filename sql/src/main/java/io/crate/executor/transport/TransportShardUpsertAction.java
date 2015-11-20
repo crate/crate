@@ -85,8 +85,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class SymbolBasedTransportShardUpsertAction
-        extends TransportShardReplicationOperationAction<SymbolBasedShardUpsertRequest, SymbolBasedShardUpsertRequest, ShardUpsertResponse>
+public class TransportShardUpsertAction
+        extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
         implements KillAllListener {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
@@ -98,16 +98,16 @@ public class SymbolBasedTransportShardUpsertAction
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
-    public SymbolBasedTransportShardUpsertAction(Settings settings,
-                                                 ThreadPool threadPool,
-                                                 ClusterService clusterService,
-                                                 TransportService transportService,
-                                                 ActionFilters actionFilters,
-                                                 JobContextService jobContextService,
-                                                 TransportIndexAction indexAction,
-                                                 IndicesService indicesService,
-                                                 ShardStateAction shardStateAction,
-                                                 Functions functions) {
+    public TransportShardUpsertAction(Settings settings,
+                                      ThreadPool threadPool,
+                                      ClusterService clusterService,
+                                      TransportService transportService,
+                                      ActionFilters actionFilters,
+                                      JobContextService jobContextService,
+                                      TransportIndexAction indexAction,
+                                      IndicesService indicesService,
+                                      ShardStateAction shardStateAction,
+                                      Functions functions) {
         super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
@@ -121,13 +121,13 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    protected SymbolBasedShardUpsertRequest newRequestInstance() {
-        return new SymbolBasedShardUpsertRequest();
+    protected ShardUpsertRequest newRequestInstance() {
+        return new ShardUpsertRequest();
     }
 
     @Override
-    protected SymbolBasedShardUpsertRequest newReplicaRequestInstance() {
-        return new SymbolBasedShardUpsertRequest();
+    protected ShardUpsertRequest newReplicaRequestInstance() {
+        return new ShardUpsertRequest();
     }
 
     @Override
@@ -157,7 +157,7 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     @Override
-    protected Tuple<ShardUpsertResponse, SymbolBasedShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+    protected Tuple<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
         KillableCallable<Tuple> callable = new KillableCallable<Tuple>() {
 
             private AtomicBoolean killed = new AtomicBoolean(false);
@@ -174,7 +174,7 @@ public class SymbolBasedTransportShardUpsertAction
             }
         };
         activeOperations.put(shardRequest.request.jobId(), callable);
-        Tuple<ShardUpsertResponse, SymbolBasedShardUpsertRequest> response;
+        Tuple<ShardUpsertResponse, ShardUpsertRequest> response;
         try {
             //noinspection unchecked
             response = callable.call();
@@ -191,12 +191,12 @@ public class SymbolBasedTransportShardUpsertAction
     }
 
     protected ShardUpsertResponse processRequestItems(ShardId shardId,
-                                                      SymbolBasedShardUpsertRequest request,
+                                                      ShardUpsertRequest request,
                                                       AtomicBoolean killed) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
-            SymbolBasedShardUpsertRequest.Item item = request.items().get(i);
+            ShardUpsertRequest.Item item = request.items().get(i);
             if (killed.get()) {
                 throw new CancellationException();
             }
@@ -226,8 +226,8 @@ public class SymbolBasedTransportShardUpsertAction
         return shardUpsertResponse;
     }
 
-    protected IndexResponse indexItem(SymbolBasedShardUpsertRequest request,
-                                      SymbolBasedShardUpsertRequest.Item item,
+    protected IndexResponse indexItem(ShardUpsertRequest request,
+                                      ShardUpsertRequest.Item item,
                                       ShardId shardId,
                                       boolean tryInsertFirst,
                                       int retryCount) throws ElasticsearchException {
@@ -267,7 +267,7 @@ public class SymbolBasedTransportShardUpsertAction
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
-    public IndexRequest prepareUpdate(SymbolBasedShardUpsertRequest request, SymbolBasedShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
+    public IndexRequest prepareUpdate(ShardUpsertRequest request, ShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
@@ -320,7 +320,7 @@ public class SymbolBasedTransportShardUpsertAction
         return indexRequest;
     }
 
-    private IndexRequest prepareInsert(SymbolBasedShardUpsertRequest request, SymbolBasedShardUpsertRequest.Item item) throws IOException {
+    private IndexRequest prepareInsert(ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
         BytesRef rawSource = null;
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         for (int i = 0; i < item.insertValues().length; i++) {

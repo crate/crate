@@ -30,7 +30,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.SymbolBasedUpsertByIdTask;
+import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -39,8 +39,8 @@ import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dml.SymbolBasedUpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
@@ -65,13 +65,13 @@ import static org.hamcrest.core.Is.is;
 public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
     @Test
-    public void testInsertWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testInsertWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(),
                 false,
                 false,
@@ -81,7 +81,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -100,7 +100,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testInsertIntoPartitionedTableWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testInsertIntoPartitionedTableWithUpsertByIdTask() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
                 "  name string, " +
@@ -110,7 +110,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(),
                 true,
                 false,
@@ -122,7 +122,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -152,13 +152,13 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testInsertMultiValuesWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testInsertMultiValuesWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(),
                 false,
                 false,
@@ -170,7 +170,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
@@ -192,18 +192,18 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testUpdateWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testUpdateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
 
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
@@ -221,13 +221,13 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testInsertOnDuplicateWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testInsertOnDuplicateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
         /* insert into characters (id, name, female) values (5, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(),
                 false,
                 false,
@@ -237,7 +237,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
         Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();
@@ -255,13 +255,13 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     }
 
     @Test
-    public void testUpdateOnDuplicateWithSymbolBasedUpsertByIdTask() throws Exception {
+    public void testUpdateOnDuplicateWithUpsertByIdTask() throws Exception {
         setup.setUpCharacters();
         /* insert into characters (id, name, female) values (1, 'Zaphod Beeblebrox', false)
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
         Planner.Context ctx = newPlannerContext();
-        SymbolBasedUpsertByIdNode updateNode = new SymbolBasedUpsertByIdNode(
+        UpsertByIdNode updateNode = new UpsertByIdNode(
                 ctx.nextExecutionPhaseId(),
                 false,
                 false,
@@ -270,7 +270,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(SymbolBasedUpsertByIdTask.class));
+        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Bucket rows = taskResult.rows();

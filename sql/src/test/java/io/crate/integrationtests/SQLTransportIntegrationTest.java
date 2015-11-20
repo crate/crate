@@ -33,7 +33,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.SymbolBasedTransportShardUpsertAction;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
@@ -131,7 +131,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @After
     public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        final Field activeOperationsSb = SymbolBasedTransportShardUpsertAction.class.getDeclaredField("activeOperations");
+        final Field activeOperationsSb = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
 
         activeContexts.setAccessible(true);
         activeOperationsSb.setAccessible(true);
@@ -148,7 +148,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                             throw Throwables.propagate(e);
                         }
                     }
-                    for (SymbolBasedTransportShardUpsertAction action : internalCluster().getInstances(SymbolBasedTransportShardUpsertAction.class)) {
+                    for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
                         try {
                             Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
                             assertThat(operations.size(), is(0));

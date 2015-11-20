@@ -685,9 +685,9 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(plan.nodes().size(), is(1));
 
         PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        assertThat(next, instanceOf(UpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
+        UpsertByIdNode updateNode = (UpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -696,7 +696,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(updateNode.items().size(), is(1));
-        SymbolBasedUpsertByIdNode.Item item = updateNode.items().get(0);
+        UpsertByIdNode.Item item = updateNode.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("42"));
         assertThat(item.routing(), is("42"));
@@ -713,9 +713,9 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(plan.nodes().size(), is(1));
 
         PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        assertThat(next, instanceOf(UpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode)next;
+        UpsertByIdNode updateNode = (UpsertByIdNode)next;
 
         assertThat(updateNode.insertColumns().length, is(2));
         Reference idRef = updateNode.insertColumns()[0];
@@ -725,7 +725,7 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(updateNode.items().size(), is(2));
 
-        SymbolBasedUpsertByIdNode.Item item1 = updateNode.items().get(0);
+        UpsertByIdNode.Item item1 = updateNode.items().get(0);
         assertThat(item1.index(), is("users"));
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
@@ -733,7 +733,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat((Long)item1.insertValues()[0], is(42L));
         assertThat((BytesRef)item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
-        SymbolBasedUpsertByIdNode.Item item2 = updateNode.items().get(1);
+        UpsertByIdNode.Item item2 = updateNode.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
@@ -979,14 +979,14 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(planNode.nodes().size(), is(1));
 
         PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
+        assertThat(next, instanceOf(UpsertByIdNode.class));
 
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
+        UpsertByIdNode updateNode = (UpsertByIdNode) next;
         assertThat(updateNode.items().size(), is(1));
 
         assertThat(updateNode.updateColumns()[0], is("name"));
 
-        SymbolBasedUpsertByIdNode.Item item = updateNode.items().get(0);
+        UpsertByIdNode.Item item = updateNode.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
 
@@ -1001,11 +1001,11 @@ public class PlannerTest extends CrateUnitTest {
 
         PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
 
-        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
+        assertThat(next, instanceOf(UpsertByIdNode.class));
+        UpsertByIdNode updateNode = (UpsertByIdNode) next;
 
         List<String> ids = new ArrayList<>(3);
-        for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
+        for (UpsertByIdNode.Item item : updateNode.items()) {
             ids.add(item.id());
             assertThat(item.updateAssignments().length, is(1));
             assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
@@ -1023,12 +1023,12 @@ public class PlannerTest extends CrateUnitTest {
 
         PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
 
-        assertThat(next, instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode updateNode = (SymbolBasedUpsertByIdNode) next;
+        assertThat(next, instanceOf(UpsertByIdNode.class));
+        UpsertByIdNode updateNode = (UpsertByIdNode) next;
 
         List<String> partitions = new ArrayList<>(2);
         List<String> ids = new ArrayList<>(2);
-        for (SymbolBasedUpsertByIdNode.Item item : updateNode.items()) {
+        for (UpsertByIdNode.Item item : updateNode.items()) {
             partitions.add(item.index());
             ids.add(item.id());
             assertThat(item.updateAssignments().length, is(1));
@@ -1761,8 +1761,8 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
         Upsert plan = (Upsert) plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
         PlanNode planNode = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(planNode, instanceOf(SymbolBasedUpsertByIdNode.class));
-        SymbolBasedUpsertByIdNode node = (SymbolBasedUpsertByIdNode) planNode;
+        assertThat(planNode, instanceOf(UpsertByIdNode.class));
+        UpsertByIdNode node = (UpsertByIdNode) planNode;
 
         assertThat(node.updateColumns(), is(new String[]{ "name" }));
 
@@ -1773,7 +1773,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(node.items().size(), is(1));
-        SymbolBasedUpsertByIdNode.Item item = node.items().get(0);
+        UpsertByIdNode.Item item = node.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
         assertThat(item.routing(), is("1"));

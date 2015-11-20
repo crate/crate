@@ -28,7 +28,7 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import org.elasticsearch.action.bulk.BulkProcessorRequest;
-import org.elasticsearch.action.bulk.SymbolBasedBulkShardProcessor;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,7 +44,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequest<SymbolBasedShardUpsertRequest> implements Iterable<SymbolBasedShardUpsertRequest.Item>, BulkProcessorRequest {
+public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item>, BulkProcessorRequest {
 
     private UUID jobId;
 
@@ -201,14 +201,14 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
     @Nullable
     private Streamer[] insertValuesStreamer;
 
-    public SymbolBasedShardUpsertRequest() {
+    public ShardUpsertRequest() {
     }
 
-    public SymbolBasedShardUpsertRequest(ShardId shardId,
-                                         @Nullable
+    public ShardUpsertRequest(ShardId shardId,
+                              @Nullable
                                          String[] updateColumns,
-                                         @Nullable Reference[] insertColumns,
-                                         UUID jobId) {
+                              @Nullable Reference[] insertColumns,
+                              UUID jobId) {
         this.jobId = jobId;
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
@@ -234,7 +234,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return locations;
     }
 
-    public SymbolBasedShardUpsertRequest add(int location,
+    public ShardUpsertRequest add(int location,
                                   String id,
                                   @Nullable Symbol[] assignments,
                                   @Nullable Object[] missingAssignments,
@@ -266,7 +266,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return overwriteDuplicates;
     }
 
-    public SymbolBasedShardUpsertRequest overwriteDuplicates(boolean overwriteDuplicates) {
+    public ShardUpsertRequest overwriteDuplicates(boolean overwriteDuplicates) {
         this.overwriteDuplicates = overwriteDuplicates;
         return this;
     }
@@ -279,7 +279,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         return continueOnError;
     }
 
-    public SymbolBasedShardUpsertRequest continueOnError(boolean continueOnError) {
+    public ShardUpsertRequest continueOnError(boolean continueOnError) {
         this.continueOnError = continueOnError;
         return this;
     }
@@ -353,7 +353,7 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         out.writeBoolean(overwriteDuplicates);
     }
 
-    public static class Builder implements SymbolBasedBulkShardProcessor.BulkRequestBuilder<SymbolBasedShardUpsertRequest> {
+    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
         private final TimeValue timeout;
         private final boolean overwriteDuplicates;
         private final boolean continueOnError;
@@ -378,13 +378,13 @@ public class SymbolBasedShardUpsertRequest extends ShardReplicationOperationRequ
         }
 
         @Override
-        public SymbolBasedShardUpsertRequest newRequest(ShardId shardId) {
-            return new SymbolBasedShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, jobId)
+        public ShardUpsertRequest newRequest(ShardId shardId) {
+            return new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, jobId)
                     .timeout(timeout).continueOnError(continueOnError).overwriteDuplicates(overwriteDuplicates);
         }
 
         @Override
-        public void addItem(SymbolBasedShardUpsertRequest existingRequest,
+        public void addItem(ShardUpsertRequest existingRequest,
                             ShardId shardId,
                             int location,
                             String id,
