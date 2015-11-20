@@ -42,8 +42,8 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
 
     private final static Set<DataType> NUMERIC_WITH_DECIMAL =
             Sets.<DataType>newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
-    private final static Set<DataType> ALLOWED_TYPES = Sets.<DataType>newHashSet(
-            Iterables.<DataType>concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))
+    private final static Set<DataType> ALLOWED_TYPES = Sets.newHashSet(
+            Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))
     );
 
     protected final FunctionInfo info;
