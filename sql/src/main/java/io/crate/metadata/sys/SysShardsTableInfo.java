@@ -58,6 +58,29 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ColumnIdent SIZE = new ColumnIdent("size");
         public static final ColumnIdent STATE = new ColumnIdent("state");
         public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+
+        public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        public static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
+        public static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
+        public static final ColumnIdent RECOVERY_TOTAL_TIME =
+                new ColumnIdent("recovery", ImmutableList.of("total_time"));
+
+        public static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
+        public static final ColumnIdent RECOVERY_FILES_USED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "used"));
+        public static final ColumnIdent RECOVERY_FILES_REUSED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
+        public static final ColumnIdent RECOVERY_FILES_RECOVERED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
+
+        public static final ColumnIdent RECOVERY_SIZE =
+                new ColumnIdent("recovery", ImmutableList.of("size"));
+        public static final ColumnIdent RECOVERY_SIZE_USED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "used"));
+        public static final ColumnIdent RECOVERY_SIZE_REUSED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
+        public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
     }
 
     public static class ReferenceIdents {
@@ -88,17 +111,32 @@ public class SysShardsTableInfo extends SysTableInfo {
         nodesTableColumn = sysNodesTableInfo.tableColumn();
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.SHARD)
-            .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
-            .register(Columns.TABLE_NAME, StringType.INSTANCE)
-            .register(Columns.ID, IntegerType.INSTANCE)
-            .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
-            .register(Columns.NUM_DOCS, LongType.INSTANCE)
-            .register(Columns.PRIMARY, BooleanType.INSTANCE)
-            .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
-            .register(Columns.SIZE, LongType.INSTANCE)
-            .register(Columns.STATE, StringType.INSTANCE)
-            .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
-            .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+                .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
+                .register(Columns.TABLE_NAME, StringType.INSTANCE)
+                .register(Columns.ID, IntegerType.INSTANCE)
+                .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
+                .register(Columns.NUM_DOCS, LongType.INSTANCE)
+                .register(Columns.PRIMARY, BooleanType.INSTANCE)
+                .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
+                .register(Columns.SIZE, LongType.INSTANCE)
+                .register(Columns.STATE, StringType.INSTANCE)
+                .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
+
+                .register(Columns.RECOVERY, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
+
+                .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
+
+                .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
+                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
         infos = registrar.infos();
         columns = registrar.columns();
     }
