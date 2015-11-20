@@ -23,10 +23,7 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.ReferenceToTrueVisitor;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -46,11 +43,13 @@ public class WhereClauseAnalyzer {
     private final AnalysisMetaData analysisMetaData;
     private final DocTableInfo tableInfo;
     private final EqualityExtractor eqExtractor;
+    private final EvaluatingNormalizer normalizer;
+    private final static GeneratedColumnComparisonReplacer generatedColumnComparisonReplacer = new GeneratedColumnComparisonReplacer();
 
     public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, DocTableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
+        this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
                 analysisMetaData.referenceResolver(), tableRelation, false);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
@@ -62,6 +61,10 @@ public class WhereClauseAnalyzer {
         Set<Symbol> clusteredBy = null;
         if (whereClause.hasQuery()) {
             WhereClauseValidator.validate(whereClause);
+            Symbol query = generatedColumnComparisonReplacer.replaceIfPossible(whereClause.query(), tableInfo);
+            if (!whereClause.query().equals(query)) {
+                whereClause = new WhereClause(normalizer.normalize(query));
+            }
         }
 
         List<ColumnIdent> pkCols;
