@@ -75,11 +75,6 @@ the other table::
     +------+--------------+--------------------+
     SELECT 5 rows in set (... sec)
 
-Currently **only system tables** (``sys``, ``information_schema``)
-fully support inner joins. User tables support them to a 
-certain extend. For a list of limitations when joining user tables
-see :ref:`sql_joins_limitations`.
-
 Join Conditions
 ...............
 
@@ -110,58 +105,14 @@ that invokes the operation on every record of the left table with every record
 of the right table. However, these filters are applied in a distributed way for
 each shard of the used tables.
 
-.. _sql_joins_limitations:
-
-Limitations
-...........
-
-Joining user generated tables (``doc`` tables) still have certain limitations:
-
-Due to Crate's internal behaviour how data is fetched, currently all columns
-and expressions that are in the ``SELECT`` list must also appear in the
-``ORDER BY`` clause of the statement.
-
-For example::
-
-    cr> select e.name, e.surname, d.name
-    ... from employees e, departments d
-    ... where e.dept_id = d.id
-    ... order by e.name, e.surname, d.name;
-    +----------+-----------+-----------------+
-    | e.name   | e.surname | d.name          |
-    +----------+-----------+-----------------+
-    | Clint    | Johnson   | Administration  |
-    | David    | Bowe      | Marketing       |
-    | David    | Limb      | Marketing       |
-    | Franklin | Rossevelt | Purchasing      |
-    | John     | Doe       | Administration  |
-    | John     | Smith     | IT              |
-    | Marry    | Georgia   | Human Resources |
-    | Rebecca  | Sean      | IT              |
-    | Robert   | Duval     | Administration  |
-    | Ronald   | Reagan    | Purchasing      |
-    | Sam      | Malone    | Human Resources |
-    | Sarrah   | Mcmillan  | Marketing       |
-    | Sean     | Lee       | IT              |
-    | Smith    | Clark     | Marketing       |
-    | Ted      | Kennedy   | Purchasing      |
-    | Tim      | Doe       | Human Resources |
-    | Tim      | Ducan     | Purchasing      |
-    | Tim      | Malone    | Purchasing      |
-    +----------+-----------+-----------------+
-    SELECT 18 rows in set (... sec)
-
-
 Roadmap
 -------
 
-*Date: Nov 16th, 2015*
+*Date: Nov 20th, 2015*
 
 Currently working on
 ....................
 
-* Remove the limitation that you have to provide the selected columns in the 
-  ``ORDER BY`` clause when joining user tables.
 * Support for joining more than 2 tables.
 
 Upcoming
