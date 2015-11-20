@@ -727,12 +727,12 @@ recovery
 +------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['files']``                    | Shards recovery statistic in files.                | ``Object``  |
 +------------------------------------------+----------------------------------------------------+-------------+
-| ``recovery['files']['used']``            | Total number of files in the shard.                | ``Long``    |
+| ``recovery['files']['used']``            | Total number of files in the shard.                | ``Integer`` |
 +------------------------------------------+----------------------------------------------------+-------------+
-| ``recovery['files']['reused']``          | Total number of files reused from a local copy     | ``Long``    |
+| ``recovery['files']['reused']``          | Total number of files reused from a local copy     | ``Integer`` |
 |                                          | while recovering the shard.                        |             |
 +------------------------------------------+----------------------------------------------------+-------------+
-| ``recovery['files']['recovered']``       | Number of actual files recovered in the shard.     | ``Long``    |
+| ``recovery['files']['recovered']``       | Number of actual files recovered in the shard.     | ``Integer`` |
 |                                          | Includes both existing and reused files.           |             |
 +------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['total_time']``               | Returns elapsed time from the start of the shard   | ``Long``    |
