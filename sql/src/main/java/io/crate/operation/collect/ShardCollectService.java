@@ -76,14 +76,14 @@ public class ShardCollectService {
     private final ShardId shardId;
     private final IndexShard indexShard;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
+    private final EvaluatingNormalizer shardNormalizer;
+    private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
     private final BlobIndices blobIndices;
     private final MapperService mapperService;
     private final IndexFieldDataService indexFieldDataService;
     private final Functions functions;
     private final AbstractReferenceResolver shardResolver;
-    private final EvaluatingNormalizer globalShardNormalizer;
-    private final ProjectionToProjectorVisitor globalProjectorVisitor;
 
     @Inject
     public ShardCollectService(SearchContextFactory searchContextFactory,
@@ -117,19 +117,19 @@ public class ShardCollectService {
         this.functions = functions;
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
 
-        globalShardNormalizer = new EvaluatingNormalizer(
+        this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
                 shardResolver
         );
-        globalProjectorVisitor = new ProjectionToProjectorVisitor(
+        this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 threadPool,
                 settings,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
                 shardImplementationSymbolVisitor,
-                globalShardNormalizer,
+                shardNormalizer,
                 shardId
         );
     }
@@ -170,16 +170,16 @@ public class ShardCollectService {
                                           ShardProjectorChain projectorChain,
                                           JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
-        CollectPhase normalizedCollectNode = collectPhase.normalize(globalShardNormalizer);
+        CollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
-            RowReceiver downstream = projectorChain.newShardDownstreamProjector(globalProjectorVisitor);
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return RowsCollector.empty(downstream);
         }
 
         assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
         if (isBlobShard) {
-            RowReceiver downstream = projectorChain.newShardDownstreamProjector(globalProjectorVisitor);
+            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return getBlobIndexCollector(normalizedCollectNode, downstream);
         } else {
             return getLuceneIndexCollector(threadPool, normalizedCollectNode, projectorChain, jobCollectContext);
@@ -227,7 +227,7 @@ public class ShardCollectService {
                     executor,
                     jobCollectContext.keepAliveListener(),
                     jobCollectContext.queryPhaseRamAccountingContext(),
-                    projectorChain.newShardDownstreamProjector(globalProjectorVisitor),
+                    projectorChain.newShardDownstreamProjector(projectorVisitor),
                     docCtx.topLevelInputs(),
                     docCtx.docLevelExpressions()
             );
@@ -244,11 +244,6 @@ public class ShardCollectService {
     public OrderedDocCollector getOrderedCollector(CollectPhase collectPhase,
                                                 SharedShardContext sharedShardContext,
                                                 JobCollectContext jobCollectContext) {
-        EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
-                functions,
-                RowGranularity.SHARD,
-                shardResolver
-        );
         collectPhase = collectPhase.normalize(shardNormalizer);
 
         CrateSearchContext searchContext = null;
