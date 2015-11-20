@@ -160,7 +160,7 @@ public class FetchPushDown {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Map<Symbol, ? extends Symbol> context) {
+        public Symbol visitReference(Reference symbol, Map<? extends Symbol, ? extends Symbol> context) {
             Symbol mapped = context.get(symbol);
             if (mapped != null) {
                 return mapped;

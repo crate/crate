@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * A symbol visitor which replaces all symbols mapped in the map given as context.
  */
-public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<Symbol, ? extends Symbol>> {
+public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<? extends Symbol, ? extends Symbol>> {
 
     private static final MappingSymbolVisitor IN_PLACE = new MappingSymbolVisitor(true);
     private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(false);
@@ -47,12 +47,11 @@ public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<Symbol, ? e
     }
 
     @Override
-    public Symbol process(Symbol symbol, Map<Symbol, ? extends Symbol> context) {
+    public Symbol process(Symbol symbol, Map<? extends Symbol, ? extends Symbol> context) {
         Symbol mapped = context.get(symbol);
         if (mapped != null){
             return mapped;
         }
         return super.process(symbol, context);
     }
-
 }
