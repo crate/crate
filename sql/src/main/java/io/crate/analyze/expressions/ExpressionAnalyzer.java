@@ -148,7 +148,7 @@ public class ExpressionAnalyzer {
     }
 
     /**
-     * <h2>Converts a expression into a symbol.</h2>
+     * <h2>Converts an expression into a symbol.</h2>
      *
      * <p>
      * Expressions like QualifiedName that reference a column are resolved using the fieldResolver that were passed

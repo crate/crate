@@ -777,4 +777,5 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(1448289780000L));
         assertThat((Long) response.rows()[0][1], is(1448236800000L));
     }
+
 }
