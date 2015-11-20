@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
 import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -34,6 +35,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
+import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -54,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
+@TimeoutSuite(millis = TimeUnits.HOUR) // 1 hour
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
