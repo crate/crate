@@ -163,7 +163,8 @@ public class QueryThenFetchConsumer implements Consumer {
             SimpleSelect.enablePagingIfApplicable(
                     collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
                     plannerContext.clusterService().localNode().id());
-            return new QueryThenFetch(collectPhase, fetchPhase, localMergePhase, context.plannerContext().jobId());
+            CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null, context.plannerContext().jobId());
+            return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.plannerContext().jobId());
         }
 
     }

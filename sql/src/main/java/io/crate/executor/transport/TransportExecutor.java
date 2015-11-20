@@ -531,7 +531,8 @@ public class TransportExecutor implements Executor {
         }
 
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            visitCollectAndMerge(node, context);
+            context.addPhase(node.localMerge());
+            process(node.subPlan(), context);
             context.addContextPhase(node.fetchPhase());
             return null;
         }

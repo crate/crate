@@ -33,7 +33,7 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
@@ -99,8 +99,8 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
 
         Plan plan = analyzeAndPlan("select id, name, substr(name, 2) from characters order by id");
-        assertThat(plan, instanceOf(CollectAndMerge.class));
-        CollectAndMerge qtf = (CollectAndMerge) plan;
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        QueryThenFetch qtf = (QueryThenFetch) plan;
 
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());

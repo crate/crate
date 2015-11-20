@@ -22,27 +22,65 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.planner.Plan;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class QueryThenFetch extends CollectAndMerge {
+public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
 
     private final FetchPhase fetchPhase;
+    private final Plan subPlan;
+    private final MergePhase localMerge;
+    private final UUID id;
 
-    public QueryThenFetch(CollectPhase collectPhase, FetchPhase fetchPhase, @Nullable MergePhase localMerge, UUID id) {
-        super(collectPhase, localMerge, id);
+    public QueryThenFetch(Plan subPlan, FetchPhase fetchPhase, @Nullable MergePhase localMerge, UUID id) {
+        this.subPlan = subPlan;
         this.fetchPhase = fetchPhase;
+        this.localMerge = localMerge;
+        this.id = id;
     }
 
     public FetchPhase fetchPhase() {
         return fetchPhase;
     }
 
+    public MergePhase localMerge() {
+        return localMerge;
+    }
+
+    public Plan subPlan() {
+        return subPlan;
+    }
+
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitQueryThenFetch(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return id;
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("Adding projections to QTF is not possible");
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return false;
+    }
+
+    @Override
+    public UpstreamPhase resultPhase() {
+        assert localMerge != null;
+        return localMerge;
     }
 }

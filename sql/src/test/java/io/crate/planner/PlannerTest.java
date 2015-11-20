@@ -523,17 +523,15 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCollectAndMergePlan() throws Exception {
-        Plan plan = plan("select name from users where name = 'x' order by id limit 10");
-        assertThat(plan, instanceOf(CollectAndMerge.class));
-        CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
+        QueryThenFetch plan = plan("select name from users where name = 'x' order by id limit 10");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertTrue(collectPhase.whereClause().hasQuery());
 
         TopNProjection topNProjection = (TopNProjection)collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
         assertThat(topNProjection.isOrdered(), is(false));
 
-        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
-        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        MergePhase mergePhase = plan.localMerge();
         assertThat(mergePhase.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
@@ -569,8 +567,8 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCollectAndMergePlanDefaultLimit() throws Exception {
-        CollectAndMerge plan = plan("select name from users");
-        CollectPhase collectPhase = plan.collectPhase();
+        QueryThenFetch plan = plan("select name from users");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT));
 
         MergePhase mergeNode = plan.localMerge();
@@ -585,7 +583,7 @@ public class PlannerTest extends CrateUnitTest {
 
         // with offset
         plan = plan("select name from users offset 20");
-        collectPhase = plan.collectPhase();
+        collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
 
         mergeNode = plan.localMerge();
@@ -601,8 +599,8 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCollectAndMergePlanHighLimit() throws Exception {
-        CollectAndMerge plan = (CollectAndMerge)plan("select name from users limit 100000");
-        CollectPhase collectPhase = plan.collectPhase();
+        QueryThenFetch plan = plan("select name from users limit 100000");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(100_000));
 
         MergePhase mergeNode = plan.localMerge();
@@ -617,7 +615,7 @@ public class PlannerTest extends CrateUnitTest {
 
         // with offset
         plan = plan("select name from users limit 100000 offset 20");
-        collectPhase = plan.collectPhase();
+        collectPhase = collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
         mergeNode = plan.localMerge();
@@ -635,9 +633,8 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCollectAndMergePlanPartitioned() throws Exception {
-        Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
-        assertThat(plan, instanceOf(CollectAndMerge.class));
-        CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
+        QueryThenFetch plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
 
         List<String> indices = new ArrayList<>();
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
@@ -649,20 +646,18 @@ public class PlannerTest extends CrateUnitTest {
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        MergePhase mergePhase = plan.localMerge();
         assertThat(mergePhase.outputTypes().size(), is(3));
     }
 
     @Test
     public void testCollectAndMergePlanFunction() throws Exception {
-        Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
-        assertThat(plan, instanceOf(CollectAndMerge.class));
-        CollectPhase collectPhase = ((CollectAndMerge) plan).collectPhase();
+        QueryThenFetch plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
-        MergePhase mergePhase = (MergePhase)((CollectAndMerge) plan).resultPhase();
+        MergePhase mergePhase = plan.localMerge();
         assertThat(mergePhase.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(1));
@@ -1888,10 +1883,10 @@ public class PlannerTest extends CrateUnitTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
-        CollectAndMerge plan = (CollectAndMerge) plan("select * from users limit 2147483647 ");
+        QueryThenFetch plan = plan("select * from users limit 2147483647 ");
         assertThat(plan.localMerge().executionNodes().size(), is(1));
 
-        plan = (CollectAndMerge) plan("select * from users limit 2");
+        plan = plan("select * from users limit 2");
         assertThat(plan.localMerge().executionNodes().size(), is(0));
     }
 
@@ -1933,8 +1928,9 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
-        CollectAndMerge plan = plan("select name, date from users order by name limit 1000000");
+        QueryThenFetch plan = plan("select name, date from users order by name limit 1000000");
+        CollectPhase collectPhase = ((CollectAndMerge) plan.subPlan()).collectPhase();
         assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
-        assertThat(plan.collectPhase().nodePageSizeHint(), is(750000));
+        assertThat(collectPhase.nodePageSizeHint(), is(750000));
     }
 }
