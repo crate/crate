@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
@@ -57,7 +58,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
 
     private void pushDown(String stmt) {
         SelectAnalyzedStatement a = (SelectAnalyzedStatement) analyze(stmt);
-        assert a.relation() instanceof MultiSourceSelect;
+        assertThat(a.relation(), instanceOf(MultiSourceSelect.class));
         mss = (MultiSourceSelect) a.relation();
         pd = MultiSourceFetchPushDown.pushDown(mss);
     }

@@ -37,7 +37,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
 public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -319,7 +319,7 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
     public void testFetchWithoutOrder() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes limit 3");
-        System.out.println(printedTable(response.rows()));
+        assertThat(response.rowCount(), is(3L));
     }
 
     @Test
