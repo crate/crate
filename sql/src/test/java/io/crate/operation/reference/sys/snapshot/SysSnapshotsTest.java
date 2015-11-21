@@ -26,16 +26,12 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.snapshots.SnapshotsService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.mockito.Answers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyString;
@@ -50,7 +46,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
 
         final Iterable<?> objects =
                 Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));
-        when(sysRepos.getIterable()).then(new Answer<Object>() {
+        when(sysRepos.get()).then(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 return objects;
@@ -60,6 +56,6 @@ public class SysSnapshotsTest extends CrateUnitTest {
         SnapshotsService snapshotService = mock(SnapshotsService.class);
         when(snapshotService.snapshots(anyString())).thenThrow(new IllegalStateException("dummy"));
         SysSnapshots sysSnapshots = new SysSnapshots(sysRepos, snapshotService);
-        assertThat(sysSnapshots.getIterable().iterator().hasNext(), is(false));
+        assertThat(sysSnapshots.get().iterator().hasNext(), is(false));
     }
 }

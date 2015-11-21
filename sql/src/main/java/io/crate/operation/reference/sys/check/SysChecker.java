@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.check;
 
-import io.crate.operation.collect.IterableGetter;
+import com.google.common.base.Supplier;
 import io.crate.operation.reference.sys.check.checks.SysCheck;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Singleton
-public class SysChecker implements IterableGetter {
+public class SysChecker implements Supplier<Iterable<?>> {
 
     private final Set<SysCheck> sysChecks;
 
@@ -47,7 +47,7 @@ public class SysChecker implements IterableGetter {
     }
 
     @Override
-    public Iterable<?> getIterable() {
+    public Iterable<?> get() {
         check();
         return sysChecks;
     }

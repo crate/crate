@@ -22,9 +22,8 @@
 package io.crate.operation.reference.sys.snapshot;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
-import io.crate.operation.collect.IterableGetter;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
@@ -39,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
-public class SysSnapshots implements IterableGetter {
+public class SysSnapshots implements Supplier<Iterable<?>> {
 
     private final SysRepositories sysRepositories;
     private final SnapshotsService snapshotsService;
@@ -52,9 +51,9 @@ public class SysSnapshots implements IterableGetter {
     }
 
     @Override
-    public Iterable<?> getIterable() {
+    public Iterable<?> get() {
         List<SysSnapshot> sysSnapshots = new ArrayList<>();
-        for (Object entry : sysRepositories.getIterable()) {
+        for (Object entry : sysRepositories.get()) {
             final String repositoryName = ((SysRepository) entry).name();
 
             List<Snapshot> snapshots;

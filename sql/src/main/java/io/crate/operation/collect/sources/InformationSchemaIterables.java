@@ -23,11 +23,12 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.collect.IterableGetter;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -38,18 +39,18 @@ import java.util.Iterator;
 
 public class InformationSchemaIterables {
 
-    private final IterableGetter schemas;
-    private final IterableGetter tablesGetter;
-    private final IterableGetter partitionsGetter;
-    private final StaticIterableGetter columnsGetter;
-    private final StaticIterableGetter constraintsGetter;
-    private final StaticIterableGetter routinesGetter;
+    private final Supplier<Iterable<?>> schemas;
+    private final Supplier<Iterable<?>> tablesGetter;
+    private final Supplier<Iterable<?>> partitionsGetter;
+    private final Supplier<Iterable<?>> columnsGetter;
+    private final Supplier<Iterable<?>> constraintsGetter;
+    private final Supplier<Iterable<?>> routinesGetter;
 
     @Inject
     protected InformationSchemaIterables(final Schemas schemas,
                                          FulltextAnalyzerResolver ftResolver,
                                          ClusterService clusterService) {
-        this.schemas = new StaticIterableGetter(schemas);
+        this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
         FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
                     @Nullable
@@ -66,8 +67,8 @@ public class InformationSchemaIterables {
                         });
                     }
                 });
-        tablesGetter = new StaticIterableGetter(tablesIterable);
-        partitionsGetter = new StaticIterableGetter(new PartitionInfos(clusterService));
+        tablesGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable);
+        partitionsGetter = Suppliers.<Iterable<?>>ofInstance(new PartitionInfos(clusterService));
         FluentIterable<ColumnContext> columnsIterable = tablesIterable.transformAndConcat(
                 new Function<TableInfo, Iterable<ColumnContext>>() {
                     @Nullable
@@ -77,8 +78,8 @@ public class InformationSchemaIterables {
                         return new ColumnsIterator(input);
                     }
                 });
-        columnsGetter = new StaticIterableGetter(columnsIterable);
-        constraintsGetter = new StaticIterableGetter(tablesIterable.filter(new Predicate<TableInfo>() {
+        columnsGetter = Suppliers.<Iterable<?>>ofInstance(columnsIterable);
+        constraintsGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable.filter(new Predicate<TableInfo>() {
             @Override
             public boolean apply(@Nullable TableInfo input) {
                 return input != null && input.primaryKey().size() > 0;
@@ -86,7 +87,7 @@ public class InformationSchemaIterables {
         }));
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
-        routinesGetter = new StaticIterableGetter(FluentIterable.from(routineInfos)
+        routinesGetter = Suppliers.<Iterable<?>>ofInstance(FluentIterable.from(routineInfos)
                 .filter(new Predicate<RoutineInfo>() {
                     @Override
                     public boolean apply(@Nullable RoutineInfo input) {
@@ -95,27 +96,27 @@ public class InformationSchemaIterables {
                 }));
     }
 
-    public IterableGetter schemas() {
+    public Supplier<Iterable<?>> schemas() {
         return schemas;
     }
 
-    public IterableGetter tablesGetter() {
+    public Supplier<Iterable<?>> tables() {
         return tablesGetter;
     }
 
-    public IterableGetter partitionsGetter() {
+    public Supplier<Iterable<?>> partitions() {
         return partitionsGetter;
     }
 
-    public StaticIterableGetter columnsGetter() {
+    public Supplier<Iterable<?>> columns() {
         return columnsGetter;
     }
 
-    public StaticIterableGetter constraintsGetter() {
+    public Supplier<Iterable<?>> constraints() {
         return constraintsGetter;
     }
 
-    public StaticIterableGetter routinesGetter() {
+    public Supplier<Iterable<?>> routines() {
         return routinesGetter;
     }
 
@@ -158,19 +159,5 @@ public class InformationSchemaIterables {
             return this;
         }
 
-    }
-
-    private static class StaticIterableGetter implements IterableGetter {
-
-        private final Iterable<?> iterable;
-
-        public StaticIterableGetter(Iterable<?> iterable) {
-            this.iterable = iterable;
-        }
-
-        @Override
-        public Iterable<?> getIterable() {
-            return iterable;
-        }
     }
 }

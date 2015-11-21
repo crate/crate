@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.base.Supplier;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
@@ -173,50 +174,50 @@ public class StatsTables {
     }
 
 
-    public IterableGetter jobsGetter() {
+    public Supplier<Iterable<?>> jobsGetter() {
         return jobsIterableGetter;
     }
 
-    public IterableGetter jobsLogGetter() {
+    public Supplier<Iterable<?>> jobsLogGetter() {
         return jobsLogIterableGetter;
     }
 
-    public IterableGetter operationsGetter() {
+    public Supplier<Iterable<?>> operationsGetter() {
         return operationsIterableGetter;
     }
 
-    public IterableGetter operationsLogGetter() {
+    public Supplier<Iterable<?>> operationsLogGetter() {
         return operationsLogIterableGetter;
     }
 
-    private class JobsLogIterableGetter implements IterableGetter {
+    private class JobsLogIterableGetter implements Supplier<Iterable<?>> {
 
         @Override
-        public Iterable<?> getIterable() {
+        public Iterable<?> get() {
             return jobsLog.get();
         }
     }
 
-    private class JobsIterableGetter implements IterableGetter {
+    private class JobsIterableGetter implements Supplier<Iterable<?>> {
 
         @Override
-        public Iterable<?> getIterable() {
+        public Iterable<?> get() {
             return jobsTable.values();
         }
     }
 
-    private class OperationsIterableGetter implements IterableGetter {
+    private class OperationsIterableGetter implements Supplier<Iterable<?>> {
 
         @Override
-        public Iterable<?> getIterable() {
+        public Iterable<?> get() {
             return operationsTable.values();
         }
     }
 
-    private class OperationsLogIterableGetter implements IterableGetter {
+    private class OperationsLogIterableGetter implements Supplier<Iterable<?>> {
 
         @Override
-        public Iterable<?> getIterable() {
+        public Iterable<?> get() {
             return operationsLog.get();
         }
     }

@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.repositories;
 
-import io.crate.operation.collect.IterableGetter;
+import com.google.common.base.Supplier;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -36,7 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class SysRepositories implements ClusterStateListener, IterableGetter {
+public class SysRepositories implements ClusterStateListener, Supplier<Iterable<?>> {
 
     protected Map<String, SysRepository> repositoriesTable = new HashMap<>();
 
@@ -81,7 +81,7 @@ public class SysRepositories implements ClusterStateListener, IterableGetter {
     }
 
     @Override
-    public Iterable<?> getIterable() {
+    public Iterable<?> get() {
         return Collections.unmodifiableCollection(repositoriesTable.values());
     }
 }

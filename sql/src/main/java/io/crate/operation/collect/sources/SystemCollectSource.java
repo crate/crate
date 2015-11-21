@@ -22,6 +22,7 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.base.Function;
+import com.google.common.base.Supplier;
 import com.google.common.collect.*;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -39,8 +40,8 @@ import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
@@ -57,7 +58,7 @@ import java.util.*;
 public class SystemCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<String, IterableGetter> iterableGetters;
+    private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
     private final DiscoveryService discoveryService;
 
 
@@ -71,13 +72,13 @@ public class SystemCollectSource implements CollectSource {
                                SysSnapshots sysSnapshots) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
-        iterableGetters = ImmutableMap.<String, IterableGetter>builder()
+        iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
                 .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
-                .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tablesGetter())
-                .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitionsGetter())
-                .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columnsGetter())
-                .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraintsGetter())
-                .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routinesGetter())
+                .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tables())
+                .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitions())
+                .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columns())
+                .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraints())
+                .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
                 .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
                 .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
                 .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
@@ -151,9 +152,9 @@ public class SystemCollectSource implements CollectSource {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         assert locations != null : "routing must contain locations";
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
-        IterableGetter iterableGetter = iterableGetters.get(table);
+        Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(
-                new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.getIterable())));
+                new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get())));
     }
 }
