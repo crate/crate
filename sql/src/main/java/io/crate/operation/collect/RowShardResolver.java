@@ -34,9 +34,11 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.BytesRefs;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.ArrayList;
 import java.util.List;
 
+@NotThreadSafe
 public class RowShardResolver {
 
     private static final Visitor VISITOR = new Visitor();
@@ -65,7 +67,7 @@ public class RowShardResolver {
     }
 
 
-    public synchronized void setNextRow(Row row) {
+    public void setNextRow(Row row) {
         for (CollectExpression<Row, ?> expression : visitorContext.collectExpressions()) {
             expression.setNextRow(row);
         }
