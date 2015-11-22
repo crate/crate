@@ -25,15 +25,13 @@ import com.google.common.base.Joiner;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Map;
 
-public class DocCollectorExpression extends
-        LuceneCollectorExpression<Map<String, Object>> implements ColumnReferenceExpression {
+public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
     public static final String COLUMN_NAME = DocSysColumns.DOC.name();
 
@@ -77,7 +75,7 @@ public class DocCollectorExpression extends
     }
 
     public abstract static class ChildDocCollectorExpression<ReturnType> extends
-            LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
+            LuceneCollectorExpression<ReturnType> {
 
         protected SourceLookup sourceLookup;
 

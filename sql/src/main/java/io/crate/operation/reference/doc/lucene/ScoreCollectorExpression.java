@@ -22,13 +22,11 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
 
-public class ScoreCollectorExpression extends
-        LuceneCollectorExpression<Float> implements ColumnReferenceExpression {
+public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
 
     public static final String COLUMN_NAME = DocSysColumns.SCORE.name();
 

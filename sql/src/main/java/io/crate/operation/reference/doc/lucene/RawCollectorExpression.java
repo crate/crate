@@ -23,14 +23,12 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
 
-public class RawCollectorExpression extends
-        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
+public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.RAW.name();
 

@@ -22,10 +22,8 @@
 package io.crate.operation.reference.doc.lucene;
 
 
-import io.crate.operation.reference.doc.ColumnReferenceExpression;
 
-public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
-        LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
+public abstract class ColumnReferenceCollectorExpression<ReturnType> extends LuceneCollectorExpression<ReturnType> {
 
     protected final String columnName;
 

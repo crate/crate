@@ -22,11 +22,9 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import org.apache.lucene.index.AtomicReaderContext;
 
-public class DocIdCollectorExpression extends
-        LuceneCollectorExpression<Long> implements ColumnReferenceExpression {
+public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
     public static final String COLUMN_NAME = DocSysColumns.DOCID.name();
 
