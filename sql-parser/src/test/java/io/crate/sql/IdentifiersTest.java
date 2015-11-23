@@ -55,5 +55,6 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ"), is("\"fhjgadhjgfhsÖ\""));
         assertThat(Identifiers.quoteIfNeeded("ABC"), is("\"ABC\""));
         assertThat(Identifiers.quoteIfNeeded("abc\""), is("\"abc\"\"\""));
+        assertThat(Identifiers.quoteIfNeeded("select"), is("\"select\"")); // keyword
     }
 }

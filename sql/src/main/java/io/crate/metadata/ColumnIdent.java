@@ -28,6 +28,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.core.StringUtils;
+import io.crate.sql.Identifiers;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -194,7 +195,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     public String sqlFqn() {
-        StringBuilder sb = new StringBuilder(name);
+        StringBuilder sb = new StringBuilder(Identifiers.quoteIfNeeded(name));
         for (String s : path) {
             sb.append("['");
             sb.append(s);

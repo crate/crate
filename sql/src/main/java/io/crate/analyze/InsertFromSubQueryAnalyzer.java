@@ -59,7 +59,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
             Reference reference = targetTableRelation.resolveField(argumentColumn);
             int i = targetColumns.indexOf(reference);
             if (i < 0) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
+                throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
                         "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                         argumentColumn));
             }

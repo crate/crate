@@ -563,7 +563,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for awesome: " +
-                                        "Invalid value 'match(object, string, string, object)' in insert statement");
+                                        "Invalid value 'match({\"name\"=NULL}, 'bar', 'best_fields', {})' in insert statement");
         analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 
