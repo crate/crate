@@ -82,29 +82,24 @@ public class FetchContext extends AbstractExecutionSubContext {
             if (locations == null) {
                 continue;
             }
-            for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
-                String nodeId = entry.getKey();
-                if (nodeId.equals(localNodeId)) {
-                    Map<String, List<Integer>> indexShards = entry.getValue();
-                    for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
-                        String index = indexShardsEntry.getKey();
-                        Integer base = phase.bases().get(index);
-                        TableIdent ident = index2TableIdent.get(index);
-                        assert ident != null;
-                        tableIdents.put(base, ident);
-                        assert base != null;
-                        for (Integer shard : indexShardsEntry.getValue()) {
-                            ShardId shardId = new ShardId(index, shard);
-                            int readerId = base + shardId.id();
-                            SharedShardContext shardContext = sharedShardContexts.createContext(shardId, readerId);
-                            shardContexts.put(readerId, shardContext);
-                            try {
-                                searchers.put(readerId, shardContext.searcher());
-                            } catch (IndexMissingException e) {
-                                if (!PartitionName.isPartition(index)) {
-                                    throw new TableUnknownException(index, e);
-                                }
-                            }
+            Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+            for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
+                String index = indexShardsEntry.getKey();
+                Integer base = phase.bases().get(index);
+                assert base != null : "no readerId base found for " + index;
+                TableIdent ident = index2TableIdent.get(index);
+                assert ident != null : "no tableIdent found for index " + index;
+                tableIdents.put(base, ident);
+                for (Integer shard : indexShardsEntry.getValue()) {
+                    ShardId shardId = new ShardId(index, shard);
+                    int readerId = base + shardId.id();
+                    SharedShardContext shardContext = sharedShardContexts.createContext(shardId, readerId);
+                    shardContexts.put(readerId, shardContext);
+                    try {
+                        searchers.put(readerId, shardContext.searcher());
+                    } catch (IndexMissingException e) {
+                        if (!PartitionName.isPartition(index)) {
+                            throw new TableUnknownException(index, e);
                         }
                     }
                 }
