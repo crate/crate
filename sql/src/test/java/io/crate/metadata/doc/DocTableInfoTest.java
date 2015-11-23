@@ -42,6 +42,7 @@ public class DocTableInfoTest extends CrateUnitTest {
                         new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
                 ),
                 ImmutableList.<ReferenceInfo>of(),
+                ImmutableList.<GeneratedReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, String>of(),
@@ -90,6 +91,7 @@ public class DocTableInfoTest extends CrateUnitTest {
                 dummy,
                 ImmutableList.<ReferenceInfo>of(strictParent),
                 ImmutableList.<ReferenceInfo>of(),
+                ImmutableList.<GeneratedReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 references,
                 ImmutableMap.<ColumnIdent, String>of(),
