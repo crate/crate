@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -656,5 +657,26 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         // QueryResult instead of RowCountResult
         SQLBulkResponse bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
         assertThat(bulkResponse.results().length, is(1));
+    }
+
+    @Test
+    public void testUpdateWithGeneratedColumn() throws Exception {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)," +
+                " user object as (name string)," +
+                " name as concat(user['name'], 'bar')" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into generated_column (id, ts) values (?, ?)", new Object[]{
+                1, "2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()});
+        refresh();
+        execute("update generated_column set ts = ?, user = ? where id = ?", new Object[]{
+                "2015-11-19T17:06:00", MapBuilder.newMapBuilder().put("name", "zoo").map(), 1});
+        refresh();
+        execute("select day, name from generated_column");
+        assertThat((Long) response.rows()[0][0], is(1447891200000L));
+        assertThat((String) response.rows()[0][1], is("zoobar"));
     }
 }
