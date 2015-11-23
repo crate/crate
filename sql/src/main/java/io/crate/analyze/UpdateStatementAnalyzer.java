@@ -35,6 +35,7 @@ import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -188,8 +189,19 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             ensureNotUpdated(column, value, pkIdent, "Updating a primary key is not supported");
         }
+
+        List<GeneratedReferenceInfo> generatedReferenceInfos = tableInfo.generatedColumns();
+
         for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
             ensureNotUpdated(column, value, partitionIdent, "Updating a partitioned-by column is not supported");
+            int idx = generatedReferenceInfos.indexOf(tableInfo.getReferenceInfo(partitionIdent));
+            if (idx >= 0) {
+                GeneratedReferenceInfo generatedReferenceInfo = generatedReferenceInfos.get(idx);
+                for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
+                    ensureNotUpdated(column, value, referenceInfo.ident().columnIdent(),
+                            "Updating a column which is referenced in a partitioned by generated column expression is not supported");
+                }
+            }
         }
     }
 
