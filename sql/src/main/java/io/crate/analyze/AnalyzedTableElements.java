@@ -24,14 +24,16 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
-import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
-import io.crate.sql.ExpressionFormatter;
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -185,30 +187,34 @@ public class AnalyzedTableElements {
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
                 analysisMetaData, parameterContext, tableReferenceInfos);
-
+        SymbolFormatter formatter = new SymbolFormatter(analysisMetaData.functions());
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
-                processGeneratedExpression(expressionAnalyzer, columnDefinition);
+                processGeneratedExpression(expressionAnalyzer, formatter, columnDefinition);
             }
         }
     }
 
-    private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer, AnalyzedColumnDefinition columnDefinition) {
+    private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
+                                            SymbolFormatter symbolFormatter,
+                                            AnalyzedColumnDefinition columnDefinition) {
         // validate expression
         Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), new ExpressionAnalysisContext());
 
-        String formattedExpression = ExpressionFormatter.formatExpression(columnDefinition.generatedExpression());
+        String formattedExpression;
         DataType valueType = function.valueType();
-        String definedType = columnDefinition.dataType();
+        DataType definedType = columnDefinition.dataType() == null ? null : DataTypes.ofMappingNameSafe(columnDefinition.dataType());
 
         // check for optional defined type and add `cast` to expression if possible
-        if (definedType != null && !definedType.equals(valueType.getName())) {
-            Preconditions.checkArgument(valueType.isConvertableTo(DataTypes.ofMappingNameSafe(definedType)),
-                    "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType);
+        if (definedType != null && !definedType.equals(valueType)) {
+            Preconditions.checkArgument(valueType.isConvertableTo(definedType),
+                    "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
-            formattedExpression = String.format(Locale.ENGLISH, "cast(%s as %s)", formattedExpression, definedType);
+            Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Lists.newArrayList(function));
+            formattedExpression = symbolFormatter.format(castFunction, SymbolFormatter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         } else {
             columnDefinition.dataType(function.valueType().getName());
+            formattedExpression = symbolFormatter.format(function, SymbolFormatter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         }
 
         columnDefinition.formattedGeneratedExpression(formattedExpression);
@@ -339,18 +345,18 @@ public class AnalyzedTableElements {
         DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
         if (!DataTypes.isPrimitive(columnType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use column '%s' of type %s in PARTITIONED BY clause",
+                    "Cannot use column %s of type %s in PARTITIONED BY clause",
                     columnDefinition.ident().sqlFqn(), columnDefinition.dataType()));
         }
         if (columnDefinition.isArrayOrInArray()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use array column '%s' in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
+                    "Cannot use array column %s in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
 
 
         }
         if (columnDefinition.index().equals("analyzed")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use column '%s' with fulltext index in PARTITIONED BY clause",
+                    "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                     columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());

@@ -129,7 +129,7 @@ public class LuceneQueryBuilder {
         }
         if (LOGGER.isTraceEnabled()) {
             if (whereClause.hasQuery()) {
-                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolFormatter.format(whereClause.query()), ctx.query);
+                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolFormatter.INSTANCE.formatSimple(whereClause.query()), ctx.query);
             }
         }
         return ctx;
@@ -1206,7 +1206,7 @@ public class LuceneQueryBuilder {
 
         private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Cannot convert function %s into a query", function));
+                    SymbolFormatter.formatTmpl("Cannot convert function %s into a query", function));
         }
 
         @Override
@@ -1221,7 +1221,7 @@ public class LuceneQueryBuilder {
         @Override
         protected Query visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Can't build query from symbol %s", symbol));
+                    SymbolFormatter.formatTmpl("Can't build query from symbol %s", symbol));
         }
     }
 

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -40,6 +41,18 @@ public class ExtractFunctions {
 
     private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
     private final static String NAME_TMPL = "extract_%s";
+
+    public static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
+    public static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
+    public static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
+    public static final String EXTRACT_MONTH_PREFIX = "extract(month from ";
+    public static final String EXTRACT_WEEK_PREFIX = "extract(week from ";
+    public static final String EXTRACT_DAY_OF_MONTH_PREFIX = "extract(day_of_month from ";
+    public static final String EXTRACT_DAY_OF_WEEK_PREFIX = "extract(day_of_week from ";
+    public static final String EXTRACT_SECOND_PREFIX = "extract(second from ";
+    public static final String EXTRACT_MINUTE_PREFIX = "extract(minute from ";
+    public static final String EXTRACT_HOUR_PREFIX = "extract(hour from ";
+    public static final String EXTRACT_DAY_OF_YEAR_PREFIX = "extract(day_of_year from ";
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(new ExtractCentury());
@@ -98,7 +111,7 @@ public class ExtractFunctions {
         );
     }
 
-    private abstract static class GenericExtractFunction extends Scalar<Number, Long> {
+    private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements SymbolFormatter.FunctionFormatter {
 
         public abstract int evaluate(long value);
 
@@ -122,6 +135,16 @@ public class ExtractFunctions {
             }
             return symbol;
         }
+
+        @Override
+        public boolean formatArgs(Function function) {
+            return true;
+        }
+
+        @Override
+        public String afterArgs(Function function) {
+            return SymbolFormatter.Strings.PAREN_CLOSE;
+        }
     }
 
     private static class ExtractCentury extends GenericExtractFunction {
@@ -137,6 +160,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_CENTURY_PREFIX;
         }
     }
 
@@ -154,6 +182,11 @@ public class ExtractFunctions {
         public FunctionInfo info() {
             return INFO;
         }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_YEAR_PREFIX;
+        }
     }
 
     private static class ExtractQuarter extends GenericExtractFunction {
@@ -169,6 +202,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_QUARTER_PREFIX;
         }
     }
 
@@ -186,6 +224,11 @@ public class ExtractFunctions {
         public FunctionInfo info() {
             return INFO;
         }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_MONTH_PREFIX;
+        }
     }
 
     private static class ExtractWeek extends GenericExtractFunction {
@@ -201,6 +244,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_WEEK_PREFIX;
         }
     }
 
@@ -218,6 +266,11 @@ public class ExtractFunctions {
         public FunctionInfo info() {
             return INFO;
         }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_DAY_OF_MONTH_PREFIX;
+        }
     }
 
     private static class ExtractDayOfWeek extends GenericExtractFunction {
@@ -233,6 +286,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_DAY_OF_WEEK_PREFIX;
         }
     }
 
@@ -250,6 +308,11 @@ public class ExtractFunctions {
         public FunctionInfo info() {
             return INFO;
         }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_SECOND_PREFIX;
+        }
     }
 
     private static class ExtractMinute extends GenericExtractFunction {
@@ -265,6 +328,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_MINUTE_PREFIX;
         }
     }
 
@@ -282,6 +350,11 @@ public class ExtractFunctions {
         public FunctionInfo info() {
             return INFO;
         }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_HOUR_PREFIX;
+        }
     }
 
     private static class ExtractDayOfYear extends GenericExtractFunction {
@@ -297,6 +370,11 @@ public class ExtractFunctions {
         @Override
         public FunctionInfo info() {
             return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_DAY_OF_YEAR_PREFIX;
         }
     }
 }

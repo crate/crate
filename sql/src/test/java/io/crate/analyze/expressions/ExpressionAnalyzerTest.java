@@ -123,9 +123,9 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         assertEquals(field1, field2);
 
         Field field3 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']", field3.path().toString());
+        assertEquals("\"myObj\"['x']", field3.path().toString());
         Field field4 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']['AbC']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']['AbC']", field4.path().toString());
+        assertEquals("\"myObj\"['x']['AbC']", field4.path().toString());
     }
 
     @Test

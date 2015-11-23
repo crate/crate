@@ -27,7 +27,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -81,6 +80,7 @@ import java.util.concurrent.CancellationException;
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
 
+    private static final String KILLED_MESSAGE = "KILLED";
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
     private static final int MAX_SHARD_MISSING_RETRIES = 3;
@@ -254,7 +254,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         String message;
                         Throwable unwrappedException = Exceptions.unwrap(t);
                         if (unwrappedException instanceof CancellationException) {
-                            message = Constants.KILLED_MESSAGE;
+                            message = KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
                         } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
