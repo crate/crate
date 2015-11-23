@@ -318,9 +318,6 @@ public class ContextPreparer {
         @Override
         public ExecutionSubContext visitCountPhase(final CountPhase phase, final PreparerContext context) {
             Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
-            if (locations == null) {
-                throw new IllegalArgumentException("locations are empty. Can't start count operation");
-            }
             String localNodeId = clusterService.localNode().id();
             final Map<String, List<Integer>> indexShardMap = locations.get(localNodeId);
             if (indexShardMap == null) {

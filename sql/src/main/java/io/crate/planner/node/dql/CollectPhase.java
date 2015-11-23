@@ -235,8 +235,7 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
         maxRowGranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
-            routing = new Routing();
-            routing.readFrom(in);
+            routing = Routing.fromStream(in);
         }
 
         whereClause = new WhereClause(in);

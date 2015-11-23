@@ -150,7 +150,6 @@ public class SystemCollectSource implements CollectSource {
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        assert locations != null : "routing must contain locations";
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
@@ -55,13 +56,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static final TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_ALIAS_TABLE_IDENT, new Routing())
+            TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
     private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(null, "nested_clustered");
     private static final TableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
-            NESTED_CLUSTERED_TABLE_IDENT, new Routing())
+            NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("o", DataTypes.OBJECT, null)
             .add("o", DataTypes.STRING, Arrays.asList("c"))
             .clusteredBy("o.c")

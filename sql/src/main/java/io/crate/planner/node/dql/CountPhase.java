@@ -113,8 +113,7 @@ public class CountPhase implements UpstreamPhase {
     public void readFrom(StreamInput in) throws IOException {
         jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
-        routing = new Routing();
-        routing.readFrom(in);
+        routing = Routing.fromStream(in);
         whereClause = new WhereClause(in);
         distributionInfo = DistributionInfo.fromStream(in);
     }

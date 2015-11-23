@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -38,6 +39,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
@@ -53,7 +55,8 @@ public class PartitionPropertiesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"), new Routing(null))
+        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
+                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                 .add("name", DataTypes.STRING, null, true)
                 .addPrimaryKey("name").build();
 

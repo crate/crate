@@ -1,12 +1,11 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -35,7 +34,7 @@ public class Routing implements Streamable {
     }
 
     public void walkLocations(RoutingLocationVisitor visitor) {
-        if (locations == null || !visitor.visitLocations(locations)) {
+        if (!visitor.visitLocations(locations)) {
             return;
         }
         for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
@@ -56,11 +55,16 @@ public class Routing implements Streamable {
         }
     }
 
-    public Routing() {
+    private Routing() {}
 
+    public static Routing fromStream(StreamInput in) throws IOException {
+        Routing routing = new Routing();
+        routing.readFrom(in);
+        return routing;
     }
 
-    public Routing(@Nullable Map<String, Map<String, List<Integer>>> locations) {
+    public Routing(Map<String, Map<String, List<Integer>>> locations) {
+        assert locations != null : "locations must not be null";
         assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
     }
@@ -72,20 +76,16 @@ public class Routing implements Streamable {
      * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      * </p>
      */
-    @Nullable
     public Map<String, Map<String, List<Integer>>> locations() {
         return locations;
     }
 
     public boolean hasLocations() {
-        return locations != null && locations.size() > 0;
+        return locations.size() > 0;
     }
 
     public Set<String> nodes() {
-        if (hasLocations()) {
-            return locations.keySet();
-        }
-        return ImmutableSet.of();
+        return locations.keySet();
     }
 
     /**
@@ -95,7 +95,7 @@ public class Routing implements Streamable {
      */
     public int numShards(String nodeId) {
         int count = 0;
-        if (hasLocations()) {
+        if (!locations.isEmpty()) {
             Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
             if (nodeRouting != null) {
                 for (List<Integer> shardIds : nodeRouting.values()) {
@@ -112,7 +112,7 @@ public class Routing implements Streamable {
      * returns true if the routing contains shards for any table of the given node
      */
     public boolean containsShards(String nodeId) {
-        if (!hasLocations()) return false;
+        if (locations.isEmpty()) return false;
         Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
         if (nodeRouting == null) return false;
 
@@ -127,9 +127,7 @@ public class Routing implements Streamable {
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
-        if (hasLocations()) {
-            helper.add("locations", locations);
-        }
+        helper.add("locations", locations);
         return helper.toString();
 
     }
@@ -137,7 +135,9 @@ public class Routing implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
-        if (numLocations > 0) {
+        if (numLocations == 0) {
+            locations = ImmutableMap.of();
+        } else {
             locations = new TreeMap<>();
 
             String nodeId;
@@ -164,45 +164,40 @@ public class Routing implements Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (hasLocations()) {
-            out.writeVInt(locations.size());
+        out.writeVInt(locations.size());
+        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
+            out.writeString(entry.getKey());
 
-            for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
-                out.writeString(entry.getKey());
-
-                if (entry.getValue() == null) {
-                    out.writeVInt(0);
-                } else {
-
-                    out.writeVInt(entry.getValue().size());
-                    for (Map.Entry<String, List<Integer>> innerEntry : entry.getValue().entrySet()) {
-                        out.writeString(innerEntry.getKey());
-                        List<Integer> shardIds = innerEntry.getValue();
-                        if (shardIds == null || shardIds.size() == 0) {
-                            out.writeVInt(0);
-                        } else {
-                            out.writeVInt(shardIds.size());
-                            for (Integer shardId : shardIds) {
-                                out.writeVInt(shardId);
-                            }
+            if (entry.getValue() == null) {
+                out.writeVInt(0);
+            } else {
+                out.writeVInt(entry.getValue().size());
+                for (Map.Entry<String, List<Integer>> innerEntry : entry.getValue().entrySet()) {
+                    out.writeString(innerEntry.getKey());
+                    List<Integer> shardIds = innerEntry.getValue();
+                    if (shardIds == null || shardIds.size() == 0) {
+                        out.writeVInt(0);
+                    } else {
+                        out.writeVInt(shardIds.size());
+                        for (Integer shardId : shardIds) {
+                            out.writeVInt(shardId);
                         }
                     }
                 }
             }
-        } else {
-            out.writeVInt(0);
         }
     }
 
-    private boolean assertLocationsAllTreeMap(@Nullable Map<String, Map<String, List<Integer>>> locations) {
-        if (locations != null) {
-            if (!(locations instanceof TreeMap)) {
+    private boolean assertLocationsAllTreeMap(Map<String, Map<String, List<Integer>>> locations) {
+        if (locations.isEmpty()) {
+            return true;
+        }
+        if (!(locations instanceof TreeMap)) {
+            return false;
+        }
+        for (Map<String, List<Integer>> innerMap : locations.values()) {
+            if (!(innerMap instanceof TreeMap)) {
                 return false;
-            }
-            for (Map<String, List<Integer>> innerMap : locations.values()) {
-                if (!(innerMap instanceof TreeMap)) {
-                    return false;
-                }
             }
         }
         return true;

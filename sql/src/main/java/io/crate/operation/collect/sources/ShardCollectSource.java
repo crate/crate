@@ -161,9 +161,6 @@ public class ShardCollectSource implements CollectSource {
                 jobCollectContext.queryPhaseRamAccountingContext());
 
         Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
-        if (locations == null) {
-            throw new IllegalStateException("locations must not be null");
-        }
         final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
 
         if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
@@ -186,8 +183,6 @@ public class ShardCollectSource implements CollectSource {
                                                              String localNodeId) {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        assert locations != null : "routing must not be null";
-
         SharedShardContexts sharedShardContexts = jobCollectContext.sharedShardContexts();
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
@@ -276,7 +271,6 @@ public class ShardCollectSource implements CollectSource {
                                               String localNodeId,
                                               ShardProjectorChain projectorChain) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        assert locations != null : "locations must not be null";
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
         Map<String, List<Integer>> indexShardsMap = locations.get(localNodeId);

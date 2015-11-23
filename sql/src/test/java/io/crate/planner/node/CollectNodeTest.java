@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
@@ -36,6 +37,8 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -51,7 +54,7 @@ public class CollectNodeTest extends CrateUnitTest {
                 jobId,
                 0,
                 "cn",
-                new Routing(),
+                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()),
                 RowGranularity.DOC,
                 toCollect,
                 ImmutableList.<Projection>of(),

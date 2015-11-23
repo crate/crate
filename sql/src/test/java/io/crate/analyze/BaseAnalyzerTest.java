@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -121,7 +122,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
     static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_PARTITIONED_TABLE_IDENT, new Routing())
+            TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("id", DataTypes.INTEGER, null)
             .add("name", DataTypes.STRING, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
@@ -134,7 +135,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
     static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing())
+            TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
             .add("num", DataTypes.LONG, null)
@@ -148,7 +149,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_parted");
     static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing())
+            TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
             .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -161,7 +162,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "transactions");
     static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing())
+            TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("id", DataTypes.LONG, null)
             .add("sender", DataTypes.STRING, null)
             .add("recipient", DataTypes.STRING, null)
@@ -170,7 +171,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .build();
     static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "deeply_nested");
     static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-            DEEPLY_NESTED_TABLE_IDENT, new Routing())
+            DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
             .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ColumnPolicy.DYNAMIC)
@@ -186,7 +187,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     public static final TableIdent IGNORED_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "ignored_nested");
     public static final TableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-                IGNORED_NESTED_TABLE_IDENT, new Routing())
+                IGNORED_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                 .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                 .build();
 

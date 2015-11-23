@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -70,6 +71,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
@@ -109,7 +111,8 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
         consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
-    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"), new Routing())
+    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),
+            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("nope", DataTypes.BOOLEAN)
             .build();
 

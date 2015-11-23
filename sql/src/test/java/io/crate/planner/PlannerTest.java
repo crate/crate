@@ -3,6 +3,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.Constants;
 import io.crate.analyze.Analyzer;
@@ -200,7 +201,7 @@ public class PlannerTest extends CrateUnitTest {
                     .build();
             TableIdent multiplePartitionedTableIdent= new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
             TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, new Routing())
+                    multiplePartitionedTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                     .add("id", DataTypes.INTEGER, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .add("num", DataTypes.LONG, null)

@@ -55,6 +55,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -70,7 +71,8 @@ public class ExpressionAnalyzerNormalizeTest extends CrateUnitTest {
     private static final TableIdent TEST_TABLE_IDENT = new TableIdent(null, "test1");
     private static final FunctionInfo TEST_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.DOUBLE);
-    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT, new Routing())
+    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT,
+            new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("d", DataTypes.DOUBLE, null)

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnValidationException;
@@ -69,7 +70,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "alias");
     private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-            TEST_ALIAS_TABLE_IDENT, new Routing())
+            TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 

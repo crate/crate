@@ -109,9 +109,6 @@ public class CollectSourceResolver {
     public CollectSource getService(CollectPhase collectPhase, String localNodeId) {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        if (locations == null) {
-            throw new IllegalArgumentException("routing of collectPhase must contain locations");
-        }
         if (collectPhase.routing().containsShards(localNodeId)) {
             return shardCollectSource;
         }

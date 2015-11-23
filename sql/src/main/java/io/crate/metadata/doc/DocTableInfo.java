@@ -206,7 +206,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
         try {
             shardIterators = getShardIterators(whereClause, preference, state);
         } catch (IndexMissingException e) {
-            return new Routing();
+            return new Routing(locations);
         }
 
         fillLocationsFromShardIterators(locations, shardIterators, missingShards);

@@ -79,9 +79,6 @@ public class FetchContext extends AbstractExecutionSubContext {
 
         for (Routing routing : routingIterable) {
             Map<String, Map<String, List<Integer>>> locations = routing.locations();
-            if (locations == null) {
-                continue;
-            }
             Map<String, List<Integer>> indexShards = locations.get(localNodeId);
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                 String index = indexShardsEntry.getKey();

@@ -23,6 +23,7 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Reference;
@@ -46,6 +47,8 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
@@ -72,7 +75,7 @@ public class SystemCollectSourceTest {
                 UUID.randomUUID(),
                 1,
                 "collect",
-                new Routing(null),
+                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()),
                 RowGranularity.SHARD,
                 Collections.<Symbol>singletonList(shardId),
                 ImmutableList.<Projection>of(),
