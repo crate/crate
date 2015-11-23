@@ -128,7 +128,7 @@ public final class ExpressionFormatter {
         @Override
         protected String visitStringLiteral(StringLiteral node, Void context)
         {
-            return "'" + node.getValue().replace("'", "''") + "'";
+            return Literals.quoteStringLiteral(node.getValue());
         }
 
         @Override
@@ -596,8 +596,7 @@ public final class ExpressionFormatter {
 
         private static String formatIdentifier(String s)
         {
-            // TODO: handle escaping properly
-            return '"' + s + '"';
+            return Identifiers.quote(s);
         }
     }
 }
