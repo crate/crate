@@ -69,6 +69,8 @@ public class SysShardsTableInfo extends SysTableInfo {
                 new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
         public static final ColumnIdent RECOVERY_FILES_RECOVERED =
                 new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
+        public static final ColumnIdent RECOVERY_FILES_PERCENT =
+                new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
 
         public static final ColumnIdent RECOVERY_SIZE =
                 new ColumnIdent("recovery", ImmutableList.of("size"));
@@ -78,6 +80,8 @@ public class SysShardsTableInfo extends SysTableInfo {
                 new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
         public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
                 new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
+        public static final ColumnIdent RECOVERY_SIZE_PERCENT =
+                new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
     }
 
     public static class ReferenceIdents {
@@ -129,11 +133,13 @@ public class SysShardsTableInfo extends SysTableInfo {
                 .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
                 .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
                 .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
 
                 .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
                 .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
                 .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
                 .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
         infos = registrar.infos();
         columns = registrar.columns();

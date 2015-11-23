@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
@@ -30,28 +31,35 @@ public class ShardRecoverySizeExpression extends NestedObjectExpression {
     private static final String USED = "used";
     private static final String REUSED = "reused";
     private static final String RECOVERED = "recovered";
+    private static final String PERCENT = "percent";
 
     public ShardRecoverySizeExpression(RecoveryState recoveryState) {
         addChildImplementations(recoveryState);
     }
 
     private void addChildImplementations(final RecoveryState recoveryState) {
-        childImplementations.put(USED, new ChildlessRecoveryExpression() {
+        childImplementations.put(USED, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
                 return recoveryState.getIndex().totalBytes();
             }
         });
-        childImplementations.put(REUSED, new ChildlessRecoveryExpression() {
+        childImplementations.put(REUSED, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
                 return recoveryState.getIndex().reusedBytes();
             }
         });
-        childImplementations.put(RECOVERED, new ChildlessRecoveryExpression() {
+        childImplementations.put(RECOVERED, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
                 return recoveryState.getIndex().recoveredBytes();
+            }
+        });
+        childImplementations.put(PERCENT, new SimpleObjectExpression<Float>() {
+            @Override
+            public Float value() {
+                return recoveryState.getIndex().recoveredBytesPercent();
             }
         });
     }

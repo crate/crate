@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -42,19 +43,19 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final RecoveryState recoveryState) {
-        childImplementations.put(TOTAL_TIME, new ChildlessRecoveryExpression() {
+        childImplementations.put(TOTAL_TIME, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
                 return recoveryState.getTimer().time();
             }
         });
-        childImplementations.put(STAGE, new ChildlessRecoveryExpression() {
+        childImplementations.put(STAGE, new SimpleObjectExpression<BytesRef>() {
             @Override
             public BytesRef value() {
                 return BytesRefs.toBytesRef(recoveryState.getStage().name());
             }
         });
-        childImplementations.put(TYPE, new ChildlessRecoveryExpression() {
+        childImplementations.put(TYPE, new SimpleObjectExpression<BytesRef>() {
             @Override
             public BytesRef value() {
                 return BytesRefs.toBytesRef(recoveryState.getType().name());

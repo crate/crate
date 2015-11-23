@@ -332,17 +332,19 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         assertEquals(RecoveryState.Type.REPLICA.name(), recovery.get("type"));
         assertEquals(10_000L, recovery.get("total_time"));
 
-        Map<String, Integer> expectedFiles = new HashMap<String, Integer>(){{
+        Map<String, Object> expectedFiles = new HashMap<String, Object>(){{
             put("used", 2);
             put("reused", 1);
             put("recovered", 1);
+            put("percent", 0.0f);
         }};
         assertEquals(expectedFiles, recovery.get("files"));
 
-        Map<String, Long> expectedBytes = new HashMap<String, Long>(){{
+        Map<String, Object> expectedBytes = new HashMap<String, Object>(){{
             put("used", 2_048L);
             put("reused", 1_024L);
             put("recovered", 1_024L);
+            put("percent", 0.0f);
         }};
         assertEquals(expectedBytes, recovery.get("size"));
 

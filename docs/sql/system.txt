@@ -725,6 +725,8 @@ recovery
 | ``recovery['size']['recovered']``        | Number of actual bytes recovered in the shard.     | ``Long``    |
 |                                          | Includes both existing and reused bytes.           |             |
 +------------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']['percent']``          | Percentage of bytes already recovered.             | ``Float``   |
++------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['files']``                    | Shards recovery statistic in files.                | ``Object``  |
 +------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['files']['used']``            | Total number of files in the shard.                | ``Integer`` |
@@ -734,6 +736,8 @@ recovery
 +------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['files']['recovered']``       | Number of actual files recovered in the shard.     | ``Integer`` |
 |                                          | Includes both existing and reused files.           |             |
++------------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']['percent']``         | Percentage of files already recovered.             | ``Float``   |
 +------------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['total_time']``               | Returns elapsed time from the start of the shard   | ``Long``    |
 |                                          | recovery.                                          |             |
