@@ -56,7 +56,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             return new FunctionExpression<>(scalarImpl, argumentInputs);
         } else {
             throw new IllegalArgumentException(
-                    SymbolFormatter.format("Cannot find implementation for function %s", function));
+                    SymbolFormatter.formatTmpl("Cannot find implementation for function %s", function));
         }
     }
 
@@ -72,6 +72,6 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
     @Override
     protected Input<?> visitSymbol(Symbol symbol, C context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", symbol));
+        throw new UnsupportedOperationException(SymbolFormatter.formatTmpl("Can't handle Symbol %s", symbol));
     }
 }

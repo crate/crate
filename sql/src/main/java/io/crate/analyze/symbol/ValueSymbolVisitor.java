@@ -45,7 +45,7 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
     @Override
     protected T visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException(
-                SymbolFormatter.format("Unable to get value from symbol: %s", symbol));
+                SymbolFormatter.formatTmpl("Unable to get value from symbol: %s", symbol));
     }
 
 
