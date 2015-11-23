@@ -24,6 +24,7 @@ package io.crate.analyze.symbol;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Sorted;
+import io.crate.sql.Literals;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -43,7 +44,7 @@ public class LiteralValueFormatter {
 
 
     @SuppressWarnings("unchecked")
-    private void format(Object value, StringBuilder builder) {
+    public void format(Object value, StringBuilder builder) {
         if (value == null) {
             builder.append("NULL");
         } else if (value instanceof Map) {
@@ -55,7 +56,7 @@ public class LiteralValueFormatter {
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
         } else if (value instanceof CharSequence || value instanceof Character || value instanceof BytesRef) {
-            builder.append("'").append(BytesRefs.toString(value)).append("'");
+            builder.append(Literals.quoteStringLiteral(BytesRefs.toString(value)));
         } else {
             builder.append(value.toString());
         }

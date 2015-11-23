@@ -54,7 +54,7 @@ public class OrderByPositionVisitorTest extends CrateUnitTest {
     @Test
     public void testSymbolNotContained() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot sort by: dummyTable.other - not part of source symbols");
+        expectedException.expectMessage("Cannot sort by: other - not part of source symbols");
 
         Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
         OrderByPositionVisitor.orderByPositions(

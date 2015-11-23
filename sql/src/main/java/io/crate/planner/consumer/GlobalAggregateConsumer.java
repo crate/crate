@@ -195,11 +195,11 @@ public class GlobalAggregateConsumer implements Consumer {
             if (context.insideAggregation) {
                 ReferenceInfo.IndexType indexType = symbol.info().indexType();
                 if (indexType == ReferenceInfo.IndexType.ANALYZED) {
-                    throw new IllegalArgumentException(String.format(
-                            "Cannot select analyzed column '%s' within grouping or aggregations", SymbolFormatter.format(symbol)));
+                    throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                            "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
                 } else if (indexType == ReferenceInfo.IndexType.NO) {
-                    throw new IllegalArgumentException(String.format(
-                            "Cannot select non-indexed column '%s' within grouping or aggregations", SymbolFormatter.format(symbol)));
+                    throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                            "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
                 }
             }
             return null;

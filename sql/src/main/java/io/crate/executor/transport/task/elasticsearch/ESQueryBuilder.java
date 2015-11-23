@@ -1084,7 +1084,7 @@ public class ESQueryBuilder {
 
         private Void raiseUnsupported(Symbol symbol) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Cannot convert function <%s> into a query", symbol));
+                    SymbolFormatter.formatTmpl("Cannot convert function <%s> into a query", symbol));
         }
     }
 }
