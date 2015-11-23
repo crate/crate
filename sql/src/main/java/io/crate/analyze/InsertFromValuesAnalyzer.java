@@ -338,31 +338,27 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                                  ExpressionAnalyzer expressionAnalyzer,
                                                  Object[] insertValues) {
         ReferenceToLiteralConverter.Context toLiteralContext = new ReferenceToLiteralConverter.Context(context.columns(), insertValues);
-        for (ReferenceInfo referenceInfo : tableRelation.tableInfo().columns()) {
-            if (referenceInfo instanceof GeneratedReferenceInfo) {
-                Reference reference = new Reference(referenceInfo);
-                Symbol valueSymbol = TO_LITERAL_CONVERTER.process(
-                            ((GeneratedReferenceInfo) referenceInfo).generatedExpression(),
-                            toLiteralContext);
-                valueSymbol = expressionAnalyzer.normalize(valueSymbol);
-                if (valueSymbol.symbolType() == SymbolType.LITERAL) {
-                    Object value = ((Input) valueSymbol).value();
-                    int idx = context.columns().indexOf(reference);
-                    if (idx == -1) {
-                        // add column & value
-                        context.columns().add(reference);
-                        int valuesIdx = insertValues.length;
-                        insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
-                        insertValues[valuesIdx] = value;
-                    } else if (insertValues.length <= idx) {
-                        // only add value
-                        insertValues = Arrays.copyOf(insertValues, idx + 1);
-                        insertValues[idx] = value;
-                    } else if (!insertValues[idx].equals(value)) {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                "Given value %s for generated column does not match defined generated expression value %s",
-                                insertValues[idx], value));
-                    }
+        for (GeneratedReferenceInfo referenceInfo : tableRelation.tableInfo().generatedColumns()) {
+            Reference reference = new Reference(referenceInfo);
+            Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), toLiteralContext);
+            valueSymbol = expressionAnalyzer.normalize(valueSymbol);
+            if (valueSymbol.symbolType() == SymbolType.LITERAL) {
+                Object value = ((Input) valueSymbol).value();
+                int idx = context.columns().indexOf(reference);
+                if (idx == -1) {
+                    // add column & value
+                    context.columns().add(reference);
+                    int valuesIdx = insertValues.length;
+                    insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
+                    insertValues[valuesIdx] = value;
+                } else if (insertValues.length <= idx) {
+                    // only add value
+                    insertValues = Arrays.copyOf(insertValues, idx + 1);
+                    insertValues[idx] = value;
+                } else if (!insertValues[idx].equals(value)) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Given value %s for generated column does not match defined generated expression value %s",
+                            insertValues[idx], value));
                 }
             }
         }
