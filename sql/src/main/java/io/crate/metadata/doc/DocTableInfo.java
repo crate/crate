@@ -57,6 +57,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     private final TimeValue routingFetchTimeout;
 
     private final List<ReferenceInfo> columns;
+    private final List<GeneratedReferenceInfo> generatedColumns;
     private final List<ReferenceInfo> partitionedByColumns;
     private final Map<ColumnIdent, IndexReferenceInfo> indexColumns;
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
@@ -87,6 +88,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     public DocTableInfo(TableIdent ident,
                         List<ReferenceInfo> columns,
                         List<ReferenceInfo> partitionedByColumns,
+                        List<GeneratedReferenceInfo> generatedColumns,
                         ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
                         ImmutableMap<ColumnIdent, ReferenceInfo> references,
                         ImmutableMap<ColumnIdent, String> analyzers,
@@ -107,6 +109,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
         this.clusterService = clusterService;
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
+        this.generatedColumns = generatedColumns;
         this.indexColumns = indexColumns;
         this.references = references;
         this.analyzers = analyzers;
@@ -149,6 +152,10 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     @Override
     public Collection<ReferenceInfo> columns() {
         return columns;
+    }
+
+    public List<GeneratedReferenceInfo> generatedColumns() {
+        return generatedColumns;
     }
 
     @Override

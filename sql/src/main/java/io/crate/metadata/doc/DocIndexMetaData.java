@@ -75,6 +75,7 @@ public class DocIndexMetaData {
     // columns should be ordered
     private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableSortedMap.naturalOrder();
     private final ImmutableList.Builder<ReferenceInfo> partitionedByColumnsBuilder = ImmutableList.builder();
+    private final ImmutableList.Builder<GeneratedReferenceInfo> generatedColumnReferencesBuilder = ImmutableList.builder();
 
     private final Functions functions;
     private final TableIdent ident;
@@ -86,6 +87,7 @@ public class DocIndexMetaData {
     private ImmutableList<ReferenceInfo> columns;
     private ImmutableMap<ColumnIdent, IndexReferenceInfo> indices;
     private ImmutableList<ReferenceInfo> partitionedByColumns;
+    private ImmutableList<GeneratedReferenceInfo> generatedColumnReferences;
     private ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private ImmutableList<ColumnIdent> primaryKey;
     private ColumnIdent routingCol;
@@ -153,6 +155,7 @@ public class DocIndexMetaData {
             info = newInfo(column, type, columnPolicy, indexType);
         } else {
             info = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression);
+            generatedColumnReferencesBuilder.add((GeneratedReferenceInfo) info);
         }
 
         // don't add it if there is a partitioned equivalent of this column
@@ -188,7 +191,7 @@ public class DocIndexMetaData {
         return new ReferenceIdent(ident, column);
     }
 
-    private ReferenceInfo newGeneratedColumnInfo(ColumnIdent column,
+    private GeneratedReferenceInfo newGeneratedColumnInfo(ColumnIdent column,
                                                  DataType type,
                                                  ColumnPolicy columnPolicy,
                                                  ReferenceInfo.IndexType indexType,
@@ -469,6 +472,7 @@ public class DocIndexMetaData {
             referencesBuilder.put(sysColumn.v1(), sysColumn.v2());
         }
         references = referencesBuilder.build();
+        generatedColumnReferences = generatedColumnReferencesBuilder.build();
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
 
@@ -490,6 +494,10 @@ public class DocIndexMetaData {
 
     public ImmutableList<ReferenceInfo> partitionedByColumns() {
         return partitionedByColumns;
+    }
+
+    public ImmutableList<GeneratedReferenceInfo> generatedColumnReferences() {
+        return generatedColumnReferences;
     }
 
     public ImmutableList<ColumnIdent> primaryKey() {
