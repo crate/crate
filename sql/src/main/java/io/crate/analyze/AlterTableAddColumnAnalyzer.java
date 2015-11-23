@@ -90,8 +90,8 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReferenceInfo(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(
-                    "The table \"%s\" already has a column named \"%s\"",
-                    tableInfo.ident().fqn(),
+                    "The table %s already has a column named %s",
+                    tableInfo.ident().sqlFqn(),
                     column.ident().sqlFqn()));
         }
         for (AnalyzedColumnDefinition child : column.children()) {

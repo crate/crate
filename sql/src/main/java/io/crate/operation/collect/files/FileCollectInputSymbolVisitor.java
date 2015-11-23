@@ -61,7 +61,7 @@ public class FileCollectInputSymbolVisitor
         LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol.info());
         if (implementation == null) {
             throw new IllegalArgumentException(
-                    SymbolFormatter.format("Can't handle Reference \"%s\"", symbol));
+                    SymbolFormatter.formatTmpl("Can't handle Reference \"%s\"", symbol));
         }
 
         context.expressions.add(implementation);

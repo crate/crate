@@ -141,7 +141,7 @@ public class EvaluatingNormalizer {
                 return impl.normalizeSymbol(function);
             }
             if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
+                logger.trace(SymbolFormatter.formatTmpl("No implementation found for function %s", function));
             }
             return function;
         }
@@ -158,7 +158,7 @@ public class EvaluatingNormalizer {
             }
 
             if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
+                logger.trace(SymbolFormatter.formatTmpl("Can't resolve reference %s", symbol));
             }
             return symbol;
         }

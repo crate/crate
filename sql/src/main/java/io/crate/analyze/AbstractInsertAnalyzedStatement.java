@@ -118,7 +118,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
             if (referenceInfo == null) {
                 DynamicReference reference = tableInfo.getDynamic(column, true);
                 if (reference == null) {
-                    throw new ColumnUnknownException(column.fqn());
+                    throw new ColumnUnknownException(column.sqlFqn());
                 }
                 referenceInfo = reference.info();
                 if (!allocatedReferences.add(referenceInfo)) {

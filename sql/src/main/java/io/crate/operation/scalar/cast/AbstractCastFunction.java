@@ -39,7 +39,13 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.Locale;
 
-public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> {
+import static io.crate.Constants.Strings.PAREN_CLOSE;
+import static io.crate.Constants.Strings.PAREN_OPEN;
+
+public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> implements SymbolFormatter.FunctionFormatter {
+
+    public static final String TRY_CAST_SQL_NAME = "try_cast";
+    public static final String CAST_SQL_NAME = "cast";
 
     protected final DataType<To> returnType;
     protected final FunctionInfo info;
@@ -83,12 +89,31 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> {
     protected Symbol onNormalizeException(Symbol argument, Throwable t) {
         throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "cannot cast %s to %s",
-                        SymbolFormatter.format(argument), returnType), t);
+                        SymbolFormatter.INSTANCE.formatSimple(argument), returnType), t);
     }
 
     protected To onEvaluateException(From argument, Throwable t) {
         Throwables.propagate(t);
         return null;
+    }
+
+    @Override
+    public String beforeArgs(Function function) {
+        if (function.info().ident().name().startsWith(CastFunctionResolver.TRY_CAST_PREFIX)) {
+            return TRY_CAST_SQL_NAME + PAREN_OPEN;
+        } else {
+            return CAST_SQL_NAME + PAREN_OPEN;
+        }
+    }
+
+    @Override
+    public String afterArgs(Function function) {
+        return " AS " + function.valueType().getName() + PAREN_CLOSE;
+    }
+
+    @Override
+    public boolean formatArgs(Function function) {
+        return true;
     }
 
     protected abstract static class Resolver implements DynamicFunctionResolver {

@@ -113,7 +113,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testNormalizeWithInvalidReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"dummyTable.foo\" to a geo point");
+        expectedException.expectMessage("Cannot convert foo to a geo point");
 
         normalize(Arrays.<Symbol>asList(
                 createReference("foo", DataTypes.STRING),

@@ -152,8 +152,8 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
     private void validateType(Symbol symbol, DataType dataType) {
         if (!dataType.equals(DataTypes.GEO_POINT)) {
-            throw new IllegalArgumentException(SymbolFormatter.format(
-                    "Cannot convert \"%s\" to a geo point", symbol));
+            throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                    "Cannot convert %s to a geo point", symbol));
         }
     }
 
