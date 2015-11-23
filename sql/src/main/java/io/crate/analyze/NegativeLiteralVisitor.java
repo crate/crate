@@ -51,6 +51,6 @@ public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
 
     @Override
     protected Literal visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Cannot negate symbol %s", symbol));
+        throw new UnsupportedOperationException(SymbolFormatter.formatTmpl("Cannot negate symbol %s", symbol));
     }
 }

@@ -795,7 +795,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(metaMapping.size(), is(1));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(generatedColumnsMapping.size(), is(1));
-        assertThat(generatedColumnsMapping.get("day"), is("date_trunc('day', \"ts\")"));
+        assertThat(generatedColumnsMapping.get("day"), is("date_trunc('day', ts)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mappingProperties.size(), is(2));
@@ -806,17 +806,16 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testCreateTableGeneratedColumnWithType() throws Exception {
+    public void testCreateTableGeneratedColumnWithCast() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
-                "create table foo (ts timestamp, day long GENERATED ALWAYS as date_trunc('day', ts))");
-
+                "create table foo (ts timestamp, day timestamp GENERATED ALWAYS as ts + 1)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("day"), is("cast(date_trunc('day', \"ts\") as long)"));
+        assertThat(generatedColumnsMapping.get("day"), is("cast((ts + 1) AS timestamp)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>)mappingProperties.get("day");
-        assertThat((String) dayMapping.get("type"), is("long"));
+        assertThat((String) dayMapping.get("type"), is("date"));
     }
 
     @Test
@@ -826,7 +825,16 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("name"), is("concat(\"user\"['name'], 'foo')"));
+        assertThat(generatedColumnsMapping.get("name"), is("concat(user['name'], 'foo')"));
+    }
+
+    @Test
+    public void testCreateTableGeneratedColumnParameter() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (user object as (name string), name as concat(user['name'], ?))", $("foo"));
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
+        assertThat(generatedColumnsMapping.get("name"), is("concat(user['name'], 'foo')"));
     }
 
     @Test
@@ -839,7 +847,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateTableGeneratedColumnWithMatch() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("can only MATCH on columns, not on foo.name");
+        expectedException.expectMessage("can only MATCH on columns, not on name");
         analyze("create table foo (name string, bar as match(name, 'crate'))");
     }
 

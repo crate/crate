@@ -342,8 +342,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreatePartitionedByGeoShape() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column 'shape' of type geo_shape in PARTITIONED BY clause");
+        expectedException.expectMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
         analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
-
     }
+
+
 }

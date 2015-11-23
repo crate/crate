@@ -35,7 +35,7 @@ import java.util.Map;
 public class ToGeoFunction extends AbstractCastFunction<Object, Object> {
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.geoFunctionMap.entrySet()) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.GEO_FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new GeoResolver(function.getKey(), function.getValue()));
         }
     }
