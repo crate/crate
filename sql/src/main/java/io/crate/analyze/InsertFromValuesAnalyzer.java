@@ -344,25 +344,53 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             valueSymbol = expressionAnalyzer.normalize(valueSymbol);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
-                int idx = context.columns().indexOf(reference);
-                if (idx == -1) {
-                    // add column & value
-                    context.columns().add(reference);
-                    int valuesIdx = insertValues.length;
-                    insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
-                    insertValues[valuesIdx] = value;
-                } else if (insertValues.length <= idx) {
-                    // only add value
-                    insertValues = Arrays.copyOf(insertValues, idx + 1);
-                    insertValues[idx] = value;
-                } else if (!insertValues[idx].equals(value)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Given value %s for generated column does not match defined generated expression value %s",
-                            insertValues[idx], value));
+                if (tableRelation.tableInfo().isPartitioned()
+                    && tableRelation.tableInfo().partitionedByColumns().contains(referenceInfo)) {
+                    addGeneratedPartitionedColumnValue(referenceInfo.ident().columnIdent(), value, context.currentPartitionMap());
+                } else {
+                    insertValues = addGeneratedColumnValue(context, reference, value, insertValues);
                 }
             }
         }
         return insertValues;
+    }
+
+    private Object[] addGeneratedColumnValue(InsertFromValuesAnalyzedStatement context,
+                                             Reference reference,
+                                             Object value,
+                                             Object[] insertValues) {
+        int idx = context.columns().indexOf(reference);
+        if (idx == -1) {
+            // add column & value
+            context.columns().add(reference);
+            int valuesIdx = insertValues.length;
+            insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
+            insertValues[valuesIdx] = value;
+        } else if (insertValues.length <= idx) {
+            // only add value
+            insertValues = Arrays.copyOf(insertValues, idx + 1);
+            insertValues[idx] = value;
+        } else if (!insertValues[idx].equals(value)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Given value %s for generated column does not match defined generated expression value %s",
+                    insertValues[idx], value));
+        }
+        return insertValues;
+    }
+
+    private void addGeneratedPartitionedColumnValue(ColumnIdent columnIdent,
+                                                    Object value,
+                                                    Map<String, String> partitionMap) {
+        assert partitionMap != null;
+        String generatedValue = BytesRefs.toString(value);
+        String givenValue = partitionMap.get(columnIdent.name());
+        if (givenValue == null) {
+            partitionMap.put(columnIdent.name(), generatedValue);
+        } else if (!givenValue.equals(generatedValue)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Given value %s for generated column does not match defined generated expression value %s",
+                    givenValue, generatedValue));
+        }
     }
 
 }
