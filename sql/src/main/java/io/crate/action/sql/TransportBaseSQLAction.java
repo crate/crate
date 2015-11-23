@@ -254,7 +254,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         String message;
                         Throwable unwrappedException = Exceptions.unwrap(t);
                         if (unwrappedException instanceof CancellationException) {
-                            message = Constants.KILLED_MESSAGE;
+                            message = Constants.Strings.KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
                         } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {

@@ -66,7 +66,7 @@ public class GroupBySymbolValidator {
             if (!context.insideFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
                 throw new IllegalArgumentException(
                         String.format("Cannot GROUP BY '%s': invalid data type '%s'",
-                                SymbolFormatter.format(field),
+                                SymbolFormatter.INSTANCE.formatSimple(field),
                                 field.valueType()));
             }
             return null;

@@ -34,6 +34,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Sorted;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -427,7 +428,7 @@ public class TestingHelpers {
                     return false;
                 }
                 String name = ((Reference) item).info().ident().columnIdent().outputName();
-                if (!name.equals(expectedName)) {
+                if (!name.equals(Identifiers.quoteIfNeeded(expectedName))) {
                     desc.appendText("different name ").appendValue(name);
                     return false;
                 }
