@@ -632,6 +632,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testBulkUpdateWithOnlyOneBulkArgIsProducingRowCountResult() throws Exception {
         execute("create table t (name string) with (number_of_replicas = 0)");
+        ensureYellow();
         // regression test, used to throw a ClassCastException because the ExecutionPhasesTask created a
         // QueryResult instead of RowCountResult
         SQLBulkResponse bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
