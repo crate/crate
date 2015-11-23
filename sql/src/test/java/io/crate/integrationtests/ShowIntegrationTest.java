@@ -231,6 +231,19 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                   ")");
     }
 
+    @Test
+    public void testWeirdIdentifiers() throws Exception {
+        execute("CREATE TABLE with_quote (\"\"\"\" string) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("SHOW CREATE TABLE with_quote");
+        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"with_quote\" (\n" +
+                "   \"\"\"\" STRING\n" +
+                ")\n" +
+                "CLUSTERED INTO 1 SHARDS");
+
+    }
+
     private void assertRow(String expected) {
         assertEquals(1L, response.rowCount());
         try {

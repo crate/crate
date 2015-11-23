@@ -25,9 +25,8 @@ package io.crate.testing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.*;
 
 import java.util.Collection;
@@ -114,7 +113,7 @@ public class SQLPrinter {
             if (name != null) {
                 return name;
             }
-            String prefix = name = RelationNamer.INSTANCE.process(rel, null);
+            String prefix = name = SymbolFormatter.RelationNamer.INSTANCE.process(rel, null);
             Integer idx = 1;
             while (relNames.inverse().containsKey(name)) {
                 name = prefix + (idx++).toString();
@@ -123,36 +122,6 @@ public class SQLPrinter {
             return name;
         }
 
-    }
-
-    private static class RelationNamer extends AnalyzedRelationVisitor<Void, String> {
-
-        static final RelationNamer INSTANCE = new RelationNamer();
-
-        @Override
-        protected String visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
-            return relation.getClass().getCanonicalName();
-        }
-
-        @Override
-        public String visitTableRelation(TableRelation tableRelation, Void context) {
-            return tableRelation.tableInfo().ident().fqn();
-        }
-
-        @Override
-        public String visitDocTableRelation(DocTableRelation relation, Void context) {
-            return relation.tableInfo().ident().fqn();
-        }
-
-        @Override
-        public String visitQueriedDocTable(QueriedDocTable table, Void context) {
-            return table.tableRelation().tableInfo().ident().fqn();
-        }
-
-        @Override
-        public String visitQueriedTable(QueriedTable table, Void context) {
-            return table.tableRelation().tableInfo().ident().fqn();
-        }
     }
 
     private static class SymbolPrinter extends SymbolVisitor<Context, Void> {
@@ -228,7 +197,7 @@ public class SQLPrinter {
 
         @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
-            sb.append(SymbolFormatter.format(symbol));
+            sb.append(SymbolFormatter.INSTANCE.formatFullQualified(symbol));
             return null;
         }
 

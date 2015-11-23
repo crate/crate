@@ -67,6 +67,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
 
     public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
 
+
     public static String fieldNameWithBoost(String fieldName, @Nullable Object boost) {
         if (boost == null) {
             return fieldName;

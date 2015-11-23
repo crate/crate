@@ -421,7 +421,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             assertTrue("did not fail for existing column o", false);
         } catch (SQLActionException e) {
             // column o exists already
-            assertThat(e.getMessage(), is("The table \"doc.t\" already has a column named \"o\""));
+            assertThat(e.getMessage(), is("The table doc.t already has a column named o"));
         }
         execute("select * from information_schema.columns where " +
                 "table_name = 't' and schema_name='doc'" +
@@ -634,7 +634,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\"," +
-                                 "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', \\\"ts\\\")\"}}," +
+                                 "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
                                  "\"day\":{\"type\":\"date\",\"doc_values\":true,\"format\":\"dateOptionalTime\"}," +

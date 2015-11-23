@@ -84,10 +84,10 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
             Symbol argumentColumn = super.convert(expression, context);
             if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
+                        SymbolFormatter.formatTmpl("Referenced column '%s' in VALUES expression not found", argumentColumn));
             }
             if (!(argumentColumn instanceof Field)) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
+                throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
                         "Argument to VALUES expression must reference a column that " +
                                 "is part of the INSERT statement. %s is invalid", argumentColumn));
             }

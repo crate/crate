@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -31,9 +32,10 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
-public abstract class MultiplyFunction extends ArithmeticFunction {
+public abstract class MultiplyFunction extends ArithmeticFunction implements SymbolFormatter.OperatorFormatter {
 
     public static final String NAME = "multiply";
+    public static final String SQL_SYMBOL = "*";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
@@ -41,6 +43,11 @@ public abstract class MultiplyFunction extends ArithmeticFunction {
 
     public MultiplyFunction(FunctionInfo info) {
         super(info);
+    }
+
+    @Override
+    public String operator(Function function) {
+        return SQL_SYMBOL;
     }
 
     private static class DoubleMultiplyFunction extends MultiplyFunction {

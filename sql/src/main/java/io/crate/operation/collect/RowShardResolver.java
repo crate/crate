@@ -103,7 +103,7 @@ public class RowShardResolver {
 
         @Override
         protected Input<?> visitSymbol(Symbol symbol, ImplementationSymbolVisitor.Context context) {
-            throw new AssertionError("Symbol " + SymbolFormatter.format(symbol) + " not supported");
+            throw new AssertionError(SymbolFormatter.formatTmpl("Symbol %s not supported", symbol));
         }
 
         @Override
