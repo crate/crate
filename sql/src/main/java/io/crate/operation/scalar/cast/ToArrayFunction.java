@@ -38,7 +38,7 @@ public class ToArrayFunction extends AbstractCastFunction<Object, Object[]> {
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.arrayFunctionMap.entrySet()) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.ARRAY_FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new ArrayResolver(function.getKey(), function.getValue()));
         }
     }

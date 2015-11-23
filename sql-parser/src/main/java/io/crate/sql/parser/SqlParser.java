@@ -29,78 +29,87 @@ import org.antlr.runtime.tree.BufferedTreeNodeStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.TreeNodeStream;
 
-public final class SqlParser
-{
-    private SqlParser() {}
+public final class SqlParser {
+    private SqlParser() {
+    }
 
-    public static Statement createStatement(String sql)
-    {
+    public static Statement createStatement(String sql) {
         try {
             return createStatement(parseStatement(sql));
-        }
-        catch (StackOverflowError e) {
+        } catch (StackOverflowError e) {
             throw new ParsingException("statement is too large (stack overflow while parsing)");
         }
     }
 
-    public static Expression createExpression(String expression)
-    {
+    public static Expression createExpression(String expression) {
         try {
             return createExpression(parseExpression(expression));
-        }
-        catch (StackOverflowError e) {
+        } catch (StackOverflowError e) {
             throw new ParsingException("expression is too large (stack overflow while parsing)");
         }
     }
 
     @VisibleForTesting
-    static Statement createStatement(CommonTree tree)
-    {
+    static Statement createStatement(CommonTree tree) {
         TreeNodeStream stream = new BufferedTreeNodeStream(tree);
         StatementBuilder builder = new StatementBuilder(stream);
         try {
             return builder.statement().value;
-        }
-        catch (RecognitionException e) {
+        } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }
     }
 
-    private static Expression createExpression(CommonTree tree)
-    {
+    private static Expression createExpression(CommonTree tree) {
         TreeNodeStream stream = new BufferedTreeNodeStream(tree);
         StatementBuilder builder = new StatementBuilder(stream);
         try {
             return builder.singleExpression().value;
-        }
-        catch (RecognitionException e) {
+        } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }
     }
 
     @VisibleForTesting
-    static CommonTree parseStatement(String sql)
-    {
+    static CommonTree parseStatement(String sql) {
         try {
             return (CommonTree) getParser(sql).singleStatement().getTree();
-        }
-        catch (RecognitionException e) {
+        } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }
     }
 
-    private static CommonTree parseExpression(String expression)
-    {
+    private static CommonTree parseExpression(String expression) {
         try {
             return (CommonTree) getParser(expression).singleExpression().getTree();
-        }
-        catch (RecognitionException e) {
+        } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }
     }
 
-    private static StatementParser getParser(String sql)
-    {
+    public static String createIdentifier(String expression) {
+        return createIdentifier(parseIdentifier(expression));
+    }
+
+    private static String createIdentifier(CommonTree identTree) {
+        TreeNodeStream stream = new BufferedTreeNodeStream(identTree);
+        StatementBuilder builder = new StatementBuilder(stream);
+        try {
+            return builder.ident().value;
+        } catch (RecognitionException e) {
+            throw new AssertionError(e); // RecognitionException is not thrown
+        }
+    }
+
+    private static CommonTree parseIdentifier(String expression) {
+        try {
+            return (CommonTree) getParser(expression).ident().getTree();
+        } catch (RecognitionException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static StatementParser getParser(String sql) {
         CharStream stream = new CaseInsensitiveStream(new ANTLRStringStream(sql));
         StatementLexer lexer = new StatementLexer(stream);
         TokenStream tokenStream = new CommonTokenStream(lexer);

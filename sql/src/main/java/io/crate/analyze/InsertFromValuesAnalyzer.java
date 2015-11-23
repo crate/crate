@@ -205,7 +205,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             } catch (ClassCastException e) {
                 // symbol is no Input
                 throw new ColumnValidationException(columnIdent.name(),
-                        String.format("Invalid value '%s' in insert statement", SymbolFormatter.format(valuesSymbol)));
+                        SymbolFormatter.formatTmpl("Invalid value '%s' in insert statement", valuesSymbol));
             }
 
             if (context.primaryKeyColumnIndices().contains(i)) {

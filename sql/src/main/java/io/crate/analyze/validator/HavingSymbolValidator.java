@@ -54,8 +54,8 @@ public class HavingSymbolValidator {
         public Void visitField(Field field, HavingContext context) {
             if (!context.insideAggregation && (context.groupBySymbols == null || !context.groupBySymbols.contains(field))) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("Cannot use column %s outside of an Aggregation in HAVING clause. " +
-                                "Only GROUP BY keys allowed here.", field));
+                        SymbolFormatter.formatTmpl("Cannot use column %s outside of an Aggregation in HAVING clause. " +
+                                                   "Only GROUP BY keys allowed here.", field));
             }
             return null;
         }

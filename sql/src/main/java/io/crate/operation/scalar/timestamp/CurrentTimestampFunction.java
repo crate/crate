@@ -26,6 +26,7 @@ import com.google.common.math.LongMath;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -37,7 +38,7 @@ import org.joda.time.DateTimeUtils;
 
 import java.math.RoundingMode;
 
-public class CurrentTimestampFunction extends Scalar<Long, Integer> {
+public class CurrentTimestampFunction extends Scalar<Long, Integer> implements SymbolFormatter.FunctionFormatter {
 
     public static final String NAME = "CURRENT_TIMESTAMP";
     public static final int DEFAULT_PRECISION = 3;
@@ -98,5 +99,20 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
             throw new IllegalArgumentException(String.format("Invalid argument to %s", NAME));
         }
 
+    }
+
+    @Override
+    public String beforeArgs(Function function) {
+        return "CURRENT_TIMESTAMP" + (function.arguments().isEmpty() ? "" : "(");
+    }
+
+    @Override
+    public String afterArgs(Function function) {
+        return function.arguments().isEmpty() ? "" : ")";
+    }
+
+    @Override
+    public boolean formatArgs(Function function) {
+        return !function.arguments().isEmpty();
     }
 }
