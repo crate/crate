@@ -362,12 +362,15 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectRecoveryExpression() throws Exception {
-        SQLResponse response = transportExecutor.exec("select recovery, recovery['files'], recovery['size'] from sys.shards");
+        SQLResponse response = transportExecutor.exec("select recovery, " +
+            "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
+            "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
+            "from sys.shards");
         for (Object[] row : response.rows()) {
             Map recovery = (Map) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
-            Map<String, Long> size = (Map<String, Long>) row[2];
             assertThat((( Map<String, Integer>)recovery.get("files")).entrySet(), equalTo(files.entrySet()));
+            Map<String, Long> size = (Map<String, Long>) row[5];
             assertThat((( Map<String, Long>)recovery.get("size")).entrySet(), equalTo(size.entrySet()));
         }
     }
