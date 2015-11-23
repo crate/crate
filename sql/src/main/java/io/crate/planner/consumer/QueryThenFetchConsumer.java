@@ -21,9 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
@@ -164,7 +162,8 @@ public class QueryThenFetchConsumer implements Consumer {
                     pd.fetchSources(),
                     pd.remainingOutputs(),
                     readerAllocations.nodeReaders(),
-                    readerAllocations.indices());
+                    readerAllocations.indices(),
+                    readerAllocations.indicesToIdents());
 
             MergePhase localMergePhase = null;
             if (plannedSubQuery.resultIsDistributed()){
@@ -244,12 +243,14 @@ public class QueryThenFetchConsumer implements Consumer {
                     new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
                             ImmutableList.of(fetchPushDown.docIdCol()),
                             fetchPushDown.fetchRefs()));
+
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
                     fetchSources,
                     querySpec.outputs(),
                     readerAllocations.nodeReaders(),
-                    readerAllocations.indices());
+                    readerAllocations.indices(),
+                    readerAllocations.indicesToIdents());
 
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";

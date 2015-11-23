@@ -27,7 +27,6 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -83,6 +82,7 @@ public class FetchProjector extends AbstractProjector {
     private final int collectPhaseId;
     private final Map<TableIdent, FetchSource> fetchSources;
     private final TreeMap<Integer, String> readerIndices;
+    private final Map<String, TableIdent> indicesToIdents;
     private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
 
@@ -121,7 +121,8 @@ public class FetchProjector extends AbstractProjector {
                           Map<TableIdent, FetchSource> fetchSources,
                           List<Symbol> outputSymbols,
                           Map<String, IntSet> nodeReaders,
-                          TreeMap<Integer, String> readerIndices) {
+                          TreeMap<Integer, String> readerIndices,
+                          Map<String, TableIdent> indicesToIdents) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.threadPool = threadPool;
         this.jobId = jobId;
@@ -129,6 +130,7 @@ public class FetchProjector extends AbstractProjector {
         this.fetchSources = fetchSources;
         this.nodeReaders = nodeReaders;
         this.readerIndices = readerIndices;
+        this.indicesToIdents = indicesToIdents;
 
         FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(functions);
 
@@ -347,10 +349,7 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private FetchSource getFetchSource(String index) {
-        if (fetchSources.size() == 1) {
-            return Iterables.getOnlyElement(fetchSources.values());
-        }
-        TableIdent ti = TableIdent.fromIndexName(index);
+        TableIdent ti = indicesToIdents.get(index);
         return fetchSources.get(ti);
     }
 
@@ -361,7 +360,10 @@ public class FetchProjector extends AbstractProjector {
         private Fetches() {
             this.indexInfos = new TreeMap<>();
             for (Map.Entry<Integer, String> entry : readerIndices.entrySet()) {
-                indexInfos.put(entry.getKey(), new IndexInfo(entry.getValue(), getFetchSource(entry.getValue())));
+                FetchSource fetchSource = getFetchSource(entry.getValue());
+                if (fetchSource != null) {
+                    indexInfos.put(entry.getKey(), new IndexInfo(entry.getValue(), fetchSource));
+                }
             }
         }
 

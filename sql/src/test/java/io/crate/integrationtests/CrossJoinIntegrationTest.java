@@ -356,4 +356,28 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), arrayContaining("s.id", "n.name"));
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testFilteredJoinWithPartitionsAndSelectFromOnlyOneTable() throws Exception {
+        execute("create table users ( " +
+                "id int primary key, " +
+                "name string, " +
+                "gender string primary key" +
+                ") partitioned by (gender) with (number_of_replicas = 0)");
+        execute("create table events ( " +
+                "name string, " +
+                "user_id int)");
+        ensureYellow();
+
+        execute("insert into users (id, name, gender) values " +
+                "(1, 'Arthur', 'male'), " +
+                "(2, 'Trillian', 'female'), " +
+                "(3, 'Marvin', 'android'), " +
+                "(4, 'Slartibartfast', 'male')");
+
+        execute("insert into events (name, user_id) values ('a', 1), ('a', 2), ('b', 1)");
+        execute("refresh table users, events");
+
+        execute("select users.* from users join events on users.id = events.user_id order by users.id");
+    }
 }
