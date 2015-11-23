@@ -22,22 +22,30 @@
 package io.crate.executor.transport;
 
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
-import io.crate.metadata.Functions;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
@@ -81,6 +89,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -93,10 +102,22 @@ public class TransportShardUpsertAction
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
+    private final static ReferenceToLiteralConverter TO_LITERAL_CONVERTER = new ReferenceToLiteralConverter();
+    private final static Function<ReferenceInfo, Reference> REFERENCE_INFO_TO_REFERENCE = new Function<ReferenceInfo, Reference>() {
+        @Nullable
+        @Override
+        public Reference apply(@Nullable ReferenceInfo input) {
+            if (input == null) {
+                return null;
+            }
+            return new Reference(input);
+        }
+    };
 
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
     private final Functions functions;
+    private final Schemas schemas;
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
@@ -109,11 +130,13 @@ public class TransportShardUpsertAction
                                       TransportIndexAction indexAction,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
-                                      Functions functions) {
+                                      Functions functions,
+                                      Schemas schemas) {
         super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
+        this.schemas = schemas;
         jobContextService.addListener(this);
     }
 
@@ -196,6 +219,7 @@ public class TransportShardUpsertAction
                                                       ShardUpsertRequest request,
                                                       AtomicBoolean killed) {
         ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
+        DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             ShardUpsertRequest.Item item = request.items().get(i);
@@ -204,6 +228,7 @@ public class TransportShardUpsertAction
             }
             try {
                 indexItem(
+                        tableInfo,
                         request,
                         item,
                         shardId,
@@ -228,7 +253,8 @@ public class TransportShardUpsertAction
         return shardUpsertResponse;
     }
 
-    protected IndexResponse indexItem(ShardUpsertRequest request,
+    protected IndexResponse indexItem(DocTableInfo tableInfo,
+                                      ShardUpsertRequest request,
                                       ShardUpsertRequest.Item item,
                                       ShardId shardId,
                                       boolean tryInsertFirst,
@@ -244,17 +270,17 @@ public class TransportShardUpsertAction
                     throw ExceptionsHelper.convertToElastic(e);
                 }
             } else {
-                indexRequest = new IndexRequest(prepareUpdate(request, item, shardId), request);
+                indexRequest = new IndexRequest(prepareUpdate(tableInfo, request, item, shardId), request);
             }
             return indexAction.execute(indexRequest).actionGet();
         } catch (Throwable t) {
             if (t instanceof VersionConflictEngineException
                     && retryCount < item.retryOnConflict()) {
-                return indexItem(request, item, shardId, false, retryCount + 1);
+                return indexItem(tableInfo, request, item, shardId, false, retryCount + 1);
             } else if (tryInsertFirst && item.updateAssignments() != null
                     && t instanceof DocumentAlreadyExistsException) {
                 // insert failed, document already exists, try update
-                return indexItem(request, item, shardId, false, 0);
+                return indexItem(tableInfo, request, item, shardId, false, 0);
             } else {
                 throw t;
             }
@@ -269,7 +295,10 @@ public class TransportShardUpsertAction
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
-    public IndexRequest prepareUpdate(ShardUpsertRequest request, ShardUpsertRequest.Item item, ShardId shardId) throws ElasticsearchException {
+    public IndexRequest prepareUpdate(DocTableInfo tableInfo,
+                                      ShardUpsertRequest request,
+                                      ShardUpsertRequest.Item item,
+                                      ShardId shardId) throws ElasticsearchException {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
@@ -308,6 +337,8 @@ public class TransportShardUpsertAction
              */
             pathsToUpdate.put(entry.getKey(), entry.getValue().extract(getResult));
         }
+
+        processGeneratedColumns(tableInfo, pathsToUpdate);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
@@ -355,6 +386,63 @@ public class TransportShardUpsertAction
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
         return indexRequest;
+    }
+
+    @VisibleForTesting
+    void processGeneratedColumns(final DocTableInfo tableInfo, Map<String, Object> updatedColumns) {
+        List<String> updatedColumnNames = Lists.newArrayList(updatedColumns.keySet());
+        List<ReferenceInfo> updatedReferenceInfos = Lists.transform(updatedColumnNames, new Function<String, ReferenceInfo>() {
+            @Nullable
+            @Override
+            public ReferenceInfo apply(@Nullable String input) {
+                if (input == null) {
+                    return null;
+                }
+                return tableInfo.getReferenceInfo(ColumnIdent.fromPath(input));
+            }
+        });
+        List<Reference> updatedReferences = Lists.transform(updatedReferenceInfos, REFERENCE_INFO_TO_REFERENCE);
+        ReferenceToLiteralConverter.Context toLiteralContext = new ReferenceToLiteralConverter.Context(
+                updatedReferences, updatedColumns.values().toArray());
+        ExpressionAnalyzer expressionAnalyzer =
+                new ExpressionAnalyzer(functions, null, null, null, null, null);
+
+        for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
+            // partitionedBy columns cannot be updated
+            if (!tableInfo.partitionedByColumns().contains(referenceInfo)) {
+                if (generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedReferenceInfos)) {
+                    // at least one referenced column was updated, need to evaluate expression and update column
+                    Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), toLiteralContext);
+                    valueSymbol = expressionAnalyzer.normalize(valueSymbol);
+                    if (valueSymbol.symbolType() == SymbolType.LITERAL) {
+                        Object value = ((Input) valueSymbol).value();
+                        Object givenValue = updatedColumns.get(referenceInfo.ident().columnIdent().fqn());
+                        if (givenValue == null) {
+                            // add column & value
+                            updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
+                        } else if (!givenValue.equals(value)) {
+                            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                    "Given value %s for generated column does not match defined generated expression value %s",
+                                    givenValue, value));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean generatedExpressionEvaluationNeeded(List<ReferenceInfo> referencedReferenceInfos,
+                                                        List<ReferenceInfo> updatedReferenceInfos) {
+        for (ReferenceInfo referenceInfo : referencedReferenceInfos) {
+            for (ReferenceInfo updatedReferenceInfo : updatedReferenceInfos) {
+                if (referenceInfo.equals(updatedReferenceInfo)
+                    || referenceInfo.ident().columnIdent().isChildOf(updatedReferenceInfo.ident().columnIdent())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

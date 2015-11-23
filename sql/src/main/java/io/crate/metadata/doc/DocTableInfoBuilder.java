@@ -162,6 +162,7 @@ public class DocTableInfoBuilder {
                 ident,
                 md.columns(),
                 md.partitionedByColumns(),
+                md.generatedColumnReferences(),
                 md.indices(),
                 md.references(),
                 md.analyzers(),
