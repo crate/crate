@@ -24,14 +24,21 @@ package io.crate.executor.transport;
 import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -43,6 +50,8 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,6 +59,16 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class TransportShardUpsertActionTest extends CrateUnitTest {
+
+    private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
+    private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
+            GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            .add("ts", DataTypes.TIMESTAMP, null)
+            .add("user", DataTypes.OBJECT, null)
+            .add("user", DataTypes.STRING, Arrays.asList("name"))
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false);
+    private static DocTableInfo GENERATED_COLUMN_INFO;
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
@@ -62,13 +81,15 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                                  IndicesService indicesService,
                                                  JobContextService jobContextService,
                                                  ShardStateAction shardStateAction,
-                                                 Functions functions) {
+                                                 Functions functions,
+                                                 Schemas schemas) {
             super(settings, threadPool, clusterService, transportService, actionFilters,
-                    jobContextService, indexAction, indicesService, shardStateAction, functions);
+                    jobContextService, indexAction, indicesService, shardStateAction, functions, schemas);
         }
 
         @Override
-        protected IndexResponse indexItem(ShardUpsertRequest request,
+        protected IndexResponse indexItem(DocTableInfo tableInfo,
+                                          ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           ShardId shardId,
                                           boolean tryInsertFirst,
@@ -81,6 +102,14 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
+        ModulesBuilder builder = new ModulesBuilder();
+        builder.add(new ScalarFunctionModule());
+        Injector injector = builder.createInjector();
+        Functions functions = injector.getInstance(Functions.class);
+        if (GENERATED_COLUMN_INFO == null) {
+            GENERATED_COLUMN_INFO = GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
+        }
+
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
                 ImmutableSettings.EMPTY,
                 mock(ThreadPool.class),
@@ -91,7 +120,8 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 mock(IndicesService.class),
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
-                mock(Functions.class)
+                functions,
+                mock(Schemas.class)
                 );
     }
 
@@ -103,7 +133,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
         ShardId shardId = new ShardId("characters", 0);
         final ShardUpsertRequest request = new ShardUpsertRequest(
-                new ShardId("characters", 0), null, new Reference[]{idRef}, null, UUID.randomUUID());
+                shardId, null, new Reference[]{idRef}, null, UUID.randomUUID());
         request.add(1, "1", null, new Object[]{1}, null);
 
         ShardUpsertResponse response = transportShardUpsertAction.processRequestItems(
@@ -111,5 +141,53 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(), is("IndexMissingException[[characters] missing]"));
+    }
+
+    @Test
+    public void testProcessGeneratedColumns() throws Exception {
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("ts", 1448274317000L)
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
+    }
+
+    @Test
+    public void testProcessGeneratedColumnsWithSubscript() throws Exception {
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("user.name", new BytesRef("zoo"))
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
+    }
+
+    @Test
+    public void testProcessGeneratedColumnsWithSubscriptParentUpdated() throws Exception {
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("user", MapBuilder.<String, Object>newMapBuilder().put("name", new BytesRef("zoo")).map())
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
+    }
+
+    @Test
+    public void testProcessGeneratedColumnsWithSubscriptParentUpdatedValueMissing() throws Exception {
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("user", MapBuilder.<String, Object>newMapBuilder().put("age", 35).map())
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
     }
 }
