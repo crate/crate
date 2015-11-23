@@ -97,7 +97,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         } else {
             E docLevelExpression = referenceResolver.getImplementation(symbol.info());
             if (docLevelExpression == null) {
-                throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+                throw new UnhandledServerException(SymbolFormatter.formatTmpl("Cannot handle Reference %s", symbol));
             }
             context.docLevelExpressions.add(docLevelExpression);
             return docLevelExpression;

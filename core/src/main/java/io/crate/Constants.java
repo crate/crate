@@ -47,7 +47,15 @@ public class Constants {
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
 
-    public static final String KILLED_MESSAGE = "KILLED";
+    public static class Strings {
+        public static final String PAREN_OPEN = "(";
+        public static final String PAREN_CLOSE = ")";
+        public static final String COMMA = ",";
+        public static final String ELLIPSIS = "...";
+        public static final String NULL_LOWER = "null";
+        public static final String WS = " ";
+        public static final String DOT = ".";
 
-    public static final String NULL = "null";
+        public static final String KILLED_MESSAGE = "KILLED";
+    }
 }

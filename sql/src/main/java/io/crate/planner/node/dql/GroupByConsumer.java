@@ -95,12 +95,10 @@ public class GroupByConsumer {
         public Void visitReference(Reference symbol, DocTableRelation context) {
             if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible",
-                                SymbolFormatter.format(symbol)));
+                        SymbolFormatter.formatTmpl("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
             } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
                 throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible",
-                                SymbolFormatter.format(symbol)));
+                        SymbolFormatter.formatTmpl("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible", symbol));
             }
             return null;
         }
