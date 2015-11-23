@@ -34,15 +34,18 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,7 +54,6 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class UpdateAnalyzerTest extends BaseAnalyzerTest {
@@ -74,11 +76,29 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
+    static final TableIdent PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "parted_generated_column");
+    static final TestingTableInfo.Builder PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
+            PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            .add("ts", DataTypes.TIMESTAMP, null)
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
+    static TableInfo PARTED_GENERATED_COLUMN_INFO;
+
+    static final TableIdent NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "nested_parted_generated_column");
+    static final TestingTableInfo.Builder NESTED_PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
+            NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            .add("user", DataTypes.OBJECT, null)
+            .add("user", DataTypes.STRING, Arrays.asList("name"))
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true);
+    static TableInfo NESTED_PARTED_GENERATED_COLUMN_INFO;
+
+
+    @Mock
+    private static SchemaInfo schemaInfo;
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
@@ -105,9 +125,25 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new TestMetaDataModule(),
                 new OperatorModule(),
                 new PredicateModule(),
-                new MetaDataSysModule()
+                new MetaDataSysModule(),
+                new ScalarFunctionModule()
         ));
         return modules;
+    }
+
+    @Before
+    public void bindGeneratedColumnTables() {
+        if (PARTED_GENERATED_COLUMN_INFO == null) {
+            PARTED_GENERATED_COLUMN_INFO = PARTED_GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
+        }
+        when(schemaInfo.getTableInfo(PARTED_GENERATED_COLUMN_TABLE_IDENT.name()))
+                .thenReturn(PARTED_GENERATED_COLUMN_INFO);
+
+        if (NESTED_PARTED_GENERATED_COLUMN_INFO == null) {
+            NESTED_PARTED_GENERATED_COLUMN_INFO = NESTED_PARTED_GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
+        }
+        when(schemaInfo.getTableInfo(NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT.name()))
+                .thenReturn(NESTED_PARTED_GENERATED_COLUMN_INFO);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement) {
@@ -340,6 +376,20 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test( expected = ColumnValidationException.class )
     public void testUpdatePartitionedByColumn() throws Exception {
         analyze("update parted set date = 1395874800000");
+    }
+
+    @Test
+    public void testUpdateColumnReferencedInGeneratedPartitionByColumn() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Updating a column which is referenced in a partitioned by generated column expression is not supported");
+        analyze("update parted_generated_column set ts = 1449999900000");
+    }
+
+    @Test
+    public void testUpdateColumnReferencedInGeneratedPartitionByColumnNestedParent() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Updating a column which is referenced in a partitioned by generated column expression is not supported");
+        analyze("update nested_parted_generated_column set user = {name = 'Ford'}");
     }
 
     @Test
