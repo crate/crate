@@ -155,7 +155,6 @@ public class DocIndexMetaData {
             info = newInfo(column, type, columnPolicy, indexType);
         } else {
             info = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression);
-            generatedColumnReferencesBuilder.add((GeneratedReferenceInfo) info);
         }
 
         // don't add it if there is a partitioned equivalent of this column
@@ -164,6 +163,9 @@ public class DocIndexMetaData {
                 columnsBuilder.add(info);
             }
             referencesBuilder.put(info.ident().columnIdent(), info);
+            if (info instanceof GeneratedReferenceInfo) {
+                generatedColumnReferencesBuilder.add((GeneratedReferenceInfo) info);
+            }
         }
         if (partitioned) {
             partitionedByColumnsBuilder.add(info);
@@ -440,23 +442,21 @@ public class DocIndexMetaData {
         Collection<ReferenceInfo> referenceInfos = references.values();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
                 functions, null, null, null, referenceInfos);
-        for (ReferenceInfo referenceInfo : referenceInfos) {
-            if (referenceInfo instanceof GeneratedReferenceInfo) {
-                GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
-                Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
-                ExpressionAnalysisContext context = new ExpressionAnalysisContext();
-                generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
-                generatedReferenceInfo.referencedReferenceInfos(Lists.transform(context.references(), new Function<Reference, ReferenceInfo>() {
-                    @Nullable
-                    @Override
-                    public ReferenceInfo apply(@Nullable Reference input) {
-                        if (input == null) {
-                            return null;
-                        }
-                        return input.info();
+        for (ReferenceInfo referenceInfo : generatedColumnReferences) {
+            GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
+            Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
+            ExpressionAnalysisContext context = new ExpressionAnalysisContext();
+            generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
+            generatedReferenceInfo.referencedReferenceInfos(Lists.transform(context.references(), new Function<Reference, ReferenceInfo>() {
+                @Nullable
+                @Override
+                public ReferenceInfo apply(@Nullable Reference input) {
+                    if (input == null) {
+                        return null;
                     }
-                }));
-            }
+                    return input.info();
+                }
+            }));
         }
     }
 
