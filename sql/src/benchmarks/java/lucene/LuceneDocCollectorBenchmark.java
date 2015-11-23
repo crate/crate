@@ -27,6 +27,8 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.ThreadFilter;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
 import com.google.common.collect.Iterables;
@@ -59,8 +61,17 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
 @TimeoutSuite(millis = TimeUnits.HOUR) // 1 hour
 @ThreadLeakLingering(linger = 5000 * 60) // 5 minutes
+@ThreadLeakFilters(defaultFilters = true, filters = { LuceneDocCollectorBenchmark.BenchmarkThreadFilter.class })
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
 public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
+
+    public static final class BenchmarkThreadFilter implements ThreadFilter {
+
+        @Override
+        public boolean reject(Thread t) {
+            return t.getName().contains("H2");
+        }
+    }
 
     @Rule
     public BenchmarkRule benchmarkRun = new BenchmarkRule();
