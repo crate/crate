@@ -762,4 +762,26 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[1][1], is(1447804800000L));
         assertThat((String) response.rows()[1][2], is("bar"));
     }
+
+    @Test
+    public void testInsertOnDuplicateWithGeneratedColumn() throws Exception {
+        execute("create table test_generated_column (" +
+                " id integer primary key," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
+                1, "2015-11-18T11:11:00"});
+        refresh();
+
+        execute("insert into test_generated_column (id, ts) values (?, ?)" +
+                "on duplicate key update ts = ?",
+                new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
+        refresh();
+
+        execute("select ts, day from test_generated_column");
+        assertThat((Long) response.rows()[0][0], is(1448289780000L));
+        assertThat((Long) response.rows()[0][1], is(1448236800000L));
+    }
 }
