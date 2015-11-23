@@ -28,11 +28,24 @@ import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
 import org.elasticsearch.index.shard.IndexShard;
 
 
-public class DynamicShardReferenceResolver extends AbstractReferenceResolver {
+public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
+
+    /**
+     * <p>
+     *     The RecoveryShardReferenceResolver is necessary to be able to instantiate
+     *     the ShardRecoveryExpression at runtime.
+     *     This is required because the ShardRecoveryExpression needs to push the same recoveryState
+     *     to all of its childImplementations in order to receive the same state
+     *     when having multiple recovery objects in the select list of a query, e.g.
+     * </p>
+     * <code>
+     *     SELECT recovery['size'], recovery['files'] FROM sys.nodes;
+     * </code>
+     */
 
     private final AbstractReferenceResolver staticReferencesResolver;
 
-    public DynamicShardReferenceResolver(AbstractReferenceResolver shardResolver, IndexShard indexShard) {
+    public RecoveryShardReferenceResolver(AbstractReferenceResolver shardResolver, IndexShard indexShard) {
         staticReferencesResolver = shardResolver;
         implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY,
                 new ShardRecoveryExpression(indexShard));

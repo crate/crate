@@ -32,7 +32,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.shard.DynamicShardReferenceResolver;
+import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -141,7 +141,7 @@ public class ShardCollectService {
         EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                new DynamicShardReferenceResolver(shardResolver, indexShard)
+                new RecoveryShardReferenceResolver(shardResolver, indexShard)
         );
         collectPhase =  collectPhase.normalize(shardNormalizer);
         if (collectPhase.whereClause().noMatch()) {

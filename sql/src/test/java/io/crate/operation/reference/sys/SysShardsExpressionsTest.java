@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
-import io.crate.metadata.shard.DynamicShardReferenceResolver;
+import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -88,7 +88,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         ).createInjector();
         AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
         IndexShard indexShard = injector.getInstance(IndexShard.class);
-        resolver = new DynamicShardReferenceResolver(shardRefResolver, indexShard);
+        resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
         schemas = injector.getInstance(Schemas.class);
     }
 

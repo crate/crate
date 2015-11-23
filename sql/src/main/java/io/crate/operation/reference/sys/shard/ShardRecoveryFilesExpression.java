@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
@@ -32,31 +31,24 @@ public class ShardRecoveryFilesExpression extends NestedObjectExpression  {
     private static final String REUSED = "reused";
     private static final String RECOVERED = "recovered";
 
-    abstract class ShardFileRecoveryExpression implements ReferenceImplementation {
-        @Override
-        public ReferenceImplementation getChildImplementation(String name) {
-            return null;
-        }
-    }
-
     public ShardRecoveryFilesExpression(RecoveryState recoveryState) {
         addChildImplementations(recoveryState);
     }
 
     private void addChildImplementations(final RecoveryState recoveryState) {
-        childImplementations.put(USED, new ShardFileRecoveryExpression() {
+        childImplementations.put(USED, new ChildlessRecoveryExpression() {
             @Override
             public Integer value() {
                 return recoveryState.getIndex().totalFileCount();
             }
         });
-        childImplementations.put(REUSED, new ShardFileRecoveryExpression() {
+        childImplementations.put(REUSED, new ChildlessRecoveryExpression() {
             @Override
             public Integer value() {
                 return recoveryState.getIndex().reusedFileCount();
             }
         });
-        childImplementations.put(RECOVERED, new ShardFileRecoveryExpression() {
+        childImplementations.put(RECOVERED, new ChildlessRecoveryExpression() {
             @Override
             public Integer value() {
                 return recoveryState.getIndex().recoveredFileCount();
