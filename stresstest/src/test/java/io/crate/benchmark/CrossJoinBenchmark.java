@@ -124,7 +124,6 @@ public class CrossJoinBenchmark extends BenchmarkBase {
     }
 
 
-    /*
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testQTF() {
@@ -154,7 +153,7 @@ public class CrossJoinBenchmark extends BenchmarkBase {
                 QTF_WITH_OFFSET_SQL_STMT,
                 2, TimeUnit.MINUTES
         );
-    }*/
+    }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
