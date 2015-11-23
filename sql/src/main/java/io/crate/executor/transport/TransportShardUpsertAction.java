@@ -53,6 +53,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -321,22 +323,36 @@ public class TransportShardUpsertAction
     }
 
     private IndexRequest prepareInsert(ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
-        BytesRef rawSource = null;
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+        int rawSourceColumn = -1;
         for (int i = 0; i < item.insertValues().length; i++) {
             Reference ref = request.insertColumns()[i];
-            if (ref.info().ident().columnIdent().equals(DocSysColumns.RAW)) {
-                rawSource = (BytesRef)item.insertValues()[i];
+            if (ref.ident().columnIdent().equals(DocSysColumns.RAW)) {
+                rawSourceColumn = i;
                 break;
             }
-            builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
         }
-        IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(item.id()).routing(item.routing())
-                .create(!request.overwriteDuplicates()).operationThreaded(false);
-        if (rawSource != null) {
-            indexRequest.source(rawSource.bytes);
+
+        BytesReference source;
+        if (rawSourceColumn > -1) {
+            source = new BytesArray((BytesRef) item.insertValues()[rawSourceColumn]);
         } else {
-            indexRequest.source(builder.bytes());
+            XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+            for (int i = 0; i < item.insertValues().length; i++) {
+                Reference ref = request.insertColumns()[i];
+                builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+            }
+            source = builder.bytes();
+        }
+
+        IndexRequest indexRequest = Requests.indexRequest(request.index())
+                .type(request.type())
+                .id(item.id())
+                .routing(item.routing())
+                .source(source)
+                .create(!request.overwriteDuplicates())
+                .operationThreaded(false);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
         return indexRequest;
     }

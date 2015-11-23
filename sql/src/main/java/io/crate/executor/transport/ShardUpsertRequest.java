@@ -205,8 +205,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     }
 
     public ShardUpsertRequest(ShardId shardId,
-                              @Nullable
-                                         String[] updateColumns,
+                              @Nullable String[] updateColumns,
                               @Nullable Reference[] insertColumns,
                               UUID jobId) {
         this.jobId = jobId;
