@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
+import io.crate.sql.Identifiers;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,6 +36,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class TableIdent implements Streamable {
@@ -91,7 +93,11 @@ public class TableIdent implements Streamable {
     }
 
     public String fqn() {
-        return String.format("%s.%s", schema, name);
+        return String.format(Locale.ENGLISH, "%s.%s", schema, name);
+    }
+
+    public String sqlFqn() {
+        return String.format(Locale.ENGLISH, "%s.%s", Identifiers.quoteIfNeeded(schema), Identifiers.quoteIfNeeded(name));
     }
 
     public String indexName() {

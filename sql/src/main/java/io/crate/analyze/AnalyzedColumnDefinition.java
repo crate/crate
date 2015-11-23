@@ -172,7 +172,7 @@ public class AnalyzedColumnDefinition {
     public void validate() {
         if (analyzer != null && !analyzer.equals("not_analyzed") && !dataType.equals("string")) {
             throw new IllegalArgumentException(
-                    String.format("Can't use an Analyzer on column \"%s\" because analyzers are only allowed on columns of type \"string\".",
+                    String.format("Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                             ident.sqlFqn()
                     ));
         }
