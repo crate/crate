@@ -299,7 +299,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitStringLiteral(StringLiteral node, Integer indent) {
-            builder.append(String.format(Locale.ENGLISH, "'%s'", node.getValue()));
+            builder.append(Literals.quoteStringLiteral(node.getValue()));
             return null;
         }
 
@@ -515,7 +515,7 @@ public final class SqlFormatter {
         private String quoteIdentifierIfNeeded(String identifier) {
             List<String> quoted = new ArrayList<>();
             for (String part : Splitter.on(".").split(identifier)) {
-                quoted.add(String.format(Locale.ENGLISH, "\"%s\"", part));
+                quoted.add(Identifiers.quote(part));
             }
             return Joiner.on(".").join(quoted);
         }
