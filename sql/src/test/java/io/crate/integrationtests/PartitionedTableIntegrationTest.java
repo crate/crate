@@ -482,6 +482,25 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testInsertWithGeneratedColumnAsPartitionedColumn() throws Exception {
+        execute("create table parted_generated (" +
+                " id integer," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)" +
+                ") partitioned by (day)" +
+                " with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into parted_generated (id, ts) values (?, ?)", new Object[]{
+                1, "2015-11-23T14:43:00"
+        });
+        refresh();
+
+        execute("select day from parted_generated");
+        assertThat((Long) response.rows()[0][0], is(1448236800000L));
+    }
+
+    @Test
     public void testSelectFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
