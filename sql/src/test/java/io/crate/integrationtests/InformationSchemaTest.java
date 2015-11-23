@@ -1055,6 +1055,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas = 0)");
         execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = true");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("name| true| concat(concat(\"lastname\", '_'), \"firstname\")\n"));
+                is("name| true| concat(concat(lastname, '_'), firstname)\n"));
     }
 }

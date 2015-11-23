@@ -90,7 +90,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     public void testAddColumnWithAnalyzerAndNonStringType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-                "Can't use an Analyzer on column \"foobar['age']\" because analyzers are only allowed on columns of type \"string\"");
+                "Can't use an Analyzer on column foobar['age'] because analyzers are only allowed on columns of type \"string\"");
         analyze("alter table users add column foobar object as (age int index using fulltext)");
     }
 
@@ -103,7 +103,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAddColumnThatExistsAlready() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The table \"doc.users\" already has a column named \"name\"");
+        expectedException.expectMessage("The table doc.users already has a column named name");
         analyze("alter table users add column name string");
     }
 

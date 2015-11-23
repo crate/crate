@@ -56,7 +56,7 @@ public class SemanticSortValidator {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "Cannot ORDER BY '%s': invalid return type '%s'.",
-                                SymbolFormatter.format(symbol),
+                                SymbolFormatter.INSTANCE.formatSimple(symbol),
                                 symbol.valueType())
                 );
             }
@@ -88,7 +88,7 @@ public class SemanticSortValidator {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "Cannot ORDER BY '%s': invalid data type '%s'.",
-                                SymbolFormatter.format(field),
+                                SymbolFormatter.INSTANCE.formatSimple(field),
                                 field.valueType())
                 );
             }

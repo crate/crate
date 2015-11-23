@@ -24,6 +24,7 @@ package io.crate.operation.predicate;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -33,7 +34,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 
-public class NotPredicate extends Scalar<Boolean, Boolean> {
+public class NotPredicate extends Scalar<Boolean, Boolean> implements SymbolFormatter.FunctionFormatter {
 
     public static final String NAME = "op_not";
     public static final FunctionInfo INFO = new FunctionInfo(
@@ -74,5 +75,20 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             return true;
         }
         return !value;
+    }
+
+    @Override
+    public String beforeArgs(Function function) {
+        return "NOT (";
+    }
+
+    @Override
+    public String afterArgs(Function function) {
+        return ")";
+    }
+
+    @Override
+    public boolean formatArgs(Function function) {
+        return true;
     }
 }
