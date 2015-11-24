@@ -36,6 +36,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
@@ -333,7 +334,11 @@ public class SymbolBasedTransportShardUpsertAction
                 rawSource = (BytesRef)item.insertValues()[i];
                 break;
             }
-            builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+            if (ref.info().granularity() == RowGranularity.DOC) {
+                // don't include values for partitions in the _source
+                // ideally columns with partition granularity shouldn't be part of the request
+                builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+            }
         }
         IndexRequest indexRequest = Requests.indexRequest(request.index()).type(request.type()).id(item.id()).routing(item.routing())
                 .create(!request.overwriteDuplicates()).operationThreaded(false);
