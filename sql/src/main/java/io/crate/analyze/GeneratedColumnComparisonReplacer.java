@@ -22,14 +22,11 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.operator.AndOperator;
-import io.crate.operation.operator.EqOperator;
-import com.google.common.collect.ImmutableSet;
 import io.crate.operation.operator.*;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.operation.scalar.arithmetic.CeilFunction;
@@ -38,7 +35,6 @@ import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -58,14 +54,6 @@ public class GeneratedColumnComparisonReplacer {
             RoundFunction.NAME,
             DateTruncFunction.NAME
     );
-
-    private static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
-        @Override
-        public boolean apply(@Nullable Symbol input) {
-            return input instanceof Reference && ((Reference)input).info() instanceof GeneratedReferenceInfo;
-        }
-    };
-
 
     private final ComparisonReplaceVisitor comparisonReplaceVisitor;
 
@@ -118,7 +106,7 @@ public class GeneratedColumnComparisonReplacer {
                 }
                 if (reference != null
                     && otherSide != null
-                    && !SymbolVisitors.any(IS_GENERATED_COLUMN, otherSide)) {
+                    && !SymbolVisitors.any(Symbols.IS_GENERATED_COLUMN, otherSide)) {
                     return addComparison(function, reference, otherSide, context);
                 }
             }
