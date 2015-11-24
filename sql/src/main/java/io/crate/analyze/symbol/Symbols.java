@@ -21,9 +21,11 @@
 
 package io.crate.analyze.symbol;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -44,6 +46,13 @@ public class Symbols {
                     return input.valueType();
                 }
             };
+
+    public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
+        @Override
+        public boolean apply(@Nullable Symbol input) {
+            return input instanceof Reference && ((Reference)input).info() instanceof GeneratedReferenceInfo;
+        }
+    };
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, TYPES_FUNCTION);
