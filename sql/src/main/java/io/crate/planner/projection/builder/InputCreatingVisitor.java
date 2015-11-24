@@ -29,16 +29,16 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.*;
 
 @Singleton
-class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVisitor.Context, Symbol> {
+public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVisitor.Context, Symbol> {
 
     public static final InputCreatingVisitor INSTANCE = new InputCreatingVisitor();
 
-    static class Context {
+    public static class Context {
 
         final HashMap<Symbol, InputColumn> inputs;
         final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
 
-        Context(Collection<? extends Symbol> inputs) {
+        public Context(Collection<? extends Symbol> inputs) {
             this.inputs = new HashMap<>(inputs.size());
 
             // non deterministic functions would override each other in a normal hashmap
