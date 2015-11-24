@@ -33,6 +33,7 @@ import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Node;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
 
@@ -42,6 +43,13 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         this.analysisMetaData = analysisMetaData;
     }
 
+    private IllegalArgumentException tooManyValuesException(int actual, int expected) {
+        throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH,
+                        "INSERT statement contains a VALUES clause with too many elements (%s), expected (%s)",
+                        actual, expected));
+    }
+
     protected void handleInsertColumns(Insert node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
         // allocate columnsLists
         int numColumns;
@@ -49,7 +57,7 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         if (node.columns().size() == 0) { // no columns given in statement
             numColumns = context.tableInfo().columns().size();
             if (maxInsertValues > numColumns) {
-                throw new IllegalArgumentException("too many values");
+                throw tooManyValuesException(maxInsertValues, numColumns);
             }
             context.columns(new ArrayList<Reference>(numColumns));
 
@@ -64,10 +72,10 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
 
         } else {
             numColumns = node.columns().size();
-            context.columns(new ArrayList<Reference>(numColumns));
-            if (maxInsertValues > node.columns().size()) {
-                throw new IllegalArgumentException("too few values");
+            if (maxInsertValues > numColumns) {
+                throw tooManyValuesException(maxInsertValues, numColumns);
             }
+            context.columns(new ArrayList<Reference>(numColumns));
             for (int i = 0; i < node.columns().size(); i++) {
                 addColumn(node.columns().get(i), context, i);
             }
