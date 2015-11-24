@@ -29,15 +29,35 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
+import com.google.common.collect.ImmutableSet;
+import io.crate.operation.operator.*;
+import io.crate.operation.scalar.DateTruncFunction;
+import io.crate.operation.scalar.arithmetic.CeilFunction;
+import io.crate.operation.scalar.arithmetic.FloorFunction;
+import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 
 @Singleton
 public class GeneratedColumnComparisonReplacer {
+
+
+    private static final Map<String, String> ROUNDING_FUNCTION_MAPPING = ImmutableMap.of(
+            GtOperator.NAME, GteOperator.NAME,
+            LtOperator.NAME, LteOperator.NAME
+    );
+
+    private static final Set<String> ROUNDING_FUNCTIONS = ImmutableSet.of(
+            CeilFunction.NAME,
+            FloorFunction.NAME,
+            RoundFunction.NAME,
+            DateTruncFunction.NAME
+    );
 
     private static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
         @Override
@@ -85,7 +105,7 @@ public class GeneratedColumnComparisonReplacer {
 
         @Override
         public Symbol visitFunction(Function function, Context context) {
-            if (function.info().ident().name().equals(EqOperator.NAME)) {
+            if (Operators.COMPARISON_OPERATORS.contains(function.info().ident().name())) {
                 Reference reference = null;
                 Symbol otherSide = null;
                 for (int i = 0; i < function.arguments().size(); i++) {
@@ -108,10 +128,21 @@ public class GeneratedColumnComparisonReplacer {
 
         private Function addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
             GeneratedReferenceInfo genColInfo = context.referencedRefsToGeneratedColumn.get(reference.info());
-            if (genColInfo != null) {
+            if (genColInfo != null && genColInfo.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
+
+                Function generatedFunction = (Function)genColInfo.generatedExpression();
+                String operator = function.info().ident().name();
+                if (!operator.equals(EqOperator.NAME)) {
+                    if (!ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
+                       return function;
+                    }
+                    // rewrite operator
+                    operator = ROUNDING_FUNCTION_MAPPING.get(operator);
+                }
+
                 Reference genColReference = new Reference(genColInfo);
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, genColReference);
-                FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(EqOperator.NAME,
+                FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operator,
                                                       Arrays.asList(genColReference.info().type(), wrapped.valueType())), DataTypes.BOOLEAN);
                 Function comparisonFunction = new Function(comparisonFunctionInfo, Arrays.asList(genColReference, wrapped));
                 return new Function(AndOperator.INFO, Arrays.<Symbol>asList(function, comparisonFunction));
