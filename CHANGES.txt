@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Internal optimization: Avoid writing partition values to the source.
+
  - Updated crate certificates in the ssl truststore.
 
  - Fixed an issue that could cause bulk update requests to fail if the
