@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
@@ -50,12 +52,10 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -157,6 +157,47 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     }
 
     @Test
+    public void testProcessGeneratedColumnsWithValue() throws Exception {
+        // just test that passing the correct value will not result in an exception
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("ts", 1448274317000L)
+                .put("day", 1448236800000L)
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
+    }
+
+    @Test
+    public void testProcessGeneratedColumnsWithInvalidValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+                "Given value 1448274317000 for generated column does not match defined generated expression value 1448236800000");
+
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("ts", 1448274317000L)
+                .put("day", 1448274317000L)
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+    }
+
+    @Test
+    public void testProcessGeneratedColumnsWithInvalidValueNoValidation() throws Exception {
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+                .put("ts", 1448274317000L)
+                .put("day", 1448274317000L)
+                .map();
+
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, false);
+
+        assertThat(updatedColumns.size(), is(2));
+        assertThat((Long) updatedColumns.get("day"), is(1448274317000L));
+    }
+
+    @Test
     public void testProcessGeneratedColumnsWithSubscript() throws Exception {
         Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
                 .put("user.name", new BytesRef("zoo"))
@@ -190,5 +231,55 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
+    }
+
+    @Test
+    public void testBuildMapFromSource() throws Exception {
+        TableIdent charactersIdent = new TableIdent(null, "characters");
+        Reference tsRef = new Reference(new ReferenceInfo(
+                new ReferenceIdent(charactersIdent, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP));
+        Reference nameRef = new Reference(new ReferenceInfo(
+                new ReferenceIdent(charactersIdent, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP));
+
+
+        Reference[] insertColumns = new Reference[]{tsRef, nameRef};
+        Object[] insertValues = new Object[]{1448274317000L, "Ford"};
+
+        Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, false);
+
+        validateMapOrder(sourceMap, Arrays.asList("ts", "user.name"));
+    }
+
+    @Test
+    public void testBuildMapFromRawSource() throws Exception {
+        TableIdent charactersIdent = new TableIdent(null, "characters");
+        Reference rawRef = new Reference(new ReferenceInfo(
+                new ReferenceIdent(charactersIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING));
+
+        BytesRef bytesRef = XContentFactory.jsonBuilder().startObject()
+                .field("ts", 1448274317000L)
+                .field("user.name", "Ford")
+                .endObject()
+                .bytes().toBytesRef();
+
+        Reference[] insertColumns = new Reference[]{rawRef};
+        Object[] insertValues = new Object[]{bytesRef};
+
+        Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, true);
+
+        validateMapOrder(sourceMap, Arrays.asList("ts", "user.name"));
+    }
+
+    private void validateMapOrder(Map<String, Object> map, List<String> keys) {
+        assertThat(map, instanceOf(LinkedHashMap.class));
+
+        Iterator<String> it = map.keySet().iterator();
+        int idx = 0;
+        while (it.hasNext()) {
+            String key = it.next();
+            assertThat(key, is(keys.get(idx)));
+            idx++;
+        }
+
     }
 }
