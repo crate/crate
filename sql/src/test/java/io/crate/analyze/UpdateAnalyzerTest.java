@@ -78,14 +78,14 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     static final TableIdent PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "parted_generated_column");
     static final TestingTableInfo.Builder PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
     static TableInfo PARTED_GENERATED_COLUMN_INFO;
 
     static final TableIdent NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "nested_parted_generated_column");
     static final TestingTableInfo.Builder NESTED_PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true);
