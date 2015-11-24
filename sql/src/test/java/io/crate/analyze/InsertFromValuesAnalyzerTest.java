@@ -1015,4 +1015,30 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into generated_column (ts, day) values (?, ?)",
                 new Object[]{"2015-11-18T11:11:00", 1449999900000L});
     }
+
+    @Test
+    public void testInsertMultipleValuesWithGeneratedColumn() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze(
+                "INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00', {name='Egon'})");
+        assertThat(analysis.columns(), hasSize(4));
+        assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
+        assertThat(analysis.sourceMaps(), hasSize(2));
+        assertThat(analysis.sourceMaps(), contains(
+                Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, new BytesRef("Johnnybar")),
+                Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, new BytesRef("Egonbar"))));
+    }
+
+    @Test
+    public void testInsertMultipleValuesTooManyValues() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("INSERT statement contains a VALUES clause with too many elements (3), expected (2)");
+        analyze("INSERT INTO users (id, name) values (1, 'Johnny'), (2, 'Egon', 1234)");
+    }
+
+    @Test
+    public void testInsertMultipleValuesWithGeneratedColumnAndTooFewValuesInSecondValues() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid number of values: Got 2 columns specified but 1 values");
+        analyze("INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
+    }
 }
