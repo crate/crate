@@ -32,6 +32,8 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
@@ -39,6 +41,7 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.builder.InputCreatingVisitor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.List;
@@ -46,6 +49,7 @@ import java.util.List;
 
 public class InsertFromSubQueryConsumer implements Consumer {
 
+    private static final InputCreatingVisitor INPUT_CREATING_VISITOR = InputCreatingVisitor.INSTANCE;
     private static final Visitor VISITOR = new Visitor();
 
     @Override
@@ -74,6 +78,15 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     ImmutableSettings.EMPTY,
                     statement.tableInfo().isPartitioned()
             );
+
+            InputCreatingVisitor.Context inputContext = new InputCreatingVisitor.Context(statement.columns());
+            for (ReferenceInfo referenceInfo : statement.tableInfo().partitionedByColumns()) {
+                if (referenceInfo instanceof GeneratedReferenceInfo && !statement.columns().contains(referenceInfo)) {
+                    GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
+                    Symbol expression = INPUT_CREATING_VISITOR.process(generatedReferenceInfo.generatedExpression(), inputContext);
+                    indexWriterProjection.partitionedBySymbols().add(expression);
+                }
+            }
 
             Planner.Context plannerContext = context.plannerContext();
             SOURCE_LOOKUP_CONVERTER.process(statement.subQueryRelation(), null);
