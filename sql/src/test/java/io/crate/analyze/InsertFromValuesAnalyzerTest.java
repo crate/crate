@@ -1029,6 +1029,18 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertMultipleValuesWithGeneratedColumnGiven() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze(
+                "INSERT INTO generated_column (ts, user, day) values ('1970-01-01', {name='Johnny'}, '1970-01-01'), ('1989-11-09T08:30:00', {name='Egon'}, '1989-11-09')");
+        assertThat(analysis.columns(), hasSize(4));
+        assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
+        assertThat(analysis.sourceMaps(), hasSize(2));
+        assertThat(analysis.sourceMaps(), contains(
+                Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, new BytesRef("Johnnybar")),
+                Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, new BytesRef("Egonbar"))));
+    }
+
+    @Test
     public void testInsertMultipleValuesTooManyValues() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INSERT statement contains a VALUES clause with too many elements (3), expected (2)");
