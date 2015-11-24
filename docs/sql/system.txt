@@ -688,6 +688,65 @@ _node
 |                      | table.                           |             |
 +----------------------+----------------------------------+-------------+
 
+recovery
+--------
+
+Recovery is the process of moving a table shard to a different node or loading it
+from disk, e.g. during node startup (local gateway recovery), replication,
+shard rebalancing or snapshot recovery.
+
++------------------------------------+----------------------------------------------------+-------------+
+| Column Name                        | Description                                        | Return Type |
++====================================+====================================================+=============+
+| ``recovery``                       | Represents recovery statistic of the particular    | ``Object``  |
+|                                    | shard.                                             |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['stage']``              | Recovery stage:                                    | ``String``  |
+|                                    |                                                    |             |
+|                                    | * init: Recovery has not started                   |             |
+|                                    | * index: Reading the Lucene index meta-data and    |             |
+|                                    |   copying bytes from source to destination         |             |
+|                                    | * start: Starting the engine,                      |             |
+|                                    |   opening the index for use                        |             |
+|                                    | * translog: Replaying transaction log              |             |
+|                                    | * finalize: Cleanup                                |             |
+|                                    | * done: Complete                                   |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['type']``               | Recovery type:                                     | ``String``  |
+|                                    |                                                    |             |
+|                                    | * gateway                                          |             |
+|                                    | * snapshot                                         |             |
+|                                    | * replica                                          |             |
+|                                    | * relocating                                       |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']``               | Shards recovery statistic in bytes.                | ``Object``  |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']['used']``       | Total number of bytes in the shard.                | ``Long``    |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']['reused']``     | Number of bytes reused from a local copy           | ``Long``    |
+|                                    | while recovering the shard.                        |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']['recovered']``  | Number of actual bytes recovered in the shard.     | ``Long``    |
+|                                    | Includes both existing and reused bytes.           |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['size']['percent']``    | Percentage of bytes already recovered.             | ``Float``   |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']``              | Shards recovery statistic in files.                | ``Object``  |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']['used']``      | Total number of files in the shard.                | ``Integer`` |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']['reused']``    | Total number of files reused from a local copy     | ``Integer`` |
+|                                    | while recovering the shard.                        |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']['recovered']`` | Number of actual files recovered in the shard.     | ``Integer`` |
+|                                    | Includes both existing and reused files.           |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['files']['percent']``   | Percentage of files already recovered.             | ``Float``   |
++------------------------------------+----------------------------------------------------+-------------+
+| ``recovery['total_time']``         | Returns elapsed time from the start of the shard   | ``Long``    |
+|                                    | recovery.                                          |             |
++------------------------------------+----------------------------------------------------+-------------+
+
 
 For example, you can query shards like this::
 

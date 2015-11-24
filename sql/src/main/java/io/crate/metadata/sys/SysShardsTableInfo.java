@@ -25,10 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.types.BooleanType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.StringType;
+import io.crate.types.*;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -60,6 +57,33 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ColumnIdent SIZE = new ColumnIdent("size");
         public static final ColumnIdent STATE = new ColumnIdent("state");
         public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+
+        public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        public static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
+        public static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
+        public static final ColumnIdent RECOVERY_TOTAL_TIME =
+                new ColumnIdent("recovery", ImmutableList.of("total_time"));
+
+        public static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
+        public static final ColumnIdent RECOVERY_FILES_USED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "used"));
+        public static final ColumnIdent RECOVERY_FILES_REUSED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
+        public static final ColumnIdent RECOVERY_FILES_RECOVERED =
+                new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
+        public static final ColumnIdent RECOVERY_FILES_PERCENT =
+                new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
+
+        public static final ColumnIdent RECOVERY_SIZE =
+                new ColumnIdent("recovery", ImmutableList.of("size"));
+        public static final ColumnIdent RECOVERY_SIZE_USED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "used"));
+        public static final ColumnIdent RECOVERY_SIZE_REUSED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
+        public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
+                new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
+        public static final ColumnIdent RECOVERY_SIZE_PERCENT =
+                new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
     }
 
     public static class ReferenceIdents {
@@ -73,6 +97,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
         public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
         public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
+        public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
     }
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
@@ -90,17 +115,34 @@ public class SysShardsTableInfo extends SysTableInfo {
         nodesTableColumn = sysNodesTableInfo.tableColumn();
 
         ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.SHARD)
-            .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
-            .register(Columns.TABLE_NAME, StringType.INSTANCE)
-            .register(Columns.ID, IntegerType.INSTANCE)
-            .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
-            .register(Columns.NUM_DOCS, LongType.INSTANCE)
-            .register(Columns.PRIMARY, BooleanType.INSTANCE)
-            .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
-            .register(Columns.SIZE, LongType.INSTANCE)
-            .register(Columns.STATE, StringType.INSTANCE)
-            .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
-            .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
+                .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
+                .register(Columns.TABLE_NAME, StringType.INSTANCE)
+                .register(Columns.ID, IntegerType.INSTANCE)
+                .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
+                .register(Columns.NUM_DOCS, LongType.INSTANCE)
+                .register(Columns.PRIMARY, BooleanType.INSTANCE)
+                .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
+                .register(Columns.SIZE, LongType.INSTANCE)
+                .register(Columns.STATE, StringType.INSTANCE)
+                .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
+
+                .register(Columns.RECOVERY, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
+
+                .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
+
+                .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
+                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
         infos = registrar.infos();
         columns = registrar.columns();
     }

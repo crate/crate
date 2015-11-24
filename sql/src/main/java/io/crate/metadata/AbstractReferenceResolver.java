@@ -21,17 +21,20 @@
 
 package io.crate.metadata;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class AbstractReferenceResolver implements NestedReferenceResolver {
+
+    protected final Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>();
 
     @Override
     public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
         ReferenceIdent ident = refInfo.ident();
         if (ident.isColumn()) {
-            return implementations().get(ident);
+            return implementations.get(ident);
         }
-        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
+        ReferenceImplementation impl = implementations.get(ident.columnReferenceIdent());
         if (impl != null) {
             for (String part : ident.columnIdent().path()) {
                 impl = impl.getChildImplementation(part);
@@ -40,5 +43,4 @@ public abstract class AbstractReferenceResolver implements NestedReferenceResolv
         return impl;
     }
 
-    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
 }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Expose shard recovery information in sys.shards table
+
  - Expose relocating shards in sys.shards table
    Note that relocating shards are shown additionally to their already assigned
    source shards.

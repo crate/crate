@@ -27,16 +27,9 @@ import java.util.Map;
 
 public class GlobalReferenceResolver extends AbstractReferenceResolver {
 
-    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
-
     @Inject
-    public GlobalReferenceResolver(
-            Map<ReferenceIdent, ReferenceImplementation> implementations) {
-        this.implementations = implementations;
-    }
-
-    protected Map<ReferenceIdent, ReferenceImplementation> implementations() {
-        return implementations;
+    public GlobalReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> implementations) {
+        this.implementations.putAll(implementations);
     }
 
 }
