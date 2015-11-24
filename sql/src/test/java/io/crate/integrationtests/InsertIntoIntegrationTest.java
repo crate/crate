@@ -757,6 +757,25 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertMutipleRowsWithGeneratedColumn() throws Exception {
+        execute("CREATE TABLE computed (\n" +
+                "   dividend double,\n" +
+                "   divisor double,\n" +
+                "   quotient AS (dividend / divisor)\n" +
+                ")");
+        ensureYellow();
+        execute("INSERT INTO computed (dividend, divisor) VALUES (1.0, 1.0), (0.0, 10.0)");
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table computed");
+
+        execute("select * from computed order by quotient");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "0.0| 10.0| 0.0\n" +
+                "1.0| 1.0| 1.0\n"));
+
+    }
+
+    @Test
     public void testInsertOnDuplicateWithGeneratedColumn() throws Exception {
         execute("create table test_generated_column (" +
                 " id integer primary key," +
