@@ -130,11 +130,13 @@ public class CopyStatementPlanner {
         }
 
         // add partitioned columns (if not part of primaryKey)
+        Set<ReferenceInfo> referencedReferenceInfos = new HashSet<>();
         for (String partitionedColumn : partitionedByNames) {
             ReferenceInfo referenceInfo = table.getReferenceInfo(ColumnIdent.fromPath(partitionedColumn));
             Symbol symbol;
             if (referenceInfo instanceof GeneratedReferenceInfo) {
                 symbol = ((GeneratedReferenceInfo) referenceInfo).generatedExpression();
+                referencedReferenceInfos.addAll(((GeneratedReferenceInfo) referenceInfo).referencedReferenceInfos());
             } else {
                 symbol = new Reference(referenceInfo);
             }
@@ -145,20 +147,18 @@ public class CopyStatementPlanner {
             toCollect.add(
                     new Reference(table.getReferenceInfo(table.clusteredBy())));
         }
-        // finally add _raw or _doc
+        // add _raw or _doc
         if (table.isPartitioned() && analysis.partitionIdent() == null) {
             toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.DOC)));
         } else {
             toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.RAW)));
         }
 
-        // add columns referenced by generated columns
-        for (GeneratedReferenceInfo generatedReferenceInfo : table.generatedColumns()) {
-            for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
-                Reference reference = new Reference(referenceInfo);
-                if (!toCollect.contains(reference)) {
-                    toCollect.add(reference);
-                }
+        // add columns referenced by generated columns which are used as partitioned by column
+        for (ReferenceInfo referenceInfo : referencedReferenceInfos) {
+            Reference reference = new Reference(referenceInfo);
+            if (!toCollect.contains(reference)) {
+                toCollect.add(reference);
             }
         }
 
