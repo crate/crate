@@ -797,4 +797,52 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][1], is(1448236800000L));
     }
 
+    @Test
+    public void testInsertFromSubQueryWithGeneratedColumns() throws Exception {
+        execute("create table source_table (" +
+                " id integer," +
+                " ts timestamp" +
+                ") with (number_of_replicas=0)");
+        execute("create table target_table (" +
+                " id integer," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
+                1, "2015-11-18T11:11:00"});
+        refresh();
+
+        execute("insert into target_table (id, ts) (select id, ts from source_table)");
+        refresh();
+
+        execute("select day from target_table");
+        assertThat((Long) response.rows()[0][0], is(1447804800000L));
+    }
+
+    @Test
+    public void testInsertIntoPartitionedTableFromSubQueryWithGeneratedColumns() throws Exception {
+        execute("create table source_table (" +
+                " id integer," +
+                " ts timestamp" +
+                ") with (number_of_replicas=0)");
+        execute("create table target_table (" +
+                " id integer," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)" +
+                ") partitioned by (day) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
+                1, "2015-11-18T11:11:00"});
+        refresh();
+
+        execute("insert into target_table (id, ts) (select id, ts from source_table)");
+        refresh();
+
+        execute("select day from target_table");
+        assertThat((Long) response.rows()[0][0], is(1447804800000L));
+    }
+
 }
