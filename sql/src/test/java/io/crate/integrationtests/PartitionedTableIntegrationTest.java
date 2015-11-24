@@ -2074,6 +2074,18 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         }
     }
 
+    @Test
+    public void testPartitionedColumnIsNotIn_Raw() throws Exception {
+        execute("create table t (p string primary key, v string) " +
+                "partitioned by (p) " +
+                "with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (p, v) values ('a', 'Marvin')");
+        execute("refresh table t");
+        execute("select _raw from t");
+        assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
+    }
+
     @After
     @Override
     public void tearDown() throws Exception {

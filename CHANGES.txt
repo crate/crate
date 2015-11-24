@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Internal optimization: Avoid writing partition values to the source.
+
  - Expose shard recovery information in sys.shards table
 
  - Expose relocating shards in sys.shards table

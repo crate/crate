@@ -37,6 +37,7 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
@@ -339,7 +340,11 @@ public class TransportShardUpsertAction
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
             for (int i = 0; i < item.insertValues().length; i++) {
                 Reference ref = request.insertColumns()[i];
-                builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+                if (ref.info().granularity() == RowGranularity.DOC) {
+                    // don't include values for partitions in the _source
+                    // ideally columns with partition granularity shouldn't be part of the request
+                    builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+                }
             }
             source = builder.bytes();
         }
