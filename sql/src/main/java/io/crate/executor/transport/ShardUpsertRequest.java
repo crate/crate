@@ -28,6 +28,7 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
@@ -51,6 +52,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     private IntArrayList locations;
     private boolean continueOnError = false;
     private boolean overwriteDuplicates = false;
+    private Boolean isRawSourceInsert = null;
 
     /**
      * List of column names used on update
@@ -184,6 +186,14 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     @Override
     public Iterator<Item> iterator() {
         return Iterators.unmodifiableIterator(items.iterator());
+    }
+
+    public Boolean isRawSourceInsert() {
+        if (isRawSourceInsert == null) {
+            isRawSourceInsert =
+                    insertColumns.length == 1 && insertColumns[0].ident().columnIdent().equals(DocSysColumns.RAW);
+        }
+        return isRawSourceInsert;
     }
 
     @Override

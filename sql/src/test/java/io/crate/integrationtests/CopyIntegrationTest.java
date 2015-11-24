@@ -226,6 +226,40 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromWithGeneratedColumn() throws Exception {
+        execute("create table quotes (" +
+                " id int," +
+                " quote string," +
+                " gen_quote as concat(quote, ' This is awesome!')" +
+                ")");
+        ensureYellow();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        refresh();
+
+        execute("select gen_quote from quotes limit 1");
+        assertThat((String) response.rows()[0][0], endsWith("This is awesome!"));
+    }
+
+    @Test
+    public void testCopyFromToPartitionedTableWithGeneratedColumn() throws Exception {
+        execute("create table quotes (" +
+                " id int," +
+                " quote string," +
+                " gen_quote as concat(quote, ' Partitioned by awesomeness!')" +
+                ") partitioned by (gen_quote)");
+        ensureYellow();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        refresh();
+
+        execute("select gen_quote from quotes limit 1");
+        assertThat((String) response.rows()[0][0], endsWith("Partitioned by awesomeness!"));
+    }
+
+    @Test
     public void testCopyToFile() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
