@@ -43,7 +43,6 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
@@ -67,10 +66,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
@@ -265,7 +261,7 @@ public class TransportShardUpsertAction
             if (tryInsertFirst) {
                 // try insert first without fetching the document
                 try {
-                    indexRequest = new IndexRequest(prepareInsert(request, item), request);
+                    indexRequest = new IndexRequest(prepareInsert(tableInfo, request, item), request);
                 } catch (IOException e) {
                     throw ExceptionsHelper.convertToElastic(e);
                 }
@@ -353,19 +349,12 @@ public class TransportShardUpsertAction
         return indexRequest;
     }
 
-    private IndexRequest prepareInsert(ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
-        int rawSourceColumn = -1;
-        for (int i = 0; i < item.insertValues().length; i++) {
-            Reference ref = request.insertColumns()[i];
-            if (ref.ident().columnIdent().equals(DocSysColumns.RAW)) {
-                rawSourceColumn = i;
-                break;
-            }
-        }
-
+    private IndexRequest prepareInsert(DocTableInfo tableInfo, ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
+        List<GeneratedReferenceInfo> generatedReferencesWithValue = new ArrayList<>();
         BytesReference source;
-        if (rawSourceColumn > -1) {
-            source = new BytesArray((BytesRef) item.insertValues()[rawSourceColumn]);
+        if (request.isRawSourceInsert()) {
+            assert item.insertValues().length > 0 : "empty insert values array";
+            source = new BytesArray((BytesRef) item.insertValues()[0]);
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
             for (int i = 0; i < item.insertValues().length; i++) {
@@ -374,9 +363,26 @@ public class TransportShardUpsertAction
                     // don't include values for partitions in the _source
                     // ideally columns with partition granularity shouldn't be part of the request
                     builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+                    if (ref.info() instanceof GeneratedReferenceInfo) {
+                        generatedReferencesWithValue.add((GeneratedReferenceInfo) ref.info());
+                    }
                 }
             }
             source = builder.bytes();
+        }
+
+        int generatedColumnSize = 0;
+        for (GeneratedReferenceInfo generatedReferenceInfo : tableInfo.generatedColumns()) {
+            if (!tableInfo.partitionedByColumns().contains(generatedReferenceInfo)) {
+                generatedColumnSize++;
+            }
+        }
+
+        if (generatedReferencesWithValue.size() < generatedColumnSize) {
+            // we need to evaluate some generated column expressions
+            Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
+                    request.isRawSourceInsert());
+            source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
         IndexRequest indexRequest = Requests.indexRequest(request.index())
@@ -392,8 +398,41 @@ public class TransportShardUpsertAction
         return indexRequest;
     }
 
+    private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
+                                                        Reference[] insertColumns,
+                                                        Object[] insertValues,
+                                                        boolean isRawSourceInsert) {
+        Map<String, Object> sourceAsMap = buildMapFromSource(insertColumns, insertValues, isRawSourceInsert);
+        processGeneratedColumns(tableInfo, sourceAsMap, false);
+        return sourceAsMap;
+    }
+
     @VisibleForTesting
-    void processGeneratedColumns(final DocTableInfo tableInfo, Map<String, Object> updatedColumns) {
+    Map<String, Object> buildMapFromSource(Reference[] insertColumns,
+                                           Object[] insertValues,
+                                           boolean isRawSourceInsert) {
+        Map<String, Object> sourceAsMap;
+        if (isRawSourceInsert) {
+            BytesRef source = (BytesRef) insertValues[0];
+            sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+        } else {
+            sourceAsMap = new LinkedHashMap<>(insertColumns.length);
+            for (int i = 0; i < insertColumns.length; i++) {
+                sourceAsMap.put(insertColumns[i].ident().columnIdent().fqn(), insertValues[i]);
+            }
+        }
+        return sourceAsMap;
+    }
+
+    @VisibleForTesting
+    void processGeneratedColumns(DocTableInfo tableInfo, Map<String, Object> updatedColumns) {
+        processGeneratedColumns(tableInfo, updatedColumns, true);
+    }
+
+    @VisibleForTesting
+    void processGeneratedColumns(final DocTableInfo tableInfo,
+                                         Map<String, Object> updatedColumns,
+                                         boolean validateExpressionValue) {
         List<String> updatedColumnNames = Lists.newArrayList(updatedColumns.keySet());
         List<ReferenceInfo> updatedReferenceInfos = Lists.transform(updatedColumnNames, new Function<String, ReferenceInfo>() {
             @Nullable
@@ -424,7 +463,7 @@ public class TransportShardUpsertAction
                         if (givenValue == null) {
                             // add column & value
                             updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
-                        } else if (!givenValue.equals(value)) {
+                        } else if (validateExpressionValue && !givenValue.equals(value)) {
                             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                     "Given value %s for generated column does not match defined generated expression value %s",
                                     givenValue, value));
