@@ -97,7 +97,9 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing())
                         .add("ts", DataTypes.TIMESTAMP, null)
                         .add("x", DataTypes.INTEGER, null)
+                        .add("y", DataTypes.INTEGER, null)
                         .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+                        .addGeneratedColumn("minus_y", DataTypes.INTEGER, "y * -1", false)
                         .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo("generated_col")).thenReturn(genInfo);
     }
@@ -684,5 +686,23 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testEqualGenColOptimizationNested() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts = '2015-01-01T12:00:00' or x = 5");
         assertThat(whereClause.query(), isSQL("doc.generated_col.ts = 1420113600000 and doc.generated_col.day = 1420070400000 or doc.generated_col.x = 5"));
+    }
+
+    @Test
+    public void testGtGenColOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00'");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.ts > 1420113600000 and doc.generated_col.day >= 1420070400000"));
+    }
+
+    @Test
+    public void testMultiplicationGenColNoOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y > 1");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.y > 1"));
+    }
+
+    @Test
+    public void testMultipleColumnsOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00' or y = 1");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.ts > 1420113600000 and doc.generated_col.day >= 1420070400000 or doc.generated_col.y = 1 and doc.generated_col.minus_y = -1"));
     }
 }
