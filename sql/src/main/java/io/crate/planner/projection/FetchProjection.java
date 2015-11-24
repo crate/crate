@@ -23,12 +23,12 @@ package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -36,28 +36,31 @@ import java.util.TreeMap;
 public class FetchProjection extends Projection {
 
     private final int collectPhaseId;
-    private final Collection<FetchSource> fetchSources;
+    private final Map<TableIdent, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
     private final Map<String, IntSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
+    private final Map<String, TableIdent> indicesToIdents;
 
     public FetchProjection(int collectPhaseId,
-                           Collection<FetchSource> fetchSources,
+                           Map<TableIdent, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            Map<String, IntSet> nodeReaders,
-                           TreeMap<Integer, String> readerIndices) {
+                           TreeMap<Integer, String> readerIndices,
+                           Map<String, TableIdent> indicesToIdents) {
         this.collectPhaseId = collectPhaseId;
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
         this.nodeReaders = nodeReaders;
         this.readerIndices = readerIndices;
+        this.indicesToIdents = indicesToIdents;
     }
 
     public int collectPhaseId() {
         return collectPhaseId;
     }
 
-    public Collection<FetchSource> fetchSources() {
+    public Map<TableIdent, FetchSource> fetchSources() {
         return fetchSources;
     }
 
@@ -71,6 +74,10 @@ public class FetchProjection extends Projection {
 
     public TreeMap<Integer, String> readerIndices() {
         return readerIndices;
+    }
+
+    public Map<String, TableIdent> indicesToIdents() {
+        return indicesToIdents;
     }
 
     @Override

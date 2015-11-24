@@ -175,8 +175,13 @@ public class CrateDocCollector implements CrateCollector {
 
     private void fail(Throwable t) {
         debugLog("finished collect with failure");
-        searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
+        try {
+            searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
+            searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
+        } catch (AssertionError e) {
+            // log it, the original failure is more interesting than the stage assertion
+            LOGGER.error("Invalid searcher stage: ", e);
+        }
         rowReceiver.fail(t);
     }
 

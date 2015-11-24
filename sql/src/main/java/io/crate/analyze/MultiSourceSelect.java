@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
@@ -30,11 +31,12 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.Nullable;
 
 import java.util.*;
 
 public class MultiSourceSelect implements QueriedRelation {
+
+    private final RelationSplitter splitter;
 
     public static class Source {
         private final AnalyzedRelation relation;
@@ -57,8 +59,6 @@ public class MultiSourceSelect implements QueriedRelation {
     private final HashMap<QualifiedName, Source> sources;
     private final List<Field> fields;
     private final QuerySpec querySpec;
-    private final Set<Symbol> requiredForQuery;
-    private final OrderBy remainingOrderBy;
 
     public MultiSourceSelect(
             Map<QualifiedName, AnalyzedRelation> sources,
@@ -66,10 +66,8 @@ public class MultiSourceSelect implements QueriedRelation {
             QuerySpec querySpec) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
         this.querySpec = querySpec;
-        this.sources = new HashMap<>(sources.size());
-        RelationSplitter splitter = initSources(sources);
-        remainingOrderBy = splitter.remainingOrderBy();
-        requiredForQuery = splitter.requiredForQuery();
+        this.sources = new LinkedHashMap<>(sources.size());
+        this.splitter = initSources(sources);
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new ArrayList<>(outputNames.size());
         for (int i = 0; i < outputNames.size(); i++) {
@@ -78,7 +76,11 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
     public Set<Symbol> requiredForQuery() {
-        return requiredForQuery;
+        return splitter.requiredForQuery();
+    }
+
+    public Set<Field> canBeFetched(){
+        return splitter.canBeFetched();
     }
 
     public Map<QualifiedName, Source> sources() {
@@ -126,12 +128,11 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
     /**
-     * Returns an orderBy containing only orderings which are not already pushed down to sources.
-     * This method always returns null if no orderBySymbols are left. The existing orderBy is returned if it
+     * Returns an orderBy containing only orderings which are not already pushed down to sources. The optional is only
+     * pressent if there are orderBySymbols left. The existing orderBy is returned if it
      * there are no changes.
      */
-    @Nullable
-    public OrderBy remainingOrderBy() {
-        return remainingOrderBy;
+    public Optional<OrderBy> remainingOrderBy() {
+        return splitter.remainingOrderBy();
     }
 }

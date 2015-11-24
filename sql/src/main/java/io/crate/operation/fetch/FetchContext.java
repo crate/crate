@@ -48,8 +48,9 @@ public class FetchContext extends AbstractExecutionSubContext {
     private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
-    private final TreeMap<Integer, TableIdent> tableIdents;
+    private final TreeMap<Integer, TableIdent> tableIdents = new TreeMap<>();
     private final Iterable<? extends Routing> routingIterable;
+    private final Map<TableIdent, Collection<Reference>> toFetch;
 
     public FetchContext(FetchPhase phase,
                         String localNodeId,
@@ -59,13 +60,12 @@ public class FetchContext extends AbstractExecutionSubContext {
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
-        this.tableIdents = new TreeMap<>();
         this.routingIterable = routingIterable;
-
+        this.toFetch = new HashMap<>(phase.tableIndices().keySet().size());
     }
 
-    public Collection<Collection<Reference>> fetchRefs() {
-        return phase.fetchRefs();
+    public Map<TableIdent, Collection<Reference>> toFetch() {
+        return toFetch;
     }
 
     @Override
@@ -90,6 +90,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                 TableIdent ident = index2TableIdent.get(index);
                 assert ident != null : "no tableIdent found for index " + index;
                 tableIdents.put(base, ident);
+                toFetch.put(ident, new ArrayList<Reference>());
                 for (Integer shard : indexShardsEntry.getValue()) {
                     ShardId shardId = new ShardId(index, shard);
                     int readerId = base + shardId.id();
@@ -105,15 +106,17 @@ public class FetchContext extends AbstractExecutionSubContext {
                 }
             }
         }
+        for (Reference reference : phase.fetchRefs()) {
+            Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+            if (references != null) {
+                references.add(reference);
+            }
+        }
     }
 
     @Override
     protected void innerStart() {
-        int c = 0;
-        for (Collection<Reference> fetchRef : phase.fetchRefs()) {
-            c += fetchRef.size();
-        }
-        if (c == 0) {
+        if (phase.fetchRefs().isEmpty()) {
             // no fetch references means there will be no fetch requests
             // this context is only here to allow the collectors to generate docids with the right bases
             // the bases are fetched in the prepare phase therefore this context can be closed

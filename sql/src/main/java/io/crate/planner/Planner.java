@@ -52,8 +52,8 @@ import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -108,6 +108,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             private final Map<String, IntSet> nodeReaders = new HashMap<>();
             private final TreeMap<String, Integer> bases;
             private final Multimap<TableIdent, String> tableIndices;
+            private final Map<String, TableIdent> indicesToIdents;
 
 
             ReaderAllocations(TreeMap<String, Integer> bases,
@@ -115,6 +116,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                               Multimap<TableIdent, String> tableIndices) {
                 this.bases = bases;
                 this.tableIndices = tableIndices;
+                this.indicesToIdents = new HashMap<>(tableIndices.values().size());
+                for (Map.Entry<TableIdent, String> entry : tableIndices.entries()) {
+                    indicesToIdents.put(entry.getValue(), entry.getKey());
+                }
                 for (Map.Entry<String, Integer> entry : bases.entrySet()) {
                     readerIndices.put(entry.getValue(), entry.getKey());
                 }
@@ -147,6 +152,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
             public TreeMap<String, Integer> bases() {
                 return bases;
+            }
+
+            public Map<String, TableIdent> indicesToIdents() {
+                return indicesToIdents;
             }
         }
 
@@ -186,7 +195,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null;
-            return consumingPlanner.plan(relation, consumerContext);
+            boolean isRoot = consumerContext.isRoot();
+            consumerContext.isRoot(false);
+            PlannedAnalyzedRelation subPlan = consumingPlanner.plan(relation, consumerContext);
+            consumerContext.isRoot(isRoot);
+            return subPlan;
         }
 
         public UUID jobId() {
@@ -366,7 +379,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private Plan copyToPlan(CopyAnalyzedStatement analysis, Context context) {
-        TableInfo tableInfo = analysis.table();
+        DocTableInfo tableInfo = analysis.table();
         WriterProjection projection = new WriterProjection();
         projection.uri(analysis.uri());
         projection.isDirectoryUri(analysis.directoryUri());

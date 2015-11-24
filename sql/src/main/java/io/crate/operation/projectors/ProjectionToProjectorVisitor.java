@@ -322,7 +322,8 @@ public class ProjectionToProjectorVisitor
                 projection.fetchSources(),
                 projection.outputSymbols(),
                 projection.nodeReaders(),
-                projection.readerIndices());
+                projection.readerIndices(),
+                projection.indicesToIdents());
     }
 
     @Override

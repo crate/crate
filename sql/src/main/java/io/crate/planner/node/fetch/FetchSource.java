@@ -25,9 +25,9 @@ package io.crate.planner.node.fetch;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class FetchSource {
@@ -35,22 +35,17 @@ public class FetchSource {
     private final List<ReferenceInfo> partitionedByColumns;
     private final Collection<InputColumn> docIdCols;
     private final Collection<Reference> references;
-    private final TableIdent tableIdent;
-    private final boolean fetchRequired;
 
-    public FetchSource(TableIdent tableIdent,
-                       List<ReferenceInfo> partitionedByColumns,
+    public FetchSource(List<ReferenceInfo> partitionedByColumns){
+        this(partitionedByColumns, new LinkedHashSet<InputColumn>(), new LinkedHashSet<Reference>());
+    }
+
+    public FetchSource(List<ReferenceInfo> partitionedByColumns,
                        Collection<InputColumn> docIdCols,
                        Collection<Reference> references) {
         this.partitionedByColumns = partitionedByColumns;
         this.docIdCols = docIdCols;
         this.references = references;
-        this.tableIdent = tableIdent;
-        this.fetchRequired = !references.isEmpty();
-    }
-
-    public boolean fetchRequired() {
-        return fetchRequired;
     }
 
     public Collection<InputColumn> docIdCols() {
@@ -64,9 +59,4 @@ public class FetchSource {
     public Collection<Reference> references() {
         return references;
     }
-
-    public TableIdent tableIdent() {
-        return tableIdent;
-    }
-
 }

@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
@@ -83,7 +83,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     private FunctionInfo avgInfo;
     private Functions functions;
 
-    private final RowN spare = new RowN(new Object[]{});
+    private final ArrayRow spare = new ArrayRow();
     private ThreadPool threadPool;
 
     private Row spare(Object... cells) {

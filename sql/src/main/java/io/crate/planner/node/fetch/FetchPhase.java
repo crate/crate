@@ -44,7 +44,7 @@ public class FetchPhase implements ExecutionPhase {
 
     private TreeMap<String, Integer> bases;
     private Multimap<TableIdent, String> tableIndices;
-    private Collection<Collection<Reference>> fetchRefs;
+    private Collection<Reference> fetchRefs;
 
     private UUID jobId;
     private int executionPhaseId;
@@ -57,7 +57,7 @@ public class FetchPhase implements ExecutionPhase {
                       Set<String> executionNodes,
                       TreeMap<String, Integer> bases,
                       Multimap<TableIdent, String> tableIndices,
-                      Collection<Collection<Reference>> fetchRefs) {
+                      Collection<Reference> fetchRefs) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.executionNodes = executionNodes;
@@ -66,7 +66,7 @@ public class FetchPhase implements ExecutionPhase {
         this.fetchRefs = fetchRefs;
     }
 
-    public Collection<Collection<Reference>> fetchRefs() {
+    public Collection<Reference> fetchRefs() {
         return fetchRefs;
     }
 
@@ -120,12 +120,7 @@ public class FetchPhase implements ExecutionPhase {
         n = in.readVInt();
         fetchRefs = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            int nn = in.readVInt();
-            ArrayList<Reference> refs = new ArrayList<>(n);
-            for (int j = 0; j < nn; j++) {
-                refs.add(Reference.fromStream(in));
-            }
-            fetchRefs.add(refs);
+            fetchRefs.add(Reference.fromStream(in));
         }
 
         n = in.readVInt();
@@ -157,11 +152,8 @@ public class FetchPhase implements ExecutionPhase {
         }
 
         out.writeVInt(fetchRefs.size());
-        for (Collection<Reference> refs : fetchRefs) {
-            out.writeVInt(refs.size());
-            for (Reference ref : refs) {
-                ref.writeTo(out);
-            }
+        for (Reference ref : fetchRefs) {
+            ref.writeTo(out);
         }
         Map<TableIdent, Collection<String>> map = tableIndices.asMap();
         out.writeVInt(map.size());

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the limitation that all selected columns must also appear in the
+   ORDER BY clause for joins.
+
  - Updated crate certificates in the ssl truststore.
 
  - Added support for explicit INNER JOIN .. ON syntax.

@@ -35,7 +35,10 @@ import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
@@ -52,8 +55,8 @@ public class FetchContextTest extends CrateUnitTest {
                         1,
                         null,
                         new TreeMap<String, Integer>(),
-                        null,
-                        ImmutableList.<Collection<Reference>>of()),
+                        HashMultimap.<TableIdent, String>create(),
+                        ImmutableList.<Reference>of()),
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class)),
                 Collections.<Routing>emptyList());
@@ -83,7 +86,7 @@ public class FetchContextTest extends CrateUnitTest {
                         null,
                         ibv.build(),
                         tableIndices,
-                        ImmutableList.<Collection<Reference>>of()),
+                        ImmutableList.<Reference>of()),
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
                 ImmutableList.of(routing));
