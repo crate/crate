@@ -50,7 +50,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testUnassignedShards() throws Exception {
         int numReplicas = 3;
         int numShards = 5;
-        long expectedUnassignedShards = numShards * numReplicas; // calculation is correct for cluster.numNodes = 1
+        long expectedUnassignedShards = numShards * numReplicas; // calculation is correct for cluster.numDataNodes = 1
 
         execute("create table locations (id integer primary key, name string) " +
                 "clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");

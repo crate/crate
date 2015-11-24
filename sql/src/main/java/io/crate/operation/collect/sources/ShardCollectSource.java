@@ -290,7 +290,6 @@ public class ShardCollectSource implements CollectSource {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
                     continue;
                 }
-
                 try {
                     ShardCollectService shardCollectService =
                             indexService.shardInjectorSafe(shard).getInstance(ShardCollectService.class);
@@ -310,8 +309,6 @@ public class ShardCollectSource implements CollectSource {
         if (!unassignedShards.isEmpty()) {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
-
-
             for (Object[] objects : Iterables.transform(
                     systemCollectSource.toRowsIterable(collectPhase, unassignedShards), Row.MATERIALIZE)) {
                 rows.add(objects);

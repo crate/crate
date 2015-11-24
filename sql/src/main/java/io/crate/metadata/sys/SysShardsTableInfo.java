@@ -31,6 +31,8 @@ import io.crate.types.LongType;
 import io.crate.types.StringType;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -119,15 +121,15 @@ public class SysShardsTableInfo extends SysTableInfo {
 
     private void processShardRouting(Map<String, Map<String, List<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
         String node;
-        if (shardRouting == null) {
-            throw new NoShardAvailableActionException(shardId);
-        }
+        int id;
+        String index = shardId.getIndex();
 
-        node = shardRouting.currentNodeId();
-        int id = shardRouting.id();
-        if (!shardRouting.active()) {
+        if (shardRouting == null) {
             node = clusterService.localNode().id();
-            id = UnassignedShard.markUnassigned(id);
+            id = UnassignedShard.markUnassigned(shardId.id());
+        } else {
+            node = shardRouting.currentNodeId();
+            id = shardRouting.id();
         }
         Map<String, List<Integer>> nodeMap = routing.get(node);
         if (nodeMap == null) {
@@ -135,10 +137,10 @@ public class SysShardsTableInfo extends SysTableInfo {
             routing.put(node, nodeMap);
         }
 
-        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        List<Integer> shards = nodeMap.get(index);
         if (shards == null) {
             shards = new ArrayList<>();
-            nodeMap.put(shardRouting.getIndex(), shards);
+            nodeMap.put(index, shards);
         }
         shards.add(id);
     }
@@ -165,8 +167,11 @@ public class SysShardsTableInfo extends SysTableInfo {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {
-            processShardRouting(locations, shardRouting, null);
+        String[] concreteIndices = clusterService.state().metaData().concreteAllIndices();
+        GroupShardsIterator groupShardsIterator = clusterService.state().getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+        for (final ShardIterator shardIt : groupShardsIterator) {
+            final ShardRouting shardRouting = shardIt.nextOrNull();
+            processShardRouting(locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
     }

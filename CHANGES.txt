@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Expose relocating shards in sys.shards table
+   Note that relocating shards are shown additionally to their already assigned
+   source shards.
+
  - Removed the limitation that all selected columns must also appear in the
    ORDER BY clause for joins.
 

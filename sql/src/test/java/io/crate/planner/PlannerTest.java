@@ -52,10 +52,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.ImmutableShardRouting;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -73,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -106,11 +104,11 @@ public class PlannerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         threadPool = TestingHelpers.newMockedThreadPool();
         Injector injector = new ModulesBuilder()
-                .add(new TestModule())
                 .add(new AggregationImplModule())
                 .add(new ScalarFunctionModule())
                 .add(new PredicateModule())
                 .add(new OperatorModule())
+                .add(new TestModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
@@ -244,7 +242,6 @@ public class PlannerTest extends CrateUnitTest {
         }
 
         private SchemaInfo mockSysSchemaInfo() {
-
             DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder();
             nodeBuilder.put(new DiscoveryNode("nodeOne", null, Version.CURRENT));
             nodeBuilder.put(new DiscoveryNode("nodeTwo", null, Version.CURRENT));
@@ -253,16 +250,28 @@ public class PlannerTest extends CrateUnitTest {
                     .add(new ImmutableShardRouting("parted", 1, "nodeOne", true, ShardRoutingState.STARTED, 0L))
                     .add(new ImmutableShardRouting("parted", 2, "nodeTwo", true, ShardRoutingState.STARTED, 0L))
                     .build();
+            ArrayList<ShardIterator> set = new ArrayList<>();
+            for (ShardRouting shardRouting : routings) {
+                set.add(shardRouting.shardsIt());
+            }
 
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState clusterState = mock(ClusterState.class);
             when(clusterService.localNode()).thenReturn(new DiscoveryNode("foo", null, Version.CURRENT));
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.nodes()).thenReturn(nodeBuilder.build());
+            MetaData metaData = mock(MetaData.class);
+            String[] concreteIndices = new String[]{"parted"};
+            when(metaData.concreteAllIndices()).thenReturn(concreteIndices);
+            when(clusterState.metaData()).thenReturn(metaData);
+            when(clusterState.getMetaData()).thenReturn(metaData);
+
 
             RoutingTable routingTable = mock(RoutingTable.class);
             when(clusterState.routingTable()).thenReturn(routingTable);
-            when(routingTable.allShards()).thenReturn(routings);
+            when(clusterState.getRoutingTable()).thenReturn(routingTable);
+            when(routingTable.allAssignedShardsGrouped(eq(concreteIndices), anyBoolean(), anyBoolean()))
+                    .thenReturn(new GroupShardsIterator(set));
             return new SysSchemaInfo(clusterService);
         }
     }
