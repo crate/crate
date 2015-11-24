@@ -39,7 +39,7 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
     @Override
     public Object value() {
         Object value = context.get(columnIdent);
-        if (!columnIdent.equals(DocSysColumns.RAW) && value != null && value instanceof String)  {
+        if (!columnIdent.equals(DocSysColumns.RAW) && value instanceof String)  {
             return new BytesRef((String) value);
         }
         return value;
