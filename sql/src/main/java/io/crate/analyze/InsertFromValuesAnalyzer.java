@@ -127,20 +127,21 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                     DocTableRelation tableRelation) {
         int numValues = values.size();
         int numInsertColumns = statement.columns().size();
-        int numGeneratedColumns = tableRelation.tableInfo().generatedColumns().size();
+        int numAddedGeneratedColumns = statement.numAddedGeneratedColumns();
+
         boolean firstValues = statement.sourceMaps().isEmpty();
 
         if (numValues != numInsertColumns) {
             if (firstValues
                 || tableRelation.tableInfo().generatedColumns().isEmpty()
-                || numValues != numInsertColumns - numGeneratedColumns) {
+                || numValues != numInsertColumns - numAddedGeneratedColumns) {
                 // do not fail here when numbers are different if:
                 //  * we are not at the first values AND
                 //  * we have generated columns in the table AND
                 //  * we are only missing the generated columns which will be added
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Invalid number of values: Got %d columns specified but %d values",
-                        numInsertColumns-numGeneratedColumns, numValues));
+                        numInsertColumns-numAddedGeneratedColumns, numValues));
             }
 
         }
@@ -386,7 +387,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         int idx = context.columns().indexOf(reference);
         if (idx == -1) {
             // add column & value
-            context.columns().add(reference);
+            context.addGeneratedColumn(reference);
             int valuesIdx = insertValues.length;
             insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
             insertValues[valuesIdx] = value;
