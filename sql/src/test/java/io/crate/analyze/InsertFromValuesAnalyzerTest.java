@@ -71,7 +71,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
     private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
