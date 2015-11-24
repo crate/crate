@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate certificates in the ssl truststore.
+
  - Fixed an issue that could cause bulk update requests to fail if the
    ``bulkArgs`` contained only one item
 
