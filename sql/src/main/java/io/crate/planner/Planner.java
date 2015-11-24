@@ -505,20 +505,35 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         // add partitioned columns (if not part of primaryKey)
         for (String partitionedColumn : partitionedByNames) {
-            toCollect.add(
-                    new Reference(table.getReferenceInfo(ColumnIdent.fromPath(partitionedColumn)))
-            );
+            ReferenceInfo referenceInfo = table.getReferenceInfo(ColumnIdent.fromPath(partitionedColumn));
+            Symbol symbol;
+            if (referenceInfo instanceof GeneratedReferenceInfo) {
+                symbol = ((GeneratedReferenceInfo) referenceInfo).generatedExpression();
+            } else {
+                symbol = new Reference(referenceInfo);
+            }
+            toCollect.add(symbol);
         }
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1) {
             toCollect.add(
                     new Reference(table.getReferenceInfo(table.clusteredBy())));
         }
-        // finally add _raw or _doc
+        // add _raw or _doc
         if (table.isPartitioned() && analysis.partitionIdent() == null) {
             toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.DOC)));
         } else {
             toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.RAW)));
+        }
+
+        // add columns referenced by generated columns
+        for (GeneratedReferenceInfo generatedReferenceInfo : table.generatedColumns()) {
+            for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
+                Reference reference = new Reference(referenceInfo);
+                if (!toCollect.contains(reference)) {
+                    toCollect.add(reference);
+                }
+            }
         }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
