@@ -22,6 +22,7 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.core.collections.TreeMapBuilder;
@@ -94,7 +95,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         ctxMetaData = injector.getInstance(AnalysisMetaData.class);
 
         TableInfo genInfo =
-                TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing())
+                TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                         .add("ts", DataTypes.TIMESTAMP, null)
                         .add("x", DataTypes.INTEGER, null)
                         .add("y", DataTypes.INTEGER, null)
