@@ -51,6 +51,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,7 +63,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
     private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            GENERATED_COLUMN_TABLE_IDENT, new Routing())
+            GENERATED_COLUMN_TABLE_IDENT, new Routing(Collections.EMPTY_MAP))
             .add("ts", DataTypes.TIMESTAMP, null)
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
