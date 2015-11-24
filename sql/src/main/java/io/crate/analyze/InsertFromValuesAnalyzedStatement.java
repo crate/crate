@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
@@ -43,7 +44,10 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     private final List<String> ids = new ArrayList<>();
     private final List<String> routingValues = new ArrayList<>();
+
     private final boolean isBulkRequest;
+
+    private int numAddedGeneratedColumns = 0;
 
     public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, boolean isBulkRequest) {
         this.isBulkRequest = isBulkRequest;
@@ -138,5 +142,14 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     public boolean isBulkRequest() {
         return isBulkRequest;
+    }
+
+    public void addGeneratedColumn(Reference reference) {
+        columns().add(reference);
+        numAddedGeneratedColumns++;
+    }
+
+    public int numAddedGeneratedColumns() {
+        return numAddedGeneratedColumns;
     }
 }
