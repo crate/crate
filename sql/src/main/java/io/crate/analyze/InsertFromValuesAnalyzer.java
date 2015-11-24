@@ -31,7 +31,10 @@ import io.crate.analyze.symbol.*;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.ReferenceToLiteralConverter;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.Input;
 import io.crate.sql.tree.Assignment;
@@ -119,6 +122,30 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         return statement;
     }
 
+    private void validateValuesSize(List<Expression> values,
+                                    InsertFromValuesAnalyzedStatement statement,
+                                    DocTableRelation tableRelation) {
+        int numValues = values.size();
+        int numInsertColumns = statement.columns().size();
+        int numGeneratedColumns = tableRelation.tableInfo().generatedColumns().size();
+        boolean firstValues = statement.sourceMaps().isEmpty();
+
+        if (numValues != numInsertColumns) {
+            if (firstValues
+                || tableRelation.tableInfo().generatedColumns().isEmpty()
+                || numValues != numInsertColumns - numGeneratedColumns) {
+                // do not fail here when numbers are different if:
+                //  * we are not at the first values AND
+                //  * we have generated columns in the table AND
+                //  * we are only missing the generated columns which will be added
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "Invalid number of values: Got %d columns specified but %d values",
+                        numInsertColumns-numGeneratedColumns, numValues));
+            }
+
+        }
+    }
+
     private void analyzeValues(DocTableRelation tableRelation,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
@@ -128,11 +155,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                List<Assignment> assignments,
                                InsertFromValuesAnalyzedStatement statement,
                                ParameterContext parameterContext) {
-        if (node.values().size() != statement.columns().size()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Invalid number of values: Got %d columns specified but %d values",
-                    statement.columns().size(), node.values().size()));
-        }
+        validateValuesSize(node.values(), statement, tableRelation);
+
         try {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
