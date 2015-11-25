@@ -6,8 +6,8 @@ System Information
 ==================
 
 Crate provides the ``sys`` schema which contains virtual tables.
-Those tables are read-only and can be queried to get statistical
-real-time information about the cluster, its nodes, and their shards:
+These tables are read-only and can be queried to get statistical
+real-time information about the cluster, its nodes and their shards:
 
  * :ref:`sys.checks <sys-checks>`
  * :ref:`sys.cluster <sys-cluster>`
@@ -186,7 +186,7 @@ For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` con
 Nodes
 =====
 
-To get information about the nodes simply query for `sys.nodes`.
+To get information about the nodes query for `sys.nodes`.
 This table can be queried for one, multiple or all nodes within a cluster.
 
 The table schema is as follows:
@@ -434,7 +434,7 @@ os
 +---------------------------+----------------------------------------------+-------------+
 
 The cpu information values are cached for 1s. They might differ from the actual
-values at query time. Use the probe timestamp to get the time of the collect.
+values at query time. Use the probe timestamp to get the time of collection.
 When analyzing the cpu usage over time, always use ``os['probe_timestamp']`` to
 calculate the time difference between 2 probes.
 
@@ -772,15 +772,15 @@ For example, you can query shards like this::
 Jobs, Operations and Logs
 =========================
 
-In order to see what is happening in the cluster crate provides the
-``sys.jobs`` and ``sys.operations`` tables and there corresponding "logs"
+To see current activities in the cluster, crate provides the
+``sys.jobs`` and ``sys.operations`` tables and their corresponding "logs",
 ``sys.jobs_log`` and ``sys.operations_log``.
 
-These tables are by *default always empty*. Jobs and operations aren't tracked
-unless stats collection is activiated as tracking statistics adds a slight
+These tables are by default *always empty*. Jobs and operations aren't tracked
+unless stats collection is activated as tracking statistics adds a slight
 performance overhead.
 
-In order to activate stats tracking :ref:`ref-set` can be used::
+To activate stats tracking use :ref:`ref-set`::
 
     cr> set global stats.enabled = true;
     SET OK (... sec)
@@ -816,10 +816,10 @@ The ``sys.operations`` table lists all operations that are currently being
 executed in the cluster.
 
 A ``operation`` is part of a ``job`` but not all jobs list their operations. A
-operation is listed on each node it is being executed on.
+operation is listed on each node it's being executed on.
 
-In order to see on which nodes the operations are being executed the
-``_node`` system column can be used in the query::
+To see on which nodes the operations are being executed, use the ``_node``
+system column in the query::
 
     cr> select _node['name'], job_id, name, used_bytes from sys.operations
     ... order by name limit 1;
@@ -840,7 +840,7 @@ Both ``sys.jobs`` and ``sys.operations`` have a corresponding ``_log`` table.
 
 After a job or operation finishes the entries will be moved into the ``_log``
 table. The ``_log`` tables are bound in size and once a table has reached its
-limit old entries will be discarded as new entries are added::
+limit old entries are discarded as new entries are added::
 
     cr> select id, stmt, started, ended, error
     ... from sys.jobs_log order by ended desc limit 2;
@@ -854,9 +854,9 @@ limit old entries will be discarded as new entries are added::
 
 See :ref:`ref-set` on how to change the size of the tables.
 
-As described above the stats tracking is by default deactivated and has to be
-enabled using the ``SET`` statement. The same statement can also be used to
-deactivate the stats tracking. This will also wipe all existing log entries::
+As described above the stats tracking is deactivated by default and has to be
+enabled using the ``SET`` statement. The same statement can be used to
+deactivate the stats tracking. This will wipe all existing log entries::
 
     cr> set global stats.enabled = false;
     SET OK (... sec)
@@ -874,7 +874,7 @@ deactivate the stats tracking. This will also wipe all existing log entries::
 
 .. note::
 
-    Instead of ``SET`` the ``RESET`` statement could also have been used to
+    Instead of ``SET``, the ``RESET`` statement could have been used to
     reset the value of ``stats.enabled`` to its default which is false.
 
 .. _sys-checks:
@@ -885,7 +885,7 @@ Cluster Checks
 The table ``sys.checks`` exposes a list of internal cluster checks and
 results of their validation.
 
-The table schema is following:
+The table schema is the following:
 
 +------------------+----------------------------------+-------------+
 |       Name       |           Description            | Return Type |
@@ -921,7 +921,7 @@ There are currently four checks:
 
 Settings checks:
 ----------------
-All of the settings must be present in the cluster `configuration`_
+All the settings must be present in the cluster `configuration`_
 
 Minimum master nodes
 ....................
@@ -940,8 +940,8 @@ the setting :ref:`discovery.zen.minimum_master_nodes
 Recovery expected nodes
 .......................
 The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
-setting checks that the number of nodes which should be waited for the
-immediate cluster state recovery must be equal to the maximum number of nodes
+setting checks that the number of nodes that should be waited for the
+immediate cluster state recovery, must be equal to the maximum number of nodes
 in the cluster.
 
 Recovery after nodes
@@ -966,12 +966,12 @@ starts must not be less than default value of ``5m``.
 Number of partitions
 ....................
 This check warns if any :ref:`partitioned table <partitioned_tables>` has more
-than 1000 partitions in order to detect the usage of a high cardinality field
-for partitioning.
+than 1000 partitions to detect the usage of a high cardinality field for
+partitioning.
 
 For instance, if the :ref:`gateway.expected_nodes <gateway.expected_nodes>` and
 :ref:`discovery.zen.minimum_master_nodes <discovery.zen.minimum_master_nodes>`
-settings were misconfigured then the SQL query bellow would have the following
+settings were misconfigured, then the SQL query below will have the following
 results
 ::
 
