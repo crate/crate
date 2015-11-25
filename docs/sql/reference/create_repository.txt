@@ -61,7 +61,7 @@ repository ``type`` (e.g. type :ref:`ref-create-repository-types-fs`).
 Types
 =====
 
-A type determines how and where a repository stores its snapshots.
+Type determines how and where a repository stores its snapshots.
 The supported types are the following. More types are supported via :ref:`plugins`.
 
 .. _ref-create-repository-types-fs:
@@ -75,21 +75,21 @@ by all master and data nodes in the cluster.
 
 .. note::
 
-    In order to create repositories of this type, it is necessary to configure
+    To create repositories of this type, it's necessary to configure
     the possible locations for repositories inside the ``crate.yml`` file
-    under ``path.repo`` as list of strings.
+    under ``path.repo`` as a list of strings.
 
 Parameters
 ~~~~~~~~~~
 
 .. _ref-create-repository-types-fs-location:
 
-location  (**Required**)  
-  An absolute or relative path to the directory where snapshots get stored.
+location  (**Required**)
+  An absolute or relative path to the directory where snapshots are stored.
   If the path is relative, it will be appended to the first entry in the
   :ref:`path.repo <conf-path-repo>` setting.
 
-  Windows UNC paths are allowed as well, given server name and share are specified
+  Windows UNC paths are allowed as well, given a specified server name and share
   and backslashes are properly escaped.
 
   Only paths starting with an entry from :ref:`path.repo <conf-path-repo>` are possible.
@@ -116,39 +116,39 @@ Parameters
 
 uri
   HDFS uri of the form ``hdfs:// <host>:<port>/`` (optional).
-  
+
   If not given, the default filesystem URI for the given Hadoop HDFS configuration
   is used.
 
 user
-  The HDFS user as string (optional).  
+  The HDFS user as string (optional).
 
 path
-  HDFS filesystem path to where the data gets stored.  
-  
+  HDFS filesystem path to where the data gets stored.
+
 load_defaults
-  ``true`` (Default) or ``false``.  
-  
-  Whether or not to load the default Hadoop Configuration.  
-  
+  ``true`` (Default) or ``false``.
+
+  Whether to load the default Hadoop Configuration.
+
 conf_location
-  Comma separated string of files to Hadoop XML configuration files to load.  
-  
+  Comma separated string of files to Hadoop XML configuration files to load.
+
 conf.<key>
-  dynamic config values added to the Hadoop configuration.  
-  
+  dynamic config values added to the Hadoop configuration.
+
 concurrent_streams
-  The number of concurrent streams to use for backup and restore (Default: 5).  
-  
+  The number of concurrent streams to use for backup and restore (Default: 5).
+
 compress
-  ``true`` (Default) or ``false``.  
-  
+  ``true`` (Default) or ``false``.
+
   Whether the metadata part of the snapshot should be compressed or not.
   The actual table data is not compressed.
-  
+
 chunk_size
   Defines the maximum size of a single file that gets created during snapshot creation.
-  Defaults to ``null``. So big files will not be split up into smaller chunks.
+  Defaults to ``null``. Big files will not be split into smaller chunks.
 
 .. _ref-create-repository-types-url:
 
