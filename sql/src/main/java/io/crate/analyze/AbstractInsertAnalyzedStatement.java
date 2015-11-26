@@ -66,6 +66,15 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         this.columns = columns;
     }
 
+    public boolean containsReferenceInfo(ReferenceInfo referenceInfo) {
+        for (Reference reference : columns) {
+            if (reference.info().equals(referenceInfo)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public IntSet primaryKeyColumnIndices() {
         return primaryKeyColumnIndices;
     }

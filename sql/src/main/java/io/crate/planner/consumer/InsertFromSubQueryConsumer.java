@@ -81,7 +81,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             InputCreatingVisitor.Context inputContext = new InputCreatingVisitor.Context(statement.columns());
             for (ReferenceInfo referenceInfo : statement.tableInfo().partitionedByColumns()) {
-                if (referenceInfo instanceof GeneratedReferenceInfo && !statement.columns().contains(referenceInfo)) {
+                if (referenceInfo instanceof GeneratedReferenceInfo && !statement.containsReferenceInfo(referenceInfo)) {
                     GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
                     Symbol expression = INPUT_CREATING_VISITOR.process(generatedReferenceInfo.generatedExpression(), inputContext);
                     indexWriterProjection.partitionedBySymbols().add(expression);
