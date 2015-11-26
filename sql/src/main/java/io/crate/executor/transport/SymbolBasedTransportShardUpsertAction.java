@@ -26,10 +26,12 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
@@ -37,6 +39,7 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
@@ -92,6 +95,7 @@ public class SymbolBasedTransportShardUpsertAction
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
     private final static SymbolToFieldExtractor SYMBOL_TO_FIELD_EXTRACTOR = new SymbolToFieldExtractor(new GetResultFieldExtractorFactory());
+    private final static AssignmentsReferenceToLiteralConverter REFERENCE_TO_LITERAL_CONVERTER = new AssignmentsReferenceToLiteralConverter();
 
     private final TransportIndexAction indexAction;
     private final IndicesService indicesService;
@@ -292,11 +296,12 @@ public class SymbolBasedTransportShardUpsertAction
         String parent = getResult.getFields().containsKey(ParentFieldMapper.NAME) ? getResult.field(ParentFieldMapper.NAME).getValue().toString() : null;
 
         updatedSourceAsMap = sourceAndContent.v2();
+        Symbol[] updateAssignments = prepareUpdateAssignments(request.updateColumns(), item.updateAssignments());
 
         final SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, item.updateAssignments().length);
         Map<String, FieldExtractor> extractors = new HashMap<>(item.updateAssignments().length);
         for (int i = 0; i < request.updateColumns().length; i++) {
-            extractors.put(request.updateColumns()[i], SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx));
+            extractors.put(request.updateColumns()[i], SYMBOL_TO_FIELD_EXTRACTOR.convert(updateAssignments[i], ctx));
         }
 
         Map<String, Object> pathsToUpdate = new HashMap<>(extractors.size());
@@ -376,6 +381,21 @@ public class SymbolBasedTransportShardUpsertAction
         }
     }
 
+    /**
+     * Replace References with Literals inside assignment symbols if found
+     */
+    private Symbol[] prepareUpdateAssignments(String[] columns, Symbol[] assignments) {
+        Map<String, Symbol> literals = new HashMap<>();
+        for (int i = 0; i < columns.length; i++) {
+            if (assignments[i].symbolType().isValueSymbol()) {
+                literals.put(columns[i], assignments[i]);
+            }
+        }
+        AssignmentsReferenceToLiteralConverterContext context = new AssignmentsReferenceToLiteralConverterContext(literals);
+        return REFERENCE_TO_LITERAL_CONVERTER.process(Lists.newArrayList(assignments), context)
+                .toArray(new Symbol[assignments.length]);
+    }
+
     @Override
     public void killAllJobs(long timestamp) {
         synchronized (activeOperations) {
@@ -394,6 +414,30 @@ public class SymbolBasedTransportShardUpsertAction
                 callable.kill();
             }
             activeOperations.removeAll(jobId);
+        }
+    }
+
+    static class AssignmentsReferenceToLiteralConverterContext {
+
+        private final Map<String, Symbol> literals;
+
+        public AssignmentsReferenceToLiteralConverterContext(Map<String, Symbol> literals) {
+            this.literals = literals;
+        }
+    }
+
+    static class AssignmentsReferenceToLiteralConverter extends ReplacingSymbolVisitor<AssignmentsReferenceToLiteralConverterContext> {
+        public AssignmentsReferenceToLiteralConverter() {
+            super(false);
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, AssignmentsReferenceToLiteralConverterContext context) {
+            Symbol literal = context.literals.get(symbol.ident().columnIdent().fqn());
+            if (literal != null) {
+                return literal;
+            }
+            return symbol;
         }
     }
 
