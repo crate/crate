@@ -71,6 +71,8 @@ public class LongTypeTest extends CrateUnitTest {
     }
 
     private void assertBytesRefParsing(String s, long l) {
-        assertThat(LongType.INSTANCE.value(new BytesRef(s)), is(l));
+        BytesRef bytesRef = new BytesRef(s);
+        assertThat(LongType.INSTANCE.value(bytesRef), is(l));
+        assertThat(LongType.INSTANCE.value(TypeTestUtils.addOffset(bytesRef)), is(l));
     }
 }

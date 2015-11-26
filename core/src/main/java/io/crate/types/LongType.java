@@ -78,7 +78,7 @@ public class
         boolean negative = false;
         long result = 0;
 
-        int i = 0;
+        int i = value.offset;
         int len = value.length;
         int radix = 10;
         long limit = -Long.MAX_VALUE;
@@ -106,7 +106,7 @@ public class
             i++;;
         }
         multmin = limit / radix;
-        while (i < len) {
+        while (i < len + value.offset) {
             digit = Character.digit((char) bytes[i], radix);
             i++;
             if (digit < 0) {

@@ -83,7 +83,7 @@ public class IpType extends StringType {
         short symbolsInOctet = 0;
         short numberOfDots = 0;
         int segmentValue = 0;
-        for (int i = 0; i < ip.length; i++) {
+        for (int i = ip.offset; i < ip.length + ip.offset; i++) {
             int sym = ip.bytes[i] & 0xff;
             if (sym < 46 || sym > 57 || sym == 47) {  // digits and dot symbol range a slash in a symbol range
                 return false;
@@ -92,7 +92,7 @@ public class IpType extends StringType {
                 precededByZero = (sym == 48 && symbolsInOctet == 0);
                 segmentValue = segmentValue * 10 + (sym - '0');
                 symbolsInOctet++;
-            } else if (sym == 46 && i < ip.length - 1) {
+            } else if (sym == 46 && i < ip.length + ip.offset - 1) {
                 numberOfDots++;
                 if (numberOfDots > 3) {
                     return false;

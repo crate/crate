@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -126,6 +127,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTwoStrings() throws Exception {
         assertEval("foobar", "foo", "bar");
+        assertEval("foobar", TestingHelpers.addOffset(new BytesRef("foo")),
+                             TestingHelpers.addOffset(new BytesRef("bar")));
     }
 
     @Test
@@ -148,6 +151,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     public void testStringAndNumber() throws Exception {
         assertEval("foo3", new BytesRef("foo"), 3);
         assertEval("foo3", new BytesRef("foo"), 3L);
+        assertEval("foo3", TestingHelpers.addOffset(new BytesRef("foo")), 3L);
         assertEval("foo3", new BytesRef("foo"), (short)3);
     }
 
