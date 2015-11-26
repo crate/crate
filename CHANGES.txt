@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: insert into a partitioned primary key column of type long
+   could fail under some circumstances
+
+ - Fix: missing characters when concatinating string under some
+   rare circumstances
+
  - Fix: UPDATE and INSERT ON DUPLICATE KEY assignment expression did
    not work if a used reference was also updated.
 

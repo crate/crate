@@ -29,6 +29,7 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -127,6 +128,13 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
         Function function = substr("cratedata", Literal.NULL, Literal.NULL);
         Symbol result = funcB.normalizeSymbol(function);
         assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
+    }
+
+    @Test
+    public void testSubstring() throws Exception {
+        assertThat(SubstrFunction.substring(new BytesRef("cratedata"), 2, 5), is(new BytesRef("ate")));
+        assertThat(SubstrFunction.substring(TestingHelpers.addOffset(new BytesRef("cratedata")), 2, 5),
+                                            is(new BytesRef("ate")));
     }
 
     @Test
