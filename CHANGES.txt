@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the speed of group by queries which contain tables with more
+   than 1 shard per node.
+
  - Allow creating the CrateClient with settings and servers at the same time
 
  - Updated crate-admin to 0.16.1 which includes following changes:

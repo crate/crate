@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
@@ -103,6 +104,7 @@ public class DistributedGroupByConsumer implements Consumer {
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
+            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);

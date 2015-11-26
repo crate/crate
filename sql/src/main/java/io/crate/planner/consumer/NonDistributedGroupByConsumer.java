@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectPhase;
@@ -85,11 +86,11 @@ public class NonDistributedGroupByConsumer implements Consumer {
             }
 
             Routing routing = context.plannerContext().allocateRouting(tableInfo, table.querySpec().where(), null);
-            if (routing.hasLocations() && routing.locations().size()>1) {
+            if (routing.hasLocations() && routing.locations().size() > 1) {
                 return null;
             }
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy().get());
-            return nonDistributedGroupBy(table, routing, context);
+            return nonDistributedGroupBy(table, context);
         }
 
         @Override
@@ -97,8 +98,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
-            Routing routing = context.plannerContext().allocateRouting(table.tableRelation().tableInfo(), table.querySpec().where(), null);
-            return nonDistributedGroupBy(table, routing, context);
+            return nonDistributedGroupBy(table, context);
         }
 
         /**
@@ -112,7 +112,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          *
          */
-        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, Routing routing, ConsumerContext context) {
+        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, ConsumerContext context) {
             List<Symbol> groupBy = table.querySpec().groupBy().get();
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -125,6 +125,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
+            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
 
             CollectPhase collectPhase = CollectPhase.forQueriedTable(
                     context.plannerContext(),
