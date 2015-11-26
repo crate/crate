@@ -58,7 +58,7 @@ public class UpdateProjector extends AbstractProjector {
     private final Long requiredVersion;
     private final Object lock = new Object();
 
-    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
+    private final BulkShardProcessor bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
                            Settings settings,
@@ -82,7 +82,7 @@ public class UpdateProjector extends AbstractProjector {
                 null,
                 jobId
         );
-        this.bulkShardProcessor = new BulkShardProcessor<>(
+        this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,

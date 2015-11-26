@@ -58,7 +58,7 @@ import java.util.concurrent.CancellationException;
 
 public class UpsertByIdTask extends JobTask {
 
-    private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -75,7 +75,7 @@ public class UpsertByIdTask extends JobTask {
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
                           Settings settings,
-                          BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate,
+                          BulkRequestExecutor transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -179,7 +179,7 @@ public class UpsertByIdTask extends JobTask {
                 node.insertColumns(),
                 jobId()
         );
-        BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
+        BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 transportBulkCreateIndicesAction,
                 settings,

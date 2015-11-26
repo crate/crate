@@ -180,7 +180,7 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate() {
+    public BulkRequestExecutor transportShardUpsertActionDelegate() {
         return new TransportShardUpsertActionDelegate(transportShardUpsertActionProvider.get());
     }
 

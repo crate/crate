@@ -21,6 +21,8 @@
 
 package org.elasticsearch.action.bulk;
 
+import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -59,12 +61,12 @@ public class BulkRetryCoordinator {
         return retryLock;
     }
 
-    public <Request extends BulkProcessorRequest> void retry(final Request request,
-                                                             final BulkRequestExecutor<Request> executor,
-                                                             boolean repeatingRetry,
-                                                             ActionListener<?> listener) {
+    public void retry(final ShardUpsertRequest request,
+                      final BulkRequestExecutor executor,
+                      boolean repeatingRetry,
+                      ActionListener<ShardUpsertResponse> listener) {
         trace("doRetry");
-        final RetryBulkActionListener retryBulkActionListener = new RetryBulkActionListener<>(listener);
+        final RetryBulkActionListener retryBulkActionListener = new RetryBulkActionListener(listener);
         if (repeatingRetry) {
             try {
                 Thread.sleep(currentDelay.getAndAdd(DELAY_INCREMENT));
@@ -116,16 +118,16 @@ public class BulkRetryCoordinator {
         retryExecutorService.shutdownNow();
     }
 
-    private class RetryBulkActionListener<Response> implements ActionListener<Response> {
+    private class RetryBulkActionListener implements ActionListener<ShardUpsertResponse> {
 
-        private final ActionListener<Response> listener;
+        private final ActionListener<ShardUpsertResponse> listener;
 
-        private RetryBulkActionListener(ActionListener<Response> listener) {
+        private RetryBulkActionListener(ActionListener<ShardUpsertResponse> listener) {
             this.listener = listener;
         }
 
         @Override
-        public void onResponse(Response response) {
+        public void onResponse(ShardUpsertResponse response) {
             currentDelay.set(0);
             retryLock.releaseWriteLock();
             listener.onResponse(response);

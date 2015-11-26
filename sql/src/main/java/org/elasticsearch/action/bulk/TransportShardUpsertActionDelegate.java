@@ -21,13 +21,13 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 
-public class TransportShardUpsertActionDelegate implements BulkRequestExecutor<ShardUpsertRequest> {
+public class TransportShardUpsertActionDelegate implements BulkRequestExecutor {
 
     private final TransportShardUpsertAction transportShardUpsertAction;
 

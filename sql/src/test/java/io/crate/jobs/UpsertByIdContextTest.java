@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 public class UpsertByIdContextTest extends CrateUnitTest {
 
     @Mock
-    public BulkRequestExecutor<ShardUpsertRequest> delegate;
+    public BulkRequestExecutor delegate;
 
     private UpsertByIdContext context;
     private SettableFuture<TaskResult> future;

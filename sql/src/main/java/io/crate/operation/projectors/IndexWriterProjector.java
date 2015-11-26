@@ -61,7 +61,7 @@ public class IndexWriterProjector extends AbstractProjector {
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
+    private final BulkShardProcessor bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     public IndexWriterProjector(ClusterService clusterService,
@@ -101,7 +101,7 @@ public class IndexWriterProjector extends AbstractProjector {
                 new Reference[]{rawSourceReference},
                 jobId);
 
-        bulkShardProcessor = new BulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,

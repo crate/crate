@@ -27,7 +27,6 @@ import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.action.bulk.BulkProcessorRequest;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
 import org.elasticsearch.common.Nullable;
@@ -44,7 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item>, BulkProcessorRequest {
+public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
     private String routing;
     private UUID jobId;
@@ -351,7 +350,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         out.writeBoolean(overwriteDuplicates);
     }
 
-    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
+    public static class Builder implements BulkShardProcessor.BulkRequestBuilder {
+
         private final TimeValue timeout;
         private final boolean overwriteDuplicates;
         private final boolean continueOnError;
@@ -377,19 +377,15 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         @Override
         public ShardUpsertRequest newRequest(ShardId shardId, String routing) {
-            return new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, routing, jobId)
-                    .timeout(timeout).continueOnError(continueOnError).overwriteDuplicates(overwriteDuplicates);
-        }
-
-        @Override
-        public void addItem(ShardUpsertRequest existingRequest,
-                            ShardId shardId,
-                            int location,
-                            String id,
-                            @Nullable Symbol[] assignments,
-                            @Nullable Object[] missingAssignments,
-                            @Nullable Long version) {
-            existingRequest.add(location, id, assignments, missingAssignments, version);
+            return new ShardUpsertRequest(
+                    shardId,
+                    assignmentsColumns,
+                    missingAssignmentsColumns,
+                    routing,
+                    jobId)
+                    .timeout(timeout)
+                    .continueOnError(continueOnError)
+                    .overwriteDuplicates(overwriteDuplicates);
         }
     }
 }

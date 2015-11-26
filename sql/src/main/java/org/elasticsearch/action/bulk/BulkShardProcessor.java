@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
@@ -63,7 +64,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessor<Request extends BulkProcessorRequest> {
+public class BulkShardProcessor {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
     public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
@@ -76,7 +77,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
     private final UUID jobId;
     private final int createIndicesBulkSize;
 
-    private final Map<ShardId, Request> requestsByShard = new HashMap<>();
+    private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger requestItemCounter = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -97,8 +98,8 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
-    private final BulkRequestBuilder<Request> requestBuilder;
-    private final BulkRequestExecutor<Request> requestExecutor;
+    private final BulkRequestBuilder requestBuilder;
+    private final BulkRequestExecutor requestExecutor;
 
     private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
@@ -108,8 +109,8 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               final boolean autoCreateIndices,
                               int bulkSize,
-                              BulkRequestBuilder<Request> requestBuilder,
-                              BulkRequestExecutor<Request> requestExecutor,
+                              BulkRequestBuilder requestBuilder,
+                              BulkRequestExecutor requestExecutor,
                               UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
@@ -256,21 +257,18 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
                                          @Nullable Long version) {
         try {
             executeLock.acquire();
-            Request request = requestsByShard.get(shardId);
+            ShardUpsertRequest request = requestsByShard.get(shardId);
             if (request == null) {
                 request = requestBuilder.newRequest(shardId, routing);
                 requestsByShard.put(shardId, request);
             }
             requestItemCounter.getAndIncrement();
-            requestBuilder.addItem(
-                    request,
-                    shardId,
+            request.add(
                     globalCounter.getAndIncrement(),
                     id,
                     assignments,
                     missingAssignments,
-                    version
-            );
+                    version);
         } catch (InterruptedException e) {
             Thread.interrupted();
         } finally {
@@ -281,12 +279,12 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
     private void executeRequests() {
         try {
             executeLock.acquire();
-            for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
                 if (failure.get() != null) {
                     return;
                 }
-                Map.Entry<ShardId, Request> entry = it.next();
-                final Request request = entry.getValue();
+                Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
+                final ShardUpsertRequest request = entry.getValue();
                 final ShardId shardId = entry.getKey();
                 requestExecutor.execute(request, new ActionListener<ShardUpsertResponse>() {
                     @Override
@@ -451,7 +449,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
         trace("response executed.");
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final Request request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
+    private void processFailure(Throwable e, final ShardId shardId, final ShardUpsertRequest request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
         final BulkRetryCoordinator coordinator;
@@ -528,17 +526,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
         }
     }
 
-    public interface BulkRequestBuilder<Request extends BulkProcessorRequest> {
-        Request newRequest(ShardId shardId, String routing);
-
-        void addItem(Request existingRequest,
-                     ShardId shardId,
-                     int location,
-                     String id,
-                     @Nullable Symbol[] assignments,
-                     @Nullable Object[] missingAssignments,
-                     @Nullable Long version);
+    public interface BulkRequestBuilder {
+        ShardUpsertRequest newRequest(ShardId shardId, String routing);
     }
-
-
 }

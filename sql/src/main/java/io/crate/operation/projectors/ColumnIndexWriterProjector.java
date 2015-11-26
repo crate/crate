@@ -99,7 +99,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                 jobId);
 
         insertValues = new InputRow(insertInputs);
-        bulkShardProcessor = new BulkShardProcessor<>(
+        bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 settings,

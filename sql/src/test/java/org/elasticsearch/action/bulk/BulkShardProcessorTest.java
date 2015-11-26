@@ -22,8 +22,8 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.analyze.symbol.Reference;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
+import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -74,8 +74,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-                new BulkRequestExecutor<ShardUpsertRequest>() {
+        BulkRequestExecutor transportShardBulkAction =
+                new BulkRequestExecutor() {
                     @Override
                     public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -96,7 +96,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 new Reference[]{fooRef},
                 UUID.randomUUID()
         );
-        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
@@ -137,8 +137,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
 
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-                new BulkRequestExecutor<ShardUpsertRequest>() {
+        BulkRequestExecutor transportShardBulkAction =
+                new BulkRequestExecutor() {
                     @Override
                     public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -164,7 +164,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
@@ -220,8 +220,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
         final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-                new BulkRequestExecutor<ShardUpsertRequest>() {
+        BulkRequestExecutor transportShardBulkAction =
+                new BulkRequestExecutor() {
                     @Override
                     public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
                         ref.set(listener);
@@ -246,7 +246,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
                 ImmutableSettings.EMPTY,
