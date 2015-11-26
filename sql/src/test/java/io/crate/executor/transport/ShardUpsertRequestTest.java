@@ -60,16 +60,18 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardUpsertRequest request = new ShardUpsertRequest(
                 shardId,
                 assignmentColumns,
-                missingAssignmentColumns, jobId);
+                missingAssignmentColumns,
+                "42",
+                jobId);
 
         request.add(123, "99",
                 null,
                 new Object[]{99, new BytesRef("Marvin")},
-                null, null);
+                null);
         request.add(5, "42",
                 new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") },
                 null,
-                2L, "42");
+                2L);
 
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -88,6 +90,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(request2.itemIndices().size(), is(2));
         assertThat(request2.itemIndices().get(0), is(123));
         assertThat(request2.itemIndices().get(1), is(5));
+        assertThat(request2.routing(), is("42"));
 
         assertThat(request2.items().size(), is(2));
 
@@ -95,7 +98,6 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(item1.id(), is("99"));
         assertNull(item1.updateAssignments());
         assertThat(item1.insertValues(), is(new Object[]{99, new BytesRef("Marvin")}));
-        assertNull(item1.routing());
         assertThat(item1.version(), is(Versions.MATCH_ANY));
         assertThat(item1.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
 
@@ -103,7 +105,6 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(item2.id(), is("42"));
         assertThat(item2.updateAssignments(), is(new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") }));
         assertNull(item2.insertValues());
-        assertThat(item2.routing(), is("42"));
         assertThat(item2.version(), is(2L));
         assertThat(item2.retryOnConflict(), is(0));
     }

@@ -358,7 +358,7 @@ public class TransportShardUpsertAction
         IndexRequest indexRequest = Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())
-                .routing(item.routing())
+                .routing(request.routing())
                 .source(source)
                 .create(!request.overwriteDuplicates())
                 .operationThreaded(false);

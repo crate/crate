@@ -46,7 +46,9 @@ import java.util.UUID;
 
 public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item>, BulkProcessorRequest {
 
+    private String routing;
     private UUID jobId;
+
 
     /**
      * A single update item.
@@ -54,7 +56,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     static class Item implements Streamable {
 
         private String id;
-        private String routing;
         private long version = Versions.MATCH_ANY;
 
         /**
@@ -84,11 +85,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
              @Nullable Symbol[] updateAssignments,
              @Nullable Object[] insertValues,
              @Nullable Long version,
-             @Nullable String routing,
              @Nullable Streamer[] insertValuesStreamer) {
             this(insertValuesStreamer);
             this.id = id;
-            this.routing = routing;
             this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
@@ -98,11 +97,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
 
         public String id() {
             return id;
-        }
-
-        @Nullable
-        public String routing() {
-            return routing;
         }
 
         public long version() {
@@ -132,7 +126,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         @Override
         public void readFrom(StreamInput in) throws IOException {
             id = in.readString();
-            routing = in.readOptionalString();
             int assignmentsSize = in.readVInt();
             if (assignmentsSize > 0) {
                 updateAssignments = new Symbol[assignmentsSize];
@@ -154,7 +147,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
-            out.writeOptionalString(routing);
             if (updateAssignments != null) {
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {
@@ -207,7 +199,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public ShardUpsertRequest(ShardId shardId,
                               @Nullable String[] updateColumns,
                               @Nullable Reference[] insertColumns,
+                              @Nullable String routing,
                               UUID jobId) {
+        this.routing = routing;
         this.jobId = jobId;
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
@@ -237,10 +231,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                                   String id,
                                   @Nullable Symbol[] assignments,
                                   @Nullable Object[] missingAssignments,
-                                  @Nullable Long version,
-                                  @Nullable String routing) {
+                                  @Nullable Long version) {
         locations.add(location);
-        items.add(new Item(id, assignments, missingAssignments, version, routing, insertValuesStreamer));
+        items.add(new Item(id, assignments, missingAssignments, version, insertValuesStreamer));
         return this;
     }
 
@@ -270,6 +263,10 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return this;
     }
 
+    public String routing() {
+        return routing;
+    }
+
     public UUID jobId() {
         return jobId;
     }
@@ -292,6 +289,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         shardId = in.readInt();
+        routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
@@ -324,6 +322,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeInt(shardId);
+        out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
         // Stream References
@@ -377,8 +376,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
 
         @Override
-        public ShardUpsertRequest newRequest(ShardId shardId) {
-            return new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, jobId)
+        public ShardUpsertRequest newRequest(ShardId shardId, String routing) {
+            return new ShardUpsertRequest(shardId, assignmentsColumns, missingAssignmentsColumns, routing, jobId)
                     .timeout(timeout).continueOnError(continueOnError).overwriteDuplicates(overwriteDuplicates);
         }
 
@@ -389,9 +388,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                             String id,
                             @Nullable Symbol[] assignments,
                             @Nullable Object[] missingAssignments,
-                            @Nullable String routing,
                             @Nullable Long version) {
-            existingRequest.add(location, id, assignments, missingAssignments, version, routing);
+            existingRequest.add(location, id, assignments, missingAssignments, version);
         }
     }
 }

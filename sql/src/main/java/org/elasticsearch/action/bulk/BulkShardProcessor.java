@@ -258,7 +258,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
             executeLock.acquire();
             Request request = requestsByShard.get(shardId);
             if (request == null) {
-                request = requestBuilder.newRequest(shardId);
+                request = requestBuilder.newRequest(shardId, routing);
                 requestsByShard.put(shardId, request);
             }
             requestItemCounter.getAndIncrement();
@@ -269,7 +269,6 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
                     id,
                     assignments,
                     missingAssignments,
-                    routing,
                     version
             );
         } catch (InterruptedException e) {
@@ -530,7 +529,7 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
     }
 
     public interface BulkRequestBuilder<Request extends BulkProcessorRequest> {
-        Request newRequest(ShardId shardId);
+        Request newRequest(ShardId shardId, String routing);
 
         void addItem(Request existingRequest,
                      ShardId shardId,
@@ -538,7 +537,6 @@ public class BulkShardProcessor<Request extends BulkProcessorRequest> {
                      String id,
                      @Nullable Symbol[] assignments,
                      @Nullable Object[] missingAssignments,
-                     @Nullable String routing,
                      @Nullable Long version);
     }
 
