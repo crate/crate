@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IndexWriterProjector extends AbstractProjector {
 
-    private final BytesRefGenerator sourceGenerator;
+    private final Input<BytesRef> sourceInput;
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
@@ -86,10 +86,10 @@ public class IndexWriterProjector extends AbstractProjector {
         this.collectExpressions = collectExpressions;
         if (includes == null && excludes == null) {
             //noinspection unchecked
-            sourceGenerator = new BytesRefInput((Input<BytesRef>) sourceInput);
+            this.sourceInput = (Input<BytesRef>) sourceInput;
         } else {
             //noinspection unchecked
-            sourceGenerator =
+            this.sourceInput =
                     new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
         rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
@@ -129,7 +129,7 @@ public class IndexWriterProjector extends AbstractProjector {
         return bulkShardProcessor.add(
                 indexNameResolver.get(),
                 rowShardResolver.id(),
-                new Object[] { sourceGenerator.generateSource() },
+                new Object[] { sourceInput.value() },
                 rowShardResolver.routing(),
                 null);
     }
@@ -146,24 +146,7 @@ public class IndexWriterProjector extends AbstractProjector {
         bulkShardProcessor.kill(throwable);
     }
 
-    private interface BytesRefGenerator {
-        BytesRef generateSource();
-    }
-
-    private static class BytesRefInput implements BytesRefGenerator {
-        private final Input<BytesRef> input;
-
-        private BytesRefInput(Input<BytesRef> input) {
-            this.input = input;
-        }
-
-        @Override
-        public BytesRef generateSource() {
-            return input.value();
-        }
-    }
-
-    private static class MapInput implements BytesRefGenerator {
+    private static class MapInput implements Input<BytesRef> {
 
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
@@ -179,7 +162,7 @@ public class IndexWriterProjector extends AbstractProjector {
         }
 
         @Override
-        public BytesRef generateSource() {
+        public BytesRef value() {
             Map<String, Object> value = sourceInput.value();
             if (value == null) {
                 return null;
