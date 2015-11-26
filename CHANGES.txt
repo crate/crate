@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: UPDATE and INSERT ON DUPLICATE KEY assignment expression did
+   not work if a used reference was also updated.
+
  - Internal optimization: Avoid writing partition values to the source.
 
  - Expose shard recovery information in sys.shards table
@@ -61,9 +64,9 @@ Unreleased
 
  - Updated crate/elasticsearch for improved logging on graceful shutdown errors
 
- - Added ``array_cat``, ``array_unique`` and ``array_difference`` scalar 
+ - Added ``array_cat``, ``array_unique`` and ``array_difference`` scalar
    functions. Also modified ``concat`` function to resolve to ``array_cat`` when
-   ``concat`` function is called with 2 array args, so the operator ``||`` will 
+   ``concat`` function is called with 2 array args, so the operator ``||`` will
    work with arrays.
 
 2015/11/11 0.52.2
@@ -88,7 +91,7 @@ Unreleased
  - Fix: clean up file descriptors in case of exceptions when retrieving blobs
    over the REST api
 
- - Fixed an issue that was causing like queries to fail if using a special regex 
+ - Fixed an issue that was causing like queries to fail if using a special regex
    character
 
  - Upgraded Elasticsearch to 1.7.3
@@ -97,7 +100,7 @@ Unreleased
    the cluster when multiple clients connections are established
 
  - Fixed a possible race condition that could lead to queries getting stuck
-   (Only affected SELECT queries with a limit/offset > 500000) 
+   (Only affected SELECT queries with a limit/offset > 500000)
 
  - Fix: Crate won't start properly if a plugin loading error occurs
    (e.g. through a misconfigured plugin)
@@ -106,7 +109,7 @@ Unreleased
    FetchContext to remain open longer than necessary in an error case.
    This could then lead to failures if an attempt was made to move shards to
    which the FetchContext hold onto.
- 
+
  - Updated crate-admin to 0.15.2 which includes following changes:
 
    - fixed a bug that displays partitions that are not related to the selected
