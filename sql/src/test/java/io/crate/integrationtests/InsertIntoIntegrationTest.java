@@ -852,4 +852,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(1447804800000L));
     }
 
+    @Test
+    public void testInsertIntoGeneratedPartitionedColumnValueGiven() throws Exception {
+        execute("create table export(col1 integer, col2 int)");
+        execute("create table import (\n" +
+                "  col1 int, \n" +
+                "  col2 int, \n" +
+                "  gen_new as (col1 + col2)" +
+                ") partitioned by (gen_new)");
+        ensureYellow();
+        execute("insert into export (col1, col2) values (1, 2)");
+        refresh();
+        execute("insert into import (col1, col2, gen_new) (select col1, col2, col1+col2 from export)");
+        refresh();
+        execute("select gen_new from import");
+        assertThat((Long)response.rows()[0][0], is(3L));
+    }
 }
