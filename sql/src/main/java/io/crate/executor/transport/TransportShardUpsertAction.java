@@ -434,6 +434,7 @@ public class TransportShardUpsertAction
             }
         }
     }
+
     @Override
     public void killAllJobs(long timestamp) {
         synchronized (activeOperations) {
