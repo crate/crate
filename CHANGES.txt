@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the speed of group by queries which contain tables with more
+   than 1 shard per node.
+
  - Updated crate-admin to 0.16.1 which includes following changes:
 
    - fix: column headers where not shown in result table on console page

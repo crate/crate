@@ -1937,4 +1937,24 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(plan.collectPhase().nodePageSizeHint(), is(750000));
     }
+
+    @Test
+    public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
+        NonDistributedGroupBy nonDistributedGroup = plan("select count(*) from sys.cluster group by name");
+        CollectPhase collectPhase = nonDistributedGroup.collectPhase();
+        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
+
+    @Test
+    public void testNonDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
+        DistributedGroupBy distributedGroupBy = plan("select count(distinct id), name from users" +
+                                                     " group by name order by count(distinct id)");
+        CollectPhase collectPhase = distributedGroupBy.collectNode();
+        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
+
 }
