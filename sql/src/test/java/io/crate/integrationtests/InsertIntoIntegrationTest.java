@@ -729,4 +729,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select sum(lashes), date from giveittome group by date");
         assertThat(response.rowCount(), is((long)bulkSize));
     }
+
+    @Test
+    public void testInsertIntoLongPartitionedBy() throws Exception {
+        execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
+        ensureYellow();
+        execute("insert into import (col1, col2) values (1, 1)");
+    }
 }

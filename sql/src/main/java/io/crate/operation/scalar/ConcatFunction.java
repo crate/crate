@@ -87,8 +87,8 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
                 return firstArg;
             }
             byte[] bytes = new byte[firstArg.length + secondArg.length];
-            System.arraycopy(firstArg.bytes, 0, bytes, 0, firstArg.length);
-            System.arraycopy(secondArg.bytes, 0, bytes, firstArg.length, secondArg.length);
+            System.arraycopy(firstArg.bytes, firstArg.offset, bytes, 0, firstArg.length);
+            System.arraycopy(secondArg.bytes, secondArg.offset, bytes, firstArg.length, secondArg.length);
             return new BytesRef(bytes);
         }
     }
@@ -116,7 +116,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
             byte[] bytes = new byte[numBytes];
             int numWritten = 0;
             for (BytesRef bytesRef : bytesRefs) {
-                System.arraycopy(bytesRef.bytes, 0, bytes, numWritten, bytesRef.length);
+                System.arraycopy(bytesRef.bytes, bytesRef.offset, bytes, numWritten, bytesRef.length);
                 numWritten += bytesRef.length;
             }
             return new BytesRef(bytes);

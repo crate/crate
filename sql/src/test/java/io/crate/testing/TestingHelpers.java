@@ -687,4 +687,11 @@ public class TestingHelpers {
             throw new RuntimeException(e);
         }
     }
+
+    public static BytesRef addOffset(BytesRef bytesRef) {
+        byte[] result = new byte[bytesRef.length + 2];
+        System.arraycopy(new byte[]{0, 1}, 0, result, 0, 2); // OFFSET
+        System.arraycopy(bytesRef.bytes, 0, result, 2, bytesRef.length);
+        return new BytesRef(result, 2, bytesRef.length);
+    }
 }
