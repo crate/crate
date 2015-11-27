@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport;
 
-import io.crate.Constants;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -34,13 +33,12 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.equalTo;
 
 public class ShardUpsertRequestTest extends CrateUnitTest {
 
@@ -73,7 +71,6 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 null,
                 2L);
 
-
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
@@ -81,32 +78,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 
-        assertThat(request2.index(), is(shardId.getIndex()));
-        assertThat(request2.shardId(), is(shardId.id()));
-        assertThat(request2.jobId(), is(jobId));
-        assertThat(request2.updateColumns(), is(assignmentColumns));
-        assertThat(request2.insertColumns(), is(missingAssignmentColumns));
-
-        assertThat(request2.itemIndices().size(), is(2));
-        assertThat(request2.itemIndices().get(0), is(123));
-        assertThat(request2.itemIndices().get(1), is(5));
-        assertThat(request2.routing(), is("42"));
-
-        assertThat(request2.items().size(), is(2));
-
-        ShardUpsertRequest.Item item1 = request2.items().get(0);
-        assertThat(item1.id(), is("99"));
-        assertNull(item1.updateAssignments());
-        assertThat(item1.insertValues(), is(new Object[]{99, new BytesRef("Marvin")}));
-        assertThat(item1.version(), is(Versions.MATCH_ANY));
-        assertThat(item1.retryOnConflict(), is(Constants.UPDATE_RETRY_ON_CONFLICT));
-
-        ShardUpsertRequest.Item item2 = request2.items().get(1);
-        assertThat(item2.id(), is("42"));
-        assertThat(item2.updateAssignments(), is(new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") }));
-        assertNull(item2.insertValues());
-        assertThat(item2.version(), is(2L));
-        assertThat(item2.retryOnConflict(), is(0));
+        assertThat(request, equalTo(request2));
     }
 
 }

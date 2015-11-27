@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.Constants;
 import io.crate.Streamer;
@@ -38,136 +39,13 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
+    @Nullable
     private String routing;
     private UUID jobId;
-
-
-    /**
-     * A single update item.
-     */
-    static class Item implements Streamable {
-
-        private String id;
-        private long version = Versions.MATCH_ANY;
-
-        /**
-         * List of symbols used on update if document exist
-         */
-        @Nullable
-        private Symbol[] updateAssignments;
-
-        /**
-         * List of objects used on insert
-         */
-        @Nullable
-        private Object[] insertValues;
-
-        /**
-         * List of data type streamer needed for streaming insert values
-         */
-        @Nullable
-        private Streamer[] insertValuesStreamer;
-
-
-        Item(@Nullable Streamer[] insertValuesStreamer) {
-            this.insertValuesStreamer = insertValuesStreamer;
-        }
-
-        Item(String id,
-             @Nullable Symbol[] updateAssignments,
-             @Nullable Object[] insertValues,
-             @Nullable Long version,
-             @Nullable Streamer[] insertValuesStreamer) {
-            this(insertValuesStreamer);
-            this.id = id;
-            this.updateAssignments = updateAssignments;
-            if (version != null) {
-                this.version = version;
-            }
-            this.insertValues = insertValues;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public long version() {
-            return version;
-        }
-
-        public int retryOnConflict() {
-            return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
-        }
-
-        @Nullable
-        public Symbol[] updateAssignments() {
-            return updateAssignments;
-        }
-
-        @Nullable
-        public Object[] insertValues() {
-            return insertValues;
-        }
-
-        static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
-            Item item = new Item(streamers);
-            item.readFrom(in);
-            return item;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            id = in.readString();
-            int assignmentsSize = in.readVInt();
-            if (assignmentsSize > 0) {
-                updateAssignments = new Symbol[assignmentsSize];
-                for (int i = 0; i < assignmentsSize; i++) {
-                    updateAssignments[i] = Symbol.fromStream(in);
-                }
-            }
-            int missingAssignmentsSize = in.readVInt();
-            if (missingAssignmentsSize > 0) {
-                this.insertValues = new Object[missingAssignmentsSize];
-                for (int i = 0; i < missingAssignmentsSize; i++) {
-                    insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
-                }
-            }
-
-            version = Versions.readVersion(in);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(id);
-            if (updateAssignments != null) {
-                out.writeVInt(updateAssignments.length);
-                for (Symbol updateAssignment : updateAssignments) {
-                    Symbol.toStream(updateAssignment, out);
-                }
-            } else {
-                out.writeVInt(0);
-            }
-            // Stream References
-            if (insertValues != null) {
-                out.writeVInt(insertValues.length);
-                for (int i = 0; i < insertValues.length; i++) {
-                    insertValuesStreamer[i].writeValueTo(out, insertValues[i]);
-                }
-            } else {
-                out.writeVInt(0);
-            }
-
-            Versions.writeVersion(version, out);
-        }
-    }
-
     private int shardId;
     private List<Item> items;
     private IntArrayList locations;
@@ -262,6 +140,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return this;
     }
 
+    @Nullable
     public String routing() {
         return routing;
     }
@@ -277,6 +156,29 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     public ShardUpsertRequest continueOnError(boolean continueOnError) {
         this.continueOnError = continueOnError;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ShardUpsertRequest items1 = (ShardUpsertRequest) o;
+        return shardId == items1.shardId &&
+               continueOnError == items1.continueOnError &&
+               overwriteDuplicates == items1.overwriteDuplicates &&
+               Objects.equal(routing, items1.routing) &&
+               Objects.equal(jobId, items1.jobId) &&
+               Objects.equal(items, items1.items) &&
+               Objects.equal(locations, items1.locations) &&
+               Arrays.equals(updateColumns, items1.updateColumns) &&
+               Arrays.equals(insertColumns, items1.insertColumns) &&
+               Arrays.equals(insertValuesStreamer, items1.insertValuesStreamer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(routing, jobId, shardId, items, locations, continueOnError, overwriteDuplicates,
+                updateColumns, insertColumns, insertValuesStreamer);
     }
 
     @Override
@@ -348,6 +250,142 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
+    }
+
+    /**
+     * A single update item.
+     */
+    static class Item implements Streamable {
+
+        private String id;
+        private long version = Versions.MATCH_ANY;
+
+        /**
+         * List of symbols used on update if document exist
+         */
+        @Nullable
+        private Symbol[] updateAssignments;
+
+        /**
+         * List of objects used on insert
+         */
+        @Nullable
+        private Object[] insertValues;
+
+        /**
+         * List of data type streamer needed for streaming insert values
+         */
+        @Nullable
+        private Streamer[] insertValuesStreamer;
+
+
+        Item(@Nullable Streamer[] insertValuesStreamer) {
+            this.insertValuesStreamer = insertValuesStreamer;
+        }
+
+        Item(String id,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Object[] insertValues,
+             @Nullable Long version,
+             @Nullable Streamer[] insertValuesStreamer) {
+            this(insertValuesStreamer);
+            this.id = id;
+            this.updateAssignments = updateAssignments;
+            if (version != null) {
+                this.version = version;
+            }
+            this.insertValues = insertValues;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public long version() {
+            return version;
+        }
+
+        public int retryOnConflict() {
+            return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
+        }
+
+        @Nullable
+        public Symbol[] updateAssignments() {
+            return updateAssignments;
+        }
+
+        @Nullable
+        public Object[] insertValues() {
+            return insertValues;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Item item = (Item) o;
+            return version == item.version &&
+                   Objects.equal(id, item.id) &&
+                   Arrays.deepEquals(updateAssignments, item.updateAssignments) &&
+                   Arrays.deepEquals(insertValues, item.insertValues) &&
+                   Arrays.equals(insertValuesStreamer, item.insertValuesStreamer);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(id, version, updateAssignments, insertValues, insertValuesStreamer);
+        }
+
+        static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
+            Item item = new Item(streamers);
+            item.readFrom(in);
+            return item;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            id = in.readString();
+            int assignmentsSize = in.readVInt();
+            if (assignmentsSize > 0) {
+                updateAssignments = new Symbol[assignmentsSize];
+                for (int i = 0; i < assignmentsSize; i++) {
+                    updateAssignments[i] = Symbol.fromStream(in);
+                }
+            }
+            int missingAssignmentsSize = in.readVInt();
+            if (missingAssignmentsSize > 0) {
+                this.insertValues = new Object[missingAssignmentsSize];
+                for (int i = 0; i < missingAssignmentsSize; i++) {
+                    insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
+                }
+            }
+
+            version = Versions.readVersion(in);
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(id);
+            if (updateAssignments != null) {
+                out.writeVInt(updateAssignments.length);
+                for (Symbol updateAssignment : updateAssignments) {
+                    Symbol.toStream(updateAssignment, out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
+            // Stream References
+            if (insertValues != null) {
+                out.writeVInt(insertValues.length);
+                for (int i = 0; i < insertValues.length; i++) {
+                    insertValuesStreamer[i].writeValueTo(out, insertValues[i]);
+                }
+            } else {
+                out.writeVInt(0);
+            }
+
+            Versions.writeVersion(version, out);
+        }
     }
 
     public static class Builder implements BulkShardProcessor.BulkRequestBuilder {
