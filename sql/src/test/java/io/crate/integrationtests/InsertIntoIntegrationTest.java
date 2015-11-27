@@ -868,4 +868,40 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select gen_new from import");
         assertThat((Long)response.rows()[0][0], is(3L));
     }
+
+    @Test
+    public void testInsertGeneratedPrimaryKeyValue() throws Exception {
+        execute("create table test(col1 as 3 * col2 primary key, col2 integer primary key)");
+        ensureYellow();
+        execute("insert into test (col2) values (1)");
+        refresh();
+        execute("select col1 from test");
+        assertThat((Long) response.rows()[0][0], is(3L));
+    }
+
+    @Test
+    public void testInsertGeneratedPartitionedPrimaryKey() throws Exception {
+        execute("create table test(col1 integer primary key, col2 as 2 * col1 primary key) " +
+                "partitioned by (col2)");
+        ensureYellow();
+        execute("insert into test (col1) values(1)");
+        refresh();
+        execute("select col2 from test");
+        assertThat((Long) response.rows()[0][0], is(2L));
+    }
+
+    @Test
+    public void testInsertGeneratedPrimaryKeyValueGiven() throws Exception {
+        execute("create table test(col1 integer primary key, col2 as col1 + 3 primary key)");
+        ensureYellow();
+        execute("insert into test(col1, col2) values (1, 4)");
+        refresh();
+        execute("select col2 from test");
+        assertThat((Long) response.rows()[0][0], is(4L));
+
+        // wrong value
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Given value 0 for generated column does not match defined generated expression value 4");
+        execute("insert into test(col1, col2) values (1, 0)");
+    }
 }
