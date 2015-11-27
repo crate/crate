@@ -121,11 +121,13 @@ public class CopyStatementAnalyzer {
         } else {
             Reference sourceRef;
             if (tableRelation.tableInfo().isPartitioned() && partition == null) {
-                // table is partitioned, insert partitioned columns into the output
+                // table is partitioned, insert partitioned columns into the output, but not generated columns
                 sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.DOC));
                 overwrites = new HashMap<>();
                 for (ReferenceInfo referenceInfo : tableRelation.tableInfo().partitionedByColumns()) {
-                    overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                    if (!(referenceInfo instanceof GeneratedReferenceInfo)) {
+                        overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                    }
                 }
             } else {
                 sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.RAW));
