@@ -387,6 +387,9 @@ Example JSON data::
 
   * The ``COPY FROM`` statement will not convert or validate your data.
     Please make sure that it fits your schema.
+  * Values for generated columns will be computed if the data does not contain
+    them, otherwise they will be imported but not validated, so please make
+    sure that they are correct.
   * Furthermore, column names in your data are considered case sensitive (as if they
     were quoted in a SQL statement).
 
