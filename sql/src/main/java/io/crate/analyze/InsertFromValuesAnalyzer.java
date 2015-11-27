@@ -296,7 +296,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         // process generated column expressions and add columns + values
-        insertValues = processGeneratedExpressions(tableRelation, context, expressionAnalyzer, insertValues);
+        insertValues = processGeneratedExpressions(tableRelation, context, expressionAnalyzer, insertValues, primaryKeyValues);
 
         context.sourceMaps().add(insertValues);
         context.addIdAndRouting(idFunction.apply(primaryKeyValues), routingValue);
@@ -361,14 +361,20 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     private Object[] processGeneratedExpressions(DocTableRelation tableRelation,
                                                  InsertFromValuesAnalyzedStatement context,
                                                  ExpressionAnalyzer expressionAnalyzer,
-                                                 Object[] insertValues) {
+                                                 Object[] insertValues,
+                                                 List<BytesRef> primaryKeyValues) {
         ReferenceToLiteralConverter.Context toLiteralContext = new ReferenceToLiteralConverter.Context(context.columns(), insertValues);
+        List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
         for (GeneratedReferenceInfo referenceInfo : tableRelation.tableInfo().generatedColumns()) {
             Reference reference = new Reference(referenceInfo);
             Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), toLiteralContext);
             valueSymbol = expressionAnalyzer.normalize(valueSymbol);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
+                if (primaryKey.contains(referenceInfo.ident().columnIdent()) && context.columns().indexOf(reference) == -1) {
+                    int idx = primaryKey.indexOf(referenceInfo.ident().columnIdent());
+                    addPrimaryKeyValue(idx, value, primaryKeyValues);
+                }
                 if (tableRelation.tableInfo().isPartitioned()
                     && tableRelation.tableInfo().partitionedByColumns().contains(referenceInfo)) {
                     addGeneratedPartitionedColumnValue(referenceInfo.ident().columnIdent(), value, context.currentPartitionMap());
