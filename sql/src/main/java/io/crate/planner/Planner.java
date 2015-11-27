@@ -399,11 +399,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else {
             Reference sourceRef;
             if (analysis.table().isPartitioned() && partitionIdent == null) {
-                // table is partitioned, insert partitioned columns into the output
+                // table is partitioned, insert partitioned columns into the output, but not generated columns
                 sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.DOC));
                 Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
                 for (ReferenceInfo referenceInfo : analysis.table().partitionedByColumns()) {
-                    overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                    if (!(referenceInfo instanceof GeneratedReferenceInfo)) {
+                        overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                    }
                 }
                 projection.overwrites(overwrites);
             } else {

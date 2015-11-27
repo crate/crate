@@ -62,6 +62,7 @@ import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -79,26 +80,30 @@ public class PlannerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private Planner planner;
-    Routing shardRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+    private static final Routing SHARD_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
             .map());
 
-    final Routing partedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
             .map());
 
-    final Routing clusteredPartedRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+    private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
             .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
             .map());
+
+    private TableInfo generatedPartitionedTableInfo;
 
     private ClusterService clusterService;
 
     private final static String LOCAL_NODE_ID = "foo";
     private ThreadPool threadPool;
 
+    @Mock
+    private SchemaInfo schemaInfo;
 
     @Before
     public void prepare() throws Exception {
@@ -112,12 +117,28 @@ public class PlannerTest extends CrateUnitTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+
+        bindGeneratedColumnTable(injector.getInstance(Functions.class));
     }
 
     @After
     public void after() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    private void bindGeneratedColumnTable(Functions functions) {
+        TableIdent generatedPartitionedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted_generated");
+        generatedPartitionedTableInfo = new TestingTableInfo.Builder(
+                generatedPartitionedTableIdent, PARTED_ROUTING)
+                .add("ts", DataTypes.TIMESTAMP, null)
+                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+                .addPartitions(
+                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+                .build(functions);
+        when(schemaInfo.getTableInfo(generatedPartitionedTableIdent.name()))
+                .thenReturn(generatedPartitionedTableInfo);
     }
 
 
@@ -156,9 +177,8 @@ public class PlannerTest extends CrateUnitTest {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, shardRouting)
+            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, SHARD_ROUTING)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
                     .add("date", DataTypes.TIMESTAMP, null)
@@ -168,14 +188,14 @@ public class PlannerTest extends CrateUnitTest {
                     .clusteredBy("id")
                     .build();
             TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
-            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, shardRouting)
+            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, SHARD_ROUTING)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
             TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
-            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, partedRouting)
+            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, PARTED_ROUTING)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -189,7 +209,7 @@ public class PlannerTest extends CrateUnitTest {
                     .clusteredBy("id")
                     .build();
             TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
-            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, shardRouting)
+            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, SHARD_ROUTING)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -211,9 +231,9 @@ public class PlannerTest extends CrateUnitTest {
                             new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
                             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
                     .build();
-            TableIdent clusteredByParitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
+            TableIdent clusteredByPartitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
             TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, clusteredPartedRouting)
+                    multiplePartitionedTableIdent, CLUSTERED_PARTED_ROUTING)
                     .add("id", DataTypes.INTEGER, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .add("city", DataTypes.STRING, null)
@@ -227,7 +247,7 @@ public class PlannerTest extends CrateUnitTest {
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
-            when(schemaInfo.getTableInfo(clusteredByParitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
+            when(schemaInfo.getTableInfo(clusteredByPartitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
             when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
@@ -950,7 +970,7 @@ public class PlannerTest extends CrateUnitTest {
         CollectAndMerge planNode = (CollectAndMerge) plan.nodes().get(0);
 
         CollectPhase collectPhase = planNode.collectPhase();
-        assertThat(collectPhase.routing(), is(shardRouting));
+        assertThat(collectPhase.routing(), is(SHARD_ROUTING));
         assertFalse(collectPhase.whereClause().noMatch());
         assertFalse(collectPhase.whereClause().hasQuery());
         assertThat(collectPhase.projections().size(), is(1));
@@ -1086,6 +1106,15 @@ public class PlannerTest extends CrateUnitTest {
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
         plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
+    }
+
+    @Test
+    public void testCopyToWithPartitionedGeneratedColumn() throws Exception {
+        // test that generated partition column is NOT exported
+        CollectAndMerge plan = (CollectAndMerge) plan("copy parted_generated to '/file.ext'");
+        CollectPhase node = plan.collectPhase();
+        WriterProjection projection = (WriterProjection) node.projections().get(0);
+        assertThat(projection.overwrites().size(), is(0));
     }
 
     @Test
@@ -1807,13 +1836,13 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testIndices() throws Exception {
         TableIdent custom = new TableIdent("custom", "table");
-        String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        String[] indices = Planner.indices(TestingTableInfo.builder(custom, SHARD_ROUTING).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom.table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), shardRouting).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), SHARD_ROUTING).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting)
+        indices = Planner.indices(TestingTableInfo.builder(custom, SHARD_ROUTING)
                 .add("id", DataTypes.INTEGER, null)
                 .add("date", DataTypes.TIMESTAMP, null, true)
                 .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).asIndexName())
@@ -1825,7 +1854,7 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testBuildReaderAllocations() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
-        TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build();
+        TableInfo tableInfo = TestingTableInfo.builder(custom, SHARD_ROUTING).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
@@ -1855,7 +1884,7 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testAllocateRouting() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
-        TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting).add("id", DataTypes.INTEGER, null).build();
+        TableInfo tableInfo = TestingTableInfo.builder(custom, SHARD_ROUTING).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
 
         WhereClause whereClause = new WhereClause(
