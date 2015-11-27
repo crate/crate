@@ -99,7 +99,8 @@ public class IndexWriterProjector extends AbstractProjector {
                 true,
                 null,
                 new Reference[]{rawSourceReference},
-                jobId);
+                jobId,
+                false);
 
         bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
