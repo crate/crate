@@ -53,6 +53,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     private boolean continueOnError = false;
     private boolean overwriteDuplicates = false;
     private Boolean isRawSourceInsert = null;
+    private boolean validateGeneratedColumns = true;
 
     /**
      * List of column names used on update
@@ -160,6 +161,15 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return this;
     }
 
+    public boolean validateGeneratedColumns() {
+        return validateGeneratedColumns;
+    }
+
+    public ShardUpsertRequest validateGeneratedColumns(boolean validateGeneratedColumns) {
+        this.validateGeneratedColumns = validateGeneratedColumns;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -168,6 +178,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return shardId == items1.shardId &&
                continueOnError == items1.continueOnError &&
                overwriteDuplicates == items1.overwriteDuplicates &&
+               validateGeneratedColumns == items1.validateGeneratedColumns &&
                Objects.equal(routing, items1.routing) &&
                Objects.equal(jobId, items1.jobId) &&
                Objects.equal(items, items1.items) &&
@@ -180,7 +191,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     @Override
     public int hashCode() {
         return Objects.hashCode(routing, jobId, shardId, items, locations, continueOnError, overwriteDuplicates,
-                updateColumns, insertColumns, insertValuesStreamer);
+                updateColumns, insertColumns, insertValuesStreamer, validateGeneratedColumns);
     }
 
     @Override
@@ -227,6 +238,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
         continueOnError = in.readBoolean();
         overwriteDuplicates = in.readBoolean();
+        validateGeneratedColumns = in.readBoolean();
     }
 
     @Override
@@ -260,6 +272,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
+        out.writeBoolean(validateGeneratedColumns);
     }
 
     /**
@@ -408,6 +421,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
+        private boolean validateGeneratedColumns;
 
         public Builder(TimeValue timeout,
                        boolean overwriteDuplicates,
@@ -415,12 +429,22 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        UUID jobId) {
+            this(timeout, overwriteDuplicates, continueOnError, assignmentsColumns, missingAssignmentsColumns, jobId, true);
+        }
+        public Builder(TimeValue timeout,
+                       boolean overwriteDuplicates,
+                       boolean continueOnError,
+                       @Nullable String[] assignmentsColumns,
+                       @Nullable Reference[] missingAssignmentsColumns,
+                       UUID jobId,
+                       boolean validateGeneratedColumns) {
             this.timeout = timeout;
             this.overwriteDuplicates = overwriteDuplicates;
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
+            this.validateGeneratedColumns = validateGeneratedColumns;
         }
 
         @Override
@@ -433,7 +457,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                     jobId)
                     .timeout(timeout)
                     .continueOnError(continueOnError)
-                    .overwriteDuplicates(overwriteDuplicates);
+                    .overwriteDuplicates(overwriteDuplicates)
+                    .validateGeneratedColumns(validateGeneratedColumns);
         }
     }
 }

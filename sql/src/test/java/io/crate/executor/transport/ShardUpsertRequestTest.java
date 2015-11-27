@@ -61,6 +61,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 missingAssignmentColumns,
                 "42",
                 jobId);
+        request.validateGeneratedColumns(false);
 
         request.add(123, "99",
                 null,
