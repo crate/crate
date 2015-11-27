@@ -69,15 +69,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .clusteredBy("o.c")
             .build();
 
-    private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
-    private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-            .add("ts", DataTypes.TIMESTAMP, null)
-            .add("user", DataTypes.OBJECT, null)
-            .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false);
-    private static TableInfo GENERATED_COLUMN_INFO;
+    private TableInfo generatedColumnTableInfo;
 
     @Mock
     private static SchemaInfo schemaInfo;
@@ -122,11 +114,17 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Before
     public void bindGeneratedColumnTable() {
-        if (GENERATED_COLUMN_INFO == null) {
-            GENERATED_COLUMN_INFO = GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
-        }
-        when(schemaInfo.getTableInfo(GENERATED_COLUMN_TABLE_IDENT.name()))
-                .thenReturn(GENERATED_COLUMN_INFO);
+        TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
+        generatedColumnTableInfo = new TestingTableInfo.Builder(
+                generatedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+                .add("ts", DataTypes.TIMESTAMP, null)
+                .add("user", DataTypes.OBJECT, null)
+                .add("user", DataTypes.STRING, Arrays.asList("name"))
+                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+                .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false)
+                .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(generatedColumnTableIdent.name()))
+                .thenReturn(generatedColumnTableInfo);
     }
 
     @Test

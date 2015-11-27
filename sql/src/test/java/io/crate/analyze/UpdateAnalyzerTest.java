@@ -76,20 +76,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
-    static final TableIdent PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "parted_generated_column");
-    static final TestingTableInfo.Builder PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-            .add("ts", DataTypes.TIMESTAMP, null)
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
-    static TableInfo PARTED_GENERATED_COLUMN_INFO;
-
-    static final TableIdent NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "nested_parted_generated_column");
-    static final TestingTableInfo.Builder NESTED_PARTED_GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-            .add("user", DataTypes.OBJECT, null)
-            .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true);
-    static TableInfo NESTED_PARTED_GENERATED_COLUMN_INFO;
+    static TableInfo partedGeneratedColumnTableInfo;
+    static TableInfo nestedPartedGeneratedColumnTableInfo;
 
 
     @Mock
@@ -133,17 +121,24 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Before
     public void bindGeneratedColumnTables() {
-        if (PARTED_GENERATED_COLUMN_INFO == null) {
-            PARTED_GENERATED_COLUMN_INFO = PARTED_GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
-        }
-        when(schemaInfo.getTableInfo(PARTED_GENERATED_COLUMN_TABLE_IDENT.name()))
-                .thenReturn(PARTED_GENERATED_COLUMN_INFO);
+        TableIdent partedGeneratedColumnTableIdent = new TableIdent(null, "parted_generated_column");
+        partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+                partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+                .add("ts", DataTypes.TIMESTAMP, null)
+                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+                .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(partedGeneratedColumnTableIdent.name()))
+                .thenReturn(partedGeneratedColumnTableInfo);
 
-        if (NESTED_PARTED_GENERATED_COLUMN_INFO == null) {
-            NESTED_PARTED_GENERATED_COLUMN_INFO = NESTED_PARTED_GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
-        }
-        when(schemaInfo.getTableInfo(NESTED_PARTED_GENERATED_COLUMN_TABLE_IDENT.name()))
-                .thenReturn(NESTED_PARTED_GENERATED_COLUMN_INFO);
+        TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(null, "nested_parted_generated_column");
+        nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+                nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+                .add("user", DataTypes.OBJECT, null)
+                .add("user", DataTypes.STRING, Arrays.asList("name"))
+                .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true)
+                .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(nestedPartedGeneratedColumnTableIdent.name()))
+                .thenReturn(nestedPartedGeneratedColumnTableInfo);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement) {
