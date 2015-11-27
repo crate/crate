@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
@@ -150,7 +151,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("ts", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
@@ -164,7 +165,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("day", 1448236800000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
@@ -178,23 +179,27 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
         Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
                 .put("ts", 1448274317000L)
+                .map();
+
+        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
                 .put("day", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, updatedGeneratedColumns, true);
     }
 
     @Test
     public void testProcessGeneratedColumnsWithInvalidValueNoValidation() throws Exception {
+        // just test that no exception is thrown even that the value does not match expression value
         Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
                 .put("ts", 1448274317000L)
+                .map();
+
+        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
                 .put("day", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, false);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((Long) updatedColumns.get("day"), is(1448274317000L));
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, updatedGeneratedColumns, false);
     }
 
     @Test
@@ -203,7 +208,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user.name", new BytesRef("zoo"))
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
@@ -215,7 +220,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user", MapBuilder.<String, Object>newMapBuilder().put("name", new BytesRef("zoo")).map())
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
@@ -227,7 +232,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user", MapBuilder.<String, Object>newMapBuilder().put("age", 35).map())
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns);
+        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
