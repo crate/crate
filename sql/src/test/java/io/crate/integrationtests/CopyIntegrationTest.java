@@ -278,6 +278,26 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromIntoPartitionWithInvalidGivenGeneratedColumnAsPartitionKey() throws Exception {
+        // test that rows are imported into defined partition even that the partition value does not match the
+        // generated column expression value
+        execute("create table quotes (" +
+                " id int," +
+                " quote string," +
+                " id_str as cast(id+1 as string)" +
+                ") partitioned by (id_str)");
+        ensureYellow();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{filePath});
+        assertThat(response.rowCount(), is(3L));
+        refresh();
+
+        execute("select * from quotes where id_str = 1");
+        assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
     public void testCopyToFile() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
