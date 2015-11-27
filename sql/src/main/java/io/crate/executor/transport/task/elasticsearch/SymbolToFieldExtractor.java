@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,6 +65,11 @@ public class SymbolToFieldExtractor<T> {
         }
 
         public abstract Object inputValueFor(InputColumn inputColumn);
+
+        @Nullable
+        public Object referenceValue(Reference reference) {
+            return null;
+        }
     }
 
     static class Visitor<T> extends SymbolVisitor<Context, FieldExtractor<T>> {
@@ -76,6 +82,10 @@ public class SymbolToFieldExtractor<T> {
 
         @Override
         public FieldExtractor<T> visitReference(Reference reference, Context context) {
+            Object value = context.referenceValue(reference);
+            if (value != null) {
+                return new LiteralExtractor<>(value);
+            }
             context.addReference(reference);
             return extractorFactory.build(reference, context);
         }
