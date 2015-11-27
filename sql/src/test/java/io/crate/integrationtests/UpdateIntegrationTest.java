@@ -103,23 +103,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateWithExpressionReferenceUpdated() throws Exception {
-        execute("create table test (dividend integer, divisor integer, quotient integer)");
-        ensureYellow();
-
-        execute("insert into test (dividend, divisor, quotient) values(10, 2, 5)");
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("update test set dividend = 30, quotient=dividend/divisor");
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select quotient name from test");
-        assertEquals(15, response.rows()[0][0]);
-    }
-
-    @Test
     public void testUpdateByPrimaryKeyWithExpression() throws Exception {
         execute("create table test (id integer primary key, other_id long)");
         ensureYellow();

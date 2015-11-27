@@ -11,9 +11,6 @@ Unreleased
  - Fix: missing characters when concatinating string under some
    rare circumstances
 
- - Fix: UPDATE and INSERT ON DUPLICATE KEY assignment expression did
-   not work if a used reference was also updated.
-
  - Internal optimization: Avoid writing partition values to the source.
 
  - Updated crate certificates in the ssl truststore.
@@ -43,7 +40,7 @@ Unreleased
  - Fixed an issue that caused orphaned partitions with an remaining alias to
    not be recognized correctly
 
- - Fixed an issue that was causing like queries to fail if using a special regex
+ - Fixed an issue that was causing like queries to fail if using a special regex 
    character
 
  - Upgraded Elasticsearch to 1.7.3
@@ -52,16 +49,16 @@ Unreleased
    the cluster when multiple clients connections are established
 
  - Fixed a possible race condition that could lead to queries getting stuck
-   (Only affected SELECT queries with a limit/offset > 500000)
+   (Only affected SELECT queries with a limit/offset > 500000) 
 
  - Fix: Crate won't start properly if a plugin loading error occurs
    (e.g. through a misconfigured plugin)
-
+ 
  - Fixed an issue that was introduced in 0.52.0 which could cause a
    FetchContext to remain open longer than necessary in an error case.
    This could then lead to failures if an attempt was made to move shards to
    which the FetchContext hold onto.
-
+ 
  - Updated crash to version 0.14.1 which contains the following changes:
 
    - Floating point values are no longer rounded to 6 places under python2.7 if
