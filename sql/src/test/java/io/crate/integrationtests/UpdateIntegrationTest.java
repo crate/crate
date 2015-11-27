@@ -679,4 +679,69 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(1447891200000L));
         assertThat((String) response.rows()[0][1], is("zoobar"));
     }
+
+    @Test
+    public void testUpdateSetInvalidGeneratedColumnOnly() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Given value 1745 for generated column does not match defined generated expression value 1970");
+        execute("create table computed (" +
+                " ts timestamp," +
+                " gen_col as extract(year from ts)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into computed (ts) values (1)");
+        refresh();
+        execute("update computed set gen_col=1745");
+    }
+
+    @Test
+    public void testUpdateWithGeneratedColumnSomeReferencesUpdated() throws Exception {
+        execute("create table computed (" +
+                " firstname string," +
+                " surname string," +
+                " name as concat(surname, ', ', firstname)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into computed (firstname, surname) values ('Douglas', 'Adams')");
+        refresh();
+        execute("update computed set firstname = 'Ford'");
+        refresh();
+        execute("select name from computed");
+        assertThat((String) response.rows()[0][0], is("Adams, Ford"));
+    }
+
+    @Test
+    public void testUpdateExpressionReferenceGeneratedColumn() throws Exception {
+        execute("create table computed (" +
+                " a int," +
+                " b int," +
+                " c as (b + 1)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into computed (a, b) values (1, 2)");
+        refresh();
+        execute("update computed set a = c + 1");
+        refresh();
+        execute("select a from computed");
+        assertThat((Integer) response.rows()[0][0], is(4));
+    }
+
+    @Test
+    public void testUpdateReferencedByGeneratedColumnWithExpressionReferenceGeneratedColumn() throws Exception {
+        execute("create table computed (" +
+                " a int," +
+                " b as (a + 1)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into computed (a) values (1)");
+        refresh();
+        execute("update computed set a = b + 1");
+        refresh();
+        execute("select a from computed");
+        assertThat((Integer) response.rows()[0][0], is(3));
+    }
 }
