@@ -38,16 +38,18 @@ public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectEx
 
     @Override
     public Map<String,Object> value() {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
-            if (e.getValue() instanceof RowCollectExpression) {
-                ((RowCollectExpression) e.getValue()).setNextRow(this.row);
+            ReferenceImplementation referenceImplementation = e.getValue();
+            if (referenceImplementation instanceof RowCollectExpression) {
+                //noinspection unchecked
+                ((RowCollectExpression) referenceImplementation).setNextRow(this.row);
             }
-            Object value = e.getValue().value();
+            Object value = referenceImplementation.value();
 
             // convert nested columns of type e.getValue().value() to String here
             // as we do not want to convert them when building the response
-            if (value != null && value instanceof BytesRef) {
+            if (value instanceof BytesRef) {
                 value = ((BytesRef)value).utf8ToString();
             }
             map.put(e.getKey(), value);
