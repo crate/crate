@@ -1676,6 +1676,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 " name string primary key," +
                 " date timestamp" +
                 ") clustered by(id) into 2 shards partitioned by(name) with(number_of_replicas=0)");
+        ensureYellow();
 
         execute("insert into locations_parted (id, name, date) (select id, name, date from locations)");
         assertThat(response.rowCount(), is(13L));
