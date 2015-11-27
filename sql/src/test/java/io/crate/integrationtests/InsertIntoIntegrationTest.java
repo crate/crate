@@ -853,6 +853,29 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromSubQueryInvalidGeneratedColumnValue() throws Exception {
+        execute("create table source_table (" +
+                " id integer," +
+                " ts timestamp," +
+                " day timestamp" +
+                ") with (number_of_replicas=0)");
+        execute("create table target_table (" +
+                " id integer," +
+                " ts timestamp," +
+                " day as date_trunc('day', ts)" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into source_table (id, ts, day) values (?, ?, ?)", new Object[]{
+                1, "2015-11-18T11:11:00", "2015-11-18T11:11:00"});
+        refresh();
+
+        // will fail because `day` column has invalid value at source table
+        execute("insert into target_table (id, ts, day) (select id, ts, day from source_table)");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testInsertIntoGeneratedPartitionedColumnValueGiven() throws Exception {
         execute("create table export(col1 integer, col2 int)");
         execute("create table import (\n" +
