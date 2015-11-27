@@ -243,6 +243,24 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromWithInvalidGivenGeneratedColumn() throws Exception {
+        execute("create table quotes (" +
+                " id int," +
+                " quote as cast(id as string)" +
+                ")");
+        ensureYellow();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        assertThat(response.rowCount(), is(3L));
+        refresh();
+
+        // quote is not generated through expression but read from source without validation
+        execute("select quote from quotes order by id limit 1");
+        assertThat((String) response.rows()[0][0], is("Don't pañic."));
+    }
+
+    @Test
     public void testCopyFromToPartitionedTableWithGeneratedColumn() throws Exception {
         execute("create table quotes (" +
                 " id int," +

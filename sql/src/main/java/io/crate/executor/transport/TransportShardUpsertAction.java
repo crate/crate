@@ -325,7 +325,7 @@ public class TransportShardUpsertAction
             }
         }
 
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
+        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateGeneratedColumns(), getResult);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
@@ -372,7 +372,7 @@ public class TransportShardUpsertAction
         if (generatedReferencesWithValue.size() < generatedColumnSize) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
-                    request.isRawSourceInsert());
+                    request.isRawSourceInsert(), request.validateGeneratedColumns());
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
@@ -390,11 +390,12 @@ public class TransportShardUpsertAction
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
-                                                        Reference[] insertColumns,
-                                                        Object[] insertValues,
-                                                        boolean isRawSourceInsert) {
+                                                                Reference[] insertColumns,
+                                                                Object[] insertValues,
+                                                                boolean isRawSourceInsert,
+                                                                boolean validateExpressionValue) {
         Map<String, Object> sourceAsMap = buildMapFromSource(insertColumns, insertValues, isRawSourceInsert);
-        processGeneratedColumns(tableInfo, sourceAsMap, sourceAsMap, false);
+        processGeneratedColumns(tableInfo, sourceAsMap, sourceAsMap, validateExpressionValue);
         return sourceAsMap;
     }
 
@@ -434,8 +435,8 @@ public class TransportShardUpsertAction
             // partitionedBy columns cannot be updated
             if (!tableInfo.partitionedByColumns().contains(referenceInfo)) {
                 Object givenValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
-                if (generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())
-                    || givenValue != null) {
+                if ((givenValue != null && validateExpressionValue)
+                    || generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
                     FieldExtractor<GetResult> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
                     Object value = extractor.extract(getResult);
