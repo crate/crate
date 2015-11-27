@@ -62,15 +62,7 @@ import static org.mockito.Mockito.mock;
 
 public class TransportShardUpsertActionTest extends CrateUnitTest {
 
-    private static final TableIdent GENERATED_COLUMN_TABLE_IDENT = new TableIdent(null, "generated_column");
-    private static final TestingTableInfo.Builder GENERATED_COLUMN_INFO_BUILDER = new TestingTableInfo.Builder(
-            GENERATED_COLUMN_TABLE_IDENT, new Routing(Collections.EMPTY_MAP))
-            .add("ts", DataTypes.TIMESTAMP, null)
-            .add("user", DataTypes.OBJECT, null)
-            .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false);
-    private static DocTableInfo GENERATED_COLUMN_INFO;
+    private DocTableInfo generatedColumnTableInfo;
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
@@ -108,9 +100,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         builder.add(new ScalarFunctionModule());
         Injector injector = builder.createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        if (GENERATED_COLUMN_INFO == null) {
-            GENERATED_COLUMN_INFO = GENERATED_COLUMN_INFO_BUILDER.build(injector.getInstance(Functions.class));
-        }
+        bindGeneratedColumnTable(functions);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
                 ImmutableSettings.EMPTY,
@@ -125,6 +115,19 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 functions,
                 mock(Schemas.class)
                 );
+    }
+
+    private void bindGeneratedColumnTable(Functions functions) {
+        TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
+        generatedColumnTableInfo = new TestingTableInfo.Builder(
+                generatedColumnTableIdent, new Routing(Collections.EMPTY_MAP))
+                .add("ts", DataTypes.TIMESTAMP, null)
+                .add("user", DataTypes.OBJECT, null)
+                .add("user", DataTypes.STRING, Arrays.asList("name"))
+                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+                .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false)
+                .build(functions);
+
     }
 
     @Test
@@ -151,7 +154,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("ts", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
@@ -165,7 +168,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("day", 1448236800000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
@@ -185,7 +188,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("day", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, updatedGeneratedColumns, true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, updatedGeneratedColumns, true);
     }
 
     @Test
@@ -199,7 +202,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("day", 1448274317000L)
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, updatedGeneratedColumns, false);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, updatedGeneratedColumns, false);
     }
 
     @Test
@@ -208,7 +211,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user.name", new BytesRef("zoo"))
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
@@ -220,7 +223,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user", MapBuilder.<String, Object>newMapBuilder().put("name", new BytesRef("zoo")).map())
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
@@ -232,7 +235,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .put("user", MapBuilder.<String, Object>newMapBuilder().put("age", 35).map())
                 .map();
 
-        transportShardUpsertAction.processGeneratedColumns(GENERATED_COLUMN_INFO, updatedColumns, ImmutableMap.of(), true);
+        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, ImmutableMap.of(), true);
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
