@@ -35,12 +35,15 @@ public abstract class AbstractReferenceResolver implements NestedReferenceResolv
             return implementations.get(ident);
         }
         ReferenceImplementation impl = implementations.get(ident.columnReferenceIdent());
-        if (impl != null) {
-            for (String part : ident.columnIdent().path()) {
-                impl = impl.getChildImplementation(part);
+        if (impl == null) {
+            return null;
+        }
+        for (String part : ident.columnIdent().path()) {
+            impl = impl.getChildImplementation(part);
+            if (impl == null) {
+                return null;
             }
         }
         return impl;
     }
-
 }
