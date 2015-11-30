@@ -51,6 +51,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -178,7 +179,6 @@ public class FetchProjector extends AbstractProjector {
         }
         boolean anyRequestSent = false;
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            //requests.put(entry.getKey(), request);
             IntObjectOpenHashMap<IntContainer> toFetch = new IntObjectOpenHashMap<>(entry.getValue().size());
             IntObjectOpenHashMap<Streamer[]> streamers = new IntObjectOpenHashMap<>(entry.getValue().size());
             boolean requestRequired = false;
@@ -194,7 +194,7 @@ public class FetchProjector extends AbstractProjector {
                         streamers.put(intCursor.value, readerBucket.indexInfo.streamers());
                     }
                 }
-                requestRequired = requestRequired || indexInfo.fetchRequired();
+                requestRequired = requestRequired || (indexInfo != null && indexInfo.fetchRequired());
             }
             if (!requestRequired) {
                 remainingRequests.decrementAndGet();
@@ -361,12 +361,15 @@ public class FetchProjector extends AbstractProjector {
             this.indexInfos = new TreeMap<>();
             for (Map.Entry<Integer, String> entry : readerIndices.entrySet()) {
                 FetchSource fetchSource = getFetchSource(entry.getValue());
-                if (fetchSource != null) {
+                if (fetchSource == null) {
+                    indexInfos.put(entry.getKey(), null);
+                } else {
                     indexInfos.put(entry.getKey(), new IndexInfo(entry.getValue(), fetchSource));
                 }
             }
         }
 
+        @Nullable
         public IndexInfo indexInfo(Integer readerId) {
             return indexInfos.floorEntry(readerId).getValue();
         }

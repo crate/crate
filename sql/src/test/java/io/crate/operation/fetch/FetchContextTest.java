@@ -26,11 +26,14 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.symbol.Reference;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
@@ -86,7 +90,7 @@ public class FetchContextTest extends CrateUnitTest {
                         null,
                         ibv.build(),
                         tableIndices,
-                        ImmutableList.<Reference>of()),
+                        ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
                 "dummy",
                 new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
                 ImmutableList.of(routing));

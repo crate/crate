@@ -61,7 +61,7 @@ public class FetchContext extends AbstractExecutionSubContext {
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
         this.routingIterable = routingIterable;
-        this.toFetch = new HashMap<>(phase.tableIndices().keySet().size());
+        this.toFetch = new HashMap<>(phase.tableIndices().size());
     }
 
     public Map<TableIdent, Collection<Reference>> toFetch() {
@@ -76,6 +76,11 @@ public class FetchContext extends AbstractExecutionSubContext {
                 index2TableIdent.put(indexName, entry.getKey());
             }
         }
+        Set<TableIdent> tablesWithFetchRefs = new HashSet<>();
+        for (Reference reference : phase.fetchRefs()) {
+            tablesWithFetchRefs.add(reference.ident().tableIdent());
+        }
+
 
         for (Routing routing : routingIterable) {
             Map<String, Map<String, List<Integer>>> locations = routing.locations();
@@ -93,11 +98,14 @@ public class FetchContext extends AbstractExecutionSubContext {
                     int readerId = base + shardId.id();
                     SharedShardContext shardContext = sharedShardContexts.createContext(shardId, readerId);
                     shardContexts.put(readerId, shardContext);
-                    try {
-                        searchers.put(readerId, shardContext.searcher());
-                    } catch (IndexMissingException e) {
-                        if (!PartitionName.isPartition(index)) {
-                            throw new TableUnknownException(index, e);
+
+                    if (tablesWithFetchRefs.contains(ident)) {
+                        try {
+                            searchers.put(readerId, shardContext.searcher());
+                        } catch (IndexMissingException e) {
+                            if (!PartitionName.isPartition(index)) {
+                                throw new TableUnknownException(index, e);
+                            }
                         }
                     }
                 }
@@ -113,7 +121,7 @@ public class FetchContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerStart() {
-        if (phase.fetchRefs().isEmpty()) {
+        if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
             // no fetch references means there will be no fetch requests
             // this context is only here to allow the collectors to generate docids with the right bases
             // the bases are fetched in the prepare phase therefore this context can be closed

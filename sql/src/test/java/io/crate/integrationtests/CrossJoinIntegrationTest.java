@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -379,5 +380,27 @@ public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table users, events");
 
         execute("select users.* from users join events on users.id = events.user_id order by users.id");
+    }
+
+    @Test
+    public void testJoinWithFilterAndJoinCriteriaNotInOutputs() throws Exception {
+        execute("create table t_left (id long primary key, temp float, ref_id int) clustered into 2 shards with (number_of_replicas = 1)");
+        execute("create table t_right (id int primary key, name string) clustered into 2 shards with (number_of_replicas = 1)");
+        ensureYellow();
+        execute("insert into t_left (id, temp, ref_id) values (1, 23.2, 1), (2, 20.8, 1), (3, 19.7, 1), (4, -0.5, 2), (5, -1.2, 2), (6, 0.2, 2)");
+        execute("refresh table t_left");
+
+        execute("insert into t_right (id, name) values (1, 'San Francisco'), (2, 'Vienna')");
+        execute("refresh table t_right");
+
+
+        execute("select temp, name from t_left inner join t_right on t_left.ref_id = t_right.id order by temp");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("-1.2| Vienna\n" +
+                   "-0.5| Vienna\n" +
+                   "0.2| Vienna\n" +
+                   "19.7| San Francisco\n" +
+                   "20.8| San Francisco\n" +
+                   "23.2| San Francisco\n"));
     }
 }
