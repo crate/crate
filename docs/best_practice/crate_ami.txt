@@ -56,7 +56,7 @@ instances later.
 
 .. code-block:: bash
 
-    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>  --key-name <KEY-NAME>
+    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --iam-instance-profile Name="<IAM-ROLE>" --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>  --key-name <KEY-NAME>
 
 .. _cloud_init:
 
@@ -89,21 +89,12 @@ EC2 Discovery
 -------------
 
 The AMI uses *EC2 discovery* as a default unicast host discovery mechanism.
-(see :ref:`ec2_setup`). You must provide Crate with your AWS credentials so
-that it can authenticate requests on the EC2 API. You have to provide
-these credentials (access key and secret key) as part of the *User-Data*
-settings when launching the instance.
+(see :ref:`ec2_setup`). For security reasons it is **strongly recommended** to 
+use `IAM roles`_ instead of providing your AWS credentials manually on your 
+instances (see :ref:`ec2_authentication`).
 
 .. note::
     *EC2 discovery* is only available on Crate version 0.51.0 or higher.
-
-.. code-block:: bash
-
-    #!/bin/bash
-    echo "
-    export AWS_ACCESS_KEY_ID='<your_access_key_id>'
-    export AWS_SECRET_ACCESS_KEY='<your_secret_access_key>'
-    " >> /etc/sysconfig/crate
 
 
 Adapt Crate Configuration
@@ -133,13 +124,15 @@ configuration is used when a cluster with 3 or more nodes is set up.
 Launch AMI by using the AWS CLI
 -------------------------------
 
-The following example shows how to run a single instance of type
-``m3.medium`` and pass the AWS credentials as a file (provided as
-``user-data.sh``).
+Instances which have the IAM role ``crate-ec2`` assigned will securely fetch 
+their credentials which are then used for authentication in the discovery 
+mechanism. The following example shows how to run a single instance of type 
+``m3.medium``. The adapted Crate configuration is passed via ``user-data.sh`` 
+file.
 
 .. code-block:: bash
 
-    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
+    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
 
 .. note::
@@ -188,3 +181,4 @@ directory of Crate is set to ``/var/lib/crate``. The data paths are set in
 .. _AWS CLI: https://aws.amazon.com/cli/
 .. _Cloud-Init: http://cloudinit.readthedocs.org/en/latest/
 .. _Amazon Linux: https://aws.amazon.com/amazon-linux-ami/
+.. _IAM roles: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html

@@ -34,15 +34,22 @@ EC2 discovery by **simply setting the discovery type to "ec2"**::
 
   discovery.type: ec2
 
-However, in order to be able to use the EC2 API, Crate must `sign the requests`_
-using AWS credentials consisting of an access key and a secret key.
+To be able to use the EC2 API, Crate must `sign the requests`_ by using 
+AWS credentials consisting of an access key and a secret key. Therefore 
+AWS provides `IAM roles`_ to avoid any distribution of your AWS credentials 
+to the instances.
+
+.. _ec2_authentication:
 
 Authentication
 --------------
 
 For that it is recommended to create a separate user that has only the necessary
-permissions to describe instances. These permissions are attached to the user
-via a policy file that looks like:
+permissions to describe instances. First, you need to create an IAM role in 
+order to assign the instances later on. This `AWS guide`_ gives you a short 
+description of how you can create a policy ofer CLI or the AWS management 
+console. An example policy file is attached below and should at least contain 
+this API permissions/actions:
 
 .. code-block:: json
 
@@ -61,11 +68,8 @@ via a policy file that looks like:
     "Version": "2012-10-17"
   }
 
-The preferred way to provide these AWS credentials for Crate is as environment
-variables::
-
-  export AWS_ACCESS_KEY_ID="..."
-  export AWS_SECRET_KEY="..."
+This policy allows the instances to find each other if they have been assigned 
+to this role on startup.
 
 .. note::
 
@@ -83,9 +87,10 @@ You could also provide them as system properties or as settings in the
   Crate process, which is usually the user ``crate`` in production.
 
 Now you are ready to start your Crate instances and they will discovery each
-other automatically. Note that all Crate instances of the same region will join
-the cluster as long as their cluster name is equal and they are able to "talk"
-to each other over the transport port.
+other automatically. Use the `AWS CLI`_ or the `AWS Console`_ to run instances 
+and assign them with an IAM role. Note that all Crate instances of the same 
+region will join the cluster as long as their cluster name is equal and they are 
+able to communicate to each other over the transport port.
 
 
 Production Setup
@@ -177,3 +182,7 @@ See also :ref:`discovery.ec2.availability_zones <discovery_ec2_zones>`.
 .. _`Amazon EC2`: http://aws.amazon.com/ec2
 .. _`EC2 API`: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html
 .. _`sign the requests`: http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html
+.. _`IAM roles`: http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
+.. _`AWS guide`: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+.. _`AWS CLI`: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-cli
+.. _`AWS Console`: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
