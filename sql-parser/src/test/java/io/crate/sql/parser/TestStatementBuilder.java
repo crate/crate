@@ -123,6 +123,8 @@ public class TestStatementBuilder
         printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
         printStatement("copy foo partition (a='x') to DIRECTORY '/folder' with (some_param=4)");
         printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy (select * from users) to directory '/folder' ");
+        printStatement("copy (select name from users where country = 'Austria') to '/folder/some_file.json' with (some_param=4)");
 
 
         printStatement("create table if not exists t (id integer primary key, name string)");

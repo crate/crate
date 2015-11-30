@@ -728,11 +728,18 @@ assignment returns [Assignment value]
 copyTo returns [Statement value]
     : ^(COPY_TO namedTable columnList? d=copyToTargetSpec[false] expr genericProperties?)
         {
-            $value = new CopyTo($namedTable.value,
-                                $columnList.value,
-                                $d.value,
-                                $expr.value,
-                                $genericProperties.value);
+            $value = new CopyTableTo($namedTable.value,
+                                     $columnList.value,
+                                     $d.value,
+                                     $expr.value,
+                                     $genericProperties.value);
+        }
+    | ^(COPY_TO subQuery=query d=copyToTargetSpec[false] expr genericProperties?)
+        {
+            $value = new CopyQueryTo($subQuery.value,
+                                     $d.value,
+                                     $expr.value,
+                                     $genericProperties.value);
         }
     ;
 

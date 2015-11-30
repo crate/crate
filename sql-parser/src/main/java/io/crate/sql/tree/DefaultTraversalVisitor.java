@@ -446,8 +446,8 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    public R visitCopyTo(CopyTo node, C context) {
-        process(node.table(), context);
+    public R visitCopyTableTo(CopyTableTo copyTableTo, C context) {
+        process(copyTableTo.table(), context);
         return null;
     }
 

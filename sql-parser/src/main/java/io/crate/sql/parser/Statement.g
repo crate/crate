@@ -212,7 +212,7 @@ statement
     | insertStmt
     | deleteStmt
     | updateStmt
-    | COPY copyStatement -> copyStatement
+    | copyStatement
     | refreshStmt
     | setStmt
     | resetStmt
@@ -808,11 +808,12 @@ assignment
 
 // COPY STATEMENTS
 copyStatement
-    : tableWithPartition (
+    : COPY tableWithPartition (
         (FROM) => FROM expr ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
         |
         ( '(' columnList ')' )? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
     )
+    | COPY '(' query ')' TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO query DIRECTORY? expr genericProperties?)
     ;
 // END COPY STATEMENT
 

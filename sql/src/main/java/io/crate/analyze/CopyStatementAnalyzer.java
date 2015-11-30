@@ -97,7 +97,7 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     }
 
     @Override
-    public CopyAnalyzedStatement visitCopyTo(CopyTo node, Analysis analysis) {
+    public CopyAnalyzedStatement visitCopyTableTo(CopyTableTo node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
         statement.mode(CopyAnalyzedStatement.Mode.TO);
 

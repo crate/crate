@@ -147,7 +147,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
+        public AnalyzedStatement visitCopyTableTo(CopyTableTo node, Analysis context) {
             return copyStatementAnalyzer.analyze(node, context);
         }
 

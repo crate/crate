@@ -205,13 +205,17 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         analyze("copy parted partition (date=0) to '/tmp/blah.txt'");
     }
 
-
-
-
     @Test
     public void testCopyFromWithReferenceAssignedToProperty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Can't use column reference in property assignment \"compression = gzip\". Use literals instead.");
         analyze("copy users from '/blah.txt' with (compression = gzip)");
+    }
+
+    @Test
+    public void testCopyQueryTo() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("cannot analyze statement");
+        analyze("copy (select * from users) to 'blah.txt'");
     }
 }
