@@ -233,7 +233,8 @@ def setUpQuotes(test):
     cmd.stmt("""
         create table quotes (
           id integer primary key,
-          quote string
+          quote string,
+          index quote_ft using fulltext (quote)
         ) clustered by(id) into 2 shards with(number_of_replicas=0)""")
 
     import_dir = '/tmp/import_data'

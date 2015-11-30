@@ -14,43 +14,49 @@ Synopsis
 
     COPY table_ident [ PARTITION ( partition_column = value [ , ... ] ) ]
                      [ ( column [ , ...] ) ]
+                     [ WHERE condition ]
                      TO [DIRECTORY] output_uri
                      [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
 ===========
 
-Copy the contents of a table to one or many files on any cluster node
-containing data from the given table.
+The ``COPY TO`` command exports the contents of a table to one or more files.
+Each node of the cluster which contains a shard of the table will export the
+contents of its shards.
 
-.. note::
-
-  Output files will always be stored on the cluster node machines, not
-  on the client machine.
-
-The created files are JSON formatted and contain one table row per
-line.
+The created files are JSON formatted and contain one table row per line.
 
 If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
 This will generate one or more files in the given directory, named in such a
 way to prevent filename conflicts.
 
-.. note::
 
- Data is written per shard, so if there is more than one shard of the
- exported table on the same node, the output file will get
- corrupted due to concurrent writes to the same file. The same behaviour
- holds true when Crate exports data to shared storage systems such
- as `Amazon S3`_ or `NFS`_.
 
- To prevent such cases use the ``DIRECTORY`` keyword. An example is given
- in :ref:`exporting_data`.
+Implications of shard level export
+==================================
+
+Exporting the data on a shard level is the fastest possible way to export data
+in Crate.
+
+But there are a few quirks that users have to be aware of when using ``COPY TO``:
+
+Since data is exported and written per shard there might be concurrent writes
+to the same file if a single node contains more than one shard. This could
+cause corruption in the file that is being written. The same also holds true
+when data is being written to a shared file system such as `Amazon S3`_ or
+`NFS`_.
+
+In order to prevent this from happening it is required to write to a separate
+file per shard. To do this the ``DIRECTORY`` keyword can be used. An example is
+given in :ref:`exporting_data`.
 
 
 .. note::
 
   Currently only user tables can be exported. System tables like `sys.nodes`
   and blob tables don't work with the `COPY TO` statement.
+
 
 Parameters
 ==========
@@ -64,6 +70,21 @@ Parameters
 
     Declaring columns changes the output to JSON list format, which is
     currently not supported by the COPY FROM statement.
+
+WHERE Clause
+------------
+
+The optional WHERE clause defines the condition to be met for a row to
+be exported::
+
+    WHERE condition
+
+:condition: a where condition is any expression that evaluates to a
+  result of type boolean. Any row that does not satisfy this condition
+  will be eliminated from the output. A row satisfies the condition if
+  it returns true when the actual row values are substituted for any
+  variable references.
+
 
 Output URI
 ==========
