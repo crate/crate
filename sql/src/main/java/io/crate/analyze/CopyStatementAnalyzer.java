@@ -61,42 +61,6 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
     }
 
     @Override
-    public CopyAnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis analysis) {
-        CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
-        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
-                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        statement.table(tableInfo);
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.parameterContext(),
-                new NameFieldProvider(tableRelation),
-                tableRelation);
-        expressionAnalyzer.resolveWritableFields(true);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-
-        Symbol pathSymbol = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
-        statement.uri(pathSymbol);
-        if (node.genericProperties().isPresent()) {
-            statement.settings(settingsFromProperties(
-                    node.genericProperties().get(),
-                    expressionAnalyzer,
-                    expressionAnalysisContext));
-        }
-        statement.mode(CopyAnalyzedStatement.Mode.FROM);
-
-        if (!node.table().partitionProperties().isEmpty()) {
-            statement.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
-                    tableInfo,
-                    node.table().partitionProperties(),
-                    analysis.parameterContext().parameters()));
-        }
-
-        return statement;
-    }
-
-    @Override
     public CopyAnalyzedStatement visitCopyTo(CopyTo node, Analysis analysis) {
         CopyAnalyzedStatement statement = new CopyAnalyzedStatement();
         statement.mode(CopyAnalyzedStatement.Mode.TO);
@@ -159,9 +123,9 @@ public class CopyStatementAnalyzer extends DefaultTraversalVisitor<CopyAnalyzedS
         return false;
     }
 
-    private Settings settingsFromProperties(GenericProperties properties,
-                                            ExpressionAnalyzer expressionAnalyzer,
-                                            ExpressionAnalysisContext expressionAnalysisContext) {
+    static Settings settingsFromProperties(GenericProperties properties,
+                                           ExpressionAnalyzer expressionAnalyzer,
+                                           ExpressionAnalysisContext expressionAnalysisContext) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
             String key = entry.getKey();
