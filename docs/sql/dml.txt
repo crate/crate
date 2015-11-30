@@ -458,6 +458,14 @@ the table and shard id with gzip compression::
     cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 
+
+Instead of exporting a whole table, rows can be filtered by an
+optional WHERE clause condition. This is useful if only a subset of
+the data needs to be exported::
+
+    cr> copy quotes where match(quote_ft, 'time') to DIRECTORY '/tmp/' with (compression='gzip');
+    COPY OK, 2 rows affected ...
+
 For further details see :ref:`copy_to`.
 
 .. _PCRE: http://www.pcre.org/
