@@ -30,6 +30,7 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -70,6 +71,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .build();
 
     private TableInfo generatedColumnTableInfo;
+    private TableInfo generatedPkColumnTableInfo;
+    private TableInfo generatedNestedClusteredByInfo;
+    private TableInfo generatedClusteredByInfo;
 
     @Mock
     private static SchemaInfo schemaInfo;
@@ -125,6 +129,44 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(generatedColumnTableIdent.name()))
                 .thenReturn(generatedColumnTableInfo);
+
+        TableIdent generatedPkColumnTableIdent = new TableIdent(null, "generated_pk_column");
+        generatedPkColumnTableInfo = new TestingTableInfo.Builder(
+            generatedColumnTableIdent, SHARD_ROUTING)
+            .add("serial_no", DataTypes.INTEGER, null)
+            .add("product_no", DataTypes.INTEGER, null)
+            .add("color", DataTypes.STRING, null)
+            .addGeneratedColumn("id", DataTypes.INTEGER, "serial_no + 1", false)
+            .addGeneratedColumn("id2", DataTypes.INTEGER, "product_no + 1", false)
+            .addPrimaryKey("id")
+            .addPrimaryKey("id2")
+            .clusteredBy("id")
+            .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(generatedPkColumnTableIdent.name()))
+                .thenReturn(generatedPkColumnTableInfo);
+
+        TableIdent generatedClusteredByTableIdent = new TableIdent(null, "generated_clustered_by_column");
+        generatedClusteredByInfo = new TestingTableInfo.Builder(
+                generatedClusteredByTableIdent, SHARD_ROUTING)
+                .add("serial_no", DataTypes.INTEGER, null)
+                .add("color", DataTypes.STRING, null)
+                .addGeneratedColumn("routing_col", DataTypes.INTEGER, "serial_no + 1", false)
+                .clusteredBy("routing_col")
+                .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(generatedClusteredByTableIdent.name()))
+                .thenReturn(generatedClusteredByInfo);
+
+        TableIdent generatedNestedClusteredByTableIdent = new TableIdent(null, "generated_nested_clustered_by");
+        generatedNestedClusteredByInfo = new TestingTableInfo.Builder(
+                generatedNestedClusteredByTableIdent, SHARD_ROUTING)
+                .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
+                .add("o", DataTypes.INTEGER, Arrays.asList("serial_number"))
+                .addGeneratedColumn("routing_col", DataTypes.INTEGER, "o['serial_number'] + 1", false)
+                .clusteredBy("routing_col")
+                .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(generatedNestedClusteredByTableIdent.name()))
+                .thenReturn(generatedNestedClusteredByInfo);
+
     }
 
     @Test
@@ -1039,6 +1081,16 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertGeneratedPrimaryKeyColumn() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze(
+                "INSERT INTO generated_pk_column (serial_no, product_no) values (1, 1)"
+        );
+        assertThat(analysis.routingValues(), contains(is("2")));
+        assertThat(analysis.ids().get(0),
+                is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")), Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))));
+    }
+
+    @Test
     public void testInsertMultipleValuesTooManyValues() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INSERT statement contains a VALUES clause with too many elements (3), expected (2)");
@@ -1050,5 +1102,40 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid number of values: Got 2 columns specified but 1 values");
         analyze("INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
+    }
+
+    @Test
+    public void testGeneratedPrimaryKeyMissing() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
+        analyze("INSERT INTO generated_pk_column (color) values ('green')");
+    }
+
+    @Test
+    public void testGeneratedKeyPrimaryKeyPartMissing() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Missing primary key values");
+        analyze("INSERT INTO generated_pk_column (serial_no) values (1)");
+    }
+
+    @Test
+    public void testGeneratedClusteredByMissing() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
+        analyze("INSERT INTO generated_clustered_by_column (color) values ('black')");
+    }
+
+    @Test
+    public void testNestedGeneratedClusteredByMissing() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
+        analyze("INSERT INTO generated_nested_clustered_by (name) values ('kill-o-zap blaster pistol')");
+    }
+
+    @Test
+    public void testNestedGeneratedClusteredBy() throws Exception {
+        InsertFromValuesAnalyzedStatement statement =
+                (InsertFromValuesAnalyzedStatement)analyze("INSERT INTO generated_nested_clustered_by (o) values ({serial_number=1})");
+        assertThat(statement.routingValues(), contains(is("2")));
     }
 }

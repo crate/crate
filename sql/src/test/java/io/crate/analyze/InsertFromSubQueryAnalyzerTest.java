@@ -62,11 +62,6 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(NESTED_PK_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_NESTED_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_NESTED_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -254,5 +249,12 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Column does_not_exist unknown");
         analyze("insert into users (id, name) (select id, name from users) " +
                 "on duplicate key update name = values (does_not_exist)");
+    }
+
+    @Test
+    public void testMissingPrimaryKey() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
+        analyze("insert into users (name) (select name from users)");
     }
 }

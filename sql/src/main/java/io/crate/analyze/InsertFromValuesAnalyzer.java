@@ -43,6 +43,7 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -296,7 +297,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         // process generated column expressions and add columns + values
-        insertValues = processGeneratedExpressions(tableRelation, context, expressionAnalyzer, insertValues, primaryKeyValues);
+        GeneratedExpressionContext ctx = new GeneratedExpressionContext(tableRelation, context, expressionAnalyzer,
+                                                                        primaryKeyValues, insertValues, routingValue);
+        processGeneratedExpressions(ctx);
+        insertValues = ctx.insertValues;
+        routingValue = ctx.routingValue;
 
         context.sourceMaps().add(insertValues);
         context.addIdAndRouting(idFunction.apply(primaryKeyValues), routingValue);
@@ -358,32 +363,57 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         return null;
     }
 
-    private Object[] processGeneratedExpressions(DocTableRelation tableRelation,
-                                                 InsertFromValuesAnalyzedStatement context,
-                                                 ExpressionAnalyzer expressionAnalyzer,
-                                                 Object[] insertValues,
-                                                 List<BytesRef> primaryKeyValues) {
-        ReferenceToLiteralConverter.Context toLiteralContext = new ReferenceToLiteralConverter.Context(context.columns(), insertValues);
-        List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
-        for (GeneratedReferenceInfo referenceInfo : tableRelation.tableInfo().generatedColumns()) {
+    private static class GeneratedExpressionContext {
+
+        private final DocTableRelation tableRelation;
+        private final InsertFromValuesAnalyzedStatement analyzedStatement;
+        private final ExpressionAnalyzer expressionAnalyzer;
+        private final List<BytesRef> primaryKeyValues;
+
+        private Object[] insertValues;
+        private @Nullable String routingValue;
+
+        private GeneratedExpressionContext(DocTableRelation tableRelation,
+                                           InsertFromValuesAnalyzedStatement analyzedStatement,
+                                           ExpressionAnalyzer expressionAnalyzer,
+                                           List<BytesRef> primaryKeyValues,
+                                           Object[] insertValues,
+                                           @Nullable String routingValue) {
+            this.tableRelation = tableRelation;
+            this.analyzedStatement = analyzedStatement;
+            this.expressionAnalyzer = expressionAnalyzer;
+            this.primaryKeyValues = primaryKeyValues;
+            this.insertValues = insertValues;
+            this.routingValue = routingValue;
+        }
+    }
+
+    private void processGeneratedExpressions(GeneratedExpressionContext context) {
+        ReferenceToLiteralConverter.Context toLiteralContext = new ReferenceToLiteralConverter.Context(context.analyzedStatement.columns(), context.insertValues);
+        List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
+        for (GeneratedReferenceInfo referenceInfo : context.tableRelation.tableInfo().generatedColumns()) {
             Reference reference = new Reference(referenceInfo);
             Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), toLiteralContext);
-            valueSymbol = expressionAnalyzer.normalize(valueSymbol);
+            valueSymbol = context.expressionAnalyzer.normalize(valueSymbol);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
-                if (primaryKey.contains(referenceInfo.ident().columnIdent()) && context.columns().indexOf(reference) == -1) {
+                if (value != null && primaryKey.contains(referenceInfo.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {
                     int idx = primaryKey.indexOf(referenceInfo.ident().columnIdent());
-                    addPrimaryKeyValue(idx, value, primaryKeyValues);
+                    addPrimaryKeyValue(idx, value, context.primaryKeyValues);
                 }
-                if (tableRelation.tableInfo().isPartitioned()
-                    && tableRelation.tableInfo().partitionedByColumns().contains(referenceInfo)) {
-                    addGeneratedPartitionedColumnValue(referenceInfo.ident().columnIdent(), value, context.currentPartitionMap());
+                ColumnIdent routingColumn = context.analyzedStatement.tableInfo().clusteredBy();
+                if (routingColumn != null && routingColumn.equals(referenceInfo.ident().columnIdent())) {
+                    context.routingValue = extractRoutingValue(routingColumn, value, context.analyzedStatement);
+                }
+                if (context.tableRelation.tableInfo().isPartitioned()
+                    && context.tableRelation.tableInfo().partitionedByColumns().contains(referenceInfo)) {
+                    addGeneratedPartitionedColumnValue(referenceInfo.ident().columnIdent(), value,
+                            context.analyzedStatement.currentPartitionMap());
                 } else {
-                    insertValues = addGeneratedColumnValue(context, reference, value, insertValues);
+                    context.insertValues = addGeneratedColumnValue(context.analyzedStatement, reference, value, context.insertValues);
                 }
             }
         }
-        return insertValues;
     }
 
     private Object[] addGeneratedColumnValue(InsertFromValuesAnalyzedStatement context,
