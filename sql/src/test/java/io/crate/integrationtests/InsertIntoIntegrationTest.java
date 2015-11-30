@@ -894,7 +894,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertGeneratedPrimaryKeyValue() throws Exception {
-        execute("create table test(col1 as 3 * col2 primary key, col2 integer primary key)");
+        execute("create table test(col1 as 3 * col2 primary key, col2 integer)");
         ensureYellow();
         execute("insert into test (col2) values (1)");
         refresh();
@@ -926,5 +926,30 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Given value 0 for generated column does not match defined generated expression value 4");
         execute("insert into test(col1, col2) values (1, 0)");
+    }
+
+    @Test
+    public void testInsertFromSubQueryMissingPrimaryKeyValues() throws Exception {
+        execute("create table source(col1 integer)");
+        execute("create table target(col1 integer primary key, col2 integer primary key)");
+        ensureYellow();
+        execute("insert into source (col1) values (1)");
+        refresh();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Missing primary key values");
+        execute("insert into target (col1) (select col1 from source)");
+    }
+
+    @Test
+    public void testInsertFromSubQueryGeneratedPrimaryKey() throws Exception {
+        execute("create table source(col1 integer)");
+        execute("create table target(col1 integer primary key)");
+        ensureYellow();
+        execute("insert into source (col1) values (1)");
+        refresh();
+        execute("insert into target (col1) (select col1 from source)");
+        refresh();
+        execute("select col1 from target");
+        assertThat((Integer)response.rows()[0][0], is(1));
     }
 }
