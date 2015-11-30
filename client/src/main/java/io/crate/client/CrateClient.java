@@ -67,7 +67,7 @@ public class CrateClient {
     private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
 
 
-    public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
+    public CrateClient(Settings pSettings, boolean loadConfigSettings, String ... servers) throws
             ElasticsearchException {
 
         Settings settings = settingsBuilder()
@@ -110,6 +110,13 @@ public class CrateClient {
         Injector injector = modules.createInjector();
         transportService = injector.getInstance(TransportService.class).start();
         internalClient = injector.getInstance(InternalCrateClient.class);
+
+        for (String server : servers) {
+            TransportAddress transportAddress = tryCreateTransportFor(server);
+            if(transportAddress != null) {
+                internalClient.addTransportAddress(transportAddress);
+            }
+        }
     }
 
     public CrateClient() {
@@ -117,13 +124,7 @@ public class CrateClient {
     }
 
     public CrateClient(String... servers) {
-        this();
-        for (String server : servers) {
-            TransportAddress transportAddress = tryCreateTransportFor(server);
-            if(transportAddress != null) {
-                internalClient.addTransportAddress(transportAddress);
-            }
-        }
+        this(ImmutableSettings.EMPTY, true, servers);
     }
 
     @Nullable

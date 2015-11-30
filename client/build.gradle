@@ -42,7 +42,6 @@ processResources.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava']
 compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
 
 
-
 test {
     testLogging.exceptionFormat = 'full'
 

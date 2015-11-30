@@ -42,10 +42,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.*;
 
-public class CrateClientTest extends ElasticsearchIntegrationTest {
+public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -79,7 +78,7 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
     }
 
     @Test
-    public void testCreateClient() throws Exception {
+    public void testCreateTable() throws Exception {
         client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
         ensureYellow();
         client.sql("insert into test (id) values (1)").actionGet();
@@ -186,16 +185,6 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
     }
 
     @Test
-    public void testSettings() throws Exception {
-        Settings settings = client.settings();
-
-        assertEquals(false, settings.getAsBoolean("network.server", true));
-        assertEquals(true, settings.getAsBoolean("node.client", false));
-        assertEquals(true, settings.getAsBoolean("client.transport.ignore_cluster_name", false));
-        assertThat(settings.get("node.name"), startsWith("crate-client-"));
-    }
-
-    @Test
     public void testBulkSql() throws Exception {
         client.sql("create table test (a string, b int) with (number_of_replicas=0)").actionGet();
         ensureGreen();
@@ -225,6 +214,5 @@ public class CrateClientTest extends ElasticsearchIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input 'error'");
         client.sql("error").actionGet();
-
     }
 }

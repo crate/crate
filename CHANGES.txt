@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Allow creating the CrateClient with settings and servers at the same time
+
  - Updated crate-admin to 0.16.1 which includes following changes:
 
    - fix: column headers where not shown in result table on console page
