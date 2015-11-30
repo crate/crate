@@ -21,7 +21,9 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
@@ -134,7 +136,6 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
-            pd.remainingOutputs();
 
             OrderBy subOrderBy = mss.querySpec().orderBy().orNull();
             PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(mss, context);
