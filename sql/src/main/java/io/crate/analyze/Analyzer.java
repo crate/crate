@@ -56,6 +56,7 @@ public class Analyzer {
         private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final CopyStatementAnalyzer copyStatementAnalyzer;
+        private final CopyFromAnalyzer copyFromAnalyzer;
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
@@ -83,6 +84,7 @@ public class Analyzer {
                                   InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   CopyStatementAnalyzer copyStatementAnalyzer,
+                                  CopyFromAnalyzer copyFromAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DeleteStatementAnalyzer deleteStatementAnalyzer,
                                   KillStatementAnalyzer killStatementAnalyzer,
@@ -114,6 +116,7 @@ public class Analyzer {
             this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
             this.createSnapshotStatementAnalyzer = createSnapshotStatementAnalyzer;
             this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
+            this.copyFromAnalyzer = copyFromAnalyzer;
         }
 
         @Override
@@ -143,7 +146,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis context) {
-            return copyStatementAnalyzer.analyze(node, context);
+            return copyFromAnalyzer.convert(node, context);
         }
 
         @Override
