@@ -70,6 +70,12 @@ Let's insert Austria::
     ... );
     INSERT OK, 1 row affected (... sec)
 
+.. Warning::
+
+    Geoshapes has to be fully valid by `ISO 19107`_. If you have problems
+    importing geo data, they may not be fully valid. In most cases they could
+    be repaired using this tool: https://github.com/tudelft3d/prepair
+
 .. Hidden: refresh countries
 
     cr> REFRESH TABLE countries;
@@ -217,3 +223,4 @@ SQL query where scalar functions are allowed.
 
 .. _GeoJSON: http://geojson.org/
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
+.. _ISO 19107: http://www.iso.org/iso/catalogue_detail.htm?csnumber=26012
