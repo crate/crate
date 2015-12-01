@@ -148,7 +148,7 @@ public class GeneratedColumnComparisonReplacer {
         private Map<ReferenceInfo, GeneratedReferenceInfo> extractGeneratedReferences(DocTableInfo tableInfo) {
             ImmutableMap.Builder<ReferenceInfo, GeneratedReferenceInfo> builder = ImmutableMap.builder();
             for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
-                if (referenceInfo.referencedReferenceInfos().size() == 1) {
+                if (referenceInfo.referencedReferenceInfos().size() == 1 && tableInfo.partitionedByColumns().contains(referenceInfo)) {
                     builder.put(referenceInfo.referencedReferenceInfos().get(0), referenceInfo);
                 }
             }
