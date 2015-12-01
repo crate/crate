@@ -98,9 +98,14 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                         .add("ts", DataTypes.TIMESTAMP, null)
                         .add("x", DataTypes.INTEGER, null)
-                        .add("y", DataTypes.INTEGER, null)
-                        .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-                        .addGeneratedColumn("minus_y", DataTypes.INTEGER, "y * -1", false)
+                        .add("y", DataTypes.LONG, null)
+                        .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+                        .addGeneratedColumn("minus_y", DataTypes.LONG, "y * -1", true)
+                        .addGeneratedColumn("x_incr", DataTypes.LONG, "x + 1", false)
+                        .addPartitions(
+                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
+                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()
+                        )
                         .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo("generated_col")).thenReturn(genInfo);
     }
@@ -679,31 +684,36 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testEqualGenColOptimization() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts = '2015-01-01T12:00:00'");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.ts = 1420113600000 and doc.generated_col.day = 1420070400000"));
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y = 1");
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
     }
 
     @Test
-    public void testEqualGenColOptimizationNested() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts = '2015-01-01T12:00:00' or x = 5");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.ts = 1420113600000 and doc.generated_col.day = 1420070400000 or doc.generated_col.x = 5"));
+    public void testNonPartitionedNotOptimized() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where x = 1");
+        assertThat(whereClause.query(), isSQL("doc.generated_col.x = 1"));
     }
 
     @Test
     public void testGtGenColOptimization() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00'");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.ts > 1420113600000 and doc.generated_col.day >= 1420070400000"));
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-02T12:00:00'");
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
     public void testMultiplicationGenColNoOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y > 1");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.y > 1"));
+        // no optimization is done
+        assertThat(whereClause.partitions().size(), is(0));
+        assertThat(whereClause.noMatch(), is(false));
     }
 
     @Test
     public void testMultipleColumnsOptimization() throws Exception {
-        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00' or y = 1");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.ts > 1420113600000 and doc.generated_col.day >= 1420070400000 or doc.generated_col.y = 1 and doc.generated_col.minus_y = -1"));
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00' and y = 1");
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
     }
 }
