@@ -1575,17 +1575,35 @@ parent directory of the directory containing the ``bin/crate`` executable.
 CRATE_HEAP_SIZE
 ---------------
 
-This variable specifies the amount of memory that can be used by the JVM. This
-should be set to at least 50% of the machines memory.
+This variable specifies the amount of memory that can be used by the
+JVM. This should be set to at most 50% of the machine's memory.
 
-Certain operations in Crate require a lot of records to be hold in memory at a
-time. If the amount of heap that can be allocated by the JVM is too low these
-operations would fail with an OutOfMemory exception.
+Certain operations in Crate require a lot of records to be hold in
+memory at a time. If the amount of heap that can be allocated by the
+JVM is too low these operations would fail with an OutOfMemory exception.
 
 The value of the environment variable can be suffixed with ``g`` or ``m``. For
 example::
 
     CRATE_HEAP_SIZE=4g
+
+Be aware that there is also another user of memory besides Crate's
+HEAP: our underlying storage engine `Lucene`_. It leverages the
+underlying OS for caching in-memory data structures by
+design. `Lucene`_ indexes are split in serveral segement files, every
+file is immutable and will never change. This makes them super
+chache-friendly and the underlying OS will keep hot segements resident
+in memory for faster access. So if all system memory is assigned to
+Crate's HEAP, there won't be any left-over for `Lucene`_ which can
+cause serious performance impacts.
+
+.. note::
+
+   A good recommendation is to assign 50% of the available memory to
+   Crate's HEAP while leaving the other 50% free. It will not get
+   unused, `Lucene`_ will use whatever is left-over.
+
+
 
 .. _YAML: http://en.wikipedia.org/wiki/YAML
 
@@ -1594,3 +1612,5 @@ example::
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
 
 .. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
+
+.. _Lucene: https://lucene.apache.org/
