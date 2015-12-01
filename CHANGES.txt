@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Crash to 0.14.3, which includes the following change:
+
+  - Python2.6/2.7 output now prints unicode strings correctly when using
+    csv output format
+
  - Updated crate-admin to 0.15.4 which includes following changes:
 
    - fix: column headers where not shown in result table on console page
@@ -15,7 +20,7 @@ Unreleased
  - Fix: insert into a partitioned primary key column of type long
    could fail under some circumstances
 
- - Fix: missing characters when concatinating string under some
+ - Fix: missing characters when concatenating string under some
    rare circumstances
 
  - Internal optimization: Avoid writing partition values to the source.
@@ -47,7 +52,7 @@ Unreleased
  - Fixed an issue that caused orphaned partitions with an remaining alias to
    not be recognized correctly
 
- - Fixed an issue that was causing like queries to fail if using a special regex 
+ - Fixed an issue that was causing like queries to fail if using a special regex
    character
 
  - Upgraded Elasticsearch to 1.7.3
@@ -56,34 +61,34 @@ Unreleased
    the cluster when multiple clients connections are established
 
  - Fixed a possible race condition that could lead to queries getting stuck
-   (Only affected SELECT queries with a limit/offset > 500000) 
+   (Only affected SELECT queries with a limit/offset > 500000)
 
  - Fix: Crate won't start properly if a plugin loading error occurs
    (e.g. through a misconfigured plugin)
- 
+
  - Fixed an issue that was introduced in 0.52.0 which could cause a
    FetchContext to remain open longer than necessary in an error case.
    This could then lead to failures if an attempt was made to move shards to
    which the FetchContext hold onto.
- 
+
  - Updated crash to version 0.14.1 which contains the following changes:
 
    - Floating point values are no longer rounded to 6 places under python2.7 if
      output using the tabular or mixed output format.
-     Now the behaviour for all output formats is the same and consistent with 
+     Now the behaviour for all output formats is the same and consistent with
      the python3 output format.
 
      Python2.6 will still display rounded values.
 
-   - Fixed the issue casuing parsing error while using internal ``non-sql`` 
+   - Fixed the issue casuing parsing error while using internal ``non-sql``
      crash commands with semicolon.
 
  - Updated crate-admin to 0.15.2 which includes following changes:
 
-   - fixed a bug that displays partitions that are not related to the selected 
+   - fixed a bug that displays partitions that are not related to the selected
      table in the table-list.
 
-   - fixed a bug where cluster shows wrong state if the number of nodes gets 
+   - fixed a bug where cluster shows wrong state if the number of nodes gets
      smaller than the minimum master nodes.
 
    - fixed a bug that displays a zero value as NULL value
