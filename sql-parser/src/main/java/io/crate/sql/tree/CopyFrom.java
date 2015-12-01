@@ -26,15 +26,15 @@ import com.google.common.base.Optional;
 
 import javax.annotation.Nullable;
 
-public class CopyFromStatement extends Statement {
+public class CopyFrom extends Statement {
 
     private final Table table;
     private final Expression path;
     private final Optional<GenericProperties> genericProperties;
 
-    public CopyFromStatement(Table table,
-                             Expression path,
-                             @Nullable GenericProperties genericProperties) {
+    public CopyFrom(Table table,
+                    Expression path,
+                    @Nullable GenericProperties genericProperties) {
 
         this.table = table;
         this.path = path;
@@ -58,7 +58,7 @@ public class CopyFromStatement extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        CopyFromStatement that = (CopyFromStatement) o;
+        CopyFrom that = (CopyFrom) o;
 
         if (!genericProperties.equals(that.genericProperties)) return false;
         if (!path.equals(that.path)) return false;
@@ -86,6 +86,6 @@ public class CopyFromStatement extends Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCopyFromStatement(this, context);
+        return visitor.visitCopyFrom(this, context);
     }
 }

@@ -22,7 +22,6 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
@@ -60,11 +59,39 @@ public class WriterProjection extends Projection {
     );
 
     private Symbol uri;
-    private boolean isDirectoryUri = false;
-    private List<Symbol> inputs = ImmutableList.of();
-    private Settings settings = ImmutableSettings.EMPTY;
+    private boolean isDirectoryUri;
+    private List<Symbol> inputs;
+    private Settings settings;
 
-    private Map<ColumnIdent, Symbol> overwrites = ImmutableMap.of();
+    /*
+     * add values that should be added or overwritten
+     * all symbols must normalize to literals on the shard level.
+     */
+    private Map<ColumnIdent, Symbol> overwrites;
+
+    private OutputFormat outputFormat;
+
+    public enum OutputFormat {
+        OBJECT,
+        COLUMN
+    }
+
+    public WriterProjection() {
+    }
+
+    public WriterProjection(List<Symbol> inputs,
+                            Symbol uri,
+                            boolean isDirectoryUri,
+                            Settings settings,
+                            Map<ColumnIdent, Symbol> overwrites,
+                            OutputFormat outputFormat) {
+        this.inputs = inputs;
+        this.uri = uri;
+        this.isDirectoryUri = isDirectoryUri;
+        this.settings = settings;
+        this.overwrites = overwrites;
+        this.outputFormat = outputFormat;
+    }
 
     @Nullable
     private List<String> outputNames;
@@ -85,20 +112,8 @@ public class WriterProjection extends Projection {
         return uri;
     }
 
-    public void uri(Symbol uri) {
-        this.uri = uri;
-    }
-
-    public void settings(Settings settings) {
-        this.settings = settings;
-    }
-
     public Settings settings() {
         return settings;
-    }
-
-    public void isDirectoryUri(boolean isDirectoryUri) {
-        this.isDirectoryUri = isDirectoryUri;
     }
 
     public boolean isDirectoryUri() {
@@ -110,10 +125,6 @@ public class WriterProjection extends Projection {
         return OUTPUTS;
     }
 
-    public void inputs(List<Symbol> symbols) {
-        inputs = symbols;
-    }
-
     public List<Symbol> inputs() {
         return inputs;
     }
@@ -121,6 +132,14 @@ public class WriterProjection extends Projection {
     @Override
     public ProjectionType projectionType() {
         return ProjectionType.WRITER;
+    }
+
+    public Map<ColumnIdent, Symbol> overwrites() {
+        return this.overwrites;
+    }
+
+    public OutputFormat outputFormat() {
+        return outputFormat;
     }
 
     @Override
@@ -151,6 +170,7 @@ public class WriterProjection extends Projection {
         for (int i = 0; i < numOverwrites; i++) {
             overwrites.put(ColumnIdent.fromStream(in), Symbol.fromStream(in));
         }
+        outputFormat = OutputFormat.values()[in.readInt()];
     }
 
     @Override
@@ -176,6 +196,7 @@ public class WriterProjection extends Projection {
             entry.getKey().writeTo(out);
             Symbol.toStream(entry.getValue(), out);
         }
+        out.writeInt(outputFormat.ordinal());
     }
 
     @Override
@@ -191,6 +212,7 @@ public class WriterProjection extends Projection {
         if (!settings.equals(that.settings)) return false;
         if (!uri.equals(that.uri)) return false;
         if (!overwrites.equals(that.overwrites)) return false;
+        if (!outputFormat.equals(that.outputFormat)) return false;
 
         return true;
     }
@@ -203,6 +225,7 @@ public class WriterProjection extends Projection {
         result = 31 * result + settings.hashCode();
         result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
         result = 31 * result + overwrites.hashCode();
+        result = 31 * result + outputFormat.hashCode();
         return result;
     }
 
@@ -213,6 +236,7 @@ public class WriterProjection extends Projection {
                 ", settings=" + settings +
                 ", outputNames=" + outputNames +
                 ", isDirectory=" + isDirectoryUri +
+                ", outputFormat=" + outputFormat +
                 '}';
     }
 
@@ -223,20 +247,9 @@ public class WriterProjection extends Projection {
             p.uri = nUri;
             p.outputNames = outputNames;
             p.settings = settings;
+            p.outputFormat = outputFormat;
             return p;
         }
         return this;
-    }
-
-    /*
-     * add values that should be added or overwritten
-     * all symbols must normalize to literals on the shard level.
-     */
-    public void overwrites(Map<ColumnIdent, Symbol> overwrites) {
-        this.overwrites = overwrites;
-    }
-
-    public Map<ColumnIdent, Symbol> overwrites() {
-        return this.overwrites;
     }
 }

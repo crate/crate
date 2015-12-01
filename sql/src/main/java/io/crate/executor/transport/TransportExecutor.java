@@ -554,6 +554,15 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Void visitCopyTo(CopyTo plan, NodeOperationTreeContext context) {
+            if (plan.handlerMergeNode().isPresent()) {
+                context.addPhase(plan.handlerMergeNode().get());
+            }
+            process(plan.innerPlan(), context);
+            return null;
+        }
+
+        @Override
         protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
             throw new UnsupportedOperationException(String.format("Can't create NodeOperationTree from plan %s", plan));
         }

@@ -1075,8 +1075,9 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        CollectAndMerge plan = (CollectAndMerge) plan("copy users (name) to '/file.ext'");
-        CollectPhase node = plan.collectPhase();
+        CopyTo plan = (CopyTo) plan("copy users (name) to '/file.ext'");
+        CollectAndMerge innerPlan = (CollectAndMerge) plan.innerPlan();
+        CollectPhase node = innerPlan.collectPhase();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));

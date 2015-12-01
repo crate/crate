@@ -358,15 +358,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitCopyStatement(final CopyAnalyzedStatement analysis, Context context) {
-        switch (analysis.mode()) {
-            case FROM:
-                return copyStatementPlanner.planCopyFrom(analysis, context);
-            case TO:
-                return copyStatementPlanner.planCopyTo(analysis, context);
-            default:
-                throw new UnsupportedOperationException("mode not supported: " + analysis.mode());
-        }
+    protected Plan visitCopyFromStatement(CopyFromAnalyzedStatement analysis, Context context) {
+        return copyStatementPlanner.planCopyFrom(analysis, context);
+    }
+
+    @Override
+    protected Plan visitCopyToStatement(CopyToAnalyzedStatement analysis, Context context) {
+        return copyStatementPlanner.planCopyTo(analysis, context);
     }
 
     @Override

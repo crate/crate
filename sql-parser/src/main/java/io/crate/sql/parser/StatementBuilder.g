@@ -739,9 +739,9 @@ copyTo returns [Statement value]
 copyFrom returns [Statement value]
     : ^(COPY_FROM namedTable path=expr genericProperties?)
         {
-            $value = new CopyFromStatement($namedTable.value,
-                                           $path.value,
-                                           $genericProperties.value);
+            $value = new CopyFrom($namedTable.value,
+                                  $path.value,
+                                  $genericProperties.value);
         }
     ;
 

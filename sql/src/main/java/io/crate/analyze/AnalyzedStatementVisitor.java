@@ -33,7 +33,11 @@ public class AnalyzedStatementVisitor<C, R> {
         return null;
     }
 
-    protected R visitCopyStatement(CopyAnalyzedStatement analysis, C context) {
+    protected R visitCopyFromStatement(CopyFromAnalyzedStatement analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
+
+    protected R visitCopyToStatement(CopyToAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

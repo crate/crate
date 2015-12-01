@@ -29,18 +29,18 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class ProjectionBuilder {
 
@@ -152,5 +152,16 @@ public class ProjectionBuilder {
         }
         result.outputs(outputsProcessed);
         return result;
+    }
+
+    public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
+                                                    Symbol uri,
+                                                    boolean isDirectoryUri,
+                                                    Settings settings,
+                                                    Map<ColumnIdent, Symbol> overwrites,
+                                                    WriterProjection.OutputFormat outputFormat) {
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        return new WriterProjection(
+                inputVisitor.process(inputs, context), uri, isDirectoryUri, settings, overwrites, outputFormat);
     }
 }

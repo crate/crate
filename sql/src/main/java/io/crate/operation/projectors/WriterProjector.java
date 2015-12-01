@@ -33,6 +33,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
+import io.crate.planner.projection.WriterProjection;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -56,6 +57,7 @@ public class WriterProjector extends AbstractProjector {
     private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
+    private final WriterProjection.OutputFormat outputFormat;
     private Output output;
 
     protected final AtomicLong counter = new AtomicLong();
@@ -74,10 +76,12 @@ public class WriterProjector extends AbstractProjector {
                            Settings settings,
                            @Nullable List<Input<?>> inputs,
                            Set<CollectExpression<Row, ?>> collectExpressions,
-                           Map<ColumnIdent, Object> overwrites) {
+                           Map<ColumnIdent, Object> overwrites,
+                           WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
+        this.outputFormat = outputFormat;
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
@@ -136,7 +140,7 @@ public class WriterProjector extends AbstractProjector {
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
                         output.acquireOutputStream(), collectExpressions, overwrites);
-            } else if (inputs != null && !inputs.isEmpty()) {
+            } else if (inputs != null && !inputs.isEmpty() && outputFormat.equals(WriterProjection.OutputFormat.COLUMN)) {
                 rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
             } else {
                 rowWriter = new RawRowWriter(output.acquireOutputStream());

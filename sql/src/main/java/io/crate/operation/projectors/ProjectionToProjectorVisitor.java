@@ -194,7 +194,8 @@ public class ProjectionToProjectorVisitor
                 projection.settings(),
                 inputs,
                 symbolContext.collectExpressions(),
-                overwrites
+                overwrites,
+                projection.outputFormat()
         );
     }
 

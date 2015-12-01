@@ -29,6 +29,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
@@ -71,7 +72,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 settings,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
-                new HashMap<ColumnIdent, Object>()
+                new HashMap<ColumnIdent, Object>(),
+                WriterProjection.OutputFormat.OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
@@ -117,7 +119,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 settings,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
-                new HashMap<ColumnIdent, Object>()
+                new HashMap<ColumnIdent, Object>(),
+                WriterProjection.OutputFormat.OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
@@ -139,7 +142,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 settings,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
-                new HashMap<ColumnIdent, Object>()
+                new HashMap<ColumnIdent, Object>(),
+                WriterProjection.OutputFormat.OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);

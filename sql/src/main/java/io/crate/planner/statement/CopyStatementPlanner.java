@@ -25,26 +25,30 @@ package io.crate.planner.statement;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.analyze.CopyAnalyzedStatement;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.CopyToAnalyzedStatement;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.consumer.ConsumerContext;
+import io.crate.planner.node.dml.CopyTo;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -64,7 +68,7 @@ public class CopyStatementPlanner {
         this.clusterService = clusterService;
     }
 
-    public Plan planCopyFrom(CopyAnalyzedStatement analysis, Planner.Context context) {
+    public Plan planCopyFrom(CopyFromAnalyzedStatement analysis, Planner.Context context) {
         /**
          * copy from has two "modes":
          *
@@ -167,66 +171,34 @@ public class CopyStatementPlanner {
                 collectPhase.outputTypes()), context.jobId());
     }
 
-    public Plan planCopyTo(CopyAnalyzedStatement analysis, Planner.Context context) {
-        DocTableInfo tableInfo = analysis.table();
-        WriterProjection projection = new WriterProjection();
-        projection.uri(analysis.uri());
-        projection.isDirectoryUri(analysis.directoryUri());
-        projection.settings(analysis.settings());
+    public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
+        WriterProjection.OutputFormat outputFormat = statement.columnsDefined() ?
+                WriterProjection.OutputFormat.COLUMN : WriterProjection.OutputFormat.OBJECT;
 
-        List<Symbol> outputs;
-        String partitionIdent = analysis.partitionIdent();
+        WriterProjection projection = ProjectionBuilder.writerProjection(
+                statement.subQueryRelation().querySpec().outputs(),
+                statement.uri(),
+                statement.isDirectoryUri(),
+                statement.settings(),
+                statement.overwrites(),
+                outputFormat);
 
-        if (analysis.selectedColumns() != null && !analysis.selectedColumns().isEmpty()) {
-            outputs = new ArrayList<>(analysis.selectedColumns().size());
-            List<Symbol> columnSymbols = new ArrayList<>(analysis.selectedColumns().size());
-            for (int i = 0; i < analysis.selectedColumns().size(); i++) {
-                outputs.add(DocReferenceConverter.convertIfPossible(analysis.selectedColumns().get(i), analysis.table()));
-                columnSymbols.add(new InputColumn(i, null));
-            }
-            projection.inputs(columnSymbols);
-        } else {
-            Reference sourceRef;
-            if (analysis.table().isPartitioned() && partitionIdent == null) {
-                // table is partitioned, insert partitioned columns into the output
-                sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.DOC));
-                Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
-                for (ReferenceInfo referenceInfo : analysis.table().partitionedByColumns()) {
-                    overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
-                }
-                projection.overwrites(overwrites);
-            } else {
-                sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.RAW));
-            }
-            outputs = ImmutableList.<Symbol>of(sourceRef);
+        PlannedAnalyzedRelation plannedSubQuery = context.planSubRelation(statement.subQueryRelation(),
+                new ConsumerContext(statement, context));
+        if (plannedSubQuery == null) {
+            return null;
         }
 
-        WhereClause where;
-        if (partitionIdent == null) {
-            where = WhereClause.MATCH_ALL;
-        } else {
-            String partitionName = PartitionName.indexName(tableInfo.ident(), partitionIdent);
-            where = new WhereClause(null, null, ImmutableList.of(partitionName));
-        }
-        Routing routing = context.allocateRouting(tableInfo, where, null);
-        CollectPhase collectPhase = new CollectPhase(
-                context.jobId(),
-                context.nextExecutionPhaseId(),
-                "collect",
-                routing,
-                tableInfo.rowGranularity(),
-                outputs,
-                ImmutableList.<Projection>of(projection),
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_BROADCAST
-        );
+        plannedSubQuery.addProjection(projection);
+
         MergePhase mergePhase = MergePhase.localMerge(
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectPhase.executionNodes().size(),
-                collectPhase.outputTypes());
-        return new CollectAndMerge(collectPhase, mergePhase, context.jobId());
+                plannedSubQuery.resultPhase().executionNodes().size(),
+                Symbols.extractTypes(projection.outputs()));
+
+        return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
     }
 
     private static Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {

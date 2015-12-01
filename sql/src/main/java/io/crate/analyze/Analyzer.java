@@ -142,13 +142,13 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, Analysis context) {
-            return copyStatementAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCopyFrom(CopyFrom node, Analysis context) {
+            return copyStatementAnalyzer.convertCopyFrom(node, context);
         }
 
         @Override
         public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
-            return copyStatementAnalyzer.analyze(node, context);
+            return copyStatementAnalyzer.convertCopyTo(node, context);
         }
 
         @Override

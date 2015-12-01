@@ -21,10 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.UpdateAnalyzedStatement;
+import io.crate.analyze.*;
 
 import javax.annotation.Nullable;
 
@@ -70,4 +67,7 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(updateAnalyzedStatement, context);
     }
 
+    public R visitCopyToAnalyzedStatement(CopyToAnalyzedStatement statement, C context) {
+        return visitAnalyzedRelation(statement, context);
+    }
 }
