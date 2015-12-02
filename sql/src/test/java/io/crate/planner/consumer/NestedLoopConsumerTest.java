@@ -54,7 +54,6 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -82,7 +81,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CrossJoinConsumerTest extends CrateUnitTest {
+public class NestedLoopConsumerTest extends CrateUnitTest {
 
     private Analyzer analyzer;
     private Planner planner;
@@ -91,7 +90,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private CrossJoinConsumer consumer;
+    private NestedLoopConsumer consumer;
     private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
     private TableStatsService statsService;
 
@@ -108,7 +107,7 @@ public class CrossJoinConsumerTest extends CrateUnitTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
-        consumer = new CrossJoinConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
+        consumer = new NestedLoopConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
     private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),

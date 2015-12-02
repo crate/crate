@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
-public class CrossJoinIntegrationTest extends SQLTransportIntegrationTest {
+public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

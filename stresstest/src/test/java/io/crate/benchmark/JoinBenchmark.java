@@ -40,7 +40,7 @@ import java.util.concurrent.*;
 @AxisRange(min = 0)
 @BenchmarkHistoryChart(filePrefix="benchmark-cross-joins-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-cross-joins")
-public class CrossJoinBenchmark extends BenchmarkBase {
+public class JoinBenchmark extends BenchmarkBase {
 
     public static final int BENCHMARK_ROUNDS = 3;
 

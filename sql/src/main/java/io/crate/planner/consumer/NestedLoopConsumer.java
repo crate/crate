@@ -56,13 +56,13 @@ import java.util.*;
 
 
 @Singleton
-public class CrossJoinConsumer implements Consumer {
+public class NestedLoopConsumer implements Consumer {
 
     private final Visitor visitor;
-    private final static ESLogger LOGGER = Loggers.getLogger(CrossJoinConsumer.class);
+    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
 
     @Inject
-    public CrossJoinConsumer(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
+    public NestedLoopConsumer(ClusterService clusterService, AnalysisMetaData analysisMetaData, TableStatsService tableStatsService) {
         visitor = new Visitor(clusterService, analysisMetaData, tableStatsService);
     }
 

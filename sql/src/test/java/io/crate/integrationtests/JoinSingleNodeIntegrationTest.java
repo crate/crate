@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
-public class CrossJoinSingleNodeIntegrationTest extends CrossJoinIntegrationTest {
+public class JoinSingleNodeIntegrationTest extends JoinIntegrationTest {
 
     /**
      * runs all tests from CrossJoinIntegrationTest but with numDataNodes fixed to always trigger

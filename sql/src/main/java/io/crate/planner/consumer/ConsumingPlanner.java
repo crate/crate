@@ -44,7 +44,7 @@ public class ConsumingPlanner {
                             DistributedGroupByConsumer distributedGroupByConsumer,
                             GlobalAggregateConsumer globalAggregateConsumer,
                             QueryThenFetchConsumer queryThenFetchConsumer,
-                            CrossJoinConsumer crossJoinConsumer,
+                            NestedLoopConsumer nestedLoopConsumer,
                             QueryAndFetchConsumer queryAndFetchConsumer) {
         consumers.add(nonDistributedGroupByConsumer);
         consumers.add(reduceOnCollectorGroupByConsumer);
@@ -55,7 +55,7 @@ public class ConsumingPlanner {
         consumers.add(queryThenFetchConsumer);
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(queryAndFetchConsumer);
-        consumers.add(crossJoinConsumer);
+        consumers.add(nestedLoopConsumer);
     }
 
     @Nullable
