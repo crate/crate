@@ -27,9 +27,9 @@ import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.operation.scalar.string.UpperFunction;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
@@ -43,16 +43,10 @@ import static org.hamcrest.Matchers.*;
 
 public class UpperFunctionTest extends AbstractScalarFunctionsTest {
 
-    Literal stringLiteral(String string) {
-        return Literal.newLiteral(DataTypes.STRING, DataTypes.STRING.value(string));
-    }
-
     public Symbol normalizeForArgs(List<Symbol> args) {
         Function function = createFunction(UpperFunction.NAME, DataTypes.STRING, args);
         FunctionImplementation impl = functions.get(function.info().ident());
-        if (randomBoolean()) {
-            impl = ((Scalar) impl).compile(function.arguments());
-        }
+        impl = ((Scalar) impl).compile(function.arguments());
 
         return impl.normalizeSymbol(function);
     }
@@ -60,9 +54,7 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
     public Object evaluateForArgs(List<Symbol> args) {
         Function function = createFunction(UpperFunction.NAME, DataTypes.STRING, args);
         Scalar impl = (Scalar) functions.get(function.info().ident());
-        if (randomBoolean()) {
-            impl = impl.compile(function.arguments());
-        }
+        impl = impl.compile(function.arguments());
 
         Input[] inputs = new Input[args.size()];
         for (int i = 0; i < args.size(); i++) {
@@ -77,11 +69,11 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         Locale.setDefault(Locale.forLanguageTag("en-US"));
 
         List<Symbol> args = Lists.<Symbol>newArrayList(
-                stringLiteral("abcdefghijklmnopqrstuvwxyzäöüαβγ")
+                Literal.newLiteral("abcdefghijklmnopqrstuvwxyzäöüαβγ")
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ")));
+                isLiteral(new String("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ")));
     }
 
     @Test
@@ -89,11 +81,11 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         Locale.setDefault(Locale.forLanguageTag("en-US"));
 
         List<Symbol> args = Lists.<Symbol>newArrayList(
-                stringLiteral("ısparta isparta")
+                Literal.newLiteral("ısparta isparta")
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ISPARTA ISPARTA")));
+                isLiteral(new String("ISPARTA ISPARTA")));
     }
 
     @Test
@@ -101,11 +93,11 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         Locale.setDefault(Locale.forLanguageTag("tr-TR"));
 
         List<Symbol> args = Lists.<Symbol>newArrayList(
-                stringLiteral("ısparta isparta")
+                Literal.newLiteral("ısparta isparta")
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ISPARTA İSPARTA")));
+                isLiteral(new String("ISPARTA İSPARTA")));
     }
 
     @Test
@@ -128,11 +120,11 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         Locale.setDefault(Locale.forLanguageTag("en-US"));
 
         List<Symbol> args = Lists.<Symbol>newArrayList(
-                stringLiteral("ısparta isparta"),
-                stringLiteral("tr-TR")
+                Literal.newLiteral("ısparta isparta"),
+                Literal.newLiteral("tr-TR")
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ISPARTA İSPARTA")));
+                isLiteral(new String("ISPARTA İSPARTA")));
     }
 }
