@@ -26,12 +26,10 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.operation.scalar.string.UpperFunction;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -26,7 +26,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.operation.scalar.string.LowerFunction;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -123,6 +122,7 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("Isparta İsparta"),
                 Literal.newLiteral("tr-TR")
         );
+
         assertThat(
                 normalizeForArgs(args),
                 isLiteral(new BytesRef("ısparta isparta")));
