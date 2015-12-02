@@ -108,22 +108,6 @@ public class TestStatementBuilder
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
-        printStatement("copy foo partition (a='x') from ?");
-        printStatement("copy foo partition (a={key='value'}) from ?");
-        printStatement("copy foo from '/folder/file.extension'");
-        printStatement("copy foo from ?");
-        printStatement("copy foo from ? with (some_property=1)");
-        printStatement("copy foo from ? with (some_property=false)");
-        printStatement("copy schemah.foo from '/folder/file.extension'");
-
-        printStatement("copy foo (nae) to '/folder/file.extension'");
-        printStatement("copy foo to '/folder/file.extension'");
-        printStatement("copy foo to DIRECTORY '/folder'");
-        printStatement("copy foo to DIRECTORY ?");
-        printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
-        printStatement("copy foo partition (a='x') to DIRECTORY '/folder' with (some_param=4)");
-        printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
-
 
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string)");
@@ -301,6 +285,26 @@ public class TestStatementBuilder
         printStatement("alter blob table screenshots reset (number_of_replicas)");
     }
 
+    @Test
+    public void testCopy() throws Exception {
+        printStatement("copy foo partition (a='x') from ?");
+        printStatement("copy foo partition (a={key='value'}) from ?");
+        printStatement("copy foo from '/folder/file.extension'");
+        printStatement("copy foo from ?");
+        printStatement("copy foo from ? with (some_property=1)");
+        printStatement("copy foo from ? with (some_property=false)");
+        printStatement("copy schemah.foo from '/folder/file.extension'");
+
+        printStatement("copy foo (nae) to '/folder/file.extension'");
+        printStatement("copy foo to '/folder/file.extension'");
+        printStatement("copy foo to DIRECTORY '/folder'");
+        printStatement("copy foo to DIRECTORY ?");
+        printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a='x') to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
+
+        printStatement("copy foo where a = 'x' to DIRECTORY '/folder'");
+    }
 
     @Test
     public void testInsert() throws Exception {
