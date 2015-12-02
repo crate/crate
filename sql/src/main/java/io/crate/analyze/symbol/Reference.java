@@ -92,6 +92,12 @@ public class Reference extends Symbol {
         reference.writeTo(out);
     }
 
+    /**
+     * will read a reference from a streaminput
+     *
+     * this reading process will convert any special ReferenceInfo subclass
+     * into a simple ReferenceInfo
+     */
     @Override
     public void readFrom(StreamInput in) throws IOException {
         info = new ReferenceInfo();

@@ -349,18 +349,23 @@ public class TransportShardUpsertAction
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
             for (int i = 0; i < item.insertValues().length; i++) {
-                Reference ref = request.insertColumns()[i];
+                final Reference ref = request.insertColumns()[i];
                 if (ref.info().granularity() == RowGranularity.DOC) {
                     // don't include values for partitions in the _source
                     // ideally columns with partition granularity shouldn't be part of the request
                     builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
-                    if (ref.info() instanceof GeneratedReferenceInfo) {
-                        generatedReferencesWithValue.add((GeneratedReferenceInfo) ref.info());
+
+                    for (GeneratedReferenceInfo generatedReferenceInfo : tableInfo.generatedColumns()) {
+                        if (generatedReferenceInfo.ident().equals(ref.info().ident())) {
+                            generatedReferencesWithValue.add(generatedReferenceInfo);
+                            break;
+                        }
                     }
                 }
             }
             source = builder.bytes();
         }
+
 
         int generatedColumnSize = 0;
         for (GeneratedReferenceInfo generatedReferenceInfo : tableInfo.generatedColumns()) {
@@ -368,8 +373,9 @@ public class TransportShardUpsertAction
                 generatedColumnSize++;
             }
         }
+        int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
 
-        if (generatedReferencesWithValue.size() < generatedColumnSize) {
+        if (numMissingGeneratedColumns > 0 || generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns()) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
                     request.isRawSourceInsert(), request.validateGeneratedColumns());
