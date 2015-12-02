@@ -58,7 +58,7 @@ public class LocalReaper implements Reaper {
             }
             if ((time - lastAccessTime > maxKeepAliveTime.getMillis())) {
                 UUID id = context.jobId();
-                LOGGER.debug("closing job collect context [{}], time [{}], lastAccessTime [{}]",
+                LOGGER.debug("closing JobExecutionContext [{}], time [{}], lastAccessTime [{}]",
                         id, time, lastAccessTime);
                 try {
                     context.kill();

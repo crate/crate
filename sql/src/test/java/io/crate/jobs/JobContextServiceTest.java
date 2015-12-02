@@ -293,8 +293,8 @@ public class JobContextServiceTest extends CrateUnitTest {
                 testThreadPool,
                 mock(StatsTables.class),
                 new LocalReaper(testThreadPool),
-                timeValueMillis(0),
-                timeValueMillis(1));
+                timeValueMillis(1),
+                timeValueMillis(5));
 
         final AbstractExecutionSubContextTest.TestingExecutionSubContext executionSubContext = new AbstractExecutionSubContextTest.TestingExecutionSubContext();
 

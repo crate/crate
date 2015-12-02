@@ -89,12 +89,16 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         this.statsTables = statsTables;
         this.keepAlive = keepAlive;
         this.reaperImpl = reaper;
-        this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                reaperImpl.killHangingJobs(JobContextService.this.keepAlive, activeContexts.values());
-            }
-        }, reaperInterval);
+        if (keepAlive.micros() > 0) {
+            this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    reaperImpl.killHangingJobs(JobContextService.this.keepAlive, activeContexts.values());
+                }
+            }, reaperInterval);
+        } else {
+            this.keepAliveReaper = null;
+        }
     }
 
     @Override
@@ -114,7 +118,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     @Override
     protected void doClose() throws ElasticsearchException {
-        keepAliveReaper.cancel(false);
+        if (keepAliveReaper != null) {
+            keepAliveReaper.cancel(false);
+        }
     }
 
     public JobExecutionContext getContext(UUID jobId) {

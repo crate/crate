@@ -23,15 +23,25 @@
 package io.crate.jobs;
 
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
+import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 
 public class JobModule extends AbstractModule {
+
+    private static final String JOB_KEEP_ALIVE = "jobs.keep_alive_timeout";
+    private final TimeValue keepAlive;
+
+    public JobModule(Settings settings) {
+        keepAlive = settings.getAsTime(JOB_KEEP_ALIVE, timeValueSeconds(0));
+    }
+
     @Override
     protected void configure() {
         bind(JobContextService.class).asEagerSingleton();
-        bind(TimeValue.class).annotatedWith(JobContextService.JobKeepAlive.class).toInstance(timeValueMinutes(5));
+        bind(TimeValue.class).annotatedWith(JobContextService.JobKeepAlive.class).toInstance(keepAlive);
         bind(TimeValue.class).annotatedWith(JobContextService.ReaperInterval.class).toInstance(timeValueMinutes(1));
         bind(Reaper.class).to(LocalReaper.class).asEagerSingleton();
 

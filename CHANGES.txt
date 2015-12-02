@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The ``jobs.keep_alive_timeout`` value can now be configured and the default has been
+   changed to 0 (deactivated) from ``5m``
+
  - Updated Crash to 0.14.3, which includes the following change:
 
    - Python2.6/2.7 output now prints unicode strings correctly when using
