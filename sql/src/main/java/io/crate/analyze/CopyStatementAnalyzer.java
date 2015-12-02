@@ -31,6 +31,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -95,20 +96,40 @@ public class CopyStatementAnalyzer {
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);
         Settings settings = processGenericProperties(node.genericProperties(), context);
         Symbol uri = context.processExpression(node.targetUri());
+        WhereClause whereClause = null;
+        if (node.whereClause().isPresent()) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+            whereClause = whereClauseAnalyzer.analyze(
+                    context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext));
+        }
 
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
-        PartitionName partition = null;
+        List<String> partitions = ImmutableList.of();
         if (!node.table().partitionProperties().isEmpty()) {
-            partition = PartitionPropertiesAnalyzer.toPartitionName(
+            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                     tableRelation.tableInfo(),
                     node.table().partitionProperties(),
                     analysis.parameterContext().parameters());
 
-            if (!partitionExists(tableRelation.tableInfo(), partition)) {
-                throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partition.ident());
+            if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
+                throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partitionName.ident());
             }
-            querySpec.where(new WhereClause(null, null, ImmutableList.of(partition.asIndexName())));
+            partitions = ImmutableList.of(partitionName.asIndexName());
+        }
+
+        if (whereClause == null) {
+            querySpec.where(new WhereClause(null, null, partitions));
+        } else if (whereClause.noMatch()) {
+            querySpec.where(whereClause);
+        } else {
+            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() && !whereClause.partitions().equals(partitions)) {
+                throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
+            }
+
+            querySpec.where(
+                    new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
+                            partitions.isEmpty() ? whereClause.partitions() : partitions));
         }
 
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -120,7 +141,7 @@ public class CopyStatementAnalyzer {
             columnsDefined = true;
         } else {
             Reference sourceRef;
-            if (tableRelation.tableInfo().isPartitioned() && partition == null) {
+            if (tableRelation.tableInfo().isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.DOC));
                 overwrites = new HashMap<>();

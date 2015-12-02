@@ -135,6 +135,7 @@ The optional WITH clause can specify parameters for the copy statement.
 Possible copy_parameters are:
 
 .. _compression:
+..
 
 compression
 -----------
@@ -151,3 +152,5 @@ Possible values for the ``compression`` setting are:
 .. _`Amazon S3`: http://aws.amazon.com/s3/
 
 .. _NFS: http://de.wikipedia.org/wiki/Network_File_System
+
+
