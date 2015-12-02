@@ -312,6 +312,28 @@ Ports
     It is also possible to alter settings of single partitions of a partitioned table.
     To change table settings for a particular partitions please refer to :ref:`ref-alter-table-partition-clause`.
 
+Jobs
+----
+
+**jobs.keep_alive_timeout**
+  | *Runtime:* ``no``
+  | *Default:* ``0``
+
+  A time value that defines how long a job may appear idle before it is
+  automatically terminated.
+  If this is set to 0 (the default) jobs are never terminated.
+
+  The logic to determine if a job is idle isn't accurate and there might be
+  false positives.
+  For example a SELECT statement using a very slow scalar function might be
+  regarded as stuck and could be killed although it was active.
+
+  So be careful setting this to something other than 0.
+
+  The time value can be set either as long, double or string and using time
+  suffixes is possible. Valid suffixes are: (``ms``, ``s``, ``m``, ``h``,
+  ``d``, ``w``)
+
 .. _conf-cluster-settings:
 
 Cluster Wide Settings
