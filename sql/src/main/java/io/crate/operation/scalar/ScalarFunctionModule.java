@@ -96,6 +96,8 @@ public class ScalarFunctionModule extends AbstractModule {
 
         ConcatFunction.register(this);
 
+        LengthFunction.register(this);
+
         ArrayCatFunction.register(this);
         ArrayDifferenceFunction.register(this);
         ArrayUniqueFunction.register(this);

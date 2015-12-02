@@ -101,6 +101,93 @@ which defines the length of the substring::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar_char_length:
+
+char_length('string') returns integer
+-------------------------------------
+
+The ``char_length`` function returns the number of characters in the string.
+
+A multibyte character counts as a single character. This means if a string
+contains two bytes character it will be counted as a single character.
+
+Example::
+
+    cr> select char_length('crate.io') from sys.cluster;
+    +-------------------------+
+    | char_length('crate.io') |
+    +-------------------------+
+    |                       8 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select char_length('©rate.io') from sys.cluster;
+    +-------------------------+
+    | char_length('©rate.io') |
+    +-------------------------+
+    |                       8 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar_bit_length:
+
+bit_length('string') returns integer
+------------------------------------
+
+The ``bit_length`` function returns the number of bits in the input string.
+
+.. note::
+
+    Crate.io internally uses UTF-8 encoded strings. This means that a single
+    character may be represented as single byte (e.g. most ascii characters)
+    or up to 4 bytes (e.g. emoji or other unicode characters).
+
+Example::
+
+    cr> select bit_length('crate.io') from sys.cluster;
+    +------------------------+
+    | bit_length('crate.io') |
+    +------------------------+
+    |                     64 |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select bit_length('©rate.io') from sys.cluster;
+    +------------------------+
+    | bit_length('©rate.io') |
+    +------------------------+
+    |                     72 |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar_octet_length:
+
+octet_length('string') returns integer
+--------------------------------------
+
+The ``octet_length`` function returns the number of bytes (octets) in the input
+string.
+
+Example::
+
+    cr> select octet_length('crate.io') from sys.cluster;
+    +--------------------------+
+    | octet_length('crate.io') |
+    +--------------------------+
+    |                        8 |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select octet_length('©rate.io') from sys.cluster;
+    +--------------------------+
+    | octet_length('©rate.io') |
+    +--------------------------+
+    |                        9 |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
 
 Date/Time Functions
 ===================

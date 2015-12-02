@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added ``char_length``, ``bit_length`` and ``octet_length`` scalar
+   functions.
+
  - The ``jobs.keep_alive_timeout`` value can now be configured and the default has been
    changed to 0 (deactivated) from ``5m``
 

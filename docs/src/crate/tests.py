@@ -389,7 +389,8 @@ def test_suite():
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='UTF-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('sql/joins.txt', ):
