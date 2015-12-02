@@ -24,16 +24,12 @@ package io.crate.analyze.symbol;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -50,7 +46,6 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 public class ReferenceTest extends CrateUnitTest {
 
-    private SqlExpressions sqlExpressions;
     private final TableIdent tableIdent = new TableIdent(DocSchemaInfo.NAME, "gen");
     private DocTableInfo tableInfo;
 
@@ -65,8 +60,6 @@ public class ReferenceTest extends CrateUnitTest {
                 .addIndex(ColumnIdent.fromPath("idx"), ReferenceInfo.IndexType.ANALYZED)
                 .addPartitions(new PartitionName(tableIdent, Collections.singletonList(new BytesRef("true"))).toString())
                 .build();
-        sqlExpressions = new SqlExpressions(ImmutableMap.<QualifiedName, AnalyzedRelation>of(QualifiedName.of("gen"), new DocTableRelation(tableInfo)));
-
     }
 
     @Test
