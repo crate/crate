@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/12/02 0.53.1
+=================
+
  - Updated Crash to 0.14.3, which includes the following change:
 
    - Python2.6/2.7 output now prints unicode strings correctly when using
