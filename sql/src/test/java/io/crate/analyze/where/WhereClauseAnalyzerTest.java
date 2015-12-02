@@ -28,6 +28,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -70,6 +71,9 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
+    public static final String GENERATED_COL_TABLE_NAME = "generated_col";
+    public static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -93,9 +97,10 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 .add(new TestMetaDataModule()).createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         ctxMetaData = injector.getInstance(AnalysisMetaData.class);
+        Functions functions = injector.getInstance(Functions.class);
 
         TableInfo genInfo =
-                TestingTableInfo.builder(new TableIdent("doc", "generated_col"), new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+                TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
                         .add("ts", DataTypes.TIMESTAMP, null)
                         .add("x", DataTypes.INTEGER, null)
                         .add("y", DataTypes.LONG, null)
@@ -107,7 +112,20 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                                 new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()
                         )
                         .build(injector.getInstance(Functions.class));
-        when(schemaInfo.getTableInfo("generated_col")).thenReturn(genInfo);
+        when(schemaInfo.getTableInfo(GENERATED_COL_TABLE_NAME)).thenReturn(genInfo);
+
+        TableIdent ident = new TableIdent(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
+        TableInfo doubleGenPartedInfo =
+                TestingTableInfo.builder(ident, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+                    .add("x", DataTypes.INTEGER, null)
+                    .addGeneratedColumn("x1", DataTypes.LONG, "x+1", true)
+                    .addGeneratedColumn("x2", DataTypes.LONG, "x+2", true)
+                    .addPartitions(
+                                new PartitionName(ident, Arrays.asList(new BytesRef("4"), new BytesRef("5"))).toString(),
+                                new PartitionName(ident, Arrays.asList(new BytesRef("5"), new BytesRef("6"))).toString()
+                                )
+                    .build(functions);
+        when(schemaInfo.getTableInfo(DOUBLE_GEN_PARTITIONED_TABLE_NAME)).thenReturn(doubleGenPartedInfo);
     }
 
     @After
@@ -715,5 +733,12 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00' and y = 1");
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+    }
+
+    @Test
+    public void testColumnReferencedTwiceInGeneratedColumnPartitioned() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from double_gen_parted where x = 4");
+        assertThat(whereClause.query(), isSQL("doc.double_gen_parted.x = 4"));
+        assertThat(whereClause.partitions(), contains(".partitioned.double_gen_parted.0813a0hm"));
     }
 }
