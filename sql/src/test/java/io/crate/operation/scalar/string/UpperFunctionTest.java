@@ -75,18 +75,6 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeCornerCaseTurkishI() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("ısparta isparta")
-        );
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral(new String("ISPARTA ISPARTA")));
-    }
-
-    @Test
     public void testNormalizeCornerCaseTurkishIWithTurkishLocale() throws Exception {
         Locale.setDefault(Locale.forLanguageTag("tr-TR"));
 

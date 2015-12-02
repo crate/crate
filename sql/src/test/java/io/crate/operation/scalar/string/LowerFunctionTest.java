@@ -76,18 +76,6 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeCornerCaseTurkishI() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("Isparta İsparta")
-        );
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral(new BytesRef("isparta i̇sparta")));
-    }
-
-    @Test
     public void testNormalizeCornerCaseTurkishIWithTurkishLocale() throws Exception {
         Locale.setDefault(Locale.forLanguageTag("tr-TR"));
 

@@ -204,24 +204,13 @@ To override this behaviour, the optional argument ``locale`` can be provided
 with a `BCP 47`_ compliant locale string (e.g. ``en-US`` for US English or
 ``tr-TR`` for Turkish)::
 
-    cr> select lower('Isparta İsparta', 'en-US') from sys.nodes
-    ... limit 1;
-    +---------------------------------------------------------+
-    | select lower('Isparta İsparta', 'en-US') from sys.nodes |
-    +---------------------------------------------------------+
-    | isparta i̇sparta                                         |
-    +---------------------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-or for the corresponding proper Turkish transformation::
-
     cr> select lower('Isparta İsparta', 'tr-TR') from sys.nodes
     ... limit 1;
-    +---------------------------------------------------------+
-    | select lower('Isparta İsparta', 'tr-TR') from sys.nodes |
-    +---------------------------------------------------------+
-    | ısparta isparta                                         |
-    +---------------------------------------------------------+
+    +-----------------------------------+
+    | lower('Isparta İsparta', 'tr-TR') |
+    +-----------------------------------+
+    | ısparta isparta                   |
+    +-----------------------------------+
     SELECT 1 row in set (... sec)
 
 (note that the upper case I with a dot is transformed into an lower
@@ -244,24 +233,13 @@ To override this behaviour, the optional argument ``locale`` can be provided
 with a `BCP 47`_ compliant locale string (e.g. ``en-US`` for US English or
 ``tr-TR`` for Turkish)::
 
-    cr> select upper('ısparta isparta', 'en-US') from sys.nodes
-    ... limit 1;
-    +---------------------------------------------------------+
-    | select upper('ısparta isparta', 'en-US') from sys.nodes |
-    +---------------------------------------------------------+
-    | ISPARTA ISPARTA                                         |
-    +---------------------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-or for the corresponding proper Turkish transformation::
-
     cr> select upper('ısparta isparta', 'tr-TR') from sys.nodes
     ... limit 1;
-    +---------------------------------------------------------+
-    | select upper('ısparta isparta', 'tr-TR') from sys.nodes |
-    +---------------------------------------------------------+
-    | ISPARTA İSPARTA                                         |
-    +---------------------------------------------------------+
+    +-----------------------------------+
+    | upper('ısparta isparta', 'tr-TR') |
+    +-----------------------------------+
+    | ISPARTA İSPARTA                   |
+    +-----------------------------------+
     SELECT 1 row in set (... sec)
 
 .. _`BCP 47`: http://tools.ietf.org/rfc/bcp/bcp47.txt
