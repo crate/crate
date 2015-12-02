@@ -22,8 +22,10 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -35,9 +37,8 @@ import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.*;
 
 @Singleton
 public class GeneratedColumnComparisonReplacer {
@@ -70,9 +71,9 @@ public class GeneratedColumnComparisonReplacer {
         private static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
 
         public static class Context {
-            private final Map<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn;
+            private final Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn;
 
-            public Context(Map<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn) {
+            public Context(Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
             }
         }
@@ -82,7 +83,7 @@ public class GeneratedColumnComparisonReplacer {
         }
 
         public Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {
-            Map<ReferenceInfo, GeneratedReferenceInfo> referencedSingleReferences = extractGeneratedReferences(tableInfo);
+            Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedSingleReferences = extractGeneratedReferences(tableInfo);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
@@ -115,28 +116,43 @@ public class GeneratedColumnComparisonReplacer {
 
 
         private Function addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
-            GeneratedReferenceInfo genColInfo = context.referencedRefsToGeneratedColumn.get(reference.info());
-            if (genColInfo != null && genColInfo.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
+            Collection<GeneratedReferenceInfo> genColInfos = context.referencedRefsToGeneratedColumn.get(reference.info());
+            List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
+            for (GeneratedReferenceInfo genColInfo : genColInfos) {
+                Function comparison = createAdditionalComparison(function, genColInfo, comparedAgainst);
+                if (comparison != null) {
+                    comparisonsToAdd.add(comparison);
+                }
+            }
+            Function withAddedComparisons = function;
+            for (Function comparison : comparisonsToAdd) {
+                withAddedComparisons = new Function(AndOperator.INFO, Arrays.<Symbol>asList(withAddedComparisons, comparison));
+            }
+            return withAddedComparisons;
+        }
 
-                Function generatedFunction = (Function)genColInfo.generatedExpression();
+        @Nullable
+        private Function createAdditionalComparison(Function function, GeneratedReferenceInfo generatedReference, Symbol comparedAgainst) {
+            if (generatedReference != null && generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
+
+                Function generatedFunction = (Function)generatedReference.generatedExpression();
                 String operator = function.info().ident().name();
                 if (!operator.equals(EqOperator.NAME)) {
                     if (!ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
-                       return function;
+                        return null;
                     }
                     // rewrite operator
                     operator = ROUNDING_FUNCTION_MAPPING.get(operator);
                 }
 
-                Reference genColReference = new Reference(genColInfo);
+                Reference genColReference = new Reference(generatedReference);
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, genColReference);
                 FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operator,
-                                                      Arrays.asList(genColReference.info().type(), wrapped.valueType())), DataTypes.BOOLEAN);
-                Function comparisonFunction = new Function(comparisonFunctionInfo, Arrays.asList(genColReference, wrapped));
-                return new Function(AndOperator.INFO, Arrays.<Symbol>asList(function, comparisonFunction));
+                        Arrays.asList(genColReference.info().type(), wrapped.valueType())), DataTypes.BOOLEAN);
+                return new Function(comparisonFunctionInfo, Arrays.asList(genColReference, wrapped));
 
             }
-            return function;
+            return null;
         }
 
         private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, Reference generatedReference) {
@@ -145,14 +161,15 @@ public class GeneratedColumnComparisonReplacer {
             return REFERENCE_REPLACER.process(((GeneratedReferenceInfo) generatedReference.info()).generatedExpression(), ctx);
         }
 
-        private Map<ReferenceInfo, GeneratedReferenceInfo> extractGeneratedReferences(DocTableInfo tableInfo) {
-            ImmutableMap.Builder<ReferenceInfo, GeneratedReferenceInfo> builder = ImmutableMap.builder();
+        private Multimap<ReferenceInfo, GeneratedReferenceInfo> extractGeneratedReferences(DocTableInfo tableInfo) {
+            Multimap<ReferenceInfo, GeneratedReferenceInfo> multiMap = HashMultimap.create();
+
             for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
                 if (referenceInfo.referencedReferenceInfos().size() == 1 && tableInfo.partitionedByColumns().contains(referenceInfo)) {
-                    builder.put(referenceInfo.referencedReferenceInfos().get(0), referenceInfo);
+                    multiMap.put(referenceInfo.referencedReferenceInfos().get(0), referenceInfo);
                 }
             }
-            return builder.build();
+            return multiMap;
         }
     }
 
