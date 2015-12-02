@@ -8,6 +8,27 @@ Unreleased
  - The ``jobs.keep_alive_timeout`` value can now be configured and the default has been
    changed to 0 (deactivated) from ``5m``
 
+ - Allow creating the CrateClient with settings and servers at the same time
+
+ - Expose shard recovery information in sys.shards table
+
+ - Expose relocating shards in sys.shards table
+   Note that relocating shards are shown additionally to their already assigned
+   source shards.
+
+ - Removed the limitation that all selected columns must also appear in the
+   ORDER BY clause for joins.
+
+ - Added support for explicit INNER JOIN .. ON syntax.
+
+ - added os and jvm infos to sys.nodes table
+
+ - sort columns in ``sys`` and `` information_schema`` tables
+   alphabetically when selecting all columns with ``*``
+
+2015/12/02 0.53.1
+=================
+
  - Updated Crash to 0.14.3, which includes the following change:
 
    - Python2.6/2.7 output now prints unicode strings correctly when using
@@ -15,8 +36,6 @@ Unreleased
 
  - Improved the speed of group by queries which contain tables with more
    than 1 shard per node.
-
- - Allow creating the CrateClient with settings and servers at the same time
 
  - Updated crate-admin to 0.16.1 which includes following changes:
 
@@ -31,26 +50,10 @@ Unreleased
 
  - Internal optimization: Avoid writing partition values to the source.
 
- - Expose shard recovery information in sys.shards table
-
- - Expose relocating shards in sys.shards table
-   Note that relocating shards are shown additionally to their already assigned
-   source shards.
-
- - Removed the limitation that all selected columns must also appear in the
-   ORDER BY clause for joins.
-
  - Updated crate certificates in the ssl truststore.
-
- - Added support for explicit INNER JOIN .. ON syntax.
 
  - Fixed an issue that could cause bulk update requests to fail if the
    ``bulkArgs`` contained only one item
-
- - added os and jvm infos to sys.nodes table
-
- - sort columns in ``sys`` and `` information_schema`` tables
-   alphabetically when selecting all columns with ``*``
 
 2015/11/16 0.53.0
 =================
