@@ -59,7 +59,6 @@ public class Analyzer {
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
-        private final KillStatementAnalyzer killStatementAnalyzer;
         private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
         private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
         private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
@@ -85,7 +84,6 @@ public class Analyzer {
                                   CopyStatementAnalyzer copyStatementAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DeleteStatementAnalyzer deleteStatementAnalyzer,
-                                  KillStatementAnalyzer killStatementAnalyzer,
                                   DropRepositoryStatementAnalyzer dropRepositoryAnalyzer,
                                   CreateRepositoryAnalyzer createRepositoryAnalyzer,
                                   DropSnapshotAnalyzer dropSnapshotAnalyzer,
@@ -108,7 +106,6 @@ public class Analyzer {
             this.copyStatementAnalyzer = copyStatementAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
-            this.killStatementAnalyzer = killStatementAnalyzer;
             this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
             this.createRepositoryAnalyzer = createRepositoryAnalyzer;
             this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
@@ -212,7 +209,8 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            return killStatementAnalyzer.analyze(node, context);
+            context.expectsAffectedRows(true);
+            return KillAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override

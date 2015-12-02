@@ -22,36 +22,27 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.Node;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.UUID;
 
-@Singleton
-public class KillStatementAnalyzer extends AstVisitor<KillAnalyzedStatement, Analysis> {
+public class KillAnalyzer {
 
-    @Override
-    public KillAnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-        KillAnalyzedStatement killAnalyzedStatement;
-        if (node.jobId().isPresent()) {
+    private KillAnalyzer() {}
+
+
+    public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
+        if (killStatement.jobId().isPresent()) {
             UUID jobId;
             try {
                 jobId = UUID.fromString(ExpressionToStringVisitor
-                        .convert(node.jobId().get(), context.parameterContext().parameters()));
+                        .convert(killStatement.jobId().get(), parameterContext.parameters()));
             } catch (Exception e) {
                 throw new IllegalArgumentException("Can not parse job ID", e);
             }
-                killAnalyzedStatement = new KillAnalyzedStatement(jobId);
-        } else {
-            killAnalyzedStatement = new KillAnalyzedStatement();
+            return new KillAnalyzedStatement(jobId);
         }
-        return killAnalyzedStatement;
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return process(node, analysis);
+        return new KillAnalyzedStatement();
     }
 }
