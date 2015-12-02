@@ -37,9 +37,11 @@ public class CopyTo extends Statement {
 
     private final Optional<GenericProperties> genericProperties;
     private final List<Expression> columns;
+    private final Optional<Expression> whereClause;
 
     public CopyTo(Table table,
                   @Nullable List<Expression> columns,
+                  @Nullable Expression whereClause,
                   boolean directoryUri,
                   Expression targetUri,
                   @Nullable GenericProperties genericProperties) {
@@ -49,6 +51,7 @@ public class CopyTo extends Statement {
         this.targetUri = targetUri;
         this.genericProperties = Optional.fromNullable(genericProperties);
         this.columns = MoreObjects.firstNonNull(columns, ImmutableList.<Expression>of());
+        this.whereClause = Optional.fromNullable(whereClause);
     }
 
     public Table table() {
@@ -67,6 +70,15 @@ public class CopyTo extends Statement {
         return columns;
     }
 
+
+    public Optional<GenericProperties> genericProperties() {
+        return genericProperties;
+    }
+
+    public Optional<Expression> whereClause() {
+        return whereClause;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -79,6 +91,7 @@ public class CopyTo extends Statement {
         if (!genericProperties.equals(copyTo.genericProperties)) return false;
         if (!table.equals(copyTo.table)) return false;
         if (!targetUri.equals(copyTo.targetUri)) return false;
+        if (!whereClause.equals(copyTo.whereClause)) return false;
 
         return true;
     }
@@ -90,6 +103,7 @@ public class CopyTo extends Statement {
         result = 31 * result + targetUri.hashCode();
         result = 31 * result + genericProperties.hashCode();
         result = 31 * result + columns.hashCode();
+        result = 31 * result + whereClause.hashCode();
         return result;
     }
 
@@ -98,6 +112,7 @@ public class CopyTo extends Statement {
         return MoreObjects.toStringHelper(this)
                 .add("table", table)
                 .add("columns", columns)
+                .add("whereClause", whereClause)
                 .add("directoryUri", directoryUri)
                 .add("targetUri", targetUri)
                 .add("genericProperties", genericProperties)
@@ -107,9 +122,5 @@ public class CopyTo extends Statement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCopyTo(this, context);
-    }
-
-    public Optional<GenericProperties> genericProperties() {
-        return genericProperties;
     }
 }

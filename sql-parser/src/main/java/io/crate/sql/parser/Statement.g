@@ -811,7 +811,7 @@ copyStatement
     : tableWithPartition (
         (FROM) => FROM expr ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
         |
-        ( '(' columnList ')' )? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
+        ( '(' columnList ')' )? whereClause? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? whereClause? DIRECTORY? expr genericProperties?)
     )
     ;
 // END COPY STATEMENT
