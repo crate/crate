@@ -51,7 +51,6 @@ public class Analyzer {
         private final RefreshTableAnalyzer refreshTableAnalyzer;
         private final AlterTableAnalyzer alterTableAnalyzer;
         private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
-        private final SetStatementAnalyzer setStatementAnalyzer;
         private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
         private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
@@ -77,7 +76,6 @@ public class Analyzer {
                                   RefreshTableAnalyzer refreshTableAnalyzer,
                                   AlterTableAnalyzer alterTableAnalyzer,
                                   AlterBlobTableAnalyzer alterBlobTableAnalyzer,
-                                  SetStatementAnalyzer setStatementAnalyzer,
                                   AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                                   InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
@@ -99,7 +97,6 @@ public class Analyzer {
             this.refreshTableAnalyzer = refreshTableAnalyzer;
             this.alterTableAnalyzer = alterTableAnalyzer;
             this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
-            this.setStatementAnalyzer = setStatementAnalyzer;
             this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
             this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
@@ -202,12 +199,14 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            return setStatementAnalyzer.analyze(node, context);
+            context.expectsAffectedRows(true);
+            return SetStatementAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
         public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            return setStatementAnalyzer.analyze(node, context);
+            context.expectsAffectedRows(true);
+            return SetStatementAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override

@@ -27,53 +27,37 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.sql.tree.*;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.*;
 
-@Singleton
-public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedStatement, Analysis> {
+public class SetStatementAnalyzer {
 
     private static final ESLogger logger = Loggers.getLogger(SetStatementAnalyzer.class);
+    private SetStatementAnalyzer() {}
 
-    public SetAnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return super.process(node, analysis);
-    }
-
-    @Override
-    public SetAnalyzedStatement visitSetStatement(SetStatement node, Analysis analysis) {
-        SetAnalyzedStatement statement = new SetAnalyzedStatement();
-        statement.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+    public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                    analysis.parameterContext().parameters());
+                    parameterContext.parameters());
 
             SettingsApplier settingsApplier = CrateSettings.getSetting(settingsName);
-            if (settingsApplier == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
-            }
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }
 
-            settingsApplier.apply(builder, analysis.parameterContext().parameters(), assignment.expression());
+            settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
         }
-        statement.settings(builder.build());
-        return statement;
+        return new SetAnalyzedStatement(builder.build(), node.settingType().equals(SetStatement.SettingType.PERSISTENT));
     }
 
-    @Override
-    public SetAnalyzedStatement visitResetStatement(ResetStatement node, Analysis analysis) {
-        SetAnalyzedStatement statement = new SetAnalyzedStatement();
-        statement.isReset(true);
+    public static ResetAnalyzedStatement analyze(ResetStatement node, ParameterContext parameterContext) {
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
-            String settingsName = ExpressionToStringVisitor.convert(expression, analysis.parameterContext().parameters());
+            String settingsName = ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
             if (!settingsToRemove.contains(settingsName)) {
                 Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
@@ -86,15 +70,14 @@ public class SetStatementAnalyzer extends DefaultTraversalVisitor<SetAnalyzedSta
                 logger.info("resetting [{}]", settingNames);
             }
         }
-        statement.settingsToRemove(settingsToRemove);
-        return statement;
+        return new ResetAnalyzedStatement(settingsToRemove);
     }
 
-    private void checkIfSettingIsRuntime(String name) {
+    private static void checkIfSettingIsRuntime(String name) {
         checkIfSettingIsRuntime(CrateSettings.CRATE_SETTINGS, name);
     }
 
-    private void checkIfSettingIsRuntime(List<Setting> settings, String name) {
+    private static void checkIfSettingIsRuntime(List<Setting> settings, String name) {
         for (Setting<?, ?> setting : settings) {
             if (setting.settingName().equals(name) && !setting.isRuntime()) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,

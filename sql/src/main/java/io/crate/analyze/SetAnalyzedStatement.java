@@ -23,46 +23,22 @@ package io.crate.analyze;
 
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
-import java.util.Set;
-
 public class SetAnalyzedStatement implements AnalyzedStatement {
-    private Settings settings;
-    private Set<String> settingsToRemove;
-    private boolean persistent = false;
-    private boolean isReset = false;
+
+    private final Settings settings;
+    private final boolean persistent;
+
+    public SetAnalyzedStatement(Settings settings, boolean persistent) {
+        this.settings = settings;
+        this.persistent = persistent;
+    }
 
     public Settings settings() {
         return settings;
     }
 
-    public void settings(Settings settings) {
-        this.settings = settings;
-    }
-
-    @Nullable
-    public Set<String> settingsToRemove() {
-        return settingsToRemove;
-    }
-
-    public void settingsToRemove(Set<String> settingsToRemove) {
-        this.settingsToRemove = settingsToRemove;
-    }
-
     public boolean isPersistent() {
         return persistent;
-    }
-
-    public boolean isReset() {
-        return isReset;
-    }
-
-    public void isReset(boolean isReset) {
-        this.isReset = isReset;
-    }
-
-    public void persistent(boolean persistent) {
-        this.persistent = persistent;
     }
 
     @Override

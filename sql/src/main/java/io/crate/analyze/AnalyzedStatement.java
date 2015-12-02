@@ -23,6 +23,5 @@ package io.crate.analyze;
 
 public interface AnalyzedStatement {
 
-    public <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context);
-
+    <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context);
 }

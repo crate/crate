@@ -136,4 +136,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, C context) {
         return visitDDLAnalyzedStatement(analysis, context);
     }
+
+    public R visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, C context) {
+        return visitAnalyzedStatement(resetAnalyzedStatement, context);
+    }
 }

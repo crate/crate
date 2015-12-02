@@ -295,8 +295,9 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         }
     }
 
-    protected AnalyzedStatement analyze(String statement) {
-        return analyze(statement, new Object[0]);
+    protected <T> T analyze(String statement) {
+        //noinspection unchecked
+        return (T) analyze(statement, new Object[0]);
     }
 
     protected AnalyzedStatement analyze(String statement, Object[] params) {

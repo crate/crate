@@ -415,20 +415,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
+    public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, Context context) {
+        if (resetStatement.settingsToRemove().isEmpty()) {
+            return new NoopPlan(context.jobId());
+        }
+        return new IterablePlan(context.jobId(), new ESClusterUpdateSettingsNode(
+                resetStatement.settingsToRemove(), resetStatement.settingsToRemove()));
+    }
+
+    @Override
     public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
         ESClusterUpdateSettingsNode node = null;
-        if (analysis.isReset()) {
-            // always reset persistent AND transient settings
-            if (analysis.settingsToRemove() != null) {
-                node = new ESClusterUpdateSettingsNode(analysis.settingsToRemove(), analysis.settingsToRemove());
-            }
-        } else {
-            if (analysis.settings() != null) {
-                if (analysis.isPersistent()) {
-                    node = new ESClusterUpdateSettingsNode(analysis.settings());
-                } else {
-                    node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
-                }
+        if (analysis.settings() != null) {
+            if (analysis.isPersistent()) {
+                node = new ESClusterUpdateSettingsNode(analysis.settings());
+            } else {
+                node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
             }
         }
         return node != null ? new IterablePlan(context.jobId(), node) : new NoopPlan(context.jobId());

@@ -137,9 +137,6 @@ public class SettingsAppliers {
                 }
             } else {
                 SettingsApplier settingsApplier = CrateSettings.getSetting(key);
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", key));
-                }
                 settingsApplier.applyValue(settingsBuilder, value);
             }
         }

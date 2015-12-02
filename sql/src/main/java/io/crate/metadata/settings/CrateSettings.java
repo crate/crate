@@ -31,8 +31,9 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -1987,9 +1988,17 @@ public class CrateSettings {
                     new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
             .build();
 
-    @Nullable
+    /**
+     * @return a SettingsApplier for the given setting
+     * @throws IllegalArgumentException if the setting isn't supported
+     */
+    @Nonnull
     public static SettingsApplier getSetting(String name) {
-        return SUPPORTED_SETTINGS.get(name);
+        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(name);
+        if (settingsApplier == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", name));
+        }
+        return settingsApplier;
     }
 
     public static Set<String> settingNamesByPrefix(String prefix) {
