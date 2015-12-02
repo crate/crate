@@ -250,8 +250,8 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-    private static class QualifiedNameCounter extends DefaultTraversalSymbolVisitor<Set<QualifiedName>, Void> {
-        private static final QualifiedNameCounter INSTANCE = new QualifiedNameCounter();
+    public static class QualifiedNameCounter extends DefaultTraversalSymbolVisitor<Set<QualifiedName>, Void> {
+        public static final QualifiedNameCounter INSTANCE = new QualifiedNameCounter();
 
         @Override
         public Void visitRelationColumn(RelationColumn relationColumn, Set<QualifiedName> context) {
