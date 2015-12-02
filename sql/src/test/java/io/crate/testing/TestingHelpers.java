@@ -593,8 +593,8 @@ public class TestingHelpers {
         return new ReferenceInfo(refIdent, rowGranularity, dataType);
     }
 
-    public static Matcher<? super Object> isSQL(final String stmt) {
-        return new BaseMatcher<Object>() {
+    public static <T> Matcher<T> isSQL(final String stmt) {
+        return new BaseMatcher<T>() {
             @Override
             public boolean matches(Object item) {
                 return SQLPrinter.print(item).equals(stmt);
