@@ -21,8 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -87,16 +85,6 @@ public class NestedLoopConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private static final Predicate<MultiSourceSelect.Source> DOC_TABLE_RELATION = new Predicate<MultiSourceSelect.Source>() {
-            @Override
-            public boolean apply(@Nullable MultiSourceSelect.Source input) {
-                if (input == null) {
-                    return false;
-                }
-                AnalyzedRelation relation = input.relation();
-                return relation instanceof DocTableRelation || relation instanceof QueriedDocTable;
-            }
-        };
         private final ClusterService clusterService;
         private final AnalysisMetaData analysisMetaData;
         private final TableStatsService tableStatsService;
@@ -107,36 +95,33 @@ public class NestedLoopConsumer implements Consumer {
             this.tableStatsService = tableStatsService;
         }
 
-
         @Override
-        public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect statement, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
             if (isUnsupportedStatement(statement, context)) return null;
             QuerySpec querySpec = statement.querySpec();
             if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
-            final Collection<QualifiedName> relationNames = getOrderedRelationNames(statement);
 
-            List<QueriedTableRelation> queriedTables = new ArrayList<>(relationNames.size());
             List<RelationColumn> nlOutputs = new ArrayList<>();
             Map<Symbol, Symbol> symbolMap = new HashMap<>();
-            for (QualifiedName relationName : relationNames) {
-                MultiSourceSelect.Source source = statement.sources().get(relationName);
-                QueriedTableRelation queriedTable;
-                assert source.querySpec().outputs() != null;
-                try {
-                    queriedTable = SubRelationConverter.INSTANCE.process(source.relation(), source);
-                } catch (ValidationException e) {
-                    context.validationException(e);
-                    return null;
+            QueriedTableRelation<?> left;
+            QueriedTableRelation<?> right;
+            try {
+                if (orderByLeft(statement)) {
+                    left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
+                    right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
+                    addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
+                    addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
+                } else {
+                    left = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
+                    right = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
+                    addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
+                    addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
                 }
-                int index = 0;
-                for (Symbol symbol : source.querySpec().outputs()) {
-                    RelationColumn rc = new RelationColumn(relationName, index++, symbol.valueType());
-                    nlOutputs.add(rc);
-                    symbolMap.put(symbol, rc);
-                }
-                queriedTables.add(queriedTable);
+            } catch (ValidationException e) {
+                context.validationException(e);
+                return null;
             }
 
             // for nested loops we are fine to remove pushed down orders
@@ -151,17 +136,14 @@ public class NestedLoopConsumer implements Consumer {
 
             WhereClause where = querySpec.where();
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
-            boolean hasDocTables = Iterables.any(statement.sources().values(), DOC_TABLE_RELATION);
+            boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded;
 
-            QueriedTableRelation<?> left = queriedTables.get(0);
-            QueriedTableRelation<?> right = queriedTables.get(1);
-
             if (filterNeeded || statement.remainingOrderBy().isPresent()) {
-                for (QueriedTableRelation queriedTable : queriedTables) {
-                    queriedTable.querySpec().limit(null);
-                    queriedTable.querySpec().offset(TopN.NO_OFFSET);
-                }
+                left.querySpec().limit(null);
+                right.querySpec().limit(null);
+                left.querySpec().offset(TopN.NO_OFFSET);
+                right.querySpec().offset(TopN.NO_OFFSET);
             }
 
             if (!filterNeeded && querySpec.limit().isPresent()) {
@@ -292,6 +274,18 @@ public class NestedLoopConsumer implements Consumer {
             return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase);
         }
 
+        private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,
+                                            QualifiedName name,
+                                            List<RelationColumn> nlOutputs,
+                                            Map<Symbol, Symbol> symbolMap) {
+            int index = 0;
+            for (Symbol symbol : outputs) {
+                RelationColumn rc = new RelationColumn(name, index++, symbol.valueType());
+                nlOutputs.add(rc);
+                symbolMap.put(symbol, rc);
+            }
+        }
+
         private boolean isLeftSmallerThanRight(TableIdent leftIdent, TableIdent rightIdent) {
             long leftNumDocs = tableStatsService.numDocs(leftIdent);
             long rightNumDocs = tableStatsService.numDocs(rightIdent);
@@ -343,52 +337,23 @@ public class NestedLoopConsumer implements Consumer {
             return mergePhase;
         }
 
-        /**
-         * returns a map with the relation as keys and the values are their order in occurrence in the order by clause.
-         * <p/>
-         * e.g. select * from t1, t2, t3 order by t2.x, t3.y
-         * <p/>
-         * returns: {
-         * t2: 0                 (first)
-         * t3: 1                 (second)
-         * }
-         */
-        private Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement) {
-            if (!statement.querySpec().orderBy().isPresent()) {
-                return statement.sources().keySet();
-            }
-            Optional<OrderBy> orderBy = statement.querySpec().orderBy();
-            final List<QualifiedName> orderByOrder = new ArrayList<>(statement.sources().size());
-            for (Symbol orderBySymbol : orderBy.get().orderBySymbols()) {
-                for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
-                    Optional<OrderBy> subOrderBy = entry.getValue().querySpec().orderBy();
-                    if (!subOrderBy.isPresent() || orderByOrder.contains(entry.getKey())) {
-                        continue;
-                    }
-                    if (orderBySymbol.equals(subOrderBy.get().orderBySymbols().get(0))) {
-                        orderByOrder.add(entry.getKey());
-                        break;
-                    }
-                }
-            }
-            if (orderByOrder.size() < statement.sources().size()) {
-                Iterator<QualifiedName> iter = statement.sources().keySet().iterator();
-                while (orderByOrder.size() < statement.sources().size()) {
-                    QualifiedName qn = iter.next();
-                    if (!orderByOrder.contains(qn)) {
-                        orderByOrder.add(qn);
-                    }
-                }
-            }
-            return orderByOrder;
-        }
-
-        private boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
-            if (statement.sources().size() != 2) {
-                context.validationException(new ValidationException("Joining more than 2 relations is not supported"));
+        private boolean orderByLeft(TwoTableJoin stmt) {
+            if (!stmt.querySpec().orderBy().isPresent()) {
                 return true;
             }
+            OrderBy orderBy = stmt.querySpec().orderBy().get();
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                if (Symbols.containsRelation(symbol, stmt.left().relation())) {
+                    return true;
+                }
+                if (Symbols.containsRelation(symbol, stmt.right().relation())) {
+                    return false;
+                }
+            }
+            return true;
+        }
 
+        private boolean isUnsupportedStatement(TwoTableJoin statement, ConsumerContext context) {
             if (statement.querySpec().groupBy().isPresent()) {
                 context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
                 return true;

@@ -256,7 +256,8 @@ public class ContextPreparer {
         public NodeOperation getNodeOperation(int executionPhaseId) {
             NodeOperation nodeOperation = phaseIdToNodeOperations.get(executionPhaseId);
             if (nodeOperation == null) {
-                throw new IllegalStateException("NodeOperation not found, must be registered first");
+                throw new IllegalStateException(String.format(Locale.ENGLISH,
+                        "NodeOperation with phaseId %d not found, must be registered first", executionPhaseId));
             }
             return nodeOperation;
         }

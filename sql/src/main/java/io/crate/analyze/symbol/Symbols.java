@@ -24,14 +24,14 @@ package io.crate.analyze.symbol;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationSplitter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class Symbols {
 
@@ -89,6 +89,12 @@ public class Symbols {
             }
         }
         return false;
+    }
+
+    public static boolean containsRelation(Symbol symbol, AnalyzedRelation relation) {
+        Set<AnalyzedRelation> relations = new HashSet<>();
+        RelationSplitter.RelationCounter.INSTANCE.process(symbol, relations);
+        return relations.contains(relation);
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

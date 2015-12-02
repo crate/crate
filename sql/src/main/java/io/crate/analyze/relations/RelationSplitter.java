@@ -208,7 +208,7 @@ public class RelationSplitter {
         }
     }
 
-    static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
+    public static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
 
         public static final RelationCounter INSTANCE = new RelationCounter();
 

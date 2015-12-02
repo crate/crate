@@ -55,6 +55,7 @@ public class ConsumingPlanner {
         consumers.add(queryThenFetchConsumer);
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(queryAndFetchConsumer);
+        consumers.add(new ManyTableConsumer(this));
         consumers.add(nestedLoopConsumer);
     }
 

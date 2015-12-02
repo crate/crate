@@ -184,5 +184,4 @@ public class QuerySpec {
         assert i == outputs.size();
         return -1;
     }
-
 }
