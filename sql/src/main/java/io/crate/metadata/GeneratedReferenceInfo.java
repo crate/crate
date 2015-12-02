@@ -28,6 +28,9 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
+/**
+ * ATTENTION: turns into a simple ReferenceInfo after streaming
+ */
 public class GeneratedReferenceInfo extends ReferenceInfo {
 
     private final String formattedGeneratedExpression;

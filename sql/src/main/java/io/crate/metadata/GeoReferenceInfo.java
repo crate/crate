@@ -25,6 +25,9 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Preconditions;
 
+/**
+ * ATTENTION: turns into a simple ReferenceInfo after streaming
+ */
 public class GeoReferenceInfo extends ReferenceInfo {
 
     public static class Builder {

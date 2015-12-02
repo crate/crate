@@ -34,7 +34,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
+/**
+ * ATTENTION: turns into a simple ReferenceInfo after streaming
+ */
 public class IndexReferenceInfo extends ReferenceInfo {
 
     public static class Builder {
