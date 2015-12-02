@@ -21,41 +21,31 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.Nullable;
+
 @Singleton
-public class ShowCreateTableAnalyzer extends DefaultTraversalVisitor<ShowCreateTableAnalyzedStatement, Analysis> {
+public class ShowCreateTableAnalyzer {
 
-    private final AnalysisMetaData analysisMetaData;
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, analysis);
-    }
+    private Schemas schemas;
 
     @Inject
-    public ShowCreateTableAnalyzer(AnalysisMetaData analysisMetaData) {
-        this.analysisMetaData = analysisMetaData;
+    public ShowCreateTableAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
-    @Override
-    public ShowCreateTableAnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-        TableIdent tableIdent = TableIdent.of(node.table(), analysis.parameterContext().defaultSchema());
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(tableIdent);
-
+    public ShowCreateTableAnalyzedStatement analyze(Table table, @Nullable String defaultSchema) {
+        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException("Table must be a doc table");
         }
-
-        ShowCreateTableAnalyzedStatement analyzedStatement = new ShowCreateTableAnalyzedStatement((DocTableInfo) tableInfo);
-        analysis.rootRelation(analyzedStatement);
-        return analyzedStatement;
+        return new ShowCreateTableAnalyzedStatement((DocTableInfo) tableInfo);
     }
-
 }

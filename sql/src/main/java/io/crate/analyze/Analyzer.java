@@ -159,7 +159,10 @@ public class Analyzer {
         }
 
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-            return showCreateTableAnalyzer.analyze(node, analysis);
+            ShowCreateTableAnalyzedStatement showCreateTableStatement =
+                    showCreateTableAnalyzer.analyze(node.table(), analysis.parameterContext().defaultSchema());
+            analysis.rootRelation(showCreateTableStatement);
+            return showCreateTableStatement;
         }
 
         @Override
