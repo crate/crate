@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -36,6 +37,13 @@ import java.util.List;
 
 
 public class IndexReferenceInfo extends ReferenceInfo {
+
+    public static final ReferenceInfoFactory<IndexReferenceInfo> FACTORY = new ReferenceInfoFactory<IndexReferenceInfo>() {
+        @Override
+        public IndexReferenceInfo newInstance() {
+            return new IndexReferenceInfo();
+        }
+    };
 
     public static class Builder {
         private ReferenceIdent ident;
@@ -69,13 +77,17 @@ public class IndexReferenceInfo extends ReferenceInfo {
         }
     }
 
+    @Nullable
     private String analyzer;
     private List<ReferenceInfo> columns;
 
+    private IndexReferenceInfo() {
+    }
+
     public IndexReferenceInfo(ReferenceIdent ident,
-                         IndexType indexType,
-                         List<ReferenceInfo> columns,
-                         @Nullable String analyzer) {
+                              IndexType indexType,
+                              List<ReferenceInfo> columns,
+                              @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
         this.columns = MoreObjects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
@@ -85,8 +97,14 @@ public class IndexReferenceInfo extends ReferenceInfo {
         return columns;
     }
 
+    @Nullable
     public String analyzer() {
         return analyzer;
+    }
+
+    @Override
+    public ReferenceInfoType referenceInfoType() {
+        return ReferenceInfoType.INDEX;
     }
 
     @Override
@@ -94,41 +112,42 @@ public class IndexReferenceInfo extends ReferenceInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-
         IndexReferenceInfo that = (IndexReferenceInfo) o;
-
-        if (analyzer != null ? !analyzer.equals(that.analyzer) : that.analyzer != null)
-            return false;
-        if (!columns.equals(that.columns)) return false;
-
-        return true;
+        return Objects.equal(analyzer, that.analyzer) &&
+               Objects.equal(columns, that.columns);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (analyzer != null ? analyzer.hashCode() : 0);
-        result = 31 * result + columns.hashCode();
-        return result;
+        return Objects.hashCode(super.hashCode(), analyzer, columns);
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        /**
-         * if this is extended make sure to adjust all other places where ReferenceInfo/IndexReferenceInfo
-         * is streamed for example in
-         * {@link io.crate.analyze.symbol.Reference#readFrom(org.elasticsearch.common.io.stream.StreamInput)}
-         */
+    public String toString() {
+        return "IndexReferenceInfo{" +
+               "analyzer='" + analyzer + '\'' +
+               ", columns=" + columns +
+               '}';
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        analyzer = in.readOptionalString();
+        int size = in.readVInt();
+        columns = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            columns.add(ReferenceInfo.fromStream(in));
+        }
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this).add("ident", ident()).toString();
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeOptionalString(analyzer);
+        out.writeVInt(columns.size());
+        for (ReferenceInfo referenceInfo : columns) {
+            ReferenceInfo.toStream(referenceInfo, out);
+        }
     }
 }

@@ -21,11 +21,23 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Objects;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Preconditions;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
 
 public class GeoReferenceInfo extends ReferenceInfo {
+
+    public static final ReferenceInfoFactory<GeoReferenceInfo> FACTORY = new ReferenceInfoFactory<GeoReferenceInfo>() {
+        @Override
+        public GeoReferenceInfo newInstance() {
+            return new GeoReferenceInfo();
+        }
+    };
 
     public static class Builder {
 
@@ -64,16 +76,19 @@ public class GeoReferenceInfo extends ReferenceInfo {
     }
 
     private String geoTree;
-    private @Nullable Integer treeLeveles;
+    private @Nullable Integer treeLevels;
     private @Nullable Double distanceErrorPct;
+
+    private GeoReferenceInfo() {
+    }
 
     public GeoReferenceInfo(ReferenceIdent ident,
                             String tree,
-                            @Nullable Integer treeLeveles,
+                            @Nullable Integer treeLevels,
                             @Nullable Double distanceErrorPct) {
         super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE);
         this.geoTree = tree;
-        this.treeLeveles = treeLeveles;
+        this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
     }
 
@@ -83,11 +98,63 @@ public class GeoReferenceInfo extends ReferenceInfo {
 
     @Nullable
     public Integer treeLevels() {
-        return treeLeveles;
+        return treeLevels;
     }
 
     @Nullable
     public Double distanceErrorPct() {
         return distanceErrorPct;
+    }
+
+    @Override
+    public ReferenceInfoType referenceInfoType() {
+        return ReferenceInfoType.GEO;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        GeoReferenceInfo that = (GeoReferenceInfo) o;
+        return Objects.equal(geoTree, that.geoTree) &&
+               Objects.equal(treeLevels, that.treeLevels) &&
+               Objects.equal(distanceErrorPct, that.distanceErrorPct);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(super.hashCode(), geoTree, treeLevels, distanceErrorPct);
+    }
+
+    @Override
+    public String toString() {
+        return "GeoReferenceInfo{" +
+               "geoTree='" + geoTree + '\'' +
+               ", treeLevels=" + treeLevels +
+               ", distanceErrorPct=" + distanceErrorPct +
+               '}';
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        geoTree = in.readString();
+        treeLevels = in.readBoolean() ? null : in.readVInt();
+        distanceErrorPct = in.readBoolean() ? null : in.readDouble();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(geoTree);
+        out.writeBoolean(treeLevels == null);
+        if (treeLevels != null) {
+            out.writeVInt(treeLevels);
+        }
+        out.writeBoolean(distanceErrorPct == null);
+        if (distanceErrorPct != null) {
+            out.writeDouble(distanceErrorPct);
+        }
     }
 }

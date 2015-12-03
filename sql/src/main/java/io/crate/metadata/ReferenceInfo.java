@@ -93,6 +93,17 @@ public class ReferenceInfo implements Streamable {
         }
     }
 
+    public interface ReferenceInfoFactory<T extends ReferenceInfo> {
+        T newInstance();
+    }
+
+    public static final ReferenceInfoFactory<ReferenceInfo> FACTORY = new ReferenceInfoFactory<ReferenceInfo>() {
+        @Override
+        public ReferenceInfo newInstance() {
+            return new ReferenceInfo();
+        }
+    };
+
 
     private ReferenceIdent ident;
     private DataType type;
@@ -149,6 +160,11 @@ public class ReferenceInfo implements Streamable {
         return indexType;
     }
 
+
+    public ReferenceInfoType referenceInfoType() {
+        return ReferenceInfoType.DEFAULT;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -203,4 +219,16 @@ public class ReferenceInfo implements Streamable {
         out.writeVInt(columnPolicy.ordinal());
         out.writeVInt(indexType.ordinal());
     }
+
+    public static void toStream(ReferenceInfo referenceInfo, StreamOutput out) throws IOException {
+        out.writeVInt(referenceInfo.referenceInfoType().ordinal());
+        referenceInfo.writeTo(out);
+    }
+
+    public static <R extends ReferenceInfo> R fromStream(StreamInput in) throws IOException {
+        ReferenceInfo referenceInfo = ReferenceInfoType.values()[in.readVInt()].newInstance();
+        referenceInfo.readFrom(in);
+        return (R) referenceInfo;
+    }
+
 }

@@ -94,13 +94,12 @@ public class Reference extends Symbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        info = new ReferenceInfo();
-        info.readFrom(in);
+        info = ReferenceInfo.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        info().writeTo(out);
+        ReferenceInfo.toStream(info(), out);
     }
 
     @Override
