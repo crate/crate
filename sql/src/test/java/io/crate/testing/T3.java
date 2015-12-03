@@ -40,35 +40,35 @@ import static org.mockito.Mockito.when;
 
 public class T3 {
 
-    public static final DocTableInfo t1Info = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
+    public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
             .add("a", DataTypes.STRING)
             .add("x", DataTypes.INTEGER)
             .build();
-    public static final DocTableRelation tr1 = new DocTableRelation(t1Info);
+    public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
-    public static final DocTableInfo t2Info = new TestingTableInfo.Builder(new TableIdent(null, "t2"), null)
+    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), null)
             .add("b", DataTypes.STRING)
             .add("y", DataTypes.INTEGER)
             .build();
-    public static final DocTableRelation tr2 = new DocTableRelation(t2Info);
+    public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
-    public static final TableInfo t3Info = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
+    public static final TableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
             .add("c", DataTypes.STRING)
             .add("z", DataTypes.INTEGER)
             .build();
-    public static final TableRelation tr3 = new TableRelation(t3Info);
+    public static final TableRelation TR_3 = new TableRelation(T3_INFO);
 
     public static final MetaDataModule META_DATA_MODULE = new MetaDataModule() {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(t1Info.ident().name())).thenReturn(t1Info);
-            when(schemaInfo.getTableInfo(t2Info.ident().name())).thenReturn(t2Info);
+            when(schemaInfo.getTableInfo(T1_INFO.ident().name())).thenReturn(T1_INFO);
+            when(schemaInfo.getTableInfo(T2_INFO.ident().name())).thenReturn(T2_INFO);
             when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     };
 
-    public static final ImmutableList<AnalyzedRelation> relations = ImmutableList.<AnalyzedRelation>of(tr1, tr2, tr3);
+    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
 }

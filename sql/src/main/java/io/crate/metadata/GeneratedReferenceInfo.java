@@ -22,17 +22,32 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Objects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class GeneratedReferenceInfo extends ReferenceInfo {
 
-    private final String formattedGeneratedExpression;
+    public static final ReferenceInfoFactory<GeneratedReferenceInfo> FACTORY = new ReferenceInfoFactory<GeneratedReferenceInfo>() {
+        @Override
+        public GeneratedReferenceInfo newInstance() {
+            return new GeneratedReferenceInfo();
+        }
+    };
+
+    private String formattedGeneratedExpression;
     private Symbol generatedExpression;
     private List<ReferenceInfo> referencedReferenceInfos;
+
+    private GeneratedReferenceInfo() {
+    }
 
     public GeneratedReferenceInfo(ReferenceIdent ident,
                                   RowGranularity granularity,
@@ -71,5 +86,59 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
 
     public List<ReferenceInfo> referencedReferenceInfos() {
         return referencedReferenceInfos;
+    }
+
+    @Override
+    public ReferenceInfoType referenceInfoType() {
+        return ReferenceInfoType.GENERATED;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        GeneratedReferenceInfo that = (GeneratedReferenceInfo) o;
+        return Objects.equal(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
+               Objects.equal(generatedExpression, that.generatedExpression) &&
+               Objects.equal(referencedReferenceInfos, that.referencedReferenceInfos);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(super.hashCode(), formattedGeneratedExpression,
+                generatedExpression, referencedReferenceInfos);
+    }
+
+    @Override
+    public String toString() {
+        return "GeneratedReferenceInfo{" +
+               "formattedGeneratedExpression='" + formattedGeneratedExpression + '\'' +
+               ", generatedExpression=" + generatedExpression +
+               ", referencedReferenceInfos=" + referencedReferenceInfos +
+               '}';
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        formattedGeneratedExpression = in.readString();
+        generatedExpression = Symbol.fromStream(in);
+        int size = in.readVInt();
+        referencedReferenceInfos = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            referencedReferenceInfos.add(ReferenceInfo.fromStream(in));
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(formattedGeneratedExpression);
+        Symbol.toStream(generatedExpression, out);
+        out.writeVInt(referencedReferenceInfos.size());
+        for (ReferenceInfo referenceInfo : referencedReferenceInfos) {
+            ReferenceInfo.toStream(referenceInfo, out);
+        }
     }
 }
