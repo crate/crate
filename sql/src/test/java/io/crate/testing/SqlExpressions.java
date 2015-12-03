@@ -27,6 +27,7 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
@@ -38,6 +39,7 @@ import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
@@ -50,6 +52,10 @@ public class SqlExpressions {
     private final AnalysisMetaData analysisMetaData;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
+        this(sources, null);
+    }
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, @Nullable FieldResolver fieldResolver) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
@@ -67,7 +73,7 @@ public class SqlExpressions {
                 analysisMetaData,
                 new ParameterContext(new Object[0], new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources),
-                null);
+                fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
     }
 
