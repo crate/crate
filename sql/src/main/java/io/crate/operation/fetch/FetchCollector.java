@@ -25,7 +25,6 @@ package io.crate.operation.fetch;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.executor.transport.StreamBucket;
-import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -50,7 +49,7 @@ public class FetchCollector {
     private AtomicReader currentReader;
     private final List<AtomicReaderContext> readerContexts;
 
-    public FetchCollector(Collection<LuceneCollectorExpression<?>> collectorExpressions,
+    public FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                           MapperService mapperService,
                           Engine.Searcher searcher,
                           IndexFieldDataService indexFieldDataService,
@@ -63,7 +62,7 @@ public class FetchCollector {
             collectorExpression.startCollect(collectorContext);
         }
         visitorEnabled = fieldsVisitor.required();
-        this.row = new InputRow((List<? extends Input<?>>) collectorExpressions);
+        this.row = new InputRow(collectorExpressions);
 
     }
 

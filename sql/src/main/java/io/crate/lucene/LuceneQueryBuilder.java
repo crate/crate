@@ -869,7 +869,7 @@ public class LuceneQueryBuilder {
         static class DistanceQuery implements InnerFunctionToQuery {
 
             final static GeoDistance GEO_DISTANCE = GeoDistance.DEFAULT;
-            final String optimizeBox = "memory";
+            final static String OPTIMIZE_BOX = "memory";
 
             /**
              *
@@ -947,7 +947,7 @@ public class LuceneQueryBuilder {
                         GEO_DISTANCE,
                         geoMapper,
                         fieldData,
-                        optimizeBox
+                        OPTIMIZE_BOX
                 );
                 return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
             }
