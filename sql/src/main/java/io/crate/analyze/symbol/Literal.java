@@ -76,10 +76,10 @@ public class Literal<ReturnType>
         return literals;
     }
 
-    protected Literal() {
+    private Literal() {
     }
 
-    protected Literal(DataType type, ReturnType value) {
+    private Literal(DataType type, ReturnType value) {
         assert typeMatchesValue(type, value) : String.format("value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;

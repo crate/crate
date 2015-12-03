@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.Symbol;
 
 public interface FunctionImplementation<SymbolType extends Symbol> {
 
-    public abstract FunctionInfo info();
+    FunctionInfo info();
 
-    public Symbol normalizeSymbol(SymbolType symbol);
+    Symbol normalizeSymbol(SymbolType symbol);
 }

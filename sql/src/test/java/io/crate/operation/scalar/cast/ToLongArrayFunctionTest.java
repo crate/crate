@@ -23,11 +23,9 @@ package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -37,7 +35,6 @@ import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
@@ -63,12 +60,12 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
         Object[] expected = new Long[] { 10L, 20L, 30L };
         Object[] actual;
 
-        actual = eval(Arrays.asList("10", "20", "30"), DataTypes.STRING);
+        actual = eval($("10", "20", "30"), DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        actual = eval(Arrays.asList(new BytesRef("10"), new BytesRef("20"), new BytesRef("30")), DataTypes.STRING);
+        actual = eval($(new BytesRef("10"), new BytesRef("20"), new BytesRef("30")), DataTypes.STRING);
         assertThat(actual, is(expected));
-        actual = eval(Arrays.asList( 10, 20, 30 ), DataTypes.INTEGER);
+        actual = eval($( 10, 20, 30 ), DataTypes.INTEGER);
         assertThat(actual, is(expected));
     }
 
@@ -76,14 +73,14 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidValueToInt() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to long_array");
-        eval(Arrays.asList("foobar", "20", "30"), DataTypes.STRING);
+        eval($("foobar", "20", "30"), DataTypes.STRING);
     }
 
     @Test
     public void testWithNullValueToInt() throws Exception {
         Object[] expected = new Long[] { 10L, null, 30L };
         Object[] actual;
-        actual = eval(Arrays.asList("10", null, "30"), DataTypes.STRING);
+        actual = eval($("10", null, "30"), DataTypes.STRING);
         assertThat(actual, is(expected));
     }
 
@@ -105,25 +102,6 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Object[] eval(final Object objects, DataType innerType) {
-        final DataType arrayType = new ArrayType(innerType);
-        ToArrayFunction impl = (ToArrayFunction) functions.get(
-                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_LONG_ARRAY, ImmutableList.of(arrayType)));
-
-        Literal input = new Literal() {
-            @Override
-            public Object value() {
-                return objects;
-            }
-
-            @Override
-            public DataType valueType() {
-                return arrayType;
-            }
-        };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
-        Object[] values = impl.evaluate(input);
-
-        assertThat(values, is(((Input) normalized).value()));
-        return values;
+        return ArrayCastTest.evalArrayCast(functions, CastFunctionResolver.FunctionNames.TO_LONG_ARRAY, objects, innerType);
     }
 }

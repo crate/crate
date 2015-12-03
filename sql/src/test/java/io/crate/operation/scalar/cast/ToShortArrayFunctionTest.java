@@ -21,18 +21,11 @@
 
 package io.crate.operation.scalar.cast;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
@@ -48,30 +41,12 @@ public class ToShortArrayFunctionTest extends AbstractScalarFunctionsTest {
         actual = eval(new BytesRef[]{new BytesRef("10"), new BytesRef("20"), new BytesRef("30")}, DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        actual = eval(new Double[] { 10.5d, 20.3d, 30d }, DataTypes.LONG);
+        actual = eval(new Double[] { 10.5d, 20.3d, 30d }, DataTypes.DOUBLE);
         assertThat(actual, is(expected));
     }
 
 
     private Object[] eval(final Object objects, DataType innerType) {
-        final DataType arrayType = new ArrayType(innerType);
-        ToArrayFunction impl = getFunction(CastFunctionResolver.FunctionNames.TO_SHORT_ARRAY, arrayType);
-
-        Literal input = new Literal() {
-            @Override
-            public Object value() {
-                return objects;
-            }
-
-            @Override
-            public DataType valueType() {
-                return arrayType;
-            }
-        };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
-        Object[] integers = impl.evaluate(input);
-
-        assertThat(integers, is(((Input) normalized).value()));
-        return integers;
+        return ArrayCastTest.evalArrayCast(functions, CastFunctionResolver.FunctionNames.TO_SHORT_ARRAY, objects, innerType);
     }
 }

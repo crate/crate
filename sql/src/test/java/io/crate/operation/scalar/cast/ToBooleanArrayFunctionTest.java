@@ -22,19 +22,12 @@
 package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 
@@ -63,25 +56,6 @@ public class ToBooleanArrayFunctionTest extends AbstractScalarFunctionsTest {
 
 
     private Object[] eval(final Object objects, DataType innerType) {
-        final DataType arrayType = new ArrayType(innerType);
-        ToArrayFunction impl = (ToArrayFunction)functions.get(
-                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_BOOLEAN_ARRAY, ImmutableList.of(arrayType)));
-
-        Literal input = new Literal() {
-            @Override
-            public Object value() {
-                return objects;
-            }
-
-            @Override
-            public DataType valueType() {
-                return arrayType;
-            }
-        };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
-        Object[] integers = impl.evaluate(new Input[]{input});
-
-        assertThat(integers, is(((Input) normalized).value()));
-        return integers;
+        return ArrayCastTest.evalArrayCast(functions, CastFunctionResolver.FunctionNames.TO_BOOLEAN_ARRAY, objects, innerType);
     }
 }
