@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for ``Generated columns`` (Feature T175 ANSI SQL:2006)
+
  - Added ``char_length``, ``bit_length`` and ``octet_length`` scalar
    functions.
 
