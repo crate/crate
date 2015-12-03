@@ -116,7 +116,9 @@ def setUpLocations(test):
           position integer,
           description string,
           race object(dynamic) as (
-            interests array(string)
+            interests array(string),
+            description string,
+            name string
           ),
           information array(object as (
               population long,
