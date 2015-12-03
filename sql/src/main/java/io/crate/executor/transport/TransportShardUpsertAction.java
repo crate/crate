@@ -369,7 +369,8 @@ public class TransportShardUpsertAction
             }
         }
 
-        if (generatedReferencesWithValue.size() < generatedColumnSize) {
+        int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
+        if (numMissingGeneratedColumns > 0 || (generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns())) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
                     request.isRawSourceInsert(), request.validateGeneratedColumns());
