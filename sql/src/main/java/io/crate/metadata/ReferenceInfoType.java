@@ -26,7 +26,8 @@ public enum  ReferenceInfoType {
 
     DEFAULT(ReferenceInfo.FACTORY),
     INDEX(IndexReferenceInfo.FACTORY),
-    GEO(GeoReferenceInfo.FACTORY);
+    GEO(GeoReferenceInfo.FACTORY),
+    GENERATED(GeneratedReferenceInfo.FACTORY);
 
     private final ReferenceInfo.ReferenceInfoFactory factory;
 
