@@ -161,6 +161,23 @@ Possible values for the ``compression`` setting are:
 
 :gzip: The exported data is compressed with gzip_.
 
+.. _format:
+
+format
+------
+
+Optional parameter to override default output behaviour.
+
+Possible values for the ``format`` settings are:
+
+:json_object: Output file contains one independently JSON serialised table row
+              per line. This is the default behaviour if no columns are
+              defined.
+
+:json_array: Output file contains on each line a JSON array storing column
+             values of one row. This is the default behaviour if columns are
+             defined.
+
 .. _gzip: http://www.gzip.org/
 
 .. _`Amazon S3`: http://aws.amazon.com/s3/
