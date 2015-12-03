@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
@@ -539,6 +540,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
+    @Repeat(iterations = 500)
     public void testSysOperationsLog() throws Exception {
         executor.exec(
                 "select count(*), race from characters group by race order by count(*) desc limit 2");
