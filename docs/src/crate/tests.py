@@ -361,7 +361,8 @@ def test_suite():
                              parser=bash_parser,
                              setUp=setUp,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
-                             doctest.ELLIPSIS)
+                             doctest.ELLIPSIS,
+                             encoding='utf-8')
     s.layer = empty_layer
     docs_suite.addTest(s)
     for fn in ('sql/rest.txt',):
@@ -370,7 +371,8 @@ def test_suite():
                                  setUp=setUpLocations,
                                  tearDown=tearDownLocations,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('sql/ddl.txt',
@@ -392,7 +394,7 @@ def test_suite():
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
-                                 encoding='UTF-8')
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('sql/joins.txt', ):
@@ -402,7 +404,8 @@ def test_suite():
                                  setUp=setUpEmpDeptAndColourArticlesAndGeo,
                                  tearDown=tearDownEmpDeptAndColourArticlesAndGeo,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
 
@@ -412,7 +415,8 @@ def test_suite():
                                  setUp=setUpLocationsQuotesAndUserVisits,
                                  tearDown=tearDownLocationsQuotesAndUserVisits,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',):
@@ -420,7 +424,8 @@ def test_suite():
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUp,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
@@ -428,7 +433,8 @@ def test_suite():
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUpTutorials,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     for fn in ('sql/snapshot_restore.txt',):
@@ -436,7 +442,8 @@ def test_suite():
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
     suite.addTests(docs_suite)
