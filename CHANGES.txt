@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added ``show schemas``, ``show tables``, and ``show columns``
+   commands.
+
  - Updated crash to 0.15.0 which contains following changes:
 
    - Added new format ``json_row`` which prints a dataset as json row-by-row

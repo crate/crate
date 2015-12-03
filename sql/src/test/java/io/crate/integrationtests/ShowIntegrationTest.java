@@ -22,9 +22,12 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import static org.hamcrest.core.Is.is;
 
 
 public class ShowIntegrationTest extends SQLTransportIntegrationTest {
@@ -90,20 +93,20 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                "   \"col_arr_obj_a\" ARRAY(OBJECT (DYNAMIC)),\n" +
-                "   \"col_arr_obj_b\" ARRAY(OBJECT (STRICT) AS (\n" +
-                "      \"id\" INTEGER\n" +
-                "   )),\n" +
-                "   \"col_arr_str\" ARRAY(STRING),\n" +
-                "   \"col_obj_a\" OBJECT (DYNAMIC),\n" +
-                "   \"col_obj_b\" OBJECT (DYNAMIC) AS (\n" +
-                "      \"arr\" ARRAY(INTEGER),\n" +
-                "      \"obj\" OBJECT (STRICT) AS (\n" +
-                "         \"id\" INTEGER,\n" +
-                "         \"name\" STRING\n" +
-                "      )\n" +
-                "   )\n" +
-                ")\n");
+                  "   \"col_arr_obj_a\" ARRAY(OBJECT (DYNAMIC)),\n" +
+                  "   \"col_arr_obj_b\" ARRAY(OBJECT (STRICT) AS (\n" +
+                  "      \"id\" INTEGER\n" +
+                  "   )),\n" +
+                  "   \"col_arr_str\" ARRAY(STRING),\n" +
+                  "   \"col_obj_a\" OBJECT (DYNAMIC),\n" +
+                  "   \"col_obj_b\" OBJECT (DYNAMIC) AS (\n" +
+                  "      \"arr\" ARRAY(INTEGER),\n" +
+                  "      \"obj\" OBJECT (STRICT) AS (\n" +
+                  "         \"id\" INTEGER,\n" +
+                  "         \"name\" STRING\n" +
+                  "      )\n" +
+                  "   )\n" +
+                  ")\n");
 
     }
 
@@ -191,13 +194,13 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ") clustered into 8 shards");
         execute("show create table test_pk_multi");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_multi\" (\n" +
-                "   \"col_a\" STRING,\n" +
-                "   \"col_z\" STRING,\n" +
-                "   \"id\" INTEGER,\n" +
-                "   PRIMARY KEY (\"col_z\", \"col_a\")\n" +
-                ")\n" +
-                "CLUSTERED INTO 8 SHARDS\n" +
-                "WITH (\n");
+                  "   \"col_a\" STRING,\n" +
+                  "   \"col_z\" STRING,\n" +
+                  "   \"id\" INTEGER,\n" +
+                  "   PRIMARY KEY (\"col_z\", \"col_a\")\n" +
+                  ")\n" +
+                  "CLUSTERED INTO 8 SHARDS\n" +
+                  "WITH (\n");
     }
 
     @Test
@@ -253,4 +256,112 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
             throw new AssertionError(msg);
         }
     }
+
+    @Test
+    public void testShowSchemas() throws Exception {
+        execute("create table my_s1.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
+        execute("create table my_s2.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
+        execute("show schemas like 'my_%'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_s1\n" +
+                                                                    "my_s2\n"));
+    }
+
+    @Test
+    public void testShowColumns() throws Exception {
+        execute("create table my_table1 (" +
+                "column11 integer primary key, " +
+                "column12 integer primary key, " +
+                "column13 long primary key, " +
+                "column21 integer primary key, " +
+                "column22 string primary key, " +
+                "column31 integer primary key)"
+        );
+
+        execute("create table my_s1.my_table1 (" +
+                "col11 timestamp primary key, " +
+                "col12 integer primary key, " +
+                "col13 integer primary key, " +
+                "col22 long primary key, " +
+                "col31 integer primary key)"
+        );
+
+        execute("show columns from my_table1");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("column11| integer| true\n" +
+                   "column12| integer| true\n" +
+                   "column13| long| true\n" +
+                   "column21| integer| true\n" +
+                   "column22| string| true\n" +
+                   "column31| integer| true\n"));
+
+        execute("show columns in my_table1 like '%2'");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("column12| integer| true\n" +
+                   "column22| string| true\n"));
+
+        execute("show columns from my_table1 where column_name = 'column12'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("column12| integer| true\n"));
+
+        execute("show columns in my_table1 from my_s1 where data_type = 'long'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("col22| long| true\n"));
+
+        execute("show columns in my_table1 from my_s1 like 'col1%'");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("col11| timestamp| true\n" +
+                   "col12| integer| true\n" +
+                   "col13| integer| true\n"));
+
+        execute("show columns from my_table1 in my_s1 like '%1'");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("col11| timestamp| true\n" +
+                   "col31| integer| true\n"));
+
+    }
+
+    @Test
+    public void testShowTable() throws Exception {
+        String tableName = "test";
+        String schemaName = "my";
+        execute(String.format("create table %s.%s (id long, name string)", schemaName, tableName));
+        execute("create table foo (id long, name string)");
+
+        execute("show tables");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
+                                                                    "test\n"));
+
+        execute(String.format("show tables from %s", schemaName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute(String.format("show tables in %s", schemaName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute(String.format("show tables from %s like 'hello'", schemaName));
+        assertEquals(0, response.rowCount());
+
+        execute(String.format("show tables from %s like '%%'" , schemaName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute("show tables like '%es%'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute("show tables like '%'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
+                                                                    "test\n"));
+
+        execute(String.format("show tables where table_name = '%s'", tableName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute("show tables where table_name like '%es%'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute(String.format("show tables from %s where table_name like '%%es%%'", schemaName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute(String.format("show tables in %s where table_name like '%%es%%'", schemaName));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+
+        execute(String.format("show tables from %s where table_name = 'hello'", schemaName));
+        assertEquals(0, response.rowCount());
+    }
+
 }

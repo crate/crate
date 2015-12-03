@@ -23,39 +23,46 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 
-public class ShowTables
-        extends Statement
-{
-    private final QualifiedName schema;
-    private final String likePattern;
+import javax.annotation.Nullable;
 
-    public ShowTables(QualifiedName schema, String likePattern)
-    {
-        this.schema = schema;
-        this.likePattern = likePattern;
+public class ShowTables extends Statement {
+
+    private final Optional<QualifiedName> schema;
+    private final Optional<String> likePattern;
+    private final Optional<Expression> whereExpression;
+
+    public ShowTables(@Nullable QualifiedName schema, @Nullable String likePattern, @Nullable Expression whereExpression) {
+        this.schema = Optional.fromNullable(schema);
+        this.whereExpression = Optional.fromNullable(whereExpression);
+        this.likePattern = Optional.fromNullable(likePattern);
     }
 
-    public QualifiedName getSchema()
-    {
+    public Optional<QualifiedName> schema() {
         return schema;
     }
 
+    public Optional<String> likePattern() {
+        return likePattern;
+    }
+
+    public Optional<Expression> whereExpression() {
+        return whereExpression;
+    }
+
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowTables(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
-        return Objects.hashCode(schema, likePattern);
+    public int hashCode() {
+        return Objects.hashCode(schema, whereExpression, likePattern);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -64,15 +71,17 @@ public class ShowTables
         }
         ShowTables o = (ShowTables) obj;
         return Objects.equal(schema, o.schema) &&
-                Objects.equal(likePattern, o.likePattern);
+               Objects.equal(likePattern, o.likePattern) &&
+               Objects.equal(whereExpression, o.whereExpression);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("schema", schema)
-                .add("likePattern", likePattern)
+                .add("likePattern", likePattern.toString())
+                .add("whereExpression", whereExpression.toString())
                 .toString();
     }
+
 }

@@ -198,10 +198,10 @@ singleExpression
 statement
     : query
     | explainStmt
-//    | showTablesStmt
-//    | showSchemasStmt
+    | showSchemasStmt
+    | showTablesStmt
 //    | showCatalogsStmt
-//    | showColumnsStmt
+    | showColumnsStmt
 //    | showPartitionsStmt
 //    | showFunctionsStmt
     | showCreateTableStmt
@@ -659,33 +659,29 @@ explainOption
     ;
 
 showTablesStmt
-    : SHOW TABLES from=showTablesFrom? like=showTablesLike? -> ^(SHOW_TABLES $from? $like?)
-    ;
-
-showTablesFrom
-    : (FROM | IN) qname -> ^(FROM qname)
-    ;
-
-showTablesLike
-    : LIKE s=STRING -> ^(LIKE $s)
+    : SHOW TABLES fromOrIn? likeOrWhere? -> ^(SHOW_TABLES fromOrIn? likeOrWhere?)
     ;
 
 showSchemasStmt
-    : SHOW SCHEMAS from=showSchemasFrom? -> ^(SHOW_SCHEMAS $from?)
+    : SHOW SCHEMAS likeOrWhere? -> ^(SHOW_SCHEMAS likeOrWhere?)
     ;
 
-showSchemasFrom
-    : (FROM | IN) ident -> ^(FROM ident)
+showColumnsStmt
+    : SHOW COLUMNS t=fromOrIn s=fromOrIn? likeOrWhere? -> ^(SHOW_COLUMNS $t $s? likeOrWhere?)
+    ;
+
+fromOrIn
+    : FROM qname -> ^(FROM qname)
+    | IN qname -> ^(IN qname)
+    ;
+
+likeOrWhere
+    : LIKE s=STRING -> ^(LIKE $s)
+    | whereClause
     ;
 
 showCatalogsStmt
     : SHOW CATALOGS -> SHOW_CATALOGS
-    ;
-
-showColumnsStmt
-    : SHOW COLUMNS (FROM | IN) qname -> ^(SHOW_COLUMNS qname)
-    | DESCRIBE qname                 -> ^(SHOW_COLUMNS qname)
-    | DESC qname                     -> ^(SHOW_COLUMNS qname)
     ;
 
 showPartitionsStmt

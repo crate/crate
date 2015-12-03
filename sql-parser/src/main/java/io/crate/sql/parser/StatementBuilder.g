@@ -577,23 +577,15 @@ explainOption returns [ExplainOption value]
     ;
 
 showTables returns [Statement value]
-    : ^(SHOW_TABLES from=showTablesFrom? like=showTablesLike?) { $value = new ShowTables($from.value, $like.value); }
-    ;
-
-showTablesFrom returns [QualifiedName value]
-    : ^(FROM qname) { $value = $qname.value; }
-    ;
-
-showTablesLike returns [String value]
-    : ^(LIKE string) { $value = $string.value; }
+    : ^(SHOW_TABLES schema=fromOrIn? (likePattern | whereClause)?) { $value = new ShowTables($schema.value, $likePattern.value, $whereClause.value); }
     ;
 
 showSchemas returns [Statement value]
-    : ^(SHOW_SCHEMAS from=showSchemasFrom?) { $value = new ShowSchemas(Optional.fromNullable($from.value)); }
+    : ^(SHOW_SCHEMAS (likePattern | whereClause)?) { $value = new ShowSchemas($likePattern.value, $whereClause.value); }
     ;
 
-showSchemasFrom returns [String value]
-    : ^(FROM ident) { $value = $ident.value; }
+likePattern returns [String value]
+    : ^(LIKE string) { $value = $string.value; }
     ;
 
 showCatalogs returns [Statement value]
@@ -601,7 +593,13 @@ showCatalogs returns [Statement value]
     ;
 
 showColumns returns [Statement value]
-    : ^(SHOW_COLUMNS qname) { $value = new ShowColumns($qname.value); }
+    : ^(SHOW_COLUMNS table=fromOrIn schema=fromOrIn? like=likePattern?) { $value = new ShowColumns($table.value, $schema.value, $like.value); }
+    | ^(SHOW_COLUMNS table=fromOrIn schema=fromOrIn? where=whereClause) { $value = new ShowColumns($table.value, $schema.value, $where.value); }
+    ;
+
+fromOrIn returns [QualifiedName value]
+    : ^(FROM qname) { $value = $qname.value; }
+    | ^(IN qname) { $value = $qname.value; }
     ;
 
 showPartitions returns [Statement value]

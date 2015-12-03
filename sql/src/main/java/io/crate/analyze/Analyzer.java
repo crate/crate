@@ -45,6 +45,7 @@ public class Analyzer {
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
+        private final ShowStatementAnalyzer showStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
         private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
         private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
@@ -70,6 +71,7 @@ public class Analyzer {
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   ShowCreateTableAnalyzer showCreateTableAnalyzer,
+                                  ShowStatementAnalyzer showStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
                                   CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                                   DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
@@ -91,6 +93,7 @@ public class Analyzer {
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.showCreateTableAnalyzer = showCreateTableAnalyzer;
+            this.showStatementAnalyzer = showStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
             this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
             this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
@@ -160,6 +163,19 @@ public class Analyzer {
                     showCreateTableAnalyzer.analyze(node.table(), analysis.parameterContext().defaultSchema());
             analysis.rootRelation(showCreateTableStatement);
             return showCreateTableStatement;
+        }
+
+        public AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis analysis) {
+            return showStatementAnalyzer.analyze(node, analysis);
+        }
+
+        public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
+            return showStatementAnalyzer.analyze(node, analysis);
+        }
+
+        @Override
+        protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
+            return showStatementAnalyzer.analyze(node, context);
         }
 
         @Override

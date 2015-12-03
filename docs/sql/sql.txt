@@ -32,5 +32,8 @@ supported by Crate.
     reference/restore_snapshot
     reference/select
     reference/set
+    reference/show_columns
     reference/show_create_table
+    reference/show_schemas
+    reference/show_tables
     reference/update

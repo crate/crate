@@ -184,7 +184,19 @@ public class SQLPrinter {
         @Override
         public Void visitFunction(Function symbol, Context context) {
 
-            if (symbol.info().ident().name().startsWith("op_")) {
+            if (symbol.info().ident().name().startsWith("op_not")) {
+                if (symbol.arguments().size() == 1) {
+                    Function function = (Function) symbol.arguments().get(0);
+                    if (function.info().ident().name().startsWith("any_")) {
+                        visitAny(function, context, true);
+                    } else {
+                        sb.append(symbol.info().ident().name().substring(3));
+                        sb.append(" (");
+                        process(symbol.arguments().get(0), context);
+                        sb.append(")");
+                    }
+                }
+            } else if (symbol.info().ident().name().startsWith("op_")) {
                 if (symbol.arguments().size() == 1) {
                     sb.append(symbol.info().ident().name().substring(3));
                     sb.append('(');
@@ -198,12 +210,34 @@ public class SQLPrinter {
                     sb.append(" ");
                     process(symbol.arguments().get(1), context);
                 }
+            } else if (symbol.info().ident().name().startsWith("any_")) {
+                visitAny(symbol, context, false);
+            } else if (symbol.info().ident().name().startsWith("op_like")) {
+                assert symbol.arguments().size() == 2;
+                process(symbol.arguments().get(0), context);
+                sb.append(" LIKE ");
+                process(symbol.arguments().get(1), context);
+                sb.append(" ");
             } else {
                 sb.append(symbol.info().ident().name());
                 sb.append('(');
                 process(symbol.arguments(), context);
                 sb.append(')');
             }
+            return null;
+        }
+
+        private void visitAny(Function function, Context context, boolean not) {
+            assert function.arguments().size() == 2;
+            process(function.arguments().get(0), context);
+            sb.append(String.format(" %s= ANY(", (not ? "!" : "")));
+            process(function.arguments().get(1), context);
+            sb.append(")");
+        }
+
+        @Override
+        public Void visitLiteral(Literal symbol, Context context) {
+            sb.append(SymbolFormatter.INSTANCE.formatSimple(symbol));
             return null;
         }
 

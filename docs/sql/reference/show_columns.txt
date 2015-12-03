@@ -1,0 +1,43 @@
+.. highlight:: psql
+.. _ref-show-columns:
+
+============
+SHOW COLUMNS
+============
+
+``SHOW COLUMNS`` displays information about columns in a given table.
+
+Synopsis
+========
+
+::
+
+    SHOW COLUMNS {FROM | IN} table_name [FROM | IN schema_name] [LIKE 'pattern' | WHERE expression]
+
+Description
+===========
+
+``SHOW COLUMNS`` fetches all column names of a given table and displays their
+detailed information. The column names are listed in alphabetical order.
+The same list can be fetched by querying the ``information_schema.columns``
+table.
+
+Parameters
+==========
+
+:table_name:  The name of the table of which the column information is printed.
+
+:schema_name: The name of the schema the tables are appropriate to. If no
+              schema name is specified the default schema is set to ``doc``.
+
+LIKE Clause
+===========
+
+The optional ``LIKE`` clause indicates which column names to match. It takes a
+string pattern as a filter and has an equivalent behavior to
+:ref:`sql_dql_like`.
+
+WHERE Clause
+============
+
+The optional WHERE clause defines the condition to be met for a row to be returned.
