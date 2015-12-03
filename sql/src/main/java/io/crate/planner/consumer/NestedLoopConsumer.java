@@ -32,6 +32,7 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
@@ -171,17 +172,6 @@ public class NestedLoopConsumer implements Consumer {
             left.normalize(analysisMetaData);
             right.normalize(analysisMetaData);
 
-            boolean broadcastLeftTable = false;
-            if (isDistributed) {
-                long leftNumDocs = tableStatsService.numDocs(left.tableRelation().tableInfo().ident());
-                long rightNumDocs = tableStatsService.numDocs(right.tableRelation().tableInfo().ident());
-
-                if (rightNumDocs > leftNumDocs) {
-                    broadcastLeftTable = true;
-                    LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
-                            rightNumDocs, leftNumDocs);
-                }
-            }
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
@@ -191,70 +181,69 @@ public class NestedLoopConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
+            boolean broadcastLeftTable = false;
+            if (isDistributed) {
+                broadcastLeftTable = isLeftSmallerThanRight(
+                        left.tableRelation().tableInfo().ident(),
+                        right.tableRelation().tableInfo().ident());
+                if (broadcastLeftTable) {
+                    PlannedAnalyzedRelation tmpPlan = leftPlan;
+                    leftPlan = rightPlan;
+                    rightPlan = tmpPlan;
+
+                    QueriedTableRelation<?> tmpRelation = left;
+                    left = right;
+                    right = tmpRelation;
+                }
+            }
             Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
             Collection<String> nlExecutionNodes = localExecutionNodes;
 
-
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
-            if (isDistributed && broadcastLeftTable) {
-                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                nlExecutionNodes = rightPlan.resultPhase().executionNodes();
-
-                if (nlExecutionNodes.size() == 1
-                    && nlExecutionNodes.equals(leftPlan.resultPhase().executionNodes())) {
-                    // if the left and the right plan are executed on the same single node the mergePhase
-                    // should be omitted. This is the case if the left and right table have only one shards which
-                    // are on the same node
-                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                } else {
-                    leftMerge = mergePhase(
-                            context,
-                            nlExecutionNodes,
-                            leftPlan.resultPhase(),
-                            left.querySpec().orderBy().orNull(),
-                            left.querySpec().outputs(),
-                            true);
-                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-                }
+            if (isDistributed) {
+                leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = leftPlan.resultPhase().executionNodes();
             } else {
-                if (isDistributed) {
-                    leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                    nlExecutionNodes = leftPlan.resultPhase().executionNodes();
-                } else {
-                    leftMerge = mergePhase(
-                            context,
-                            nlExecutionNodes,
-                            leftPlan.resultPhase(),
-                            left.querySpec().orderBy().orNull(),
-                            left.querySpec().outputs(),
-                            false);
-                }
-                if (nlExecutionNodes.size() == 1
-                    && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
-                    // if the left and the right plan are executed on the same single node the mergePhase
-                    // should be omitted. This is the case if the left and right table have only one shards which
-                    // are on the same node
-                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                } else {
-                    rightMerge = mergePhase(
-                            context,
-                            nlExecutionNodes,
-                            rightPlan.resultPhase(),
-                            right.querySpec().orderBy().orNull(),
-                            right.querySpec().outputs(),
-                            isDistributed);
-                    rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-                }
+                leftMerge = mergePhase(
+                        context,
+                        nlExecutionNodes,
+                        leftPlan.resultPhase(),
+                        left.querySpec().orderBy().orNull(),
+                        left.querySpec().outputs(),
+                        false);
+            }
+            if (nlExecutionNodes.size() == 1
+                && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
+                // if the left and the right plan are executed on the same single node the mergePhase
+                // should be omitted. This is the case if the left and right table have only one shards which
+                // are on the same node
+                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            } else {
+                rightMerge = mergePhase(
+                        context,
+                        nlExecutionNodes,
+                        rightPlan.resultPhase(),
+                        right.querySpec().orderBy().orNull(),
+                        right.querySpec().outputs(),
+                        isDistributed);
+                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
+
+            if (broadcastLeftTable) {
+                PlannedAnalyzedRelation tmpPlan = leftPlan;
+                leftPlan = rightPlan;
+                rightPlan = tmpPlan;
+                leftMerge = rightMerge;
+                rightMerge = null;
+            }
             List<Projection> projections = new ArrayList<>();
 
             if (filterNeeded) {
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(nlOutputs, where.query());
                 projections.add(filterProjection);
             }
-
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
             if (orderByBeforeSplit != null && isDistributed) {
                 for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
@@ -301,6 +290,18 @@ public class NestedLoopConsumer implements Consumer {
                 localMergePhase.addProjection(finalTopN);
             }
             return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase);
+        }
+
+        private boolean isLeftSmallerThanRight(TableIdent leftIdent, TableIdent rightIdent) {
+            long leftNumDocs = tableStatsService.numDocs(leftIdent);
+            long rightNumDocs = tableStatsService.numDocs(rightIdent);
+
+            if (leftNumDocs < rightNumDocs) {
+                LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
+                        rightNumDocs, leftNumDocs);
+                return true;
+            }
+            return false;
         }
 
         // TODO: this is a duplicate, it coecists in QueryThenFetchConsumer
