@@ -589,11 +589,11 @@ showTablesLike returns [String value]
     ;
 
 showSchemas returns [Statement value]
-    : ^(SHOW_SCHEMAS from=showSchemasFrom?) { $value = new ShowSchemas(Optional.fromNullable($from.value)); }
+    : ^(SHOW_SCHEMAS (likePattern|whereClause)?) { $value = new ShowSchemas($likePattern.value, $whereClause.value); }
     ;
 
-showSchemasFrom returns [String value]
-    : ^(FROM ident) { $value = $ident.value; }
+likePattern returns [String value]
+    : ^(LIKE string) { $value = $string.value; }
     ;
 
 showCatalogs returns [Statement value]

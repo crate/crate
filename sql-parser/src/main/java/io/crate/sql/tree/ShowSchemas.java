@@ -24,47 +24,51 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.annotation.Nullable;
+import java.util.Objects;
 
-public class ShowSchemas
-        extends Statement
-{
-    private final Optional<String> catalog;
+public class ShowSchemas extends Statement {
 
-    public ShowSchemas(Optional<String> catalog)
-    {
-        this.catalog = checkNotNull(catalog, "catalog is null");
-    }
+    private final Optional<String> likePattern;
+    private final Optional<Expression> whereExpression;
 
-    public Optional<String> getCatalog()
-    {
-        return catalog;
+    public ShowSchemas(@Nullable String likePattern, @Nullable Expression whereExpr) {
+        this.likePattern = Optional.fromNullable(likePattern);
+        this.whereExpression = Optional.fromNullable(whereExpr);
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowSchemas(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
-        return 0;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ShowSchemas that = (ShowSchemas) o;
+        return Objects.equals(likePattern, that.likePattern) &&
+               Objects.equals(whereExpression, that.whereExpression);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        return (obj != null) && (getClass() == obj.getClass());
+    public int hashCode() {
+        return Objects.hash(likePattern, whereExpression);
     }
 
     @Override
-    public String toString()
-    {
-        return MoreObjects.toStringHelper(this).toString();
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("likePattern", likePattern)
+                .add("whereExpression", whereExpression)
+                .toString();
+    }
+
+    public Optional<String> likePattern() {
+        return likePattern;
+    }
+
+    public Optional<Expression> whereExpression() {
+        return whereExpression;
     }
 }

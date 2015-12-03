@@ -243,6 +243,10 @@ public class TestStatementBuilder
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
 
         printStatement("show create table foo");
+        printStatement("show schemas");
+        printStatement("show schemas like 'doc%'");
+        printStatement("show schemas where schema_name='doc'");
+        printStatement("show schemas where schema_name LIKE 'd%'");
     }
 
     @Test

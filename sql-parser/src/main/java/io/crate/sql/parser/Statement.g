@@ -198,7 +198,7 @@ statement
     : query
     | explainStmt
 //    | showTablesStmt
-//    | showSchemasStmt
+    | showSchemasStmt
 //    | showCatalogsStmt
 //    | showColumnsStmt
 //    | showPartitionsStmt
@@ -671,11 +671,12 @@ showTablesLike
     ;
 
 showSchemasStmt
-    : SHOW SCHEMAS from=showSchemasFrom? -> ^(SHOW_SCHEMAS $from?)
+    : SHOW SCHEMAS likeOrWhere? -> ^(SHOW_SCHEMAS likeOrWhere?)
     ;
 
-showSchemasFrom
-    : (FROM | IN) ident -> ^(FROM ident)
+likeOrWhere
+    : LIKE s=STRING -> ^(LIKE $s)
+    | whereClause
     ;
 
 showCatalogsStmt
