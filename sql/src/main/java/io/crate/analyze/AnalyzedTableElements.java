@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -50,6 +51,7 @@ public class AnalyzedTableElements {
     Map<ColumnIdent, String> columnTypes = new HashMap<>();
     List<String> primaryKeys;
     List<List<String>> partitionedBy;
+    int numGeneratedColumns = 0;
 
 
     /**
@@ -154,6 +156,9 @@ public class AnalyzedTableElements {
         columnIdents.add(analyzedColumnDefinition.ident());
         columns.add(analyzedColumnDefinition);
         columnTypes.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition.dataType());
+        if (analyzedColumnDefinition.generatedExpression() != null) {
+            numGeneratedColumns++;
+        }
     }
 
     public Settings settings() {
@@ -165,10 +170,11 @@ public class AnalyzedTableElements {
     }
 
     public void finalizeAndValidate(TableIdent tableIdent,
+                                    @Nullable TableInfo tableInfo,
                                     AnalysisMetaData analysisMetaData,
                                     ParameterContext parameterContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, analysisMetaData, parameterContext);
+        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -178,11 +184,16 @@ public class AnalyzedTableElements {
     }
 
     private void validateGeneratedColumns(TableIdent tableIdent,
+                                          @Nullable TableInfo tableInfo,
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext) {
         List<ReferenceInfo> tableReferenceInfos = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReferenceInfo(tableIdent, columnDefinition, tableReferenceInfos);
+        }
+        if (tableInfo != null) {
+            // add existing references
+            tableReferenceInfos.addAll(tableInfo.columns());
         }
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
@@ -366,5 +377,9 @@ public class AnalyzedTableElements {
 
     public List<AnalyzedColumnDefinition> columns() {
         return columns;
+    }
+
+    public boolean hasGeneratedColumns() {
+        return numGeneratedColumns > 0;
     }
 }
