@@ -25,27 +25,28 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.ShowCreateTable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
-
 @Singleton
-public class ShowCreateTableAnalyzer {
+public class ShowStatementAnalyzer extends AnalyzedStatementVisitor<AnalyzedStatement, Analysis> {
 
     private Schemas schemas;
 
     @Inject
-    public ShowCreateTableAnalyzer(Schemas schemas) {
+    public ShowStatementAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    public ShowCreateTableAnalyzedStatement analyze(Table table, @Nullable String defaultSchema) {
-        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema));
+    public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis context) {
+        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(node.table(), context.parameterContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException("Table must be a doc table");
         }
-        return new ShowCreateTableAnalyzedStatement((DocTableInfo) tableInfo);
+        ShowCreateTableAnalyzedStatement analyzedStatement = new ShowCreateTableAnalyzedStatement((DocTableInfo) tableInfo);
+        context.rootRelation(analyzedStatement);
+        return analyzedStatement;
     }
+
 }
