@@ -32,6 +32,8 @@ public class ShowStatementAnalyzer {
 
     private final SelectStatementAnalyzer selectStatementAnalyzer;
 
+    private String[] explicitSchemas = new String[]{"information_schema", "sys"};
+
     @Inject
     public ShowStatementAnalyzer(SelectStatementAnalyzer selectStatementAnalyzer) {
         this.selectStatementAnalyzer = selectStatementAnalyzer;
@@ -62,4 +64,47 @@ public class ShowStatementAnalyzer {
         return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
     }
 
+    public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
+
+
+        /**
+         * <code>
+         *     SHOW TABLES [{ FROM | IN } schema_name ] [ { LIKE 'pattern' | WHERE expr } ];
+         * </code>
+         * needs to be rewritten to select query:
+         * <code>
+         *     SELECT distinct(table_name) as table_name
+         *     FROM information_schema.tables
+         *     [ WHERE ( schema_name = 'schema_name' | schema_name NOT IN ( 'sys', 'information_schema' ) )
+         *      [ AND ( table_name LIKE 'pattern' | <where-clause > ) ]
+         *     ]
+         *     ORDER BY 1;
+         * </code>
+         */
+        StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
+
+        if (node.schema().isPresent()) {
+            sb.append(String.format("WHERE schema_name = '%s'", node.schema().get()));
+        } else {
+            sb.append("WHERE schema_name NOT IN (");
+            for (int i = 0; i < explicitSchemas.length; i++) {
+                sb.append(String.format("'%s'", explicitSchemas[i]));
+                if (i < explicitSchemas.length - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append(")");
+        }
+        if (node.whereExpression().isPresent()) {
+            sb.append(" AND ");
+            sb.append(node.whereExpression().get().toString());
+
+        } else if (node.likePattern().isPresent()) {
+            sb.append(String.format(" AND table_name like '%s'", node.likePattern().get()));
+        }
+
+        sb.append(" ORDER BY 1");
+        Statement statement = SqlParser.createStatement(sb.toString());
+        return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
+    }
 }

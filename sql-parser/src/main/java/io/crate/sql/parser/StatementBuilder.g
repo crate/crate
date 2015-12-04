@@ -576,17 +576,18 @@ explainOption returns [ExplainOption value]
     | ^(EXPLAIN_TYPE DISTRIBUTED) { $value = new ExplainType(ExplainType.Type.DISTRIBUTED); }
     ;
 
+
 showTables returns [Statement value]
-    : ^(SHOW_TABLES from=showTablesFrom? like=showTablesLike?) { $value = new ShowTables($from.value, $like.value); }
+    : ^(SHOW_TABLES qname? )                          { $value = new ShowTables($qname.value); }
+    | ^(SHOW_TABLES_WHERE qname? whereClause)         { $value = new ShowTables($qname.value, $whereClause.value); }
+    | ^(SHOW_TABLES_LIKE qname? showTablesLike)       { $value = new ShowTables($qname.value, $showTablesLike.value); }
     ;
 
-showTablesFrom returns [QualifiedName value]
-    : ^(FROM qname) { $value = $qname.value; }
-    ;
 
 showTablesLike returns [String value]
-    : ^(LIKE string) { $value = $string.value; }
+    : ^(LIKE string)  { $value = $string.value; }
     ;
+
 
 showSchemas returns [Statement value]
     : ^(SHOW_SCHEMAS (likePattern|whereClause)?) { $value = new ShowSchemas($likePattern.value, $whereClause.value); }
