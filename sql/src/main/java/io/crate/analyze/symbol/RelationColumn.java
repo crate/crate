@@ -22,7 +22,6 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.base.MoreObjects;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -104,10 +103,6 @@ public class RelationColumn extends InputColumn {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("relationName", relationName)
-                .add("index", index())
-                .add("type", valueType())
-                .toString();
+        return "RC{relation=" + relationName + ", " + index() + ", type=" + valueType() + "}";
     }
 }

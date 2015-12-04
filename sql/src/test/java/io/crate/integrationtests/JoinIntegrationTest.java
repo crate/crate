@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
@@ -296,7 +297,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into employees (salary, name) values (600, 'Trillian'), (200, 'Ford Perfect'), (800, 'Douglas Adams')");
         execute("refresh table employees");
 
-        execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less where more.salary > less.salary "+
+        execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less " +
+                "where more.salary > less.salary "+
                 "order by more.salary desc, less.salary desc");
         assertThat(printedTable(response.rows()), is("" +
                 "Douglas Adams| Trillian| 200.0\n" +
@@ -408,5 +410,51 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                    "19.7| San Francisco\n" +
                    "20.8| San Francisco\n" +
                    "23.2| San Francisco\n"));
+    }
+
+    @Test
+    public void test3TableCrossJoin() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (x int)");
+        execute("create table t3 (x int)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1)");
+        execute("insert into t2 (x) values (2)");
+        execute("insert into t3 (x) values (3)");
+        execute("refresh table t1, t2, t3");
+
+        execute("select * from t1, t2, t3");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 2| 3\n"));
+    }
+
+    @Test
+    public void test3TableJoinWithJoinFilters() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Joining more than 2 tables with a join condition is not possible");
+
+        execute("create table users (id int primary key, name string) with (number_of_replicas = 0)");
+        execute("create table events (id int primary key, name string) with (number_of_replicas = 0)");
+        execute("create table logs (user_id int, event_id int) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian')");
+
+        execute("insert into events (id, name) values (1, 'Earth destroyed')");
+        execute("insert into events (id, name) values (2, 'Hitch hiking on a vogon ship')");
+        execute("insert into events (id, name) values (3, 'Meeting Arthur')");
+
+        execute("insert into logs (user_id, event_id) values (1, 1), (1, 2), (2, 3)");
+
+        execute("refresh table users, events, logs");
+        execute("select users.name, events.name " +
+                "from users " +
+                "join logs on users.id = logs.user_id " +
+                "join events on events.id = logs.event_id " +
+                "order by users.name, events.id");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Arthur| Earth destroyed\n" +
+                   "Arthur| Hitch hiking on a vogon ship\n" +
+                   "Trillian| Meeting Arthur\n"));
     }
 }

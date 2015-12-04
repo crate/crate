@@ -134,8 +134,8 @@ public class QueryThenFetchConsumer implements Consumer {
             if (mss.canBeFetched().isEmpty()){
                 return null;
             }
-
             MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
+
 
             OrderBy subOrderBy = mss.querySpec().orderBy().orNull();
             PlannedAnalyzedRelation plannedSubQuery = context.plannerContext().planSubRelation(mss, context);

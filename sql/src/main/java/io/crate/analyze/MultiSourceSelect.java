@@ -54,6 +54,14 @@ public class MultiSourceSelect implements QueriedRelation {
         public AnalyzedRelation relation() {
             return relation;
         }
+
+        @Override
+        public String toString() {
+            return "Source{" +
+                   "rel=" + relation +
+                   ", qs=" + querySpec +
+                   '}';
+        }
     }
 
     private final HashMap<QualifiedName, Source> sources;

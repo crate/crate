@@ -49,7 +49,6 @@ public class MultiSourceFetchPushDown {
     }
 
     private MultiSourceFetchPushDown(MultiSourceSelect statement) {
-        assert !statement.canBeFetched().isEmpty();
         this.statement = statement;
         this.fetchSources = new HashMap<>(statement.sources().size());
     }

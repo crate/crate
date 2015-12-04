@@ -169,7 +169,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testFetch() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.id from users u1, users u2 order by 2");
         NestedLoopPhase nlp = (NestedLoopPhase) ((NestedLoop) plan.subPlan()).resultPhase();
-        assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
+        assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(1), INPUT(0)"));
     }
 
 
@@ -319,8 +319,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop nl = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u1.name || u2.name");
         List<Symbol> orderBy = ((TopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.size(), is(1));
-        assertThat(orderBy.get(0), isFunction("concat"));
+        assertThat(orderBy, Matchers.contains(isFunction("concat")));
     }
 
     @Test

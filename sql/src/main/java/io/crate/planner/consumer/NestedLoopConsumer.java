@@ -97,7 +97,6 @@ public class NestedLoopConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
-            if (isUnsupportedStatement(statement, context)) return null;
             QuerySpec querySpec = statement.querySpec();
             if (querySpec.where().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
@@ -105,20 +104,13 @@ public class NestedLoopConsumer implements Consumer {
 
             List<RelationColumn> nlOutputs = new ArrayList<>();
             Map<Symbol, Symbol> symbolMap = new HashMap<>();
-            QueriedTableRelation<?> left;
-            QueriedTableRelation<?> right;
+            QueriedRelation left;
+            QueriedRelation right;
             try {
-                if (orderByLeft(statement)) {
-                    left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
-                    right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
-                    addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
-                    addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
-                } else {
-                    left = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
-                    right = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
-                    addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
-                    addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
-                }
+                left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
+                right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
+                addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
+                addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
             } catch (ValidationException e) {
                 context.validationException(e);
                 return null;
@@ -151,8 +143,12 @@ public class NestedLoopConsumer implements Consumer {
             }
 
             // this normalization is required to replace fields of the table relations
-            left.normalize(analysisMetaData);
-            right.normalize(analysisMetaData);
+            if (left instanceof QueriedTableRelation) {
+                ((QueriedTableRelation) left).normalize(analysisMetaData);
+            }
+            if (right instanceof QueriedTableRelation) {
+                ((QueriedTableRelation) right).normalize(analysisMetaData);
+            }
 
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
             PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
@@ -165,15 +161,13 @@ public class NestedLoopConsumer implements Consumer {
 
             boolean broadcastLeftTable = false;
             if (isDistributed) {
-                broadcastLeftTable = isLeftSmallerThanRight(
-                        left.tableRelation().tableInfo().ident(),
-                        right.tableRelation().tableInfo().ident());
+                broadcastLeftTable = isLeftSmallerThanRight(left, right);
                 if (broadcastLeftTable) {
                     PlannedAnalyzedRelation tmpPlan = leftPlan;
                     leftPlan = rightPlan;
                     rightPlan = tmpPlan;
 
-                    QueriedTableRelation<?> tmpRelation = left;
+                    QueriedRelation tmpRelation = left;
                     left = right;
                     right = tmpRelation;
                 }
@@ -286,6 +280,16 @@ public class NestedLoopConsumer implements Consumer {
             }
         }
 
+        private boolean isLeftSmallerThanRight(QueriedRelation qrLeft, QueriedRelation qrRight) {
+            if (qrLeft instanceof QueriedTableRelation && qrRight instanceof QueriedTableRelation) {
+                return isLeftSmallerThanRight(
+                        ((QueriedTableRelation) qrLeft).tableRelation().tableInfo().ident(),
+                        ((QueriedTableRelation) qrRight).tableRelation().tableInfo().ident()
+                );
+            }
+            return false;
+        }
+
         private boolean isLeftSmallerThanRight(TableIdent leftIdent, TableIdent rightIdent) {
             long leftNumDocs = tableStatsService.numDocs(leftIdent);
             long rightNumDocs = tableStatsService.numDocs(rightIdent);
@@ -336,51 +340,27 @@ public class NestedLoopConsumer implements Consumer {
             mergePhase.executionNodes(executionNodes);
             return mergePhase;
         }
-
-        private boolean orderByLeft(TwoTableJoin stmt) {
-            if (!stmt.querySpec().orderBy().isPresent()) {
-                return true;
-            }
-            OrderBy orderBy = stmt.querySpec().orderBy().get();
-            for (Symbol symbol : orderBy.orderBySymbols()) {
-                if (Symbols.containsRelation(symbol, stmt.left().relation())) {
-                    return true;
-                }
-                if (Symbols.containsRelation(symbol, stmt.right().relation())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private boolean isUnsupportedStatement(TwoTableJoin statement, ConsumerContext context) {
-            if (statement.querySpec().groupBy().isPresent()) {
-                context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
-                return true;
-            }
-            if (statement.querySpec().hasAggregates()) {
-                context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
-                return true;
-            }
-
-            return false;
-        }
     }
 
-    private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect.Source, QueriedTableRelation> {
+    private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect.Source, QueriedRelation> {
 
         static final SubRelationConverter INSTANCE = new SubRelationConverter();
 
         @Override
-        public QueriedTableRelation visitTableRelation(TableRelation tableRelation,
+        public QueriedRelation visitTableRelation(TableRelation tableRelation,
                                                        MultiSourceSelect.Source source) {
             return new QueriedTable(tableRelation, source.querySpec());
         }
 
         @Override
-        public QueriedTableRelation visitDocTableRelation(DocTableRelation tableRelation,
+        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation,
                                                           MultiSourceSelect.Source source) {
             return new QueriedDocTable(tableRelation, source.querySpec());
+        }
+
+        @Override
+        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, MultiSourceSelect.Source context) {
+            return twoTableJoin;
         }
 
         @Override

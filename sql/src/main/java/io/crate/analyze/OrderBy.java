@@ -21,15 +21,20 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.ListIterator;
 
 public class OrderBy implements Streamable {
 
@@ -80,6 +85,25 @@ public class OrderBy implements Streamable {
         return new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
     }
 
+    /**
+     * Create a new OrderBy with symbols that match the predicate
+     */
+    @Nullable
+    public OrderBy subset(Predicate<? super Symbol> predicate) {
+        List<Integer> subSet = new ArrayList<>();
+        Integer i = 0;
+        for (Symbol orderBySymbol : orderBySymbols) {
+            if (predicate.apply(orderBySymbol)) {
+                subSet.add(i);
+            }
+            i++;
+        }
+        if (subSet.isEmpty()) {
+            return null;
+        }
+        return subset(subSet);
+    }
+
     public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
         orderBy.writeTo(out);
     }
@@ -121,6 +145,17 @@ public class OrderBy implements Streamable {
         }
         for (Boolean nullFirst : nullsFirst) {
             out.writeOptionalBoolean(nullFirst);
+        }
+    }
+
+    public OrderBy copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
+        return new OrderBy(Lists.newArrayList(Lists.transform(orderBySymbols, replaceFunction)), reverseFlags, nullsFirst);
+    }
+
+    public void replace(Function<? super Symbol, Symbol> replaceFunction) {
+        ListIterator<Symbol> listIt = orderBySymbols.listIterator();
+        while (listIt.hasNext()) {
+            listIt.set(replaceFunction.apply(listIt.next()));
         }
     }
 }

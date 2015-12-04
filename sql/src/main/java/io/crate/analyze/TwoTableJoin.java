@@ -44,6 +44,7 @@ public class TwoTableJoin implements QueriedRelation {
     private final MultiSourceSelect.Source right;
     private final Optional<OrderBy> remainingOrderBy;
     private final List<Field> fields;
+    private final QualifiedName name;
 
     public TwoTableJoin(QuerySpec querySpec,
                         QualifiedName leftName,
@@ -56,6 +57,7 @@ public class TwoTableJoin implements QueriedRelation {
         this.left = left;
         this.rightName = rightName;
         this.right = right;
+        this.name = new QualifiedName("join(" + leftName.toString() + ", " + rightName.toString() + ")");
         this.remainingOrderBy = remainingOrderBy;
         fields = new ArrayList<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
@@ -107,5 +109,14 @@ public class TwoTableJoin implements QueriedRelation {
 
     public QualifiedName rightName() {
         return rightName;
+    }
+
+    public QualifiedName name() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return name.toString();
     }
 }

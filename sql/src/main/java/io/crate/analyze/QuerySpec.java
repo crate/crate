@@ -22,6 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
@@ -29,10 +32,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class QuerySpec {
 
@@ -183,5 +183,71 @@ public class QuerySpec {
         }
         assert i == outputs.size();
         return -1;
+    }
+
+    /**
+     * create a new QuerySpec which is a subset of this which contains only symbols which match the predicate
+     */
+    public QuerySpec subset(Predicate<? super Symbol> predicate) {
+        if (hasAggregates) {
+            throw new UnsupportedOperationException("Cannot create a subset of a querySpec if it has aggregations");
+        }
+
+        QuerySpec newSpec = new QuerySpec()
+                .limit(limit.orNull())
+                .offset(offset)
+                .outputs(Lists.newArrayList(Iterables.filter(outputs, predicate)));
+
+        if (!where.hasQuery()) {
+            newSpec.where(where);
+        } else if (predicate.apply(where.query())) {
+            newSpec.where(where);
+        }
+
+        if (orderBy.isPresent()) {
+            newSpec.orderBy(orderBy.get().subset(predicate));
+        }
+
+        return newSpec;
+    }
+
+    public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+        if (groupBy.isPresent() || having.isPresent()) {
+            throw new UnsupportedOperationException("Replacing group by or having symbols is not implemented");
+        }
+
+        QuerySpec newSpec = new QuerySpec()
+                .limit(limit.orNull())
+                .offset(offset)
+                .outputs(Lists.transform(outputs, replaceFunction));
+        if (!where.hasQuery()) {
+            newSpec.where(where);
+        } else {
+            newSpec.where(new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions()));
+        }
+        if (orderBy.isPresent()) {
+            newSpec.orderBy(orderBy.get().copyAndReplace(replaceFunction));
+        }
+        return newSpec;
+    }
+
+    public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+        ListIterator<Symbol> listIt = outputs.listIterator();
+        while (listIt.hasNext()) {
+            listIt.set(replaceFunction.apply(listIt.next()));
+        }
+        if (where.hasQuery()) {
+            where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions());
+        }
+        if (orderBy.isPresent()) {
+            orderBy.get().replace(replaceFunction);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.ENGLISH,
+                "QS{ SELECT %s WHERE %s GROUP BY %s HAVING %s ORDER BY %s LIMIT %s OFFSET %s}",
+                outputs, where, groupBy, having, orderBy, limit, offset);
     }
 }
