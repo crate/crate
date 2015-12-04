@@ -83,7 +83,7 @@ public class AlterTableOperation {
 
     public ListenableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
         final SettableFuture<Long> result = SettableFuture.create();
-        if (analysis.newPrimaryKeys()) {
+        if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
             String stmt = String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", analysis.table().ident().schema(), analysis.table().ident().name());
             transportActionProvider.transportSQLAction().execute(new SQLRequest(stmt), new ActionListener<SQLResponse>() {
                 @Override
@@ -92,8 +92,9 @@ public class AlterTableOperation {
                     if (count == 0L) {
                         addColumnToTable(analysis, result);
                     } else {
-                        result.setException(new UnsupportedOperationException(
-                                "Cannot add a primary key column to a table that isn't empty"));
+                        String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
+                        result.setException(new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                                "Cannot add a %s column to a table that isn't empty", columnFailure)));
                     }
                 }
 
