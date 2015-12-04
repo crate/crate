@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors.writer;
 
+import io.crate.planner.projection.WriterProjection;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.settings.Settings;
 
@@ -37,10 +38,10 @@ public class OutputFile extends Output {
     private final boolean overwrite;
     private final boolean compression;
 
-    public OutputFile(URI uri, Settings settings) {
+    public OutputFile(URI uri, WriterProjection.CompressionType compressionType) {
         Preconditions.checkArgument(uri.getHost() == null);
         this.path = uri.getPath();
-        compression = parseCompression(settings);
+        compression = compressionType != null;
         this.overwrite = true;
     }
 

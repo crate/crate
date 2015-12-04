@@ -34,8 +34,6 @@ import io.crate.types.StringType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.*;
@@ -61,7 +59,6 @@ public class WriterProjection extends Projection {
     private Symbol uri;
     private boolean isDirectoryUri;
     private List<Symbol> inputs;
-    private Settings settings;
 
     /*
      * add values that should be added or overwritten
@@ -76,21 +73,27 @@ public class WriterProjection extends Projection {
         COLUMN
     }
 
+    private CompressionType compressionType;
+
+    public enum CompressionType {
+        GZIP
+    }
+
     public WriterProjection() {
     }
 
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
                             boolean isDirectoryUri,
-                            Settings settings,
+                            @Nullable CompressionType compressionType,
                             Map<ColumnIdent, Symbol> overwrites,
                             OutputFormat outputFormat) {
         this.inputs = inputs;
         this.uri = uri;
         this.isDirectoryUri = isDirectoryUri;
-        this.settings = settings;
         this.overwrites = overwrites;
         this.outputFormat = outputFormat;
+        this.compressionType = compressionType;
     }
 
     @Nullable
@@ -110,10 +113,6 @@ public class WriterProjection extends Projection {
 
     public Symbol uri() {
         return uri;
-    }
-
-    public Settings settings() {
-        return settings;
     }
 
     public boolean isDirectoryUri() {
@@ -142,6 +141,8 @@ public class WriterProjection extends Projection {
         return outputFormat;
     }
 
+    public CompressionType compressionType() { return compressionType; }
+
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitWriterProjection(this, context);
@@ -163,13 +164,14 @@ public class WriterProjection extends Projection {
         for (int i = 0; i < numInputs; i++) {
             inputs.add(Symbol.fromStream(in));
         }
-        settings = ImmutableSettings.readSettingsFromStream(in);
 
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
             overwrites.put(ColumnIdent.fromStream(in), Symbol.fromStream(in));
         }
+        int compressionTypeOrdinal = in.readInt();
+        compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
         outputFormat = OutputFormat.values()[in.readInt()];
     }
 
@@ -189,13 +191,13 @@ public class WriterProjection extends Projection {
         for (Symbol symbol : inputs) {
             Symbol.toStream(symbol, out);
         }
-        ImmutableSettings.writeSettingsToStream(settings, out);
 
         out.writeVInt(overwrites.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
             entry.getKey().writeTo(out);
             Symbol.toStream(entry.getValue(), out);
         }
+        out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
     }
 
@@ -209,9 +211,9 @@ public class WriterProjection extends Projection {
         if (isDirectoryUri != that.isDirectoryUri) return false;
         if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null)
             return false;
-        if (!settings.equals(that.settings)) return false;
         if (!uri.equals(that.uri)) return false;
         if (!overwrites.equals(that.overwrites)) return false;
+        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null) return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
 
         return true;
@@ -222,9 +224,9 @@ public class WriterProjection extends Projection {
         int result = super.hashCode();
         result = 31 * result + uri.hashCode();
         result = 31 * result + (isDirectoryUri ? 1 : 0);
-        result = 31 * result + settings.hashCode();
         result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
         result = 31 * result + overwrites.hashCode();
+        result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
         result = 31 * result + outputFormat.hashCode();
         return result;
     }
@@ -233,9 +235,9 @@ public class WriterProjection extends Projection {
     public String toString() {
         return "WriterProjection{" +
                 "uri=" + uri +
-                ", settings=" + settings +
                 ", outputNames=" + outputNames +
                 ", isDirectory=" + isDirectoryUri +
+                ", compressionType=" + compressionType +
                 ", outputFormat=" + outputFormat +
                 '}';
     }
@@ -246,7 +248,7 @@ public class WriterProjection extends Projection {
             WriterProjection p = new WriterProjection();
             p.uri = nUri;
             p.outputNames = outputNames;
-            p.settings = settings;
+            p.compressionType = compressionType;
             p.outputFormat = outputFormat;
             return p;
         }

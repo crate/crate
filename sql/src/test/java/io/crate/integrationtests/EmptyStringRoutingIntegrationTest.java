@@ -116,7 +116,7 @@ public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTe
         refresh();
 
         String uri = Paths.get(folder.getRoot().toURI()).toString();
-        SQLResponse response = execute("copy t to directory ? with(shared=true)", new Object[] { uri });
+        SQLResponse response = execute("copy t to directory ?", new Object[] { uri });
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from t");

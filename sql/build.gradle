@@ -60,6 +60,7 @@ sourceSets {
             include '**/*.Plugin'
             include '**/*.rst'
             include '**/*.json'
+            include '**/*.gz'
             include '**/*.sql'
             include '**/*.html'
             include '**/*.jsonp'

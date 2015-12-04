@@ -179,7 +179,7 @@ public class CopyStatementPlanner {
                 statement.subQueryRelation().querySpec().outputs(),
                 statement.uri(),
                 statement.isDirectoryUri(),
-                statement.settings(),
+                statement.compressionType(),
                 statement.overwrites(),
                 outputFormat);
 

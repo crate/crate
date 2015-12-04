@@ -34,7 +34,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.projection.*;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -157,11 +156,11 @@ public class ProjectionBuilder {
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
                                                     Symbol uri,
                                                     boolean isDirectoryUri,
-                                                    Settings settings,
+                                                    @Nullable WriterProjection.CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     WriterProjection.OutputFormat outputFormat) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         return new WriterProjection(
-                inputVisitor.process(inputs, context), uri, isDirectoryUri, settings, overwrites, outputFormat);
+                inputVisitor.process(inputs, context), uri, isDirectoryUri, compressionType, overwrites, outputFormat);
     }
 }

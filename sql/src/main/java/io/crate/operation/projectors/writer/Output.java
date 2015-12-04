@@ -34,15 +34,4 @@ public abstract class Output {
      * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
      */
     public abstract OutputStream acquireOutputStream() throws IOException;
-
-    protected boolean parseCompression(Settings settings) {
-        String compressionType = settings.get("compression");
-        if (compressionType != null) {
-            Preconditions.checkArgument(compressionType.equals("gzip"),
-                    String.format("Unsupported compression type: '%s'", compressionType));
-            return true;
-        }
-
-        return false;
-    }
 }

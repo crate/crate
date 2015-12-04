@@ -58,6 +58,7 @@ public class WriterProjector extends AbstractProjector {
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
     private final WriterProjection.OutputFormat outputFormat;
+    private final WriterProjection.CompressionType compressionType;
     private Output output;
 
     protected final AtomicLong counter = new AtomicLong();
@@ -73,7 +74,7 @@ public class WriterProjector extends AbstractProjector {
      */
     public WriterProjector(ExecutorService executorService,
                            String uri,
-                           Settings settings,
+                           @Nullable WriterProjection.CompressionType compressionType,
                            @Nullable List<Input<?>> inputs,
                            Set<CollectExpression<Row, ?>> collectExpressions,
                            Map<ColumnIdent, Object> overwrites,
@@ -82,15 +83,16 @@ public class WriterProjector extends AbstractProjector {
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
         this.outputFormat = outputFormat;
+        this.compressionType = compressionType;
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
             throw new ValidationException(String.format("Invalid uri '%s'", uri), e);
         }
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
-            this.output = new OutputFile(this.uri, settings);
+            this.output = new OutputFile(this.uri, this.compressionType);
         } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(executorService, this.uri, settings);
+            this.output = new OutputS3(executorService, this.uri, this.compressionType);
         } else {
             throw new UnsupportedFeatureException(String.format("Unknown scheme '%s'", this.uri.getScheme()));
         }

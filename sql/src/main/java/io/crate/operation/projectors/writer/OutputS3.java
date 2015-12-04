@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.external.S3ClientHelper;
+import io.crate.planner.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -50,10 +51,10 @@ public class OutputS3 extends Output {
     private final URI uri;
     private final boolean compression;
 
-    public OutputS3(ExecutorService executorService, URI uri, Settings settings) {
+    public OutputS3(ExecutorService executorService, URI uri, WriterProjection.CompressionType compressionType) {
         this.executorService = executorService;
         this.uri = uri;
-        compression = parseCompression(settings);
+        compression = compressionType != null;
     }
 
     @Override

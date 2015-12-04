@@ -143,7 +143,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "/*"});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "/*.json"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -213,6 +213,19 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromFileWithCompression() throws Exception {
+        execute("create table quotes (id int, " +
+                "quote string)");
+        ensureGreen();
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.gz");
+        execute("copy quotes from ? with (compression='gzip')", new Object[]{filePath});
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(6L, response.rowCount());
+    }
+
+    @Test
     public void testCopyToFile() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
@@ -230,6 +243,22 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
+    }
+
+    @Test
+    public void testCopyToCompressedFile() throws Exception {
+        execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into singleshard (name) values ('foo')");
+        execute("refresh table singleshard");
+
+        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.gz").toUri().toString();
+        SQLResponse response = execute("copy singleshard to ? with (compression='gzip')", new Object[] { uri });
+        assertThat(response.rowCount(), is(1L));
+        long size = Files.size(
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.gz")));
+
+        assertThat(size, is(35L));
     }
 
     @Test
@@ -330,7 +359,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         String uri = Paths.get(folder.getRoot().toURI()).toString();
-        SQLResponse response = execute("copy t to directory ? with(shared=true)", new Object[] { uri });
+        SQLResponse response = execute("copy t to directory ?", new Object[] { uri });
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from t");

@@ -33,6 +33,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.planner.projection.WriterProjection;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
@@ -165,13 +166,20 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testCopyToFileWithParams() throws Exception {
+    public void testCopyToFileWithCompressionParams() throws Exception {
         CopyToAnalyzedStatement analysis = (CopyToAnalyzedStatement)analyze("copy users to '/blah.txt' with (compression='gzip')");
         TableInfo tableInfo = ((QueriedDocTable) analysis.subQueryRelation()).tableRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
 
         assertThat(analysis.uri(), isLiteral("/blah.txt"));
-        assertThat(analysis.settings().get("compression"), is("gzip"));
+        assertThat(analysis.compressionType(), is(WriterProjection.CompressionType.GZIP));
+    }
+
+    @Test
+    public void testCopyToFileWithUnknownParams() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Unknown setting 'foo'");
+        CopyToAnalyzedStatement analysis = (CopyToAnalyzedStatement)analyze("copy users to '/blah.txt' with (foo='gzip')");
     }
 
     @Test

@@ -65,11 +65,10 @@ public class WriterProjectorTest extends CrateUnitTest {
 
         String fileAbsolutePath = folder.newFile("out.json").getAbsolutePath();
         String uri = Paths.get(fileAbsolutePath).toUri().toString();
-        Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 executorService,
                 uri,
-                settings,
+                null,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),
@@ -112,11 +111,10 @@ public class WriterProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("Failed to open output: 'Output path is a directory: ");
 
         String uri = Paths.get(folder.newFolder().toURI()).toUri().toString();
-        Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 executorService,
                 uri,
-                settings,
+                null,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),
@@ -135,11 +133,10 @@ public class WriterProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("Failed to open output");
 
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
-        Settings settings = ImmutableSettings.EMPTY;
         WriterProjector projector = new WriterProjector(
                 executorService,
                 uri,
-                settings,
+                null,
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),

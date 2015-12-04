@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -36,7 +38,9 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -44,15 +48,33 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class CopyStatementAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
+
+    private static final String COMPRESSION_SETTING = "compression";
+
+    private static final StringSetting COMPRESSION_SETTINGS = new StringSetting(ImmutableSet.of(
+            "gzip"
+    )) {
+        @Override
+        public String name() {
+            return COMPRESSION_SETTING;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
+            ImmutableMap.<String, SettingsApplier>builder()
+                    .put(COMPRESSION_SETTING, new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
+                    .build();
 
     @Inject
     public CopyStatementAnalyzer(AnalysisMetaData analysisMetaData) {
@@ -63,7 +85,7 @@ public class CopyStatementAnalyzer {
         analysis.expectsAffectedRows(true);
 
         DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
-                                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         String partitionIdent = null;
@@ -93,7 +115,14 @@ public class CopyStatementAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);
-        Settings settings = processGenericProperties(node.genericProperties(), context);
+        Settings settings = processCopyToProperties(node.genericProperties(), analysis.parameterContext());
+
+        WriterProjection.CompressionType compressionType = null;
+        if (settings.get(COMPRESSION_SETTING) != null) {
+            compressionType = WriterProjection.CompressionType.valueOf(
+                    settings.get(COMPRESSION_SETTING).toUpperCase(Locale.ENGLISH));
+        }
+
         Symbol uri = context.processExpression(node.targetUri());
 
         List<Symbol> outputs = new ArrayList<>();
@@ -135,7 +164,7 @@ public class CopyStatementAnalyzer {
         querySpec.outputs(outputs);
 
         QueriedDocTable subRelation = new QueriedDocTable(tableRelation, querySpec);
-        return new CopyToAnalyzedStatement(subRelation, settings, uri, node.directoryUri(), columnsDefined, overwrites);
+        return new CopyToAnalyzedStatement(subRelation, settings, uri, node.directoryUri(), compressionType, columnsDefined, overwrites);
     }
 
     private Settings processGenericProperties(Optional<GenericProperties> genericProperties, Context context) {
@@ -148,11 +177,28 @@ public class CopyStatementAnalyzer {
         return ImmutableSettings.EMPTY;
     }
 
+    private Settings processCopyToProperties(Optional<GenericProperties> genericProperties, ParameterContext parameterContext) {
+        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+
+        if (genericProperties.isPresent()) {
+            for (Map.Entry<String, Expression> setting : genericProperties.get().properties().entrySet()) {
+                SettingsApplier settingsApplier = SETTINGS_APPLIERS.get(setting.getKey());
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(String.format("Unknown setting '%s'", setting.getKey()));
+                }
+
+                settingsApplier.apply(settingsBuilder, parameterContext.parameters(), setting.getValue());
+            }
+        }
+
+        return settingsBuilder.build();
+    }
+
     private boolean partitionExists(DocTableInfo table, @Nullable PartitionName partition) {
         if (table.isPartitioned() && partition != null) {
             for (PartitionName partitionName : table.partitions()) {
                 if (partitionName.tableIdent().equals(table.ident())
-                    && partitionName.equals(partition)) {
+                        && partitionName.equals(partition)) {
                     return true;
                 }
             }

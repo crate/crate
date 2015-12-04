@@ -183,7 +183,7 @@ public class ProjectionToProjectorVisitor
                 sb.append("/");
             }
             sb.append(fileName);
-            if (projection.settings().get("compression", "").equalsIgnoreCase("gzip")) {
+            if (projection.compressionType() == WriterProjection.CompressionType.GZIP) {
                 sb.append(".gz");
             }
             uri = sb.toString();
@@ -191,7 +191,7 @@ public class ProjectionToProjectorVisitor
         return new WriterProjector(
                 ((ThreadPoolExecutor) threadPool.generic()),
                 uri,
-                projection.settings(),
+                projection.compressionType(),
                 inputs,
                 symbolContext.collectExpressions(),
                 overwrites,

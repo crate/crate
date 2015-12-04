@@ -33,9 +33,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
+import io.crate.planner.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import javax.print.attribute.standard.Compression;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +45,8 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
 
     private final QueriedDocTable subQueryRelation;
     private final boolean columnsDefined;
+    @Nullable
+    private final WriterProjection.CompressionType compressionType;
     private final boolean isDirectoryUri;
 
     /*
@@ -55,11 +59,13 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
                                    Settings settings,
                                    Symbol uri,
                                    boolean isDirectoryUri,
+                                   @Nullable WriterProjection.CompressionType compressionType,
                                    boolean columnsDefined,
                                    @Nullable Map<ColumnIdent, Symbol> overwrites) {
         super(settings, uri);
         this.subQueryRelation = subQueryRelation;
         this.columnsDefined = columnsDefined;
+        this.compressionType = compressionType;
         this.isDirectoryUri = isDirectoryUri;
         this.overwrites = MoreObjects.firstNonNull(overwrites, ImmutableMap.<ColumnIdent, Symbol>of());
     }
@@ -71,6 +77,9 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     public boolean columnsDefined() {
         return columnsDefined;
     }
+
+    @Nullable
+    public WriterProjection.CompressionType compressionType() { return compressionType; }
 
     public boolean isDirectoryUri() {
         return isDirectoryUri;
