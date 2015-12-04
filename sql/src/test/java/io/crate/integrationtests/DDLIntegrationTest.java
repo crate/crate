@@ -410,6 +410,48 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterTableWithRecordsAddColumnAsPrimaryKey() throws Exception {
+        execute("create table t (id int primary key) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (id) values(1)");
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
+        execute("alter table t add column name string primary key");
+    }
+
+    @Test
+    public void testAlterTableWithoutRecordsAddGeneratedColumn() throws Exception {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        execute("alter table t add column id_generated as (id + 1)");
+        execute("insert into t (id) values(1)");
+        refresh();
+        execute("select id, id_generated from t");
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Long) response.rows()[0][1], is(2L));
+    }
+
+    @Test
+    public void testAlterTableWithRecordsAddGeneratedColumn() throws Exception {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (id) values(1)");
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot add a generated column to a table that isn't empty");
+        execute("alter table t add column id_generated as (id + 1)");
+    }
+
+    @Test
     public void testAlterTableAddObjectColumnToExistingObject() throws Exception {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +

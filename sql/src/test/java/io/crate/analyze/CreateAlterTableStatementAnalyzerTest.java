@@ -864,11 +864,4 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Column unknown_col unknown");
         analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(unknown_col as string))");
     }
-
-    @Test
-    public void testAlterTableAddGeneratedColumn() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Adding a generated column is not supported");
-        analyze("alter table users add column day as date_trunc('day', ts)");
-    }
 }
