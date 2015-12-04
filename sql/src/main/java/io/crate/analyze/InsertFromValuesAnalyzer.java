@@ -397,7 +397,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             valueSymbol = context.expressionAnalyzer.normalize(valueSymbol);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
-                if (value != null && primaryKey.contains(referenceInfo.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {
+                if (primaryKey.contains(referenceInfo.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {
                     int idx = primaryKey.indexOf(referenceInfo.ident().columnIdent());
                     addPrimaryKeyValue(idx, value, context.primaryKeyValues);
                 }

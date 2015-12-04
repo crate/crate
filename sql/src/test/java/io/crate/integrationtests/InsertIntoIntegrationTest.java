@@ -952,4 +952,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select col1 from target");
         assertThat((Integer)response.rows()[0][0], is(1));
     }
+
+    @Test
+    public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
+        // test that correct exception message is thrown
+        execute("create table generated_test (" +
+                " a double," +
+                " b double," +
+                " c double," +
+                " sum as (a+b/c) PRIMARY KEY" +
+                ")");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Primary key value must not be NULL");
+        execute("insert into generated_test (a, c) values (1.0, 3.0)");
+    }
 }

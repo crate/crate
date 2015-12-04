@@ -140,7 +140,6 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .addGeneratedColumn("id2", DataTypes.INTEGER, "product_no + 1", false)
             .addPrimaryKey("id")
             .addPrimaryKey("id2")
-            .clusteredBy("id")
             .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(generatedPkColumnTableIdent.name()))
                 .thenReturn(generatedPkColumnTableInfo);
@@ -1085,7 +1084,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze(
                 "INSERT INTO generated_pk_column (serial_no, product_no) values (1, 1)"
         );
-        assertThat(analysis.routingValues(), contains(is("2")));
+        assertThat(analysis.routingValues(), contains("AgEyATI="));
         assertThat(analysis.ids().get(0),
                 is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")), Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))));
     }
@@ -1114,7 +1113,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGeneratedKeyPrimaryKeyPartMissing() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Missing primary key values");
+        expectedException.expectMessage("Primary key value must not be NULL");
         analyze("INSERT INTO generated_pk_column (serial_no) values (1)");
     }
 
