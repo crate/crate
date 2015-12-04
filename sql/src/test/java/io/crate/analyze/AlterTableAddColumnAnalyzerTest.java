@@ -27,6 +27,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.ParsingException;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
@@ -69,6 +71,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         modules.add(new MockedClusterServiceModule());
         modules.add(new TestMetaDataModule());
         modules.add(new MetaDataSysModule());
+        modules.add(new ScalarFunctionModule());
         return modules;
     }
 
@@ -290,4 +293,25 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
                 "score={doc_values=true, index=not_analyzed, store=false, type=float}}, store=false, type=object}}, " +
                 "store=false, type=object}}, store=false, type=object}}"));
     }
+
+    @Test
+    public void testAddGeneratedColumn() throws Exception {
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze(
+                "alter table users add column name_generated as concat(name, 'foo')");
+
+        assertThat(analysis.hasNewGeneratedColumns(), is(true));
+        assertThat(analysis.analyzedTableElements().columnIdents(), containsInAnyOrder(
+                new ColumnIdent("name_generated"), new ColumnIdent("id")));
+
+        AnalyzedColumnDefinition nameGeneratedColumn = null;
+        for (AnalyzedColumnDefinition columnDefinition : analysis.analyzedTableElements().columns()) {
+            if (columnDefinition.ident().name().equals("name_generated")) {
+                nameGeneratedColumn = columnDefinition;
+            }
+        }
+        assertNotNull(nameGeneratedColumn);
+        assertThat(nameGeneratedColumn.dataType(), equalTo("string"));
+        assertThat(nameGeneratedColumn.formattedGeneratedExpression(), is("concat(name, 'foo')"));
+    }
+
 }
