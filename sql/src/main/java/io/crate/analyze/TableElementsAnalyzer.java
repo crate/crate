@@ -105,7 +105,6 @@ public class TableElementsAnalyzer {
             assert context.analyzedTableElements.columns().size() == 0;
 
             AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
-            root.dataType(DataTypes.OBJECT.getName());
             if (!ident.path().isEmpty()) {
                 AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition leaf = parent;
@@ -126,8 +125,8 @@ public class TableElementsAnalyzer {
             if (node.type() != null) {
                 process(node.type(), context);
             }
-            if (node.generatedExpression() !=null) {
-                throw new UnsupportedOperationException("Adding a generated column is not supported");
+            if (node.generatedExpression() != null) {
+                context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
             }
 
             context.analyzedColumnDefinition = root;

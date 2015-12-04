@@ -84,6 +84,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
             numCurrentPks -= 1;
         }
         statement.newPrimaryKeys(statement.analyzedTableElements().primaryKeys().size() > numCurrentPks);
+        statement.hasNewGeneratedColumns(statement.analyzedTableElements().hasGeneratedColumns());
         return statement;
     }
 

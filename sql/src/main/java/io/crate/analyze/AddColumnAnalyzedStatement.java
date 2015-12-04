@@ -31,6 +31,7 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private DocTableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
+    private boolean hasNewGeneratedColumns = false;
 
     protected AddColumnAnalyzedStatement(Schemas schemas) {
         this.schemas = schemas;
@@ -63,5 +64,13 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public boolean newPrimaryKeys() {
         return this.newPrimaryKeys;
+    }
+
+    public void hasNewGeneratedColumns(boolean hasNewGeneratedColumns) {
+        this.hasNewGeneratedColumns = hasNewGeneratedColumns;
+    }
+
+    public boolean hasNewGeneratedColumns() {
+        return hasNewGeneratedColumns;
     }
 }
