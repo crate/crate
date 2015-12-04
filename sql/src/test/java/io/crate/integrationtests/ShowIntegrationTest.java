@@ -124,6 +124,52 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testShowTable() throws Exception {
+        String tableName = "test";
+        String schemaName = "my";
+        execute(String.format("create table %s.%s (id long, name string)", schemaName, tableName));
+
+        // information_schema and sys are left out
+        execute("show tables");
+        assertRow(tableName);
+
+        execute(String.format("show tables from %s", schemaName));
+        assertRow(tableName);
+
+        execute(String.format("show tables in %s", schemaName));
+        assertRow(tableName);
+
+        execute(String.format("show tables from %s like 'hello'", schemaName));
+        assertEquals(0, response.rowCount());
+
+        execute(String.format("show tables from %s like '%%'" , schemaName));
+        assertRow(tableName);
+
+        execute("show tables like '%es%'");
+        assertRow(tableName);
+
+        execute("show tables like '%'");
+        assertRow(tableName);
+
+        execute(String.format("show tables where table_name = '%s'", tableName));
+        assertRow(tableName);
+
+        execute("show tables where table_name like '%es%'");
+        assertRow(tableName);
+
+        execute(String.format("show tables from %s where table_name like '%%es%%'", schemaName));
+        assertRow(tableName);
+
+        execute(String.format("show tables in %s where table_name like '%%es%%'", schemaName));
+        assertRow(tableName);
+
+        execute(String.format("show tables from %s where table_name = 'hello'", schemaName));
+        assertEquals(0, response.rowCount());
+
+    }
+
+
+    @Test
     public void testShowCreateTableIndexes() throws Exception {
         execute("create table test (" +
                 " col_a string index off," +
@@ -141,6 +187,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "   \"col_b\" STRING,\n" +
                 "   \"col_c\" STRING INDEX USING FULLTEXT WITH (\n" +
                 "      analyzer = 'standard'\n" +
+
                 "   ),\n" +
                 "   \"col_d\" STRING INDEX USING FULLTEXT WITH (\n" +
                 "      analyzer = 'english'\n" +

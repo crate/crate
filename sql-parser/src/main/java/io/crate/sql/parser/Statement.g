@@ -72,6 +72,8 @@ tokens {
     NEGATIVE;
     QNAME;
     SHOW_TABLES;
+    SHOW_TABLES_WHERE;
+    SHOW_TABLES_LIKE;
     SHOW_SCHEMAS;
     SHOW_CATALOGS;
     SHOW_COLUMNS;
@@ -197,8 +199,8 @@ singleExpression
 statement
     : query
     | explainStmt
-//    | showTablesStmt
     | showSchemasStmt
+    | showTablesStmt
 //    | showCatalogsStmt
      | showColumnsStmt
 //    | showPartitionsStmt
@@ -659,11 +661,9 @@ explainOption
     ;
 
 showTablesStmt
-    : SHOW TABLES from=showTablesFrom? like=showTablesLike? -> ^(SHOW_TABLES $from? $like?)
-    ;
-
-showTablesFrom
-    : (FROM | IN) qname -> ^(FROM qname)
+    : SHOW TABLES (( FROM | IN ) qname)?                    -> ^(SHOW_TABLES qname?)
+    | SHOW TABLES (( FROM | IN ) qname)? whereClause        -> ^(SHOW_TABLES_WHERE qname? whereClause)
+    | SHOW TABLES (( FROM | IN ) qname)? showTablesLike     -> ^(SHOW_TABLES_LIKE qname? showTablesLike)
     ;
 
 showTablesLike

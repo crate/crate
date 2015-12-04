@@ -217,8 +217,13 @@ public class SQLPrinter {
         @Override
         public Void visitFunction(Function symbol, Context context) {
 
-            if (symbol.info().ident().name().startsWith("op_")) {
-                if (symbol.arguments().size() == 1) {
+            if (symbol.info().ident().name().startsWith("op_not")) {
+                sb.append(symbol.info().ident().name().substring(3));
+                sb.append(' ');
+                process(symbol.arguments().get(0), context);
+                sb.append(' ');
+            } else if (symbol.info().ident().name().startsWith("op_")) {
+                 if (symbol.arguments().size() == 1) {
                     sb.append(symbol.info().ident().name().substring(3));
                     sb.append('(');
                     process(symbol.arguments().get(0), context);

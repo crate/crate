@@ -37,7 +37,9 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -49,6 +51,9 @@ import static org.mockito.Mockito.when;
 public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     public static final TableIdent SCHEMATA = new TableIdent(InformationSchemaInfo.NAME, "schemata");
     public static final TableInfo SCHEMATA_INFO = new TestingTableInfo.Builder(
             SCHEMATA, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
@@ -59,6 +64,13 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
     public static final TableInfo COLUMNS_INFO = new TestingTableInfo.Builder(
             COLUMNS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("column_name", DataTypes.STRING, null)
+            .add("schema_name", DataTypes.STRING, null)
+            .add("table_name", DataTypes.STRING, null)
+            .build();
+
+    public static final TableIdent TABLES = new TableIdent(InformationSchemaInfo.NAME, "tables");
+    public static final TableInfo TABLES_INFO = new TestingTableInfo.Builder(
+            TABLES, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("table_name", DataTypes.STRING, null)
             .add("schema_name", DataTypes.STRING, null)
             .build();
@@ -73,6 +85,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
             .build();
 
 
+
     static class TestMetaDataModule extends MetaDataModule {
 
         @Override
@@ -82,6 +95,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(SCHEMATA.name())).thenReturn(SCHEMATA_INFO);
             when(schemaInfo.getTableInfo(COLUMNS.name())).thenReturn(COLUMNS_INFO);
             when(schemaInfo.getTableInfo(CONSTRAINTS.name())).thenReturn(CONSTRAINTS_INFO);
+            when(schemaInfo.getTableInfo(TABLES.name())).thenReturn(TABLES_INFO);
             schemaBinder.addBinding(InformationSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -98,6 +112,64 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testVisitShowTablesSchema() throws Exception {
+
+        SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE information_schema.tables.schema_name = 'qname' " +
+                "ORDER BY information_schema.tables.table_name"));
+
+        analyzedStatement = analyze("show tables");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE not information_schema.tables.schema_name = ANY(['information_schema', 'sys'])   " +
+                "ORDER BY information_schema.tables.table_name"));
+    }
+
+    @Test
+    public void testVisitShowTablesLike() throws Exception {
+
+        SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME like 'likePattern'");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE information_schema.tables.schema_name = 'qname' and information_schema.tables.table_name like 'likePattern' " +
+                "ORDER BY information_schema.tables.table_name"));
+
+        analyzedStatement = analyze("show tables like '%'");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE not information_schema.tables.schema_name = ANY(['information_schema', 'sys'])   " +
+                "and information_schema.tables.table_name like '%' " +
+                "ORDER BY information_schema.tables.table_name"));
+    }
+
+    @Test
+    public void testVisitShowTablesWhere() throws Exception {
+
+        SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE information_schema.tables.schema_name = 'qname' " +
+                "and information_schema.tables.table_name = 'foo' or information_schema.tables.table_name like '%bar%' " +
+                "ORDER BY information_schema.tables.table_name"));
+
+        analyzedStatement = analyze("show tables where table_name like '%'");
+
+        assertThat(analyzedStatement.relation().querySpec(), TestingHelpers.isSQL(
+                "SELECT information_schema.tables.table_name " +
+                "WHERE not information_schema.tables.schema_name = ANY(['information_schema', 'sys'])   " +
+                "and information_schema.tables.table_name like '%' " +
+                "ORDER BY information_schema.tables.table_name"));
+    }
+
+
+    @Test
     public void testShowSchemasLike() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show schemas like '%'");
 
@@ -107,6 +179,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                                                    "ORDER BY information_schema.schemata.schema_name"));
     }
 
+    @Test
     public void testShowSchemasWhere() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show schemas where schema_name = 'doc'");
 
@@ -116,6 +189,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                                                    "ORDER BY information_schema.schemata.schema_name"));
     }
 
+    @Test
     public void testShowSchemas() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show schemas");
 

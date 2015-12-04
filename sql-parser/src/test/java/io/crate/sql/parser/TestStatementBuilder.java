@@ -259,6 +259,17 @@ public class TestStatementBuilder
         printStatement("show columns in table_name from schema_name like '*'");
         printStatement("show columns from table_name where column_name = 'foo'");
         printStatement("show columns from table_name from schema_name where column_name = 'foo'");
+        printStatement("show tables");
+        printStatement("show tables like '.*'");
+        printStatement("show tables from schema_name");
+        printStatement("show tables in schema_name");
+        printStatement("show tables from foo like '.*'");
+        printStatement("show tables in foo like '.*'");
+        printStatement("show tables from schema_name like '.*'");
+        printStatement("show tables in schema_name like '*'");
+        printStatement("show tables from schema_name where table_name = 'foo'");
+        printStatement("show tables in schema_name where table_name = 'foo'");
+
     }
 
     @Test

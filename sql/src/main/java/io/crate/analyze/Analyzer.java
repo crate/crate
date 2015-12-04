@@ -169,6 +169,10 @@ public class Analyzer {
             return showStatementAnalyzer.analyze(node, analysis);
         }
 
+        public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
+            return showStatementAnalyzer.analyze(node, analysis);
+        }
+
         @Override
         protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
             return showStatementAnalyzer.analyze(node, context);
