@@ -44,7 +44,7 @@ public class Analyzer {
 
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
-        private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
+        private final ShowStatementAnalyzer showStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
         private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
         private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
@@ -69,7 +69,7 @@ public class Analyzer {
         public AnalyzerDispatcher(SelectStatementAnalyzer selectStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
-                                  ShowCreateTableAnalyzer showCreateTableAnalyzer,
+                                  ShowStatementAnalyzer showCreateTableAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
                                   CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                                   DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
@@ -90,7 +90,7 @@ public class Analyzer {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
-            this.showCreateTableAnalyzer = showCreateTableAnalyzer;
+            this.showStatementAnalyzer = showCreateTableAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
             this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
             this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
@@ -156,10 +156,7 @@ public class Analyzer {
         }
 
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-            ShowCreateTableAnalyzedStatement showCreateTableStatement =
-                    showCreateTableAnalyzer.analyze(node.table(), analysis.parameterContext().defaultSchema());
-            analysis.rootRelation(showCreateTableStatement);
-            return showCreateTableStatement;
+            return showStatementAnalyzer.process(node, analysis);
         }
 
         @Override
