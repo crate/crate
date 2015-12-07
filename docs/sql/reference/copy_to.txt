@@ -74,16 +74,8 @@ Parameters
 WHERE Clause
 ------------
 
-The optional WHERE clause defines the condition to be met for a row to
-be exported::
-
-    WHERE condition
-
-:condition: a where condition is any expression that evaluates to a
-  result of type boolean. Any row that does not satisfy this condition
-  will be eliminated from the output. A row satisfies the condition if
-  it returns true when the actual row values are substituted for any
-  variable references.
+`WHERE` clauses follow the same syntax as used in `SELECT` statements (see
+:ref:`sql_dql_where_clause` for more information).
 
 
 Output URI
