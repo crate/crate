@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
@@ -220,7 +221,7 @@ public class AnalyzedTableElements {
             Preconditions.checkArgument(valueType.isConvertableTo(definedType),
                     "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
-            Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Collections.singletonList(function));
+            Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Lists.newArrayList(function));
             formattedExpression = symbolFormatter.format(castFunction, SymbolFormatter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         } else {
             columnDefinition.dataType(function.valueType().getName());
