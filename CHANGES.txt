@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed an issue which caused dangling readers after executing a self-join
+
  - Added ``char_length``, ``bit_length`` and ``octet_length`` scalar
    functions.
 

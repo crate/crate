@@ -281,6 +281,15 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelfJoin() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1)");
+        execute("refresh table t");
+        execute("select * from t as t1, t as t2");
+    }
+
+    @Test
     public void testFilteredSelfJoin() throws Exception {
         execute("create table employees (salary float, name string)");
         ensureYellow();

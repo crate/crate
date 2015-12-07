@@ -96,15 +96,17 @@ public class FetchContext extends AbstractExecutionSubContext {
                 for (Integer shard : indexShardsEntry.getValue()) {
                     ShardId shardId = new ShardId(index, shard);
                     int readerId = base + shardId.id();
-                    SharedShardContext shardContext = sharedShardContexts.createContext(shardId, readerId);
-                    shardContexts.put(readerId, shardContext);
-
-                    if (tablesWithFetchRefs.contains(ident)) {
-                        try {
-                            searchers.put(readerId, shardContext.searcher());
-                        } catch (IndexMissingException e) {
-                            if (!PartitionName.isPartition(index)) {
-                                throw new TableUnknownException(index, e);
+                    SharedShardContext shardContext = shardContexts.get(readerId);
+                    if (shardContext == null) {
+                        shardContext = sharedShardContexts.createContext(shardId, readerId);
+                        shardContexts.put(readerId, shardContext);
+                        if (tablesWithFetchRefs.contains(ident)) {
+                            try {
+                                searchers.put(readerId, shardContext.searcher());
+                            } catch (IndexMissingException e) {
+                                if (!PartitionName.isPartition(index)) {
+                                    throw new TableUnknownException(index, e);
+                                }
                             }
                         }
                     }
