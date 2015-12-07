@@ -170,10 +170,11 @@ public class AnalyzedTableElements {
     }
 
     public void finalizeAndValidate(TableIdent tableIdent,
+                                    @Nullable TableInfo tableInfo,
                                     AnalysisMetaData analysisMetaData,
                                     ParameterContext parameterContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, analysisMetaData, parameterContext);
+        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -183,17 +184,16 @@ public class AnalyzedTableElements {
     }
 
     private void validateGeneratedColumns(TableIdent tableIdent,
+                                          @Nullable TableInfo tableInfo,
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext) {
         List<ReferenceInfo> tableReferenceInfos = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReferenceInfo(tableIdent, columnDefinition, tableReferenceInfos);
         }
-        try {
-            TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(tableIdent);
+        if (tableInfo != null) {
+            // add existing references
             tableReferenceInfos.addAll(tableInfo.columns());
-        } catch (Exception e) {
-            // table does not exists yet, no more references to add
         }
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
