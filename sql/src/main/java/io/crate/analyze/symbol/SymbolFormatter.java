@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.Constants.Strings.*;
+import static io.crate.analyze.symbol.SymbolFormatter.Strings.*;
 
 @Singleton
 public class SymbolFormatter extends SymbolVisitor<SymbolFormatter.Context, Void> {
@@ -416,5 +416,15 @@ public class SymbolFormatter extends SymbolVisitor<SymbolFormatter.Context, Void
         public String visitQueriedTable(QueriedTable table, Void context) {
             return table.tableRelation().tableInfo().ident().sqlFqn();
         }
+    }
+
+    public static class Strings {
+        public static final String PAREN_OPEN = "(";
+        public static final String PAREN_CLOSE = ")";
+        public static final String COMMA = ",";
+        public static final String ELLIPSIS = "...";
+        public static final String NULL_LOWER = "null";
+        public static final String WS = " ";
+        public static final String DOT = ".";
     }
 }

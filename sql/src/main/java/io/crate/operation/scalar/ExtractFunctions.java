@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -144,7 +143,7 @@ public class ExtractFunctions {
 
         @Override
         public String afterArgs(Function function) {
-            return Constants.Strings.PAREN_CLOSE;
+            return SymbolFormatter.Strings.PAREN_CLOSE;
         }
     }
 

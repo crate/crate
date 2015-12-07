@@ -39,8 +39,8 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.Constants.Strings.PAREN_CLOSE;
-import static io.crate.Constants.Strings.PAREN_OPEN;
+import static io.crate.analyze.symbol.SymbolFormatter.Strings.PAREN_CLOSE;
+import static io.crate.analyze.symbol.SymbolFormatter.Strings.PAREN_OPEN;
 
 public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> implements SymbolFormatter.FunctionFormatter {
 
