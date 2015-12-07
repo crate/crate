@@ -135,11 +135,9 @@ Help & Contact
 ==============
 
 Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to to contact us via Gitter.
+to help you. So, feel free to to contact us on our public room in HipChat_.
 
-.. image:: https://badges.gitter.im/Join%20Chat.svg
-  :alt: Join the chat at https://gitter.im/crate/crate
-  :target: https://gitter.im/crate/crate?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+.. _HipChat: https://www.hipchat.com/g7Pc2CYwi
   
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.

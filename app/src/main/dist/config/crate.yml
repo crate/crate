@@ -8,8 +8,8 @@
 # As mentioned before, you can use Crate right away. For fine-tuning consider
 # to configure Crate as you need or want it to behave.
 # Use this file to fine-tune your Crate cluster. If you have any questions
-# you are very welcome to conact us on our IRC channel #crate
-# (irc.freenode.net).
+# you are very welcome to conact us on our public room on HipChat
+# (https://www.hipchat.com/g7Pc2CYwi).
 
 # Any element in the configuration can be replaced with environment variables
 # by placing them in ${...} notation. For example:
