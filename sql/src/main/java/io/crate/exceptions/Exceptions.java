@@ -39,17 +39,18 @@ public class Exceptions {
                 result instanceof UncheckedExecutionException ||
                 result instanceof UncategorizedExecutionException ||
                 result instanceof ExecutionException) {
-            if (result.getCause() == null) {
+            Throwable cause = result.getCause();
+            if (cause == null) {
                 return result;
             }
-            if (result.getCause() == result) {
+            if (cause == result) {
                 return result;
             }
             if (counter > 10) {
                 return result;
             }
             counter++;
-            result = result.getCause();
+            result = cause;
         }
         return result;
     }
