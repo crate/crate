@@ -24,9 +24,11 @@ package io.crate.analyze;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
@@ -143,6 +145,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                 analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
+                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
+
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
                 analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
@@ -153,7 +158,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                     (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
             assert columnName != null;
 
-            Symbol assignmentExpression = expressionAnalyzer.normalizeInputForReference(
+            Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     columnName,
                     expressionAnalysisContext);

@@ -34,13 +34,12 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyEqOperator;
@@ -90,7 +89,6 @@ public class ExpressionAnalyzer {
     private final EvaluatingNormalizer normalizer;
     private final FieldProvider<?> fieldProvider;
     private final Functions functions;
-    private final Schemas schemas;
     private final ParameterContext parameterContext;
     protected InnerExpressionAnalyzer innerAnalyzer;
     private boolean forWrite = false;
@@ -99,12 +97,10 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(Functions functions,
                               ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
-                              @Nullable Schemas schemas,
                               ParameterContext parameterContext,
                               FieldProvider<?> fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
-        this.schemas = schemas;
         this.parameterContext = parameterContext;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
@@ -116,13 +112,8 @@ public class ExpressionAnalyzer {
                               ParameterContext parameterContext,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
-        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(), analysisMetaData.schemas(),
+        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(),
                 parameterContext, fieldProvider, fieldResolver);
-    }
-
-    private Schemas schemas() {
-        assert schemas != null : "schemas needed, must not be null";
-        return schemas;
     }
 
     @Nullable
@@ -169,91 +160,7 @@ public class ExpressionAnalyzer {
         return functions.getSafe(ident).info();
     }
 
-    /**
-     * normalize and validate given value according to the corresponding {@link io.crate.analyze.symbol.Reference}
-     *
-     * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.analyze.symbol.Literal}
-     * @param reference   the reference to which the value has to comply in terms of type-compatibility
-     * @return the normalized Symbol, should be a literal
-     * @throws io.crate.exceptions.ColumnValidationException
-     */
-    public Symbol normalizeInputForReference(
-            Symbol valueSymbol, Reference reference, ExpressionAnalysisContext context) {
 
-        Literal literal = null;
-        try {
-            valueSymbol = normalizer.normalize(valueSymbol);
-            assert valueSymbol != null : "valueSymbol must not be null";
-            if (valueSymbol.symbolType() != SymbolType.LITERAL) {
-                DataType targetType = reference.valueType();
-                if (reference instanceof DynamicReference) {
-                    targetType = valueSymbol.valueType();
-                }
-                return castIfNeededOrFail(valueSymbol, targetType, context);
-            }
-            literal = (Literal) valueSymbol;
-
-            if (reference instanceof DynamicReference) {
-                DataType<?> dataType = literal.valueType();
-                if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
-                    validateInputType(dataType, reference.info().ident().columnIdent());
-                }
-                ((DynamicReference) reference).valueType(dataType);
-            } else {
-                validateInputType(literal.valueType(), reference.info().ident().columnIdent());
-                literal = Literal.convert(literal, reference.valueType());
-            }
-        } catch (ConversionException e) {
-            throw new ColumnValidationException(
-                    reference.info().ident().columnIdent().name(),
-                    String.format("%s can not be cast to \'%s\'", SymbolFormatter.INSTANCE.formatSimple(valueSymbol),
-                            reference.valueType().getName()));
-        }
-
-        try {
-            // 3. if reference is of type object - do special validation
-            if (reference.info().type() == DataTypes.OBJECT) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> value = (Map<String, Object>) literal.value();
-                if (value == null) {
-                    return Literal.NULL;
-                }
-                literal = Literal.newLiteral(normalizeObjectValue(value, reference.info(), true));
-            } else if (isObjectArray(reference.info().type())) {
-                Object[] value = (Object[]) literal.value();
-                if (value == null) {
-                    return Literal.NULL;
-                }
-                literal = Literal.newLiteral(
-                        reference.info().type(),
-                        normalizeObjectArrayValue(value, reference.info(), true)
-                );
-            }
-        } catch (ConversionException e) {
-            throw new ColumnValidationException(
-                    reference.info().ident().columnIdent().name(),
-                    SymbolFormatter.INSTANCE.formatTmpl(
-                            "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
-                            literal,
-                            reference
-                    ));
-        }
-        return literal;
-    }
-
-    /**
-     * validate input types to not be nested arrays/collection types
-     *
-     * @throws ColumnValidationException if input type is a nested array type
-     */
-    private void validateInputType(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
-        if (dataType != null
-                && DataTypes.isCollectionType(dataType)
-                && DataTypes.isCollectionType(((CollectionType) dataType).innerType())) {
-            throw new ColumnValidationException(columnIdent.sqlFqn(),
-                    String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
-        }
-    }
 
 
     /**
@@ -272,72 +179,6 @@ public class ExpressionAnalyzer {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
-        for (Map.Entry<String, Object> entry : value.entrySet()) {
-            ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
-            TableInfo tableInfo = schemas().getTableInfo(info.ident().tableIdent());
-            ReferenceInfo nestedInfo = tableInfo.getReferenceInfo(nestedIdent);
-            if (nestedInfo == null) {
-                if (info.columnPolicy() == ColumnPolicy.IGNORED) {
-                    continue;
-                }
-                DynamicReference dynamicReference = null;
-                if (tableInfo instanceof DocTableInfo){
-                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, forWrite);
-                }
-                if (dynamicReference == null) {
-                    throw new ColumnUnknownException(nestedIdent.sqlFqn());
-                }
-                DataType type = DataTypes.guessType(entry.getValue(), false);
-                if (type == null) {
-                    throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");
-                }
-                dynamicReference.valueType(type);
-                nestedInfo = dynamicReference.info();
-            } else {
-                if (entry.getValue() == null) {
-                    continue;
-                }
-            }
-            if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
-                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite));
-            } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
-                value.put(entry.getKey(), normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, forWrite));
-            } else {
-                value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
-            }
-        }
-        return value;
-    }
-
-    private boolean isObjectArray(DataType type) {
-        return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
-    }
-
-    private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
-        for (Object arrayItem : value) {
-            Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
-            // return value not used and replaced in value as arrayItem is a map that is mutated
-            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, forWrite);
-        }
-        return value;
-    }
-
-    private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
-        try {
-            if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
-                return primitiveValue;
-            }
-            return info.type().value(primitiveValue);
-        } catch (Exception e) {
-            throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format("Invalid %s",
-                            info.type().getName()
-                    )
-            );
-        }
-    }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
@@ -380,8 +221,7 @@ public class ExpressionAnalyzer {
         forWrite = value;
     }
 
-
-    private static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
+    static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
         DataType sourceType = symbolToCast.valueType();
         if (sourceType.equals(targetType)) {
             return symbolToCast;

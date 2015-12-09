@@ -23,12 +23,10 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
+import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Node;

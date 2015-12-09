@@ -25,6 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
@@ -37,6 +38,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -76,6 +78,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     private final AnalysisMetaData analysisMetaData;
     private final RelationAnalyzer relationAnalyzer;
+    private final ValueNormalizer valueNormalizer;
 
 
     @Inject
@@ -83,6 +86,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                                    RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
+        this.valueNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
+                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
     }
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -172,7 +177,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         Symbol value = expressionAnalyzer.normalize(
                 expressionAnalyzer.convert(node.expression(), expressionAnalysisContext));
         try {
-            value = expressionAnalyzer.normalizeInputForReference(value, reference, expressionAnalysisContext);
+            value = valueNormalizer.normalizeInputForReference(value, reference, expressionAnalysisContext);
             ensureUpdateIsAllowed(tableRelation.tableInfo(), ident, value);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);

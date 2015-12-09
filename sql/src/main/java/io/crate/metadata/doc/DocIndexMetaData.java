@@ -443,7 +443,7 @@ public class DocIndexMetaData {
         Collection<ReferenceInfo> referenceInfos = references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(referenceInfos);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                functions, null, null, ParameterContext.EMPTY, tableReferenceResolver, null);
+                functions, null, ParameterContext.EMPTY, tableReferenceResolver, null);
         ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (ReferenceInfo referenceInfo : generatedColumnReferences) {
             GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;

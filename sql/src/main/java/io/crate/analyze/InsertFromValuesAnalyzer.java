@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
@@ -112,9 +113,12 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
                 statement.columns(), allReferencedReferences);
 
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
+                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                     tableRelation,
+                    valuesNormalizer,
                     expressionAnalyzer,
                     expressionAnalysisContext,
                     valuesResolver,
@@ -154,6 +158,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     private void analyzeValues(DocTableRelation tableRelation,
+                               ValueNormalizer valueNormalizer,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
                                ValuesResolver valuesResolver,
@@ -174,6 +179,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     parameterContext.setBulkIdx(i);
                     addValues(
                             tableRelation,
+                            valueNormalizer,
                             expressionAnalyzer,
                             expressionAnalysisContext,
                             valuesResolver,
@@ -189,6 +195,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             } else {
                 addValues(
                         tableRelation,
+                        valueNormalizer,
                         expressionAnalyzer,
                         expressionAnalysisContext,
                         valuesResolver,
@@ -207,6 +214,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     private void addValues(DocTableRelation tableRelation,
+                           ValueNormalizer valueNormalizer,
                            ExpressionAnalyzer expressionAnalyzer,
                            ExpressionAnalysisContext expressionAnalysisContext,
                            ValuesResolver valuesResolver,
@@ -233,7 +241,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = expressionAnalyzer.normalizeInputForReference(valuesSymbol, column, expressionAnalysisContext);
+                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, expressionAnalysisContext);
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -287,7 +295,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
                 assert columnName != null;
 
-                Symbol assignmentExpression = expressionAnalyzer.normalizeInputForReference(
+                Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
                         valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                         columnName,
                         expressionAnalysisContext);

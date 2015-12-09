@@ -262,7 +262,7 @@ public class TestingTableInfo extends DocTableInfo {
         private void initializeGeneratedExpressions(Functions functions, Collection<ReferenceInfo> columns) {
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                    functions, null, null, null, tableReferenceResolver, null);
+                    functions, null, null, tableReferenceResolver, null);
             for (GeneratedReferenceInfo generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext();
