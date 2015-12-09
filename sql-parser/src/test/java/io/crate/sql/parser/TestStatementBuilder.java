@@ -243,10 +243,22 @@ public class TestStatementBuilder
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
 
         printStatement("show create table foo");
+
         printStatement("show schemas");
         printStatement("show schemas like 'doc%'");
         printStatement("show schemas where schema_name='doc'");
         printStatement("show schemas where schema_name LIKE 'd%'");
+
+        printStatement("show columns from table_name");
+        printStatement("show columns in table_name");
+        printStatement("show columns from table_name from schema_name");
+        printStatement("show columns in table_name from schema_name");
+        printStatement("show columns in foo like '*'");
+        printStatement("show columns from foo like '*'");
+        printStatement("show columns from table_name from schema_name like '*'");
+        printStatement("show columns in table_name from schema_name like '*'");
+        printStatement("show columns from table_name where column_name = 'foo'");
+        printStatement("show columns from table_name from schema_name where column_name = 'foo'");
     }
 
     @Test

@@ -601,7 +601,17 @@ showCatalogs returns [Statement value]
     ;
 
 showColumns returns [Statement value]
-    : ^(SHOW_COLUMNS qname) { $value = new ShowColumns($qname.value); }
+    : ^(SHOW_COLUMNS qname from=showColumnsFrom? like=showColumnsLike?) { $value = new ShowColumns($qname.value, $from.value, $like.value); }
+    | ^(SHOW_COLUMNS qname from=showColumnsFrom? where=whereClause) { $value = new ShowColumns($qname.value, $from.value, $where.value); }
+    ;
+
+showColumnsLike returns [String value]
+    : ^(LIKE string) { $value = $string.value; }
+    ;
+
+showColumnsFrom returns [QualifiedName value]
+    : ^(FROM qname) { $value = $qname.value; }
+    | ^(IN qname) { $value = $qname.value; }
     ;
 
 showPartitions returns [Statement value]

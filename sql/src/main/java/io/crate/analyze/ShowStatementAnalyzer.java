@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
@@ -62,4 +63,39 @@ public class ShowStatementAnalyzer {
         return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
     }
 
+    public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
+        /**
+         * <code>
+         *     SHOW COLUMNS {FROM | IN} table [{FROM | IN} schema] [LIKE 'pattern' | WHERE expr];
+         * </code>
+         * needs to be rewritten to select query:
+         * <code>
+         * SELECT column_name, data_type, column_name = ANY (constraint_name) as primary_key
+         * FROM information_schema.columns cl INNER JOIN information_schema.table_constraints cn
+         * ON cl.table_name = cn.table_name AND cl.schema_name = cn.schema_name AND
+         * cl.schema_name = {'doc' | ['%s'] }
+         * [ AND WHERE cl.table_name LIKE '%s' | column_name LIKE '%s']
+         * ORDER BY column_name;
+         * </code>
+         */
+        StringBuilder sb =
+                new StringBuilder(
+                        "SELECT column_name, data_type, column_name = ANY (constraint_name) as primary_key " +
+                        "FROM information_schema.columns cl INNER JOIN information_schema.table_constraints cn " +
+                        "ON cl.table_name = cn.table_name AND cl.schema_name = cn.schema_name ");
+        sb.append(String.format("WHERE cl.table_name = '%s' ", node.table().toString()));
+        if (node.schema().isPresent()) {
+            sb.append(String.format("AND cl.schema_name = '%s' ", node.schema().get()));
+        } else {
+            sb.append("AND cl.schema_name = 'doc' ");
+        }
+        if (node.likePattern().isPresent()) {
+            sb.append(String.format("AND column_name LIKE '%s' ", node.likePattern().get()));
+        } else if (node.where().isPresent()) {
+            sb.append(String.format("AND %s", ExpressionFormatter.formatExpression(node.where().get())));
+        }
+        sb.append("ORDER BY column_name");
+        Statement statement = SqlParser.createStatement(sb.toString());
+        return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
+    }
 }

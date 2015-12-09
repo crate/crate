@@ -170,6 +170,11 @@ public class Analyzer {
         }
 
         @Override
+        protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
+            return showStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
         public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
             return createAnalyzerStatementAnalyzer.analyze(node, context);
         }

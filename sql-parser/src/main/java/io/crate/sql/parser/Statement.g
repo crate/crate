@@ -200,7 +200,7 @@ statement
 //    | showTablesStmt
     | showSchemasStmt
 //    | showCatalogsStmt
-//    | showColumnsStmt
+     | showColumnsStmt
 //    | showPartitionsStmt
 //    | showFunctionsStmt
     | showCreateTableStmt
@@ -684,9 +684,12 @@ showCatalogsStmt
     ;
 
 showColumnsStmt
-    : SHOW COLUMNS (FROM | IN) qname -> ^(SHOW_COLUMNS qname)
-    | DESCRIBE qname                 -> ^(SHOW_COLUMNS qname)
-    | DESC qname                     -> ^(SHOW_COLUMNS qname)
+    : SHOW COLUMNS (FROM | IN) qname showColumnsFrom? likeOrWhere? -> ^(SHOW_COLUMNS qname showColumnsFrom? likeOrWhere?)
+    ;
+
+showColumnsFrom
+    : FROM qname -> ^(FROM qname)
+    | IN qname -> ^(IN qname)
     ;
 
 showPartitionsStmt

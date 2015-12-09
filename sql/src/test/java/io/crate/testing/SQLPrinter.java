@@ -231,12 +231,32 @@ public class SQLPrinter {
                     sb.append(" ");
                     process(symbol.arguments().get(1), context);
                 }
+            } else if (symbol.info().ident().name().startsWith("any_")) {
+                assert symbol.arguments().size() == 2;
+                process(symbol.arguments().get(0), context);
+                sb.append(" ");
+                sb.append(symbol.info().ident().name().substring(4));
+                sb.append(" ANY(");
+                process(symbol.arguments().get(1), context);
+                sb.append(") ");
+            } else if (symbol.info().ident().name().startsWith("op_like")) {
+                assert symbol.arguments().size() == 2;
+                process(symbol.arguments().get(0), context);
+                sb.append(" LIKE ");
+                process(symbol.arguments().get(1), context);
+                sb.append(" ");
             } else {
                 sb.append(symbol.info().ident().name());
                 sb.append('(');
                 process(symbol.arguments(), context);
                 sb.append(')');
             }
+            return null;
+        }
+
+        @Override
+        public Void visitLiteral(Literal symbol, Context context) {
+            sb.append(SymbolFormatter.format(symbol));
             return null;
         }
 
