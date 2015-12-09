@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: disabled type detection for timestamps
+
 2015/12/07 0.52.4
 =================
 
