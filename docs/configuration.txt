@@ -1598,23 +1598,29 @@ CRATE_HEAP_SIZE
 ---------------
 
 This variable specifies the amount of memory that can be used by the
-JVM. This should be set to at most 50% of the machine's memory.
-
-Certain operations in Crate require a lot of records to be hold in
-memory at a time. If the amount of heap that can be allocated by the
-JVM is too low these operations would fail with an OutOfMemory exception.
+JVM.
 
 The value of the environment variable can be suffixed with ``g`` or ``m``. For
 example::
 
     CRATE_HEAP_SIZE=4g
 
+Certain operations in Crate require a lot of records to be hold in
+memory at a time. If the amount of heap that can be allocated by the
+JVM is too low these operations would fail with an OutOfMemory exception.
+
+So it's important to choose a value high enough for the intended use-case.
+But there are two limitations:
+
+Use max. 50% of available RAM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Be aware that there is also another user of memory besides Crate's
 HEAP: our underlying storage engine `Lucene`_. It leverages the
 underlying OS for caching in-memory data structures by
-design. `Lucene`_ indexes are split in serveral segement files, every
+design. `Lucene`_ indexes are split in several segment files, every
 file is immutable and will never change. This makes them super
-chache-friendly and the underlying OS will keep hot segements resident
+cache-friendly and the underlying OS will keep hot segments resident
 in memory for faster access. So if all system memory is assigned to
 Crate's HEAP, there won't be any left-over for `Lucene`_ which can
 cause serious performance impacts.
@@ -1625,6 +1631,20 @@ cause serious performance impacts.
    Crate's HEAP while leaving the other 50% free. It will not get
    unused, `Lucene`_ will use whatever is left-over.
 
+Never use more than 30.5 Gigabyte
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to save on precious memory on x64 systems the Hotspot Java Virtual Machine
+uses a technique called `Compressed Ordinary object pointers (oops) <https://wiki.openjdk.java.net/display/HotSpot/CompressedOops>`_:
+
+    Compressed oops represent managed pointers (in many but not all places in the JVM)
+    as 32-bit values which must be scaled by a factor of 8 and added to a 64-bit base address
+    to find the object they refer to. This allows applications to address
+    up to four billion objects (not bytes), or a heap size of up to about 32Gb.
+
+The mentioned heap size of 32Gb does not take additional requirements induced by the garbage collector
+and heap alignment into account. To be safe, it is good practice to configure your heap
+to anything below or equal to 30.5GB.
 
 
 .. _YAML: http://en.wikipedia.org/wiki/YAML
