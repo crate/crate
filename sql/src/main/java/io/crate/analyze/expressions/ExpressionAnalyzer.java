@@ -200,15 +200,11 @@ public class ExpressionAnalyzer {
             literal = (Literal) valueSymbol;
 
             if (reference instanceof DynamicReference) {
+                DataType<?> dataType = literal.valueType();
                 if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
-                    // re-guess without strict to recognize timestamps
-                    DataType<?> dataType = DataTypes.guessType(literal.value(), false);
                     validateInputType(dataType, reference.info().ident().columnIdent());
-                    ((DynamicReference) reference).valueType(dataType);
-                    literal = Literal.convert(literal, dataType); // need to update literal if the type changed
-                } else {
-                    ((DynamicReference) reference).valueType(literal.valueType());
                 }
+                ((DynamicReference) reference).valueType(dataType);
             } else {
                 validateInputType(literal.valueType(), reference.info().ident().columnIdent());
                 literal = Literal.convert(literal, reference.valueType());
