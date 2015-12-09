@@ -69,7 +69,7 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
 
     private Long valueFromString(String s) {
         try {
-            return new Long(s);
+            return Long.valueOf(s);
         } catch (NumberFormatException e) {
             return TimestampFormat.parseTimestampString(s);
         }
