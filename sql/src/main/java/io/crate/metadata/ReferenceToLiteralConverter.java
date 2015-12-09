@@ -22,61 +22,67 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<ReferenceToLiteralConverter.Context> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ReferenceToLiteralConverter.class);
-
     public static class Context {
-        private final List<Reference> references;
-        private final Object[] values;
+        private final Map<ReferenceInfo, InputColumn> referenceInfoInputColumnMap;
+        private final BitSet inputIsMap;
+        private Object[] values;
 
-        public Context(List<Reference> references, Object[] values) {
-            this.references = references;
+        public Context(List<Reference> insertColumns, Collection<ReferenceInfo> allReferencedReferences) {
+            referenceInfoInputColumnMap = new HashMap<>(allReferencedReferences.size());
+            inputIsMap = new BitSet(insertColumns.size());
+            for (ReferenceInfo referenceInfo : allReferencedReferences) {
+                int idx = 0;
+                for (Reference reference : insertColumns) {
+                    if (reference.info().equals(referenceInfo)) {
+                        referenceInfoInputColumnMap.put(referenceInfo, new InputColumn(idx, referenceInfo.type()));
+                        inputIsMap.set(idx, false);
+                        break;
+                    } else if (referenceInfo.ident().columnIdent().isChildOf(reference.ident().columnIdent())) {
+                        referenceInfoInputColumnMap.put(referenceInfo, new InputColumn(idx, referenceInfo.type()));
+                        inputIsMap.set(idx, true);
+                        break;
+                    }
+                    idx++;
+                }
+            }
+        }
+
+        public void values(Object[] values) {
             this.values = values;
         }
 
+
         public Symbol resolveReferenceValue(Reference reference) {
-            for (int i = 0; i < references.size(); i++) {
-                Reference definedReference = references.get(i);
-                DataType dataType = null;
-                Object value = null;
-                ColumnIdent columnIdent = reference.ident().columnIdent();
-                List<String> path = columnIdent.path();
-                if (definedReference.ident().columnIdent().equals(columnIdent)) {
-                    dataType = reference.valueType();
-                    value = values[i];
-                } else if (definedReference.valueType().id() == ObjectType.ID
-                           && path != null
-                           && definedReference.ident().columnIdent().name().equals(columnIdent.name())) {
-                    dataType = reference.valueType();
-                    try {
-                        int idx = 0;
-                        value = ((Map) values[i]).get(path.get(idx++));
-                        while (idx < path.size()) {
-                            value = ((Map) value).get(path.get(idx));
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Exception occurred while resolving referenced column value", e);
-                        break;
-                    }
-                }
+            assert values != null : "values must be set first";
 
-                if (dataType != null) {
-                    return Literal.newLiteral(dataType, dataType.value(value));
+            InputColumn inputColumn = referenceInfoInputColumnMap.get(reference.info());
+            if (inputColumn != null) {
+                assert inputColumn.valueType() != null : "expects dataType to be set on InputColumn";
+                DataType dataType = inputColumn.valueType();
+                Object value;
+                if (inputIsMap.get(inputColumn.index())) {
+                    ColumnIdent columnIdent = reference.ident().columnIdent().shiftRight();
+                    assert columnIdent != null : "shifted ColumnIdent must not be null";
+
+                    //noinspection unchecked
+                    value = XContentMapValues.extractValue(
+                            columnIdent.fqn(), (Map) values[inputColumn.index()]);
+                } else {
+                    value = values[inputColumn.index()];
                 }
+                return Literal.newLiteral(dataType, dataType.value(value));
             }
-
 
             DataType dataType = reference.valueType();
             return Literal.newLiteral(dataType, dataType.value(null));
