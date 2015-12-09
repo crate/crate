@@ -96,6 +96,6 @@ public class ShowTables
     }
 
     public Optional<Expression> whereExpression() {
-        return this.whereExpression;
+        return whereExpression;
     }
 }
