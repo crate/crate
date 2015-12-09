@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added filtering support to ``COPY TO`` statement
+
  - Fix: disabled type detection for timestamps
 
  - Added support for ``Generated columns`` (Feature T175 ANSI SQL:2006)
