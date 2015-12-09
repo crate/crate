@@ -83,12 +83,9 @@ public class ValueNormalizer {
         try {
             if (targetType == DataTypes.OBJECT) {
                 //noinspection unchecked
-                literal = Literal.newLiteral(normalizeObjectValue((Map) value, reference.info(), true));
+                normalizeObjectValue((Map) value, reference.info(), true);
             } else if (isObjectArray(targetType)) {
-                literal = Literal.newLiteral(
-                        reference.info().type(),
-                        normalizeObjectArrayValue((Object[]) value, reference.info(), true)
-                );
+                normalizeObjectArrayValue((Object[]) value, reference.info(), true);
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
@@ -129,7 +126,7 @@ public class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
+    private void normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
@@ -157,27 +154,25 @@ public class ValueNormalizer {
                 }
             }
             if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
-                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite));
+                normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite);
             } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
-                value.put(entry.getKey(), normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, forWrite));
+                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, forWrite);
             } else {
-                value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
+                entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
         }
-        return value;
     }
 
     private boolean isObjectArray(DataType type) {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
+    private void normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
             // return value not used and replaced in value as arrayItem is a map that is mutated
             normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, forWrite);
         }
-        return value;
     }
 
     private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
