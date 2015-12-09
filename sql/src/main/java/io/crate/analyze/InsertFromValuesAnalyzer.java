@@ -241,7 +241,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, expressionAnalysisContext);
+                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column);
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -297,8 +297,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
                 Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
                         valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                        columnName,
-                        expressionAnalysisContext);
+                        columnName);
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
                 onDupKeyAssignments[i] = assignmentExpression;
 

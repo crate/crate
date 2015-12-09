@@ -57,15 +57,14 @@ public class ValueNormalizer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Symbol normalizeInputForReference(
-            Symbol valueSymbol, Reference reference, ExpressionAnalysisContext context) {
+    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
 
         valueSymbol = normalizer.normalize(valueSymbol);
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
         if (!(valueSymbol instanceof Literal)) {
-            return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType, context);
+            return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType);
         }
         Literal literal = (Literal) valueSymbol;
         raiseIfNestedArray(literal.valueType(), reference.info().ident().columnIdent());

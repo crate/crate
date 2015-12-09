@@ -160,8 +160,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
             Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                    columnName,
-                    expressionAnalysisContext);
+                    columnName);
 
             UpdateStatementAnalyzer.ensureUpdateIsAllowed(
                     tableRelation.tableInfo(), columnName.ident().columnIdent(), assignmentExpression);

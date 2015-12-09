@@ -221,7 +221,7 @@ public class ExpressionAnalyzer {
         forWrite = value;
     }
 
-    static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType, ExpressionAnalysisContext context) {
+    static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
         DataType sourceType = symbolToCast.valueType();
         if (sourceType.equals(targetType)) {
             return symbolToCast;
@@ -230,7 +230,7 @@ public class ExpressionAnalyzer {
             // cast further below doesn't always fail because it might be lazy as it wraps functions/references inside a cast function.
             // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
             try {
-                return cast(symbolToCast, targetType, context, false);
+                return cast(symbolToCast, targetType, false);
             } catch (ConversionException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
                 throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
@@ -241,13 +241,13 @@ public class ExpressionAnalyzer {
                 SymbolFormatter.INSTANCE.formatSimple(symbolToCast), targetType.getName()));
     }
 
-    private static Symbol cast(Symbol sourceSymbol, DataType targetType, ExpressionAnalysisContext context,
-                               boolean tryCast) {
+    private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
         if (sourceSymbol.symbolType().isValueSymbol()) {
             return Literal.convert(sourceSymbol, targetType);
         }
         FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType, tryCast);
-        return context.allocateFunction(functionInfo, Arrays.asList(sourceSymbol));
+        //noinspection ArraysAsListWithZeroOrOneArgument  Function needs mutable arguments
+        return new Function(functionInfo, Arrays.asList(sourceSymbol));
     }
 
     @Nullable
@@ -309,7 +309,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
-            return cast(process(node.getExpression(), context), returnType, context, false);
+            return cast(process(node.getExpression(), context), returnType, false);
         }
 
         @Override
@@ -318,7 +318,7 @@ public class ExpressionAnalyzer {
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
-                    return cast(process(node.getExpression(), context), returnType, context, true);
+                    return cast(process(node.getExpression(), context), returnType, true);
                 } catch (ConversionException e) {
                     return Literal.NULL;
                 }
@@ -330,7 +330,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
             Symbol expression = process(node.getExpression(), context);
-            expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP, context);
+            expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
             return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
         }
 
@@ -501,7 +501,7 @@ public class ExpressionAnalyzer {
             if (left.valueType().equals(DataTypes.UNDEFINED) || right.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
-            Comparison comparison = new Comparison(context, node.getType(), left, right);
+            Comparison comparison = new Comparison(node.getType(), left, right);
             comparison.normalize(context);
             FunctionInfo info = getFunctionInfo(comparison.toFunctionIdent());
             return context.allocateFunction(info, comparison.arguments());
@@ -596,8 +596,8 @@ public class ExpressionAnalyzer {
             if (expression.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
-            expression = castIfNeededOrFail(expression, DataTypes.STRING, context);
-            Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING, context));
+            expression = castIfNeededOrFail(expression, DataTypes.STRING);
+            Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING));
             assert pattern != null : "pattern must not be null";
             if (!pattern.symbolType().isValueSymbol()) {
                 throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
@@ -787,7 +787,6 @@ public class ExpressionAnalyzer {
                 ComparisonExpression.Type.REGEX_NO_MATCH,
                 ComparisonExpression.Type.REGEX_NO_MATCH_CI,
                 ComparisonExpression.Type.NOT_EQUAL);
-        private final ExpressionAnalysisContext expressionAnalysisContext;
 
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
@@ -797,11 +796,9 @@ public class ExpressionAnalyzer {
         private String operatorName;
         private FunctionIdent functionIdent = null;
 
-        private Comparison(ExpressionAnalysisContext expressionAnalysisContext,
-                           ComparisonExpression.Type comparisonExpressionType,
+        private Comparison(ComparisonExpression.Type comparisonExpressionType,
                            Symbol left,
                            Symbol right) {
-            this.expressionAnalysisContext = expressionAnalysisContext;
             this.operatorName = "op_" + comparisonExpressionType.getValue();
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
@@ -839,7 +836,7 @@ public class ExpressionAnalyzer {
         }
 
         private void castTypes() {
-            right = castIfNeededOrFail(right, leftType, expressionAnalysisContext);
+            right = castIfNeededOrFail(right, leftType);
             rightType = leftType;
         }
 
