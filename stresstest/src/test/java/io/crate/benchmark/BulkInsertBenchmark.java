@@ -63,7 +63,7 @@ public class BulkInsertBenchmark extends BenchmarkBase {
         return new SQLRequest(BULK_INSERT_SQL_STMT, bulkObjects);
     }
 
-    private SQLBulkRequest getBulkArgsRequest() {
+    static SQLBulkRequest getBulkArgsRequest() {
         Object[][] bulkArgs = new Object[ROWS][];
         for (int i = 0; i < ROWS; i++) {
             bulkArgs[i] = getRandomObject();
@@ -71,7 +71,7 @@ public class BulkInsertBenchmark extends BenchmarkBase {
         return new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
     }
 
-    private Object[] getRandomObject() {
+    private static Object[] getRandomObject() {
         return new Object[]{
                 RandomStringUtils.randomAlphabetic(10), // countryName
                 RandomStringUtils.randomAlphabetic(2),  // countryCode
