@@ -199,18 +199,20 @@ public class AnalyzedTableElements {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
                 analysisMetaData, parameterContext, tableReferenceInfos);
         SymbolFormatter formatter = new SymbolFormatter(analysisMetaData.functions());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
-                processGeneratedExpression(expressionAnalyzer, formatter, columnDefinition);
+                processGeneratedExpression(expressionAnalyzer, formatter, columnDefinition, expressionAnalysisContext);
             }
         }
     }
 
     private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
                                             SymbolFormatter symbolFormatter,
-                                            AnalyzedColumnDefinition columnDefinition) {
+                                            AnalyzedColumnDefinition columnDefinition,
+                                            ExpressionAnalysisContext expressionAnalysisContext) {
         // validate expression
-        Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), new ExpressionAnalysisContext());
+        Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), expressionAnalysisContext);
 
         String formattedExpression;
         DataType valueType = function.valueType();
