@@ -60,6 +60,9 @@ public class WriterProjection extends Projection {
     private boolean isDirectoryUri;
     private List<Symbol> inputs;
 
+    @Nullable
+    private List<String> outputNames;
+
     /*
      * add values that should be added or overwritten
      * all symbols must normalize to literals on the shard level.
@@ -69,8 +72,8 @@ public class WriterProjection extends Projection {
     private OutputFormat outputFormat;
 
     public enum OutputFormat {
-        OBJECT,
-        COLUMN
+        JSON_OBJECT,
+        JSON_ARRAY
     }
 
     private CompressionType compressionType;
@@ -87,17 +90,16 @@ public class WriterProjection extends Projection {
                             boolean isDirectoryUri,
                             @Nullable CompressionType compressionType,
                             Map<ColumnIdent, Symbol> overwrites,
+                            @Nullable List<String> outputNames,
                             OutputFormat outputFormat) {
         this.inputs = inputs;
         this.uri = uri;
         this.isDirectoryUri = isDirectoryUri;
         this.overwrites = overwrites;
+        this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
     }
-
-    @Nullable
-    private List<String> outputNames;
 
     public static final ProjectionFactory<WriterProjection> FACTORY = new ProjectionFactory<WriterProjection>() {
         @Override
@@ -136,6 +138,8 @@ public class WriterProjection extends Projection {
     public Map<ColumnIdent, Symbol> overwrites() {
         return this.overwrites;
     }
+
+    public List<String> outputNames() { return this.outputNames; }
 
     public OutputFormat outputFormat() {
         return outputFormat;

@@ -32,6 +32,7 @@ import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.PartitionUnknownException;
@@ -57,6 +58,7 @@ public class CopyStatementAnalyzer {
     private final AnalysisMetaData analysisMetaData;
 
     private static final String COMPRESSION_SETTING = "compression";
+    private static final String OUTPUT_FORMAT_SETTING = "format";
 
     private static final StringSetting COMPRESSION_SETTINGS = new StringSetting(ImmutableSet.of(
             "gzip"
@@ -72,9 +74,25 @@ public class CopyStatementAnalyzer {
         }
     };
 
+    private static final StringSetting OUTPUT_FORMAT_SETTINGS = new StringSetting(ImmutableSet.of(
+            "json_object",
+            "json_array"
+    )) {
+        @Override
+        public String name() {
+            return OUTPUT_FORMAT_SETTING;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
             ImmutableMap.<String, SettingsApplier>builder()
                     .put(COMPRESSION_SETTING, new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
+                    .put(OUTPUT_FORMAT_SETTING, new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
                     .build();
 
     @Inject
@@ -118,54 +136,28 @@ public class CopyStatementAnalyzer {
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);
         Settings settings = processCopyToProperties(node.genericProperties(), analysis.parameterContext());
 
-        WriterProjection.CompressionType compressionType = null;
-        if (settings.get(COMPRESSION_SETTING) != null) {
-            compressionType = WriterProjection.CompressionType.valueOf(
-                    settings.get(COMPRESSION_SETTING).toUpperCase(Locale.ENGLISH));
-        }
+        WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTING));
+        WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTING));
 
         Symbol uri = context.processExpression(node.targetUri());
-        WhereClause whereClause = null;
-        if (node.whereClause().isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            whereClause = whereClauseAnalyzer.analyze(
-                    context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext));
-        }
+        List<String> partitions = resolvePartitions(node, analysis, tableRelation);
 
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
-        List<String> partitions = ImmutableList.of();
-        if (!node.table().partitionProperties().isEmpty()) {
-            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    tableRelation.tableInfo(),
-                    node.table().partitionProperties(),
-                    analysis.parameterContext().parameters());
 
-            if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
-                throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partitionName.ident());
-            }
-            partitions = ImmutableList.of(partitionName.asIndexName());
-        }
-
-        if (whereClause == null) {
-            querySpec.where(new WhereClause(null, null, partitions));
-        } else if (whereClause.noMatch()) {
-            querySpec.where(whereClause);
-        } else {
-            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() && !whereClause.partitions().equals(partitions)) {
-                throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
-            }
-
-            querySpec.where(
-                    new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
-                            partitions.isEmpty() ? whereClause.partitions() : partitions));
-        }
+        WhereClause whereClause = createWhereClause(node, tableRelation, context, partitions);
+        querySpec.where(whereClause);
 
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
+        List<String> outputNames = null;
+
         if (!node.columns().isEmpty()) {
+            outputNames = new ArrayList<>(node.columns().size());
             for (Expression expression : node.columns()) {
-                outputs.add(DocReferenceConverter.convertIfPossible(context.processExpression(expression), tableRelation.tableInfo()));
+                Symbol symbol = context.processExpression(expression);
+                outputNames.add(SymbolFormatter.INSTANCE.formatSimple(symbol));
+                outputs.add(DocReferenceConverter.convertIfPossible(symbol, tableRelation.tableInfo()));
             }
             columnsDefined = true;
         } else {
@@ -186,8 +178,58 @@ public class CopyStatementAnalyzer {
         }
         querySpec.outputs(outputs);
 
+        if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
+            throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
+        }
+
         QueriedDocTable subRelation = new QueriedDocTable(tableRelation, querySpec);
-        return new CopyToAnalyzedStatement(subRelation, settings, uri, node.directoryUri(), compressionType, columnsDefined, overwrites);
+        return new CopyToAnalyzedStatement(subRelation, settings, uri, node.directoryUri(), compressionType, outputFormat, outputNames, columnsDefined, overwrites);
+    }
+
+    private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
+        E setting = null;
+        if (settingValue != null) {
+            setting = Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
+        }
+        return setting;
+    }
+
+    private List<String> resolvePartitions(CopyTo node, Analysis analysis, DocTableRelation tableRelation) {
+        List<String> partitions = ImmutableList.of();
+        if (!node.table().partitionProperties().isEmpty()) {
+            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                    tableRelation.tableInfo(),
+                    node.table().partitionProperties(),
+                    analysis.parameterContext().parameters());
+
+            if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
+                throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partitionName.ident());
+            }
+            partitions = ImmutableList.of(partitionName.asIndexName());
+        }
+        return partitions;
+    }
+
+    private WhereClause createWhereClause(CopyTo node, DocTableRelation tableRelation, Context context, List<String> partitions) {
+        WhereClause whereClause = null;
+        if (node.whereClause().isPresent()) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+            whereClause = whereClauseAnalyzer.analyze(
+                    context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext));
+        }
+
+        if (whereClause == null) {
+            return new WhereClause(null, null, partitions);
+        } else if (whereClause.noMatch()) {
+            return whereClause;
+        } else {
+            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() && !whereClause.partitions().equals(partitions)) {
+                throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
+            }
+
+            return new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
+                            partitions.isEmpty() ? whereClause.partitions() : partitions);
+        }
     }
 
     private Settings processGenericProperties(Optional<GenericProperties> genericProperties, Context context) {

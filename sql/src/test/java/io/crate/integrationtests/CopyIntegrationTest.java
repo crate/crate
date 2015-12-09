@@ -389,6 +389,26 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyToFileColumnsJsonObjectOutput() throws Exception {
+        execute("create table singleshard (name string, test object as (foo string)) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into singleshard (name, test) values ('foobar', {foo='bar'})");
+        execute("refresh table singleshard");
+
+        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
+        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[] { uri });
+        assertThat(response.rowCount(), is(1L));
+        List<String> lines = Files.readAllLines(
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+
+        assertThat(lines.size(), is(1));
+        for (String line : lines) {
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
+    }
+
+    @Test
     public void testCopyToWithWhere() throws Exception {
         this.setup.groupBySetup();
 

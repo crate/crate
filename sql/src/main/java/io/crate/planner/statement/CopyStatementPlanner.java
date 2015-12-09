@@ -185,8 +185,11 @@ public class CopyStatementPlanner {
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
-        WriterProjection.OutputFormat outputFormat = statement.columnsDefined() ?
-                WriterProjection.OutputFormat.COLUMN : WriterProjection.OutputFormat.OBJECT;
+        WriterProjection.OutputFormat outputFormat = statement.outputFormat();
+        if (outputFormat == null) {
+            outputFormat = statement.columnsDefined() ?
+                    WriterProjection.OutputFormat.JSON_ARRAY : WriterProjection.OutputFormat.JSON_OBJECT;
+        }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
                 statement.subQueryRelation().querySpec().outputs(),
@@ -194,6 +197,7 @@ public class CopyStatementPlanner {
                 statement.isDirectoryUri(),
                 statement.compressionType(),
                 statement.overwrites(),
+                statement.outputNames(),
                 outputFormat);
 
         PlannedAnalyzedRelation plannedSubQuery = context.planSubRelation(statement.subQueryRelation(),

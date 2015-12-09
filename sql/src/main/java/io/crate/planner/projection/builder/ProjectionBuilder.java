@@ -29,6 +29,7 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -158,9 +159,11 @@ public class ProjectionBuilder {
                                                     boolean isDirectoryUri,
                                                     @Nullable WriterProjection.CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
+                                                    @Nullable List<String> outputNames,
                                                     WriterProjection.OutputFormat outputFormat) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+
         return new WriterProjection(
-                inputVisitor.process(inputs, context), uri, isDirectoryUri, compressionType, overwrites, outputFormat);
+                inputVisitor.process(inputs, context), uri, isDirectoryUri, compressionType, overwrites, outputNames, outputFormat);
     }
 }

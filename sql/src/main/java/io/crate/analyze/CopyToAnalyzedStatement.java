@@ -47,6 +47,10 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     private final boolean columnsDefined;
     @Nullable
     private final WriterProjection.CompressionType compressionType;
+    @Nullable
+    private final WriterProjection.OutputFormat outputFormat;
+    @Nullable
+    private final List<String> outputNames;
     private final boolean isDirectoryUri;
 
     /*
@@ -60,12 +64,16 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
                                    Symbol uri,
                                    boolean isDirectoryUri,
                                    @Nullable WriterProjection.CompressionType compressionType,
+                                   @Nullable WriterProjection.OutputFormat outputFormat,
+                                   @Nullable List<String> outputNames,
                                    boolean columnsDefined,
                                    @Nullable Map<ColumnIdent, Symbol> overwrites) {
         super(settings, uri);
         this.subQueryRelation = subQueryRelation;
         this.columnsDefined = columnsDefined;
         this.compressionType = compressionType;
+        this.outputNames = outputNames;
+        this.outputFormat = outputFormat;
         this.isDirectoryUri = isDirectoryUri;
         this.overwrites = MoreObjects.firstNonNull(overwrites, ImmutableMap.<ColumnIdent, Symbol>of());
     }
@@ -80,6 +88,12 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
 
     @Nullable
     public WriterProjection.CompressionType compressionType() { return compressionType; }
+
+    @Nullable
+    public WriterProjection.OutputFormat outputFormat() { return outputFormat; }
+
+    @Nullable
+    public List<String> outputNames() { return outputNames; }
 
     public boolean isDirectoryUri() {
         return isDirectoryUri;

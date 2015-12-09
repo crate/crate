@@ -41,6 +41,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -72,7 +73,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),
-                WriterProjection.OutputFormat.OBJECT
+                null,
+                WriterProjection.OutputFormat.JSON_OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
@@ -118,7 +120,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),
-                WriterProjection.OutputFormat.OBJECT
+                null,
+                WriterProjection.OutputFormat.JSON_OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
@@ -140,7 +143,8 @@ public class WriterProjectorTest extends CrateUnitTest {
                 null,
                 ImmutableSet.<CollectExpression<Row, ?>>of(),
                 new HashMap<ColumnIdent, Object>(),
-                WriterProjection.OutputFormat.OBJECT
+                null,
+                WriterProjection.OutputFormat.JSON_OBJECT
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
