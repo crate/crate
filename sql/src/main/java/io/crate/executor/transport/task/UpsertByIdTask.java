@@ -177,7 +177,8 @@ public class UpsertByIdTask extends JobTask {
                 node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
                 node.updateColumns(),
                 node.insertColumns(),
-                jobId()
+                jobId(),
+                false
         );
         BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
