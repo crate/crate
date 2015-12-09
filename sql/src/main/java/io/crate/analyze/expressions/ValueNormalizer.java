@@ -83,9 +83,9 @@ public class ValueNormalizer {
         try {
             if (targetType == DataTypes.OBJECT) {
                 //noinspection unchecked
-                normalizeObjectValue((Map) value, reference.info(), true);
+                normalizeObjectValue((Map) value, reference.info());
             } else if (isObjectArray(targetType)) {
-                normalizeObjectArrayValue((Object[]) value, reference.info(), true);
+                normalizeObjectArrayValue((Object[]) value, reference.info());
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
@@ -99,7 +99,7 @@ public class ValueNormalizer {
         return literal;
     }
 
-    private DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
+    private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
         DataType<?> targetType;
         if (reference instanceof DynamicReference) {
             targetType = valueSymbol.valueType();
@@ -126,7 +126,7 @@ public class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private void normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
+    private void normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
@@ -137,7 +137,7 @@ public class ValueNormalizer {
                 }
                 DynamicReference dynamicReference = null;
                 if (tableInfo instanceof DocTableInfo){
-                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, forWrite);
+                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, true);
                 }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
@@ -154,38 +154,38 @@ public class ValueNormalizer {
                 }
             }
             if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
-                normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite);
+                normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo);
             } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
-                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, forWrite);
+                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo);
             } else {
                 entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
         }
     }
 
-    private boolean isObjectArray(DataType type) {
+    private static boolean isObjectArray(DataType type) {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private void normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
+    private void normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
             // return value not used and replaced in value as arrayItem is a map that is mutated
-            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, forWrite);
+
+            //noinspection unchecked
+            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo);
         }
     }
 
-    private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
+    private static Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
+        if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
+            return primitiveValue;
+        }
         try {
-            if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
-                return primitiveValue;
-            }
             return info.type().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format("Invalid %s",
-                            info.type().getName()
-                    )
+                    String.format("Invalid %s", info.type().getName())
             );
         }
     }
