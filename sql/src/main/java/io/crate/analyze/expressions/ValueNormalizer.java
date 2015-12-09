@@ -60,53 +60,35 @@ public class ValueNormalizer {
     public Symbol normalizeInputForReference(
             Symbol valueSymbol, Reference reference, ExpressionAnalysisContext context) {
 
-        Literal literal;
-        try {
-            valueSymbol = normalizer.normalize(valueSymbol);
-            assert valueSymbol != null : "valueSymbol must not be null";
-            if (valueSymbol.symbolType() != SymbolType.LITERAL) {
-                DataType targetType = reference.valueType();
-                if (reference instanceof DynamicReference) {
-                    targetType = valueSymbol.valueType();
-                }
-                return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType, context);
-            }
-            literal = (Literal) valueSymbol;
+        valueSymbol = normalizer.normalize(valueSymbol);
+        assert valueSymbol != null : "valueSymbol must not be null";
 
-            if (reference instanceof DynamicReference) {
-                DataType<?> dataType = literal.valueType();
-                if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
-                    raiseIfNestedArray(dataType, reference.info().ident().columnIdent());
-                }
-                ((DynamicReference) reference).valueType(dataType);
-            } else {
-                raiseIfNestedArray(literal.valueType(), reference.info().ident().columnIdent());
-                literal = Literal.convert(literal, reference.valueType());
-            }
+        DataType<?> targetType = getTargetType(valueSymbol, reference);
+        if (!(valueSymbol instanceof Literal)) {
+            return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType, context);
+        }
+        Literal literal = (Literal) valueSymbol;
+        raiseIfNestedArray(literal.valueType(), reference.info().ident().columnIdent());
+        try {
+            literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
                     String.format("%s can not be cast to \'%s\'", SymbolFormatter.INSTANCE.formatSimple(valueSymbol),
                             reference.valueType().getName()));
         }
-
+        Object value = literal.value();
+        if (value == null) {
+            return literal;
+        }
         try {
-            // 3. if reference is of type object - do special validation
-            if (reference.info().type() == DataTypes.OBJECT) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> value = (Map<String, Object>) literal.value();
-                if (value == null) {
-                    return Literal.NULL;
-                }
-                literal = Literal.newLiteral(normalizeObjectValue(value, reference.info(), true));
-            } else if (isObjectArray(reference.info().type())) {
-                Object[] value = (Object[]) literal.value();
-                if (value == null) {
-                    return Literal.NULL;
-                }
+            if (targetType == DataTypes.OBJECT) {
+                //noinspection unchecked
+                literal = Literal.newLiteral(normalizeObjectValue((Map) value, reference.info(), true));
+            } else if (isObjectArray(targetType)) {
                 literal = Literal.newLiteral(
                         reference.info().type(),
-                        normalizeObjectArrayValue(value, reference.info(), true)
+                        normalizeObjectArrayValue((Object[]) value, reference.info(), true)
                 );
             }
         } catch (ConversionException e) {
@@ -119,6 +101,20 @@ public class ValueNormalizer {
                     ));
         }
         return literal;
+    }
+
+    private DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
+        DataType<?> targetType;
+        if (reference instanceof DynamicReference) {
+            targetType = valueSymbol.valueType();
+            ((DynamicReference) reference).valueType(targetType);
+            if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
+                raiseIfNestedArray(targetType, reference.info().ident().columnIdent());
+            }
+        } else {
+            targetType = reference.valueType();
+        }
+        return targetType;
     }
 
     /**
