@@ -25,10 +25,11 @@ import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
+import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Reference;
 import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableAliasSchemaException;
@@ -440,14 +441,15 @@ public class DocIndexMetaData {
 
     private void initializeGeneratedExpressions() {
         Collection<ReferenceInfo> referenceInfos = references.values();
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
-                functions, null, null, null, referenceInfos);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(referenceInfos);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                functions, null, null, ParameterContext.EMPTY, tableReferenceResolver, null);
+        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (ReferenceInfo referenceInfo : generatedColumnReferences) {
             GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;
             Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
-            ExpressionAnalysisContext context = new ExpressionAnalysisContext();
             generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
-            generatedReferenceInfo.referencedReferenceInfos(Lists.transform(context.references(), new Function<Reference, ReferenceInfo>() {
+            generatedReferenceInfo.referencedReferenceInfos(ImmutableList.copyOf(Lists.transform(tableReferenceResolver.references(), new Function<Reference, ReferenceInfo>() {
                 @Nullable
                 @Override
                 public ReferenceInfo apply(@Nullable Reference input) {
@@ -456,7 +458,8 @@ public class DocIndexMetaData {
                     }
                     return input.info();
                 }
-            }));
+            })));
+            tableReferenceResolver.references().clear();
         }
     }
 

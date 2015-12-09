@@ -35,7 +35,7 @@ import java.util.Locale;
  *
  * The QualifiedNames must not contain a schema or a table.
  */
-public class NameFieldProvider implements FieldProvider {
+public class NameFieldProvider implements FieldProvider<Field> {
 
     private AnalyzedRelation relation;
 

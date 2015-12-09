@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
+import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolFormatter;
@@ -196,8 +196,9 @@ public class AnalyzedTableElements {
             tableReferenceInfos.addAll(tableInfo.columns());
         }
 
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
-                analysisMetaData, parameterContext, tableReferenceInfos);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferenceInfos);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData, parameterContext, tableReferenceResolver, null);
         SymbolFormatter formatter = new SymbolFormatter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {

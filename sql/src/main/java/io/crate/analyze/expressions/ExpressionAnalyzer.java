@@ -88,10 +88,9 @@ public class ExpressionAnalyzer {
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final EvaluatingNormalizer normalizer;
-    private final FieldProvider fieldProvider;
+    private final FieldProvider<?> fieldProvider;
     private final Functions functions;
     private final Schemas schemas;
-    @Nullable
     private final ParameterContext parameterContext;
     protected InnerExpressionAnalyzer innerAnalyzer;
     private boolean forWrite = false;
@@ -99,10 +98,10 @@ public class ExpressionAnalyzer {
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
     public ExpressionAnalyzer(Functions functions,
-                              ReferenceResolver referenceResolver,
+                              ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
                               @Nullable Schemas schemas,
-                              @Nullable ParameterContext parameterContext,
-                              FieldProvider fieldProvider,
+                              ParameterContext parameterContext,
+                              FieldProvider<?> fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
         this.schemas = schemas;
@@ -114,16 +113,11 @@ public class ExpressionAnalyzer {
     }
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
-                              @Nullable ParameterContext parameterContext,
+                              ParameterContext parameterContext,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
-        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(), analysisMetaData.referenceInfos(),
+        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(), analysisMetaData.schemas(),
                 parameterContext, fieldProvider, fieldResolver);
-    }
-
-    private ParameterContext parameterContext() {
-        assert parameterContext != null : "parameter context needed, must no be null";
-        return parameterContext;
     }
 
     private Schemas schemas() {
@@ -135,7 +129,7 @@ public class ExpressionAnalyzer {
     public Integer integerFromExpression(Optional<Expression> expression) {
         if (expression.isPresent()) {
             return DataTypes.INTEGER.value(
-                    ExpressionToNumberVisitor.convert(expression.get(), parameterContext().parameters()));
+                    ExpressionToNumberVisitor.convert(expression.get(), parameterContext.parameters()));
         }
         return null;
     }
@@ -171,7 +165,7 @@ public class ExpressionAnalyzer {
         }
     }
 
-    protected FunctionInfo getFunctionInfo(FunctionIdent ident) {
+    private FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
     }
 
@@ -606,7 +600,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = resolveQualifiedName(subscriptContext.qName(), subscriptContext.parts(), context);
+                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -810,9 +804,9 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             try {
-                return resolveQualifiedName(node.getName(), null, context);
+                return fieldProvider.resolveField(node.getName(), null, forWrite);
             } catch (ColumnUnknownException exception) {
-                if ((parameterContext().headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
+                if ((parameterContext.headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
                         return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
@@ -823,12 +817,6 @@ public class ExpressionAnalyzer {
                     throw exception;
                 }
             }
-        }
-
-        protected Symbol resolveQualifiedName(QualifiedName qualifiedName,
-                                              @Nullable List<String> path,
-                                              ExpressionAnalysisContext context) {
-            return fieldProvider.resolveField(qualifiedName, path, forWrite);
         }
 
         @Override
@@ -889,7 +877,7 @@ public class ExpressionAnalyzer {
             for (Map.Entry<String, Expression> entry : node.values().entries()) {
                 Object value;
                 try {
-                    value = ExpressionToObjectVisitor.convert(entry.getValue(), parameterContext().parameters());
+                    value = ExpressionToObjectVisitor.convert(entry.getValue(), parameterContext.parameters());
                 } catch (UnsupportedOperationException e) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH,
@@ -910,7 +898,7 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitParameterExpression(ParameterExpression node, ExpressionAnalysisContext context) {
-            return parameterContext().getAsSymbol(node.index());
+            return parameterContext.getAsSymbol(node.index());
         }
 
         @Override
@@ -925,16 +913,16 @@ public class ExpressionAnalyzer {
                 Preconditions.checkArgument(
                         column instanceof Field,
                         SymbolFormatter.INSTANCE.formatTmpl("can only MATCH on columns, not on %s", column));
-                Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext().parameters());
+                Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext.parameters());
                 identBoostMap.put(((Field) column), boost == null ? null : boost.doubleValue());
             }
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
-            Object queryTerm = ExpressionToObjectVisitor.convert(node.value(), parameterContext().parameters());
+            Object queryTerm = ExpressionToObjectVisitor.convert(node.value(), parameterContext.parameters());
             queryTerm = columnType.value(queryTerm);
             String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
-            Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext().parameters());
+            Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext.parameters());
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
         }
 

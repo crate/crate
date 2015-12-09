@@ -38,7 +38,7 @@ import java.util.Map;
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
-public class FullQualifedNameFieldProvider implements FieldProvider {
+public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
 
     private Map<QualifiedName, AnalyzedRelation> sources;
 

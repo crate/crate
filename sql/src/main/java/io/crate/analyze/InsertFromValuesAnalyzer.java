@@ -87,7 +87,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     @Override
     public AbstractInsertAnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis analysis) {
-        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 

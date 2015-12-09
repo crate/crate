@@ -50,7 +50,7 @@ public class AnalysisMetaData {
         return functions;
     }
 
-    public Schemas referenceInfos() {
+    public Schemas schemas() {
         return schemas;
     }
 

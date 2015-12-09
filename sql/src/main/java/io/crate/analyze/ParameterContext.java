@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.MoreObjects;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -29,7 +30,10 @@ import java.util.Locale;
 
 import static io.crate.analyze.symbol.Literal.newLiteral;
 
+
 public class ParameterContext {
+
+    public static final ParameterContext EMPTY = new ParameterContext(new Object[0], new Object[0][], null, null);
 
     final Object[] parameters;
 
@@ -40,7 +44,7 @@ public class ParameterContext {
 
     private int currentIdx = 0;
 
-    private int headerFlags = 0;
+    private final int headerFlags;
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters,
                             @Nullable String defaultSchema, @Nullable Integer headerFlags) {
@@ -50,9 +54,7 @@ public class ParameterContext {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
-        if (headerFlags != null) {
-            this.headerFlags = headerFlags.intValue();
-        }
+        this.headerFlags = MoreObjects.firstNonNull(headerFlags, 0);
     }
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {

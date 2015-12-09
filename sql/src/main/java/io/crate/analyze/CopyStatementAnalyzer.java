@@ -103,7 +103,7 @@ public class CopyStatementAnalyzer {
     public CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
         analysis.expectsAffectedRows(true);
 
-        DocTableInfo tableInfo = analysisMetaData.referenceInfos().getWritableTable(
+        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
@@ -125,7 +125,7 @@ public class CopyStatementAnalyzer {
     public CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
         analysis.expectsAffectedRows(true);
 
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
+        TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(

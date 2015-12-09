@@ -28,7 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionReferenceAnalyzer;
+import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -260,13 +260,14 @@ public class TestingTableInfo extends DocTableInfo {
         }
 
         private void initializeGeneratedExpressions(Functions functions, Collection<ReferenceInfo> columns) {
-            ExpressionAnalyzer expressionAnalyzer = new ExpressionReferenceAnalyzer(
-                    functions, null, null, null, columns);
+            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                    functions, null, null, null, tableReferenceResolver, null);
             for (GeneratedReferenceInfo generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext();
                 generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
-                generatedReferenceInfo.referencedReferenceInfos(Lists.transform(context.references(), new Function<Reference, ReferenceInfo>() {
+                generatedReferenceInfo.referencedReferenceInfos(ImmutableList.copyOf(Lists.transform(tableReferenceResolver.references(), new Function<Reference, ReferenceInfo>() {
                     @Nullable
                     @Override
                     public ReferenceInfo apply(@Nullable Reference input) {
@@ -275,7 +276,8 @@ public class TestingTableInfo extends DocTableInfo {
                         }
                         return input.info();
                     }
-                }));
+                })));
+                tableReferenceResolver.references().clear();
             }
         }
 

@@ -371,7 +371,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, RelationAnalysisContext context) {
-        TableInfo tableInfo = analysisMetaData.referenceInfos().getTableInfo(
+        TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node, context.parameterContext().defaultSchema()));
         AnalyzedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
