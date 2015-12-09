@@ -666,6 +666,7 @@ showTablesStmt
     | SHOW TABLES (( FROM | IN ) qname)? showTablesLike     -> ^(SHOW_TABLES_LIKE qname? showTablesLike)
     ;
 
+
 showTablesLike
     : LIKE s=STRING -> ^(LIKE $s)
     ;

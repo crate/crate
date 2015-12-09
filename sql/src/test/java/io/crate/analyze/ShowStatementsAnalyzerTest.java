@@ -36,10 +36,14 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowTables;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -86,30 +90,90 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    @Test
-    public void testShowSchemasLike() throws Exception {
-        SelectAnalyzedStatement analyzedStatement = analyze("show schemas like '%'");
+    public static class ShowStatementRewriterTest {
+        ShowStatementAnalyzer.ShowStatementRewriter instance;
 
-        QuerySpec querySpec = analyzedStatement.relation().querySpec();
-        assertThat(querySpec, TestingHelpers.isSQL("SELECT information_schema.schemata.schema_name " +
-                                                   "WHERE information_schema.schemata.schema_name like '%' " +
-                                                   "ORDER BY information_schema.schemata.schema_name"));
-    }
+        @Before
+        public void setUp() {
+            instance = new ShowStatementAnalyzer.ShowStatementRewriter();
+        }
 
-    public void testShowSchemasWhere() throws Exception {
-        SelectAnalyzedStatement analyzedStatement = analyze("show schemas where schema_name = 'doc'");
+        @Test
+        public void testVisitShowTablesSchema() throws Exception {
+            assertEquals(instance.visitShowTables(new ShowTables(new QualifiedName("QNAME")), null),
+                    "SELECT distinct(table_name) as table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE schema_name = 'QNAME' " +
+                    "ORDER BY 1");
 
-        QuerySpec querySpec = analyzedStatement.relation().querySpec();
-        assertThat(querySpec, TestingHelpers.isSQL("SELECT information_schema.schemata.schema_name " +
-                                                   "WHERE information_schema.schemata.schema_name = 'doc' " +
-                                                   "ORDER BY information_schema.schemata.schema_name"));
-    }
 
-    public void testShowSchemas() throws Exception {
-        SelectAnalyzedStatement analyzedStatement = analyze("show schemas");
+            assertEquals(instance.visitShowTables(new ShowTables(null), null),
+                    "SELECT distinct(table_name) as table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE schema_name NOT IN ('sys', 'information_schema') " +
+                    "ORDER BY 1");
+        }
 
-        QuerySpec querySpec = analyzedStatement.relation().querySpec();
-        assertThat(querySpec, TestingHelpers.isSQL("SELECT information_schema.schemata.schema_name " +
-                                                   "ORDER BY information_schema.schemata.schema_name"));
+        @Test
+        public void testVisitShowTablesLike() throws Exception {
+            assertEquals(instance.visitShowTables(new ShowTables(new QualifiedName("QNAME"), "likePattern"), null),
+                    "SELECT distinct(table_name) as table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE schema_name = 'QNAME' AND table_name LIKE 'likePattern' " +
+                    "ORDER BY 1");
+
+            // SQL INJECTION
+            assertEquals(instance.visitShowTables(new ShowTables(null, "'OR 1=1 --"), null),
+                    "SELECT distinct(table_name) as table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE schema_name NOT IN ('information_schema', 'sys') AND table_name LIKE 'OR 1=1' " +
+                    "ORDER BY 1");
+
+            assertEquals(instance.visitShowTables(new ShowTables(null, "%"), null),
+                    "SELECT distinct(table_name) as table_name " +
+                    "FROM information_schema.tables " +
+                    "WHERE schema_name NOT IN ('information_schema', 'sys') AND table_name LIKE '%' " +
+                    "ORDER BY 1");
+
+        }
+
+
+
+        @Test
+        public void testVisitShowTablesWhere() throws Exception {
+            fail("IMPLEMENT THIS");
+        }
+
+
+        @Test
+        public void testVisitShowSchemas() throws Exception {
+            String result = instance.visitShowSchemas(new ShowSchemas(null, null), null);
+
+            assertEquals(result, "SELECT schema_name " +
+                                 "FROM information_schema.schemata " +
+                                 "ORDER BY schema_name");
+
+        }
+
+        @Test
+        public void testVisitShowSchemasLike() throws Exception {
+
+            String result = instance.visitShowSchemas(new ShowSchemas("%", null), null);
+
+            assertEquals(result, "SELECT schema_name " +
+                                 "FROM information_schema.schemata " +
+                                 "WHERE schema_name LIKE '%' " +
+                                 "ORDER BY schema_name");
+        }
+
+        @Test
+        public void testVisitShowSchemasWhere() throws Exception {
+            String result = instance.visitShowSchemas(new ShowSchemas(null, null), null);
+            fail("IMPLEMENT THIS");
+            assertEquals(result, "SELECT information_schema.schemata.schema_name " +
+                                 "WHERE information_schema.schemata.schema_name like '%' " +
+                                 "ORDER BY information_schema.schemata.schema_name");
+
+        }
     }
 }
