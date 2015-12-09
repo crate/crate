@@ -21,12 +21,14 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -266,6 +268,24 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(PartitionUnknownException.class);
         expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
         analyze("copy parted partition (date=0) to '/tmp/blah.txt'");
+    }
+
+    @Test
+    public void testCopyToFileWithSelectedColumnsAndOutputFormatParam() throws Exception {
+        CopyToAnalyzedStatement analysis = (CopyToAnalyzedStatement)analyze("copy users (id, name) to '/blah.txt' with (format='json_object')");
+        TableInfo tableInfo = ((QueriedDocTable) analysis.subQueryRelation()).tableRelation().tableInfo();
+        assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
+
+        assertThat(analysis.uri(), isLiteral("/blah.txt"));
+        assertThat(analysis.outputFormat(), is(WriterProjection.OutputFormat.JSON_OBJECT));
+        assertThat(analysis.outputNames(), contains("id", "name"));
+    }
+
+    @Test
+    public void testCopyToFileWithUnsupportedOutputFormatParam() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Output format not supported without specifying columns.");
+        analyze("copy users to '/blah.txt' with (format='json_array')");
     }
 
     @Test

@@ -28,6 +28,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
@@ -57,6 +58,8 @@ public class WriterProjector extends AbstractProjector {
     private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
+    @Nullable
+    private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
     private Output output;
@@ -69,7 +72,7 @@ public class WriterProjector extends AbstractProjector {
      *               If null the row that is received in {@link #setNextRow(Row)}
      *               is expected to contain the raw source in its first column.
      *               That raw source is then written to the output
-     *
+     *               <p/>
      *               If inputs is not null the inputs are consumed to write a JSON array to the output.
      */
     public WriterProjector(ExecutorService executorService,
@@ -78,10 +81,12 @@ public class WriterProjector extends AbstractProjector {
                            @Nullable List<Input<?>> inputs,
                            Set<CollectExpression<Row, ?>> collectExpressions,
                            Map<ColumnIdent, Object> overwrites,
+                           @Nullable List<String> outputNames,
                            WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
+        this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
         try {
@@ -142,8 +147,10 @@ public class WriterProjector extends AbstractProjector {
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
                         output.acquireOutputStream(), collectExpressions, overwrites);
-            } else if (inputs != null && !inputs.isEmpty() && outputFormat.equals(WriterProjection.OutputFormat.COLUMN)) {
+            } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
                 rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
+            } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
+                rowWriter = new ColumnRowObjectWriter(output.acquireOutputStream(), collectExpressions, inputs, outputNames);
             } else {
                 rowWriter = new RawRowWriter(output.acquireOutputStream());
             }
@@ -189,6 +196,7 @@ public class WriterProjector extends AbstractProjector {
     interface RowWriter {
 
         void write(Row row);
+
         void close() throws IOException;
     }
 
@@ -259,9 +267,9 @@ public class WriterProjector extends AbstractProjector {
     static class ColumnRowWriter implements RowWriter {
 
         private final Set<CollectExpression<Row, ?>> collectExpressions;
-        private final List<Input<?>> inputs;
         private final OutputStream outputStream;
-        private final XContentBuilder builder;
+        protected final List<Input<?>> inputs;
+        protected final XContentBuilder builder;
 
         ColumnRowWriter(OutputStream outputStream,
                         Set<CollectExpression<Row, ?>> collectExpressions,
@@ -277,11 +285,7 @@ public class WriterProjector extends AbstractProjector {
                 collectExpression.setNextRow(row);
             }
             try {
-                builder.startArray();
-                for (Input<?> input : inputs) {
-                    builder.value(input.value());
-                }
-                builder.endArray();
+                processInputs();
                 builder.flush();
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
@@ -293,6 +297,40 @@ public class WriterProjector extends AbstractProjector {
         public void close() throws IOException {
             builder.close();
             outputStream.close();
+        }
+
+        protected void processInputs() throws IOException {
+            builder.startArray();
+            for (Input<?> input : inputs) {
+                builder.value(input.value());
+            }
+            builder.endArray();
+        }
+    }
+
+    static class ColumnRowObjectWriter extends ColumnRowWriter {
+
+        private final List<String> outputNames;
+
+        public ColumnRowObjectWriter(OutputStream outputStream,
+                                     Set<CollectExpression<Row, ?>> collectExpressions,
+                                     List<Input<?>> inputs,
+                                     List<String> outputNames) throws IOException {
+            super(outputStream, collectExpressions, inputs);
+            this.outputNames = outputNames;
+        }
+
+        @Override
+        protected void processInputs() throws IOException {
+            try {
+                builder.startObject();
+                for (int i = 0; i < inputs.size(); i++) {
+                    builder.field(outputNames.get(i), inputs.get(i).value());
+                }
+                builder.endObject();
+            } catch (IOException e) {
+                throw new UnhandledServerException("Failed to write row to output", e);
+            }
         }
     }
 }
