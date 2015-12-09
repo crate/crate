@@ -736,4 +736,21 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into import (col1, col2) values (1, 1)");
     }
+
+    @Test
+    public void testDynamicTimestampIntegrationTest() throws Exception {
+        execute("create table dyn_ts (id integer primary key)");
+        ensureYellow();
+        execute("insert into dyn_ts (id, ts) values (0, '2015-01-01')");
+        refresh();
+        waitForMappingUpdateOnAll("dyn_ts", "ts");
+        execute("insert into dyn_ts (id, ts) values (1, '2015-02-01')");
+        // string is not converted to timestamp
+        execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
+        assertThat((String) response.rows()[0][0], is("string"));
+
+        execute("select _raw from dyn_ts where id = 0");
+        assertThat((String) response.rows()[0][0], is("{\"id\":0,\"ts\":\"2015-01-01\"}"));
+    }
+
 }

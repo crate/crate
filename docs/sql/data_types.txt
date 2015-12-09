@@ -185,6 +185,12 @@ fractions. Example::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     SQLActionException[Validation failed for first_column: 'wrong' can not be cast to 'timestamp']
 
+
+.. note::
+
+    If a column is dynamically created the type detection won't recognize
+    timestamps. That means columns of type timestamp must always be declared beforehand.
+
 .. _geo_point_data_type:
 
 geo_point
