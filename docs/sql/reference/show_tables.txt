@@ -1,0 +1,42 @@
+.. highlight:: psql
+.. _ref-show-tables:
+
+===========
+SHOW TABLES
+===========
+
+Lists the tables in the database.
+
+Synopsis
+========
+
+::
+
+    SHOW TABLES [{FROM | IN} schema_name] [LIKE 'pattern']
+
+Description
+===========
+
+``SHOW TABLES`` can be used to retrieve the table names of the database in 
+alphabetical order. The same list can be fetched by querying table names of the 
+``information_schema.tables`` table.
+
+System and BLOB tables are only listed when they are explicitly specified in 
+``FROM | IN`` clause.
+
+Parameters
+==========
+
+:schema_name: The name of the schema the tables are appropriate to.
+
+LIKE Clause
+===========
+
+The optional ``LIKE`` clause indicates which table names to match. It takes a 
+string pattern as a filter and has an equivalent behavior to 
+:ref:`sql_dql_like`.
+
+.. note::
+
+    Schema names are ignored in the filter that is defined in the ``LIKE`` 
+    clause. 
