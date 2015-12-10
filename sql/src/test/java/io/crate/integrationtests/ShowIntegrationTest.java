@@ -218,9 +218,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table my_s1.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("create table my_s2.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("show schemas like 'my_%'");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("my_s1"));
-        assertThat((String) response.rows()[1][0], is("my_s2"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_s1\nmy_s2\n"));
     }
 
     @Test
