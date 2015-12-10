@@ -32,34 +32,93 @@ public class ShowStatementAnalyzer {
 
     private final SelectStatementAnalyzer selectStatementAnalyzer;
 
+    private static final String[] explicitSchemas = new String[]{"information_schema", "sys"};
+
+    private static final ShowStatementRewriter REWRITER = new ShowStatementRewriter();
+
     @Inject
     public ShowStatementAnalyzer(SelectStatementAnalyzer selectStatementAnalyzer) {
         this.selectStatementAnalyzer = selectStatementAnalyzer;
     }
 
-    public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
-        /**
-         * <code>
-         *     SHOW SCHEMAS [ LIKE 'pattern' ];
-         * </code>
-         * needs to be rewritten to select query:
-         * <code>
-         *     SELECT schema_name
-         *     FROM information_schema.schemata
-         *     [ WHERE schema_name LIKE 'pattern' ]
-         *     ORDER BY schema_name;
-         * </code>
-         */
-        StringBuilder sb = new StringBuilder("SELECT schema_name ");
-        sb.append("FROM information_schema.schemata ");
-        if (node.likePattern().isPresent()) {
-            sb.append(String.format("WHERE schema_name LIKE '%s' ", node.likePattern().get()));
-        } else if (node.whereExpression().isPresent()) {
-            sb.append(String.format("WHERE %s ", node.whereExpression().get().toString()));
-        }
-        sb.append("ORDER BY schema_name");
-        Statement statement = SqlParser.createStatement(sb.toString());
+    public AnalyzedStatement analyze(Statement showStmt, Analysis analysis) {
+        String rewritten = REWRITER.process(showStmt, null);
+        Statement statement = SqlParser.createStatement(rewritten);
         return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
     }
 
+    static class ShowStatementRewriter extends AstVisitor<String, Void> {
+        @Override
+        protected String visitNode(Node node, Void context) {
+            throw new UnsupportedOperationException("invalid show statement " + node.toString());
+        }
+
+        @Override
+        protected String visitShowSchemas(ShowSchemas node, Void context) {
+            /**
+             * <code>
+             *     SHOW SCHEMAS [ LIKE 'pattern' ];
+             * </code>
+             * needs to be rewritten to select query:
+             * <code>
+             *     SELECT schema_name
+             *     FROM information_schema.schemata
+             *     [ WHERE schema_name LIKE 'pattern' ]
+             *     ORDER BY schema_name;
+             * </code>
+             */
+            StringBuilder sb = new StringBuilder("SELECT schema_name ");
+            sb.append("FROM information_schema.schemata ");
+            if (node.likePattern().isPresent()) {
+                sb.append(String.format("WHERE schema_name LIKE '%s' ", node.likePattern().get()));
+            } else if (node.whereExpression().isPresent()) {
+                sb.append(String.format("WHERE %s ", node.whereExpression().get().toString()));
+            }
+            sb.append("ORDER BY schema_name");
+            return sb.toString();
+        }
+
+        @Override
+        protected String visitShowTables(ShowTables node, Void context) {
+
+            /**
+             * <code>
+             *     SHOW TABLES [{ FROM | IN } schema_name ] [ { LIKE 'pattern' | WHERE expr } ];
+             * </code>
+             * needs to be rewritten to select query:
+             * <code>
+             *     SELECT distinct(table_name) as table_name
+             *     FROM information_schema.tables
+             *     [ WHERE ( schema_name = 'schema_name' | schema_name NOT IN ( 'sys', 'information_schema' ) )
+             *      [ AND ( table_name LIKE 'pattern' | <where-clause > ) ]
+             *     ]
+             *     ORDER BY 1;
+             * </code>
+             */
+            StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
+
+            if (node.schema().isPresent()) {
+                sb.append(String.format("WHERE schema_name = '%s'", node.schema().get()));
+            } else {
+                sb.append("WHERE schema_name NOT IN (");
+                for (int i = 0; i < explicitSchemas.length; i++) {
+                    sb.append(String.format("'%s'", explicitSchemas[i]));
+                    if (i < explicitSchemas.length - 1) {
+                        sb.append(", ");
+                    }
+                }
+                sb.append(")");
+            }
+            if (node.whereExpression().isPresent()) {
+                sb.append(" AND ");
+                sb.append(node.whereExpression().get().toString());
+
+            } else if (node.likePattern().isPresent()) {
+                sb.append(String.format(" AND table_name LIKE '%s'", node.likePattern().get()));
+            }
+
+            sb.append(" ORDER BY 1");
+            return sb.toString();
+        }
+    }
 }

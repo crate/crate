@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added statement support for SHOW TABLES, SHOW SCHEMAS
+
  - Added ``char_length``, ``bit_length`` and ``octet_length`` scalar
    functions.
 
