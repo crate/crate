@@ -296,11 +296,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into employees (salary, name) values (600, 'Trillian'), (200, 'Ford Perfect'), (800, 'Douglas Adams')");
         execute("refresh table employees");
 
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less where more.salary > less.salary
-        //        order by more.salary desc, less.salary desc
         execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less where more.salary > less.salary "+
-                "order by more.salary desc, less.salary desc, more.name, less.name");
+                "order by more.salary desc, less.salary desc");
         assertThat(printedTable(response.rows()), is("" +
                 "Douglas Adams| Trillian| 200.0\n" +
                 "Douglas Adams| Ford Perfect| 600.0\n" +
