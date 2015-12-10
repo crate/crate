@@ -8,7 +8,6 @@ include 'es',
         'app',
         'client',
         'sql-parser',
-        'stresstest',
         'udc',
         'dns-discovery',
         'ec2-discovery'
