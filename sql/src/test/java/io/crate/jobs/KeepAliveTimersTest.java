@@ -99,13 +99,13 @@ public class KeepAliveTimersTest extends CrateUnitTest {
         final KeepAliveTimers.ResettableTimer timer = futureAndTimer.v2();
         SettableFuture<Void> future = futureAndTimer.v1();
 
-        timer.start();
         scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 timer.reset();
             }
         }, 0, 10, TimeUnit.MILLISECONDS);
+        timer.start();
         expectedException.expect(TimeoutException.class);
         future.get(200, TimeUnit.MILLISECONDS);
     }
