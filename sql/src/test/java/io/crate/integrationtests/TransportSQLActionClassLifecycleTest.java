@@ -44,7 +44,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
+import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -550,19 +552,25 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         executor.exec(
                 "select count(*), race from characters group by race order by count(*) desc limit 2");
-        resp = executor.exec("select * from sys.operations_log order by ended limit 3");
 
-        List<String> names = new ArrayList<>();
-        for (Object[] objects : resp.rows()) {
-            names.add((String) objects[4]);
-        }
-        assertThat(names, Matchers.anyOf(
-                Matchers.hasItems("distributing collect", "distributing collect"),
-                Matchers.hasItems("collect", "localMerge"),
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                SQLResponse resp = executor.exec("select * from sys.operations_log order by ended limit 3");
 
-                 // the select * from sys.operations_log has 2 collect operations (1 per node)
-                Matchers.hasItems("collect", "collect"),
-                Matchers.hasItems("distributed merge", "localMerge")));
+                List<String> names = new ArrayList<>();
+                for (Object[] objects : resp.rows()) {
+                    names.add((String) objects[4]);
+                }
+                assertThat(names, Matchers.anyOf(
+                        Matchers.hasItems("distributing collect", "distributing collect"),
+                        Matchers.hasItems("collect", "localMerge"),
+
+                        // the select * from sys.operations_log has 2 collect operations (1 per node)
+                        Matchers.hasItems("collect", "collect"),
+                        Matchers.hasItems("distributed merge", "localMerge")));
+            }
+        }, 10L, TimeUnit.SECONDS);
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
         waitNoPendingTasksOnAll();
