@@ -116,7 +116,12 @@ public class IteratorPageDownstream implements PageDownstream, RowUpstream {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 pagingIterator.merge(numberedBuckets(buckets));
-                processBuckets(pagingIterator, listener);
+                try {
+                    processBuckets(pagingIterator, listener);
+                } catch (Throwable t) {
+                    fail(t);
+                    listener.finish();
+                }
             }
 
             @Override
