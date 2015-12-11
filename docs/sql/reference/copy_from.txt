@@ -36,6 +36,17 @@ using UTF-8. Empty lines are skipped.
 
 For examples see: :ref:`importing_data`.
 
+.. note::
+
+  When importing data using ``COPY FROM`` Crate does not check if the types
+  from the columns and the types from the import file match. It does not cast
+  the types to their target but will always import the data as it is
+  in the source file.
+
+  e.g. a `WKT`_ string cannot be imported into a column of ``geo_shape`` or
+  ``geo_point`` type, such as it won't be implicitly casted to `GeoJSON`_
+  format.
+
 
 URI
 ===
@@ -206,3 +217,7 @@ be overwritten.
 .. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt
 
 .. _`URI Scheme`: https://en.wikipedia.org/wiki/URI_scheme
+
+.. _GeoJSON: http://geojson.org/
+
+.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
