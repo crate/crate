@@ -28,11 +28,14 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
+import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +47,9 @@ import javax.annotation.Nonnull;
 import java.util.concurrent.Executor;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class IteratorPageDownstreamTest extends CrateUnitTest {
 
@@ -79,6 +84,27 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
         b2.set(Bucket.EMPTY);
         verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
+    }
+
+    @Test
+    public void testFailingNextRowIsHandled() throws Exception {
+        expectedException.expect(CircuitBreakingException.class);
+
+        class FailingRowReceiver extends CollectingRowReceiver {
+            @Override
+            public boolean setNextRow(Row row) {
+                throw new CircuitBreakingException("foo");
+            }
+        }
+
+        CollectingRowReceiver rowReceiver = new FailingRowReceiver();
+        IteratorPageDownstream downstream = new IteratorPageDownstream(
+                rowReceiver, PassThroughPagingIterator.<Row>oneShot(), Optional.<Executor>absent());
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        b1.set(new SingleRowBucket(new Row1(42)));
+        rowReceiver.result();
     }
 
     @Test

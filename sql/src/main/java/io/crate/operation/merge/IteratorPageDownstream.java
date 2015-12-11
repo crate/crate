@@ -72,18 +72,27 @@ public class IteratorPageDownstream implements PageDownstream {
                 new Runnable() {
                     @Override
                     public void run() {
-                        processBuckets(pausedIterator, pausedListener);
+                        try {
+                            processBuckets(pausedIterator, pausedListener);
+                        } catch (Throwable t) {
+                            fail(t);
+                            pausedListener.finish();
+                        }
                     }
                 },
                 new Runnable() {
                     @Override
                     public void run() {
                         if (finished.compareAndSet(true, false)) {
-                            if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
-                                consumeRemaining();
+                            try {
+                                if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
+                                    consumeRemaining();
+                                }
+                                finished.set(true);
+                                rowReceiver.finish();
+                            } catch (Throwable t) {
+                                fail(t);
                             }
-                            finished.set(true);
-                            rowReceiver.finish();
                         } else {
                             LOGGER.trace("Received repeat, but wasn't finished");
                         }
@@ -123,7 +132,12 @@ public class IteratorPageDownstream implements PageDownstream {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 pagingIterator.merge(numberedBuckets(buckets));
-                processBuckets(pagingIterator, listener);
+                try {
+                    processBuckets(pagingIterator, listener);
+                } catch (Throwable t) {
+                    fail(t);
+                    listener.finish();
+                }
             }
 
             @Override
