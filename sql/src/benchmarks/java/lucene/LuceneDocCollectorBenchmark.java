@@ -76,7 +76,6 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     @Rule
     public BenchmarkRule benchmarkRun = new BenchmarkRule();
 
-    public static boolean dataGenerated = false;
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
@@ -180,7 +179,6 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         executor.shutdownNow();
         internalCluster().client().admin().indices().prepareFlush("countries").execute().actionGet();
         refresh();
-        dataGenerated = true;
         logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
     }
 

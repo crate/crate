@@ -26,20 +26,9 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class FetchReference extends Symbol {
-
-    public static final com.google.common.base.Function<FetchReference, Reference>
-            REF_FUNCTION = new com.google.common.base.Function<FetchReference, Reference>() {
-        @Nullable
-        @Override
-        public Reference apply(@Nullable FetchReference input) {
-            assert input != null;
-            return input.ref();
-        }
-    };
 
     private final Symbol docId;
     private final Reference ref;

@@ -30,7 +30,10 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 
@@ -45,8 +48,7 @@ public class CountNodeTest extends CrateUnitTest {
                                 .put("i2", Arrays.asList(1, 2)).map())
                         .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Collections.singletonList(3)).map()).map());
-        UUID jobId = UUID.randomUUID();
-        CountPhase countNode = new CountPhase(jobId, 1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
+        CountPhase countNode = new CountPhase(1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countNode.writeTo(out);
@@ -56,7 +58,6 @@ public class CountNodeTest extends CrateUnitTest {
         CountPhase streamedNode = CountPhase.FACTORY.create();
         streamedNode.readFrom(in);
 
-        assertThat(streamedNode.jobId(), is(jobId));
         assertThat(streamedNode.executionPhaseId(), is(1));
         assertThat(streamedNode.executionNodes(), containsInAnyOrder("n1", "n2"));
         assertThat(streamedNode.routing(), equalTo(routing));

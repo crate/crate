@@ -90,7 +90,7 @@ public class ValueNormalizer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    SymbolFormatter.INSTANCE.formatTmpl(
+                    SymbolFormatter.formatTmpl(
                             "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
                             literal,
                             reference

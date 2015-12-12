@@ -76,19 +76,16 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     private static class InnerAnalysisContext {
         private final ExpressionAnalyzer expressionAnalyzer;
-        private final DocTableRelation tableRelation;
         private final ExpressionAnalysisContext expressionAnalysisContext;
         private final DeleteAnalyzedStatement deleteAnalyzedStatement;
         private final WhereClauseAnalyzer whereClauseAnalyzer;
 
-        InnerAnalysisContext(DocTableRelation tableRelation,
-                             ExpressionAnalyzer expressionAnalyzer,
+        InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
                              ExpressionAnalysisContext expressionAnalysisContext,
                              DeleteAnalyzedStatement deleteAnalyzedStatement,
                              WhereClauseAnalyzer whereClauseAnalyzer
                              ) {
             this.expressionAnalyzer = expressionAnalyzer;
-            this.tableRelation = tableRelation;
             this.expressionAnalysisContext = expressionAnalysisContext;
             this.deleteAnalyzedStatement = deleteAnalyzedStatement;
             this.whereClauseAnalyzer = whereClauseAnalyzer;
@@ -111,7 +108,6 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                deleteAnalyzedStatement.analyzedRelation(),
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
                         new FullQualifedNameFieldProvider(relationAnalysisContext.sources()), docTableRelation),
                 new ExpressionAnalysisContext(),

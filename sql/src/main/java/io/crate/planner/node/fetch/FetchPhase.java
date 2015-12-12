@@ -46,19 +46,16 @@ public class FetchPhase implements ExecutionPhase {
     private Multimap<TableIdent, String> tableIndices;
     private Collection<Reference> fetchRefs;
 
-    private UUID jobId;
     private int executionPhaseId;
     private Set<String> executionNodes;
 
     private FetchPhase() {}
 
-    public FetchPhase(UUID jobId,
-                      int executionPhaseId,
+    public FetchPhase(int executionPhaseId,
                       Set<String> executionNodes,
                       TreeMap<String, Integer> bases,
                       Multimap<TableIdent, String> tableIndices,
                       Collection<Reference> fetchRefs) {
-        this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.executionNodes = executionNodes;
         this.bases = bases;
@@ -91,18 +88,12 @@ public class FetchPhase implements ExecutionPhase {
     }
 
     @Override
-    public UUID jobId() {
-        return jobId;
-    }
-
-    @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitFetchPhase(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
 
         int n = in.readVInt();
@@ -136,8 +127,6 @@ public class FetchPhase implements ExecutionPhase {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeLong(jobId.getMostSignificantBits());
-        out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionPhaseId);
 
         out.writeVInt(executionNodes.size());

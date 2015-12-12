@@ -21,12 +21,12 @@
 
 package io.crate.testing;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
@@ -53,7 +53,6 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -229,19 +228,6 @@ public class TestingHelpers {
                 }
             };
 
-    private static final com.google.common.base.Function<Object, Object> stringToBytesRef =
-            new com.google.common.base.Function<Object, Object>() {
-
-                @Nullable
-                @Override
-                public Object apply(@Nullable Object input) {
-                    if (input instanceof String) {
-                        return new BytesRef(input.toString());
-                    }
-                    return input;
-                }
-            };
-
     public static Matcher<Row> isNullRow() {
         return isRow((Object) null);
     }
@@ -316,16 +302,6 @@ public class TestingHelpers {
                     @Override
                     protected Integer featureValueOf(Symbol actual) {
                         return ((InputColumn) actual).index();
-                    }
-                });
-    }
-
-    public static Matcher<Symbol> isField(final Integer index) {
-        return both(Matchers.<Symbol>instanceOf(Field.class)).and(
-                new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
-                    @Override
-                    protected Integer featureValueOf(Symbol actual) {
-                        return ((Field) actual).index();
                     }
                 });
     }
@@ -722,10 +698,6 @@ public class TestingHelpers {
 
     public static DataType randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
-    }
-
-    public static DataType randomNumericPrimitiveType() {
-        return DataTypes.NUMERIC_PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.NUMERIC_PRIMITIVE_TYPES.size()));
     }
 
     public static Map<String, Object> jsonMap(String json) {

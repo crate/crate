@@ -38,7 +38,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.TreeMap;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -63,7 +62,6 @@ public class FetchPhaseTest {
         Reference name = new Reference(new ReferenceInfo(nameIdent, RowGranularity.DOC, DataTypes.STRING));
 
         FetchPhase orig = new FetchPhase(
-                UUID.randomUUID(),
                 1,
                 ImmutableSet.<String>of("node1", "node2"),
                 bases,
@@ -77,7 +75,6 @@ public class FetchPhaseTest {
         BytesStreamInput in = new BytesStreamInput(out.bytes());
         FetchPhase streamed = (FetchPhase) ExecutionPhases.fromStream(in);
 
-        assertThat(orig.jobId(), is(streamed.jobId()));
         assertThat(orig.executionPhaseId(), is(streamed.executionPhaseId()));
         assertThat(orig.executionNodes(), is(streamed.executionNodes()));
         assertThat(orig.fetchRefs(), is(streamed.fetchRefs()));

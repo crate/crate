@@ -109,8 +109,6 @@ public class SQLPrinter {
     static class Context {
 
         BiMap<AnalyzedRelation, String> relNames = HashBiMap.create();
-        Integer nextId = 0;
-
 
         String relIdent(AnalyzedRelation rel) {
             String name = relNames.get(rel);

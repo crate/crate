@@ -150,7 +150,6 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             FetchPhase fetchPhase = new FetchPhase(
-                    context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     readerAllocations.nodeReaders().keySet(),
                     readerAllocations.bases(),
@@ -232,7 +231,6 @@ public class QueryThenFetchConsumer implements Consumer {
             Planner.Context.ReaderAllocations readerAllocations = context.plannerContext().buildReaderAllocations();
 
             FetchPhase fetchPhase = new FetchPhase(
-                    context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     readerAllocations.nodeReaders().keySet(),
                     readerAllocations.bases(),

@@ -69,7 +69,5 @@ public interface ExecutionPhase extends Streamable {
 
     Collection<String> executionNodes();
 
-    UUID jobId();
-
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
 }

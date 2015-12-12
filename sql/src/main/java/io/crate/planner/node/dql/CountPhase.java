@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.UUID;
 
 public class CountPhase implements UpstreamPhase {
 
@@ -41,7 +40,6 @@ public class CountPhase implements UpstreamPhase {
             return new CountPhase();
         }
     };
-    private UUID jobId;
     private int executionPhaseId;
     private Routing routing;
     private WhereClause whereClause;
@@ -49,12 +47,10 @@ public class CountPhase implements UpstreamPhase {
 
     CountPhase() {}
 
-    public CountPhase(UUID jobId,
-                      int executionPhaseId,
+    public CountPhase(int executionPhaseId,
                       Routing routing,
                       WhereClause whereClause,
                       DistributionInfo distributionInfo) {
-        this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.whereClause = whereClause;
@@ -69,11 +65,6 @@ public class CountPhase implements UpstreamPhase {
     @Override
     public String name() {
         return "count";
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
     }
 
     public Routing routing() {
@@ -111,7 +102,6 @@ public class CountPhase implements UpstreamPhase {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
         routing = Routing.fromStream(in);
         whereClause = new WhereClause(in);
@@ -120,9 +110,6 @@ public class CountPhase implements UpstreamPhase {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        assert jobId != null : "jobId must not be null";
-        out.writeLong(jobId.getMostSignificantBits());
-        out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(executionPhaseId);
         routing.writeTo(out);
         whereClause.writeTo(out);

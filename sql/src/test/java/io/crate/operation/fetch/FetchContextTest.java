@@ -32,7 +32,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
@@ -55,7 +54,6 @@ public class FetchContextTest extends CrateUnitTest {
 
         final FetchContext context = new FetchContext(
                 new FetchPhase(
-                        null,
                         1,
                         null,
                         new TreeMap<String, Integer>(),
@@ -85,7 +83,6 @@ public class FetchContextTest extends CrateUnitTest {
 
         final FetchContext context = new FetchContext(
                 new FetchPhase(
-                        null,
                         1,
                         null,
                         ibv.build(),

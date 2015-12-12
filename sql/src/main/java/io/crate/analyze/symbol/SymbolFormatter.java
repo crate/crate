@@ -60,7 +60,6 @@ public class SymbolFormatter extends SymbolVisitor<SymbolFormatter.Context, Void
 
     public enum Style {
         SIMPLE(Context.DEFAULT_MAX_DEPTH, Context.DEFAULT_FULL_QUALIFIED, Context.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
-        DEFAULT(Context.DEFAULT_MAX_DEPTH, Context.DEFAULT_FULL_QUALIFIED, Context.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
         PARSEABLE(100, true, true),
         FULL_QUALIFIED(Context.DEFAULT_MAX_DEPTH, true, false),
         PARSEABLE_NOT_QUALIFIED(100, false, true);
@@ -168,14 +167,6 @@ public class SymbolFormatter extends SymbolVisitor<SymbolFormatter.Context, Void
         Context context = formatStyle.context();
         process(symbol, context);
         return context.formatted();
-    }
-
-    /**
-     * format a symbol to a string that is guaranteed to be parseable
-     * or throw an exception if the max depth is reached.
-     */
-    public String formatParseable(Symbol symbol) {
-        return format(symbol, Style.PARSEABLE);
     }
 
     public String formatSimple(Symbol symbol) {

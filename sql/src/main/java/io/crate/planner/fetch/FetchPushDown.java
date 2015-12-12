@@ -54,13 +54,6 @@ public class FetchPushDown {
         return DOCID_COL;
     }
 
-    public Collection<Reference> partitionRefs() {
-        if (partitionRefs == null || partitionRefs.isEmpty()) {
-            return ImmutableList.of();
-        }
-        return partitionRefs.keySet();
-    }
-
     public Collection<Reference> fetchRefs() {
         if (fetchRefs == null || fetchRefs.isEmpty()) {
             return ImmutableList.of();

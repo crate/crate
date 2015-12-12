@@ -60,10 +60,6 @@ class ColumnRegistrar {
         return this;
     }
 
-    public ColumnRegistrar register(String column, DataType type) {
-        return register(column, type, null);
-    }
-
     public ColumnRegistrar putInfoOnly(ColumnIdent columnIdent, ReferenceInfo referenceInfo) {
         infosBuilder.put(columnIdent, referenceInfo);
         return this;

@@ -36,13 +36,6 @@ public class LiteralValueFormatter {
 
     public static final LiteralValueFormatter INSTANCE = new LiteralValueFormatter();
 
-    public String format(Object value) {
-        StringBuilder builder = new StringBuilder();
-        format(value, builder);
-        return builder.toString();
-    }
-
-
     @SuppressWarnings("unchecked")
     public void format(Object value, StringBuilder builder) {
         if (value == null) {

@@ -71,10 +71,6 @@ public class TestingTableInfo extends DocTableInfo {
         this.routing = routing;
     }
 
-    public void routing(Routing routing){
-        this.routing = routing;
-    }
-
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return routing;
