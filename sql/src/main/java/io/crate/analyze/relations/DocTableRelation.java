@@ -88,7 +88,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     }
 
     private Field getField(Path path, boolean forWrite) {
-        ColumnIdent ci = getColumnIdentSafe(path);
+        ColumnIdent ci = toColumnIdent(path);
         if (HIDDEN_COLUMNS.contains(ci)) {
             return null;
         }

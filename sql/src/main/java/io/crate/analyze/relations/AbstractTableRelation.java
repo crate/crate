@@ -67,7 +67,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     @Nullable
     @Override
     public Field getField(Path path) {
-        ColumnIdent ci = getColumnIdentSafe(path);
+        ColumnIdent ci = toColumnIdent(path);
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);
         if (referenceInfo == null) {
             return null;
@@ -102,14 +102,12 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     }
 
 
-    protected ColumnIdent getColumnIdentSafe(Path path) {
-        ColumnIdent ci;
-        if (path instanceof ColumnIdent) {
-            ci = (ColumnIdent) path;
-        } else {
+    protected static ColumnIdent toColumnIdent(Path path) {
+        try {
+            return (ColumnIdent) path;
+        } catch (ClassCastException e) {
             throw new UnsupportedOperationException("TableRelation requires a ColumnIdent as path to get a field");
         }
-        return ci;
     }
 
     protected Field allocate(Path path, Reference reference) {
