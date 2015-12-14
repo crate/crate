@@ -24,6 +24,7 @@ package io.crate.analyze.symbol.format;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -32,11 +33,14 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.operator.InOperator;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +66,8 @@ public class SymbolPrinterTest extends CrateUnitTest {
                 .add("bar", DataTypes.LONG)
                 .add("CraZy", DataTypes.IP)
                 .add("select", DataTypes.BYTE)
+                .add("idx", DataTypes.INTEGER)
+                .add("s_arr", new ArrayType(DataTypes.STRING))
                 .build();
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>builder()
                 .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
@@ -74,6 +80,10 @@ public class SymbolPrinterTest extends CrateUnitTest {
         assertThat(printer.printFullQualified(s), is(formatted));
     }
 
+    private void assertPrintStatic(Symbol s, String formatted) {
+        assertThat(SymbolPrinter.INSTANCE.printFullQualified(s), is(formatted));
+    }
+
     private void assertPrintIsParseable(String sql) {
         assertPrintIsParseable(sql, SymbolPrinter.Style.SIMPLE);
     }
@@ -83,6 +93,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
         String formatted = printer.print(symbol, style);
         Symbol formattedSymbol = sqlExpressions.asSymbol(formatted);
         assertThat(symbol, is(formattedSymbol));
+    }
+
+    private void assertPrintingRoundTrip(String sql, String expected) {
+        Symbol sym = sqlExpressions.asSymbol(sql);
+        assertPrint(sym, expected);
+        assertPrintStatic(sym, expected);
+        assertPrintIsParseable(sql);
     }
 
 
@@ -286,7 +303,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
         String printed = SymbolPrinter.INSTANCE.printFullQualified(comparisonOperator);
         assertThat(
                 printed,
-                is("((doc.formatter.bar = 1) and (doc.formatter.foo = '2'))")
+                is("((doc.formatter.bar = 1) AND (doc.formatter.foo = '2'))")
         );
     }
 
@@ -308,5 +325,48 @@ public class SymbolPrinterTest extends CrateUnitTest {
     public void testPrintRelationColumn() throws Exception {
         Symbol relationColumn = new RelationColumn(new QualifiedName(TABLE_NAME), 42, DataTypes.STRING);
         assertPrint(relationColumn, "RELCOL(formatter, 42)");
+    }
+
+    @Test
+    public void testPrintInOperator() throws Exception {
+        Symbol inQuery = sqlExpressions.asSymbol("bar in (1)");
+        assertPrint(inQuery, "(doc.formatter.bar = ANY([1]))"); // internal in is rewritten to ANY
+        FunctionImplementation impl = sqlExpressions.analysisMD().functions().getSafe(new FunctionIdent(InOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, new SetType(DataTypes.LONG))));
+        Function fn = new Function(impl.info(), Arrays.asList(sqlExpressions.asSymbol("bar"), Literal.newLiteral(new SetType(DataTypes.LONG), ImmutableSet.of(1L, 2L))));
+        assertPrint(fn, "(doc.formatter.bar IN (1, 2))");
+        inQuery = sqlExpressions.asSymbol("bar in (1, abs(-10), 9)");
+        assertPrint(inQuery, "(doc.formatter.bar = ANY([1, 9, 10]))");
+        assertPrintStatic(inQuery, "(doc.formatter.bar = ANY([1, 9, 10]))");
+    }
+
+    @Test
+    public void testPrintLikeOperator() throws Exception {
+        Symbol likeQuery = sqlExpressions.asSymbol("foo like '%bla%'");
+        assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
+        assertPrintStatic(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
+        assertPrintIsParseable("(foo LIKE 'a')");
+    }
+
+    @Test
+    public void testPrintAnyEqOperator() throws Exception {
+        assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo = ANY(s_arr)", "(doc.formatter.foo = ANY(doc.formatter.s_arr))");
+    }
+
+    @Test
+    public void testAnyNeqOperator() throws Exception {
+        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(['a', 'b', 'c'])))");
+        assertPrintingRoundTrip("not foo != ANY(s_arr)", "(NOT (doc.formatter.foo <> ANY(doc.formatter.s_arr)))");
+    }
+
+    @Test
+    public void testNot() throws Exception {
+        assertPrintingRoundTrip("not foo = 'bar'", "(NOT (doc.formatter.foo = 'bar'))");
+    }
+
+    @Test
+    public void testAnyLikeOperator() throws Exception {
+        assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
+        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
     }
 }

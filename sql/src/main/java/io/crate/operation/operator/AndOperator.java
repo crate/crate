@@ -110,5 +110,4 @@ public class AndOperator extends Operator<Boolean> {
 
         return left && right;
     }
-
 }

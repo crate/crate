@@ -116,7 +116,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
-                "WHERE (not any_=(information_schema.tables.schema_name, ['information_schema', 'sys'])) " +
+                "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys']))) " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -127,15 +127,15 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((information_schema.tables.schema_name = 'qname') " +
-                "and (information_schema.tables.table_name like 'likePattern')) " +
+                "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
                 "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables like '%'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
-                "WHERE ((not any_=(information_schema.tables.schema_name, ['information_schema', 'sys'])) " +
-                "and (information_schema.tables.table_name like '%')) " +
+                "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys']))) " +
+                "AND (information_schema.tables.table_name LIKE '%')) " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -147,15 +147,15 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((information_schema.tables.schema_name = 'qname') " +
-                "and ((information_schema.tables.table_name = 'foo') or (information_schema.tables.table_name like '%bar%'))) " +
+                "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
                 "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables where table_name like '%'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
-                "WHERE ((not any_=(information_schema.tables.schema_name, ['information_schema', 'sys'])) " +
-                "and (information_schema.tables.table_name like '%')) " +
+                "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys']))) " +
+                "AND (information_schema.tables.table_name LIKE '%')) " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -165,7 +165,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL("SELECT information_schema.schemata.schema_name " +
-                                    "WHERE (information_schema.schemata.schema_name like '%') " +
+                                    "WHERE (information_schema.schemata.schema_name LIKE '%') " +
                                     "ORDER BY information_schema.schemata.schema_name"));
     }
 
@@ -197,8 +197,8 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.columns.table_name," +
                 " information_schema.columns.schema_name, information_schema.columns.column_name" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " and (information_schema.columns.schema_name = 'information_schema'))" +
-                " and (information_schema.columns.column_name like '%'))" +
+                " AND (information_schema.columns.schema_name = 'information_schema'))" +
+                " AND (information_schema.columns.column_name LIKE '%'))" +
                 " ORDER BY information_schema.columns.column_name"));
     }
 
@@ -212,8 +212,8 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
                 " information_schema.columns.column_name" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " and (information_schema.columns.schema_name = 'information_schema'))" +
-                " and (information_schema.columns.column_name = 'id'))" +
+                " AND (information_schema.columns.schema_name = 'information_schema'))" +
+                " AND (information_schema.columns.column_name = 'id'))" +
                 " ORDER BY information_schema.columns.column_name"));
     }
 
@@ -226,8 +226,8 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
                 " information_schema.columns.column_name" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " and (information_schema.columns.schema_name = 'doc'))" +
-                " and (information_schema.columns.column_name like '%'))" +
+                " AND (information_schema.columns.schema_name = 'doc'))" +
+                " AND (information_schema.columns.column_name LIKE '%'))" +
                 " ORDER BY information_schema.columns.column_name"));
     }
 
@@ -240,7 +240,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
                 " information_schema.columns.column_name" +
                 " WHERE ((information_schema.columns.table_name = 'schemata')" +
-                " and (information_schema.columns.schema_name = 'doc'))" +
+                " AND (information_schema.columns.schema_name = 'doc'))" +
                 " ORDER BY information_schema.columns.column_name"));
     }
 

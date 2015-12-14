@@ -46,9 +46,10 @@ public class LiteralValueFormatter {
         } else if(value instanceof Set) {
             formatIterable(Sorted.sortRecursive((Collection) value), builder);
         } else if(value instanceof Collection) {
-            formatIterable((Iterable) value, builder);
+            formatIterable((Iterable<?>) value, builder);
         } else if (value instanceof Object[]) {
             formatIterable(ImmutableList.copyOf((Object[]) value), builder);
+
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
         } else if (value instanceof CharSequence || value instanceof Character || value instanceof BytesRef) {
@@ -57,6 +58,20 @@ public class LiteralValueFormatter {
             builder.append(value.toString());
         }
 
+    }
+
+    private void formatIterable(Iterable<?> iterable, StringBuilder builder) {
+        builder.append('[');
+        boolean first = true;
+        for (Object elem : iterable) {
+            if (!first) {
+                builder.append(", ");
+            } else {
+                first = false;
+            }
+            format(elem, builder);
+        }
+        builder.append(']');
     }
 
     private void formatMap(Map<String, Object> map, StringBuilder builder) {
@@ -89,20 +104,6 @@ public class LiteralValueFormatter {
                 first = false;
             }
             format(Array.get(array, i), builder);
-        }
-        builder.append(']');
-    }
-
-    private void formatIterable(Iterable array, StringBuilder builder) {
-        builder.append('[');
-        boolean first = true;
-        for(Object value: array) {
-            if (!first) {
-                builder.append(", ");
-            } else {
-                first = false;
-            }
-            format(value, builder);
         }
         builder.append(']');
     }

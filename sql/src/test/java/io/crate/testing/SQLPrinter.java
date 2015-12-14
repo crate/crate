@@ -22,14 +22,10 @@
 
 package io.crate.testing;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationPrinter;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 
 import java.util.Collection;
@@ -57,38 +53,37 @@ public class SQLPrinter {
     }
 
     public static String print(Collection<Symbol> symbols) {
-        Context ctx = new Context();
-        TESTING_SYMBOL_PRINTER.process(symbols, ctx);
-        return ctx.printed();
+        StringBuilder sb = new StringBuilder();
+        TESTING_SYMBOL_PRINTER.process(symbols, sb);
+        return sb.toString();
     }
 
 
     public static String print(Symbol symbol) {
-        Context ctx = new Context();
-        TESTING_SYMBOL_PRINTER.process(symbol, ctx);
-        return ctx.printed();
+        StringBuilder sb = new StringBuilder();
+        TESTING_SYMBOL_PRINTER.process(symbol, sb);
+        return sb.toString();
     }
 
     public static String print(OrderBy orderBy) {
-        Context ctx = new Context();
-        TESTING_SYMBOL_PRINTER.process(orderBy, ctx);
-        return ctx.printed();
+        StringBuilder sb = new StringBuilder();
+        TESTING_SYMBOL_PRINTER.process(orderBy, sb);
+        return sb.toString();
     }
 
     public static String print(QuerySpec spec) {
         StringBuilder sb = new StringBuilder();
-        Context ctx = new Context(sb);
 
         sb.append("SELECT ");
-        TESTING_SYMBOL_PRINTER.process(spec.outputs(), ctx);
+        TESTING_SYMBOL_PRINTER.process(spec.outputs(), sb);
 
         if (spec.where().hasQuery()) {
             sb.append(" WHERE ");
-            TESTING_SYMBOL_PRINTER.process(spec.where().query(), ctx);
+            TESTING_SYMBOL_PRINTER.process(spec.where().query(), sb);
         }
         if (spec.orderBy().isPresent()) {
             sb.append(" ORDER BY ");
-            TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), ctx);
+            TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), sb);
         }
         if (spec.limit().isPresent()) {
             sb.append(" LIMIT ");
@@ -100,67 +95,47 @@ public class SQLPrinter {
             sb.append(spec.offset());
         }
 
-        return ctx.printed();
-    }
-
-    static class Context {
-
-        private final StringBuilder sb;
-
-        public Context() {
-            this(new StringBuilder());
-        }
-
-        public Context(StringBuilder sb) {
-            this.sb = sb;
-        }
-
-        public String printed() {
-            return sb.toString();
-        }
-
+        return sb.toString();
     }
 
     /**
      * produces same results as with {@link SymbolPrinter#printFullQualified(Symbol)} but is
      * able to format other symbols that {@link SymbolPrinter} is not able to.
      */
-    private static class TestingSymbolPrinter extends SymbolVisitor<Context, Void> {
+    private static class TestingSymbolPrinter {
 
-        public void process(Iterable<? extends Symbol> symbols, Context ctx) {
+        public void process(Iterable<? extends Symbol> symbols, StringBuilder sb) {
             boolean first = true;
             for (Symbol arg : symbols) {
                 if (!first) {
-                    ctx.sb.append(", ");
+                    sb.append(", ");
                 }
                 first = false;
-                process(arg, ctx);
+                process(arg, sb);
             }
         }
 
-        @Override
-        protected Void visitSymbol(Symbol symbol, Context context) {
-            context.sb.append(SymbolPrinter.INSTANCE.printFullQualified(symbol));
-            return null;
+        public void process(Symbol symbol, StringBuilder sb) {
+            sb.append(SymbolPrinter.INSTANCE.printFullQualified(symbol));
         }
 
-        public void process(OrderBy orderBy, Context ctx) {
+        public void process(OrderBy orderBy, StringBuilder sb) {
             int i = 0;
             for (Symbol symbol : orderBy.orderBySymbols()) {
                 if (i > 0) {
-                    ctx.sb.append(", ");
+                    sb.append(", ");
                 }
-                process(symbol, ctx);
+                process(symbol, sb);
                 if (orderBy.reverseFlags()[i]) {
-                    ctx.sb.append(" DESC");
+                    sb.append(" DESC");
                 }
                 Boolean nullsFirst = orderBy.nullsFirst()[i];
                 if (nullsFirst != null) {
-                    ctx.sb.append(" NULLS");
+                    sb.append(" NULLS");
                     if (nullsFirst) {
-                        ctx.sb.append(" FIRST");
+                        sb.append(" FIRST");
                     } else {
-                        ctx.sb.append(" LAST");
+                        sb.append(" LAST");
                     }
                 }
                 i++;

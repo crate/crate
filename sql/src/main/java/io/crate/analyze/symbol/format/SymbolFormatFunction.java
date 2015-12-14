@@ -31,6 +31,8 @@ public class SymbolFormatFunction implements Function<Symbol, String> {
 
     public static final SymbolFormatFunction INSTANCE = new SymbolFormatFunction();
 
+    private SymbolFormatFunction() {}
+
     @Nullable
     @Override
     public String apply(@Nullable Symbol input) {

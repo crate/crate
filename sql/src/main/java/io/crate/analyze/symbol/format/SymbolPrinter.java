@@ -26,11 +26,17 @@ import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.operation.operator.InOperator;
+import io.crate.operation.operator.any.AnyOperator;
+import io.crate.types.SetType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.*;
 
@@ -60,7 +66,7 @@ public class SymbolPrinter {
         @Override
         public String operator(Function function) {
             assert function.info().ident().name().startsWith("op_");
-            return function.info().ident().name().substring(3);
+            return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
         }
     };
 
@@ -159,12 +165,26 @@ public class SymbolPrinter {
                 return null;
             }
 
-            FunctionFormatSpec formatter = null;
+            // handle special functions
+            String functionName = function.info().ident().name();
+            if (InOperator.NAME.equals(functionName)) {
+                printInOperator(function, context);
+            } else if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
+                printAnyOperator(function, context);
+            } else {
+                printGenericFunction(function, context);
+            }
+            return null;
+        }
+
+        private void printGenericFunction(Function function, SymbolPrinterContext context) {
+            FunctionFormatSpec functionFormatSpec = null;
             OperatorFormatSpec operatorFormatSpec = null;
+
             if (functions != null) {
                 FunctionImplementation<?> impl = functions.get(function.info().ident());
                 if (impl instanceof FunctionFormatSpec) {
-                    formatter = (FunctionFormatSpec)impl;
+                    functionFormatSpec = (FunctionFormatSpec)impl;
                 } else if (impl instanceof OperatorFormatSpec) {
                     operatorFormatSpec = (OperatorFormatSpec)impl;
                 }
@@ -174,12 +194,71 @@ public class SymbolPrinter {
             if (operatorFormatSpec != null) {
                 printOperator(function, operatorFormatSpec, context);
             } else {
-                if (formatter == null) {
-                    formatter = SIMPLE_FUNCTION_FORMAT_SPEC;
+                if (functionFormatSpec == null) {
+                    functionFormatSpec = SIMPLE_FUNCTION_FORMAT_SPEC;
                 }
-                printFunction(function, formatter, context);
+                printFunction(function, functionFormatSpec, context);
             }
-            return null;
+        }
+
+        private void printAnyOperator(Function function, SymbolPrinterContext context) {
+
+            List<Symbol> args = function.arguments();
+            assert args.size() == 2;
+            context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
+            context.down();
+            process(args.get(0), context);
+            context.up();
+
+            // print operator
+            String operatorName = anyOperatorName(function.info().ident().name());
+            context.builder
+                    .append(WS)
+                    .append(operatorName)
+                    .append(WS);
+
+            context.builder.append(ANY).append(PAREN_OPEN);
+            context.down();
+            process(args.get(1), context);
+            context.up();
+            context.builder.append(PAREN_CLOSE)
+                           .append(PAREN_CLOSE);
+        }
+
+        private String anyOperatorName(String functionName) {
+            // handles NOT_LIKE -> NOT LIKE
+            return functionName.substring(4).replace("_", " ").toUpperCase(Locale.ENGLISH);
+        }
+
+        private void printInOperator(Function function, final SymbolPrinterContext context) {
+            // --> (ref IN (1, 2, 3))
+            List<Symbol> args = function.arguments();
+            assert args.size() == 2;
+            context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
+            context.down();
+            process(args.get(0), context);
+            context.up();
+            context.builder.append(WS)
+                    .append(IN)
+                    .append(WS)
+                    .append(PAREN_OPEN);
+            Symbol setArg = args.get(1);
+
+            context.down();
+            if (!context.verifyMaxDepthReached()) {
+                assert setArg instanceof Literal && setArg.valueType() instanceof SetType;
+                Set setValue = (Set)((Literal) setArg).value();
+                for (Iterator iterator = setValue.iterator(); iterator.hasNext(); ) {
+                    Object elem = iterator.next();
+                    LiteralValueFormatter.INSTANCE.format(elem, context.builder);
+                    if (iterator.hasNext()) {
+                        context.builder.append(COMMA).append(WS);
+                    }
+                }
+            }
+            context.up();
+            context.builder.append(PAREN_CLOSE)
+                           .append(PAREN_CLOSE);
         }
 
         @Override
@@ -266,16 +345,16 @@ public class SymbolPrinter {
 
         private void printOperator(Function function, OperatorFormatSpec formatter, SymbolPrinterContext context) {
             int numArgs = function.arguments().size();
+            context.builder.append(PAREN_OPEN);
             switch (numArgs) {
                 case 1:
-                    context.builder.append(PAREN_OPEN).append(formatter.operator(function)).append(" ");
+                    context.builder.append(formatter.operator(function))
+                            .append(" ");
                     context.down();
                     function.arguments().get(0).accept(this, context);
                     context.up();
-                    context.builder.append(PAREN_CLOSE);
                     break;
                 case 2:
-                    context.builder.append(PAREN_OPEN);
                     context.down();
                     function.arguments().get(0).accept(this, context);
                     context.up();
@@ -285,14 +364,15 @@ public class SymbolPrinter {
                     context.down();
                     function.arguments().get(1).accept(this, context);
                     context.up();
-                    context.builder.append(PAREN_CLOSE);
                     break;
                 default:
                     throw new UnsupportedOperationException("cannot format operators with more than 2 operands");
             }
+            context.builder.append(PAREN_CLOSE);
         }
 
         private void printFunction(Function function, FunctionFormatSpec formatter, SymbolPrinterContext context) {
+
             context.builder.append(formatter.beforeArgs(function));
             if (formatter.formatArgs(function)) {
                 printArgs(function.arguments(), context);
@@ -323,5 +403,7 @@ public class SymbolPrinter {
         public static final String NULL_LOWER = "null";
         public static final String WS = " ";
         public static final String DOT = ".";
+        public static final String IN = "IN";
+        public static final String ANY = "ANY";
     }
 }

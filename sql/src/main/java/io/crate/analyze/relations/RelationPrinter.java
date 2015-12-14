@@ -28,6 +28,9 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
     public static final RelationPrinter INSTANCE = new RelationPrinter();
 
+    private RelationPrinter() {
+    }
+
     @Override
     protected String visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
         return relation.getClass().getCanonicalName();

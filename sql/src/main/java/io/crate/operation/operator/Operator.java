@@ -10,6 +10,8 @@ import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.Locale;
+
 public abstract class Operator<I> extends Scalar<Boolean, I> implements FunctionImplementation<Function>, OperatorFormatSpec {
 
     public static final io.crate.types.DataType RETURN_TYPE = DataTypes.BOOLEAN;
@@ -17,7 +19,7 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Function
     @Override
     public String operator(Function function) {
         // strip "op_" from function name
-        return info().ident().name().substring(3);
+        return info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
     }
 
     protected static FunctionInfo generateInfo(String name, DataType type) {

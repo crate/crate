@@ -56,4 +56,9 @@ public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
     protected boolean compare(int comparisonResult) {
         return comparisonResult == 0;
     }
+
+    @Override
+    public String operator(Function function) {
+        return "= ANY";
+    }
 }
