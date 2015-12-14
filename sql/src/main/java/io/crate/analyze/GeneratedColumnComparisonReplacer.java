@@ -138,11 +138,13 @@ public class GeneratedColumnComparisonReplacer {
                 Function generatedFunction = (Function)generatedReference.generatedExpression();
                 String operator = function.info().ident().name();
                 if (!operator.equals(EqOperator.NAME)) {
-                    if (!ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
+                    if(!generatedFunction.info().comparisonReplacementPossible()) {
                         return null;
                     }
                     // rewrite operator
-                    operator = ROUNDING_FUNCTION_MAPPING.get(operator);
+                    if (ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
+                        operator = ROUNDING_FUNCTION_MAPPING.get(operator);
+                    }
                 }
 
                 Reference genColReference = new Reference(generatedReference);

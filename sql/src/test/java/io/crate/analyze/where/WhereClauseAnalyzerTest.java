@@ -739,6 +739,15 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testColumnReferencedTwiceInGeneratedColumnPartitioned() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from double_gen_parted where x = 4");
         assertThat(whereClause.query(), isSQL("doc.double_gen_parted.x = 4"));
-        assertThat(whereClause.partitions(), contains(".partitioned.double_gen_parted.0813a0hm"));
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
+    }
+
+    @Test
+    public void testOptimizationNonRoundingFunctionGreater() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from double_gen_parted where x > 3");
+        assertThat(whereClause.query(), isSQL("doc.double_gen_parted.x > 3"));
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
     }
 }
