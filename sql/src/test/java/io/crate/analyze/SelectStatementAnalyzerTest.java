@@ -749,6 +749,15 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testJoinSyntaxWithMoreThan2Tables() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select * from users u1 " +
+                                                   "join users_multi_pk u2 on u1.id = u2.id " +
+                                                   "join users_clustered_by_only u3 on u2.id = u3.id ");
+        assertThat(analysis.relation().querySpec().where().query(),
+                isSQL("doc.users.id = doc.users_multi_pk.id and doc.users_multi_pk.id = doc.users_clustered_by_only.id"));
+    }
+
+    @Test
     public void testCrossJoinWithJoinCondition() throws Exception {
         expectedException.expect(ParsingException.class);
         analyze("select * from users cross join users_multi_pk on users.id = users_multi_pk.id");
