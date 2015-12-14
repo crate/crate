@@ -1635,16 +1635,38 @@ Never use more than 30.5 Gigabyte
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to save on precious memory on x64 systems the Hotspot Java Virtual Machine
-uses a technique called `Compressed Ordinary object pointers (oops) <https://wiki.openjdk.java.net/display/HotSpot/CompressedOops>`_:
+uses a technique called `Compressed Ordinary object pointers (oops) <Compressed Oops>`_.
 
-    Compressed oops represent managed pointers (in many but not all places in the JVM)
-    as 32-bit values which must be scaled by a factor of 8 and added to a 64-bit base address
-    to find the object they refer to. This allows applications to address
-    up to four billion objects (not bytes), or a heap size of up to about 32Gb.
+These are pointers to java objects in the heap that only consume 32 Bit,
+which saves you lots of space.
+The actual native 64 bit pointers are computed by scaling the 32 bit value by a factor of 8
+and add it to a base heap address. This allows the JVM to address about 32 GB of heap.
 
-The mentioned heap size of 32Gb does not take additional requirements induced by the garbage collector
-and heap alignment into account. To be safe, it is good practice to configure your heap
-to anything below or equal to 30.5GB.
+If you configure your heap to more than 32 GB `Compressed Oops`_ cannot be used anymore.
+In effect, there will be much less space available in the heap
+as object pointers now consume twice as much.
+
+This boundary should be considered an upper bound for the heap size of any JVM application.
+
+.. note::
+
+   In order to ensure that `Compressed Oops`_ are used no matter what JVM Crate runs on,
+   configuring the heap to a value less than or equal to *30.5 GB* (``30500m``) is suggested,
+   as some JVMs only support `Compressed Oops`_ up to that value.
+
+
+Running Crate on machines with huge RAM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If hardware with much more RAM is available, it is suggested to run more than one Crate instance
+on that machine with each one having a heap size of around 30.5 GB (``30500m``).
+But still leave half of the available RAM to `Lucene`_.
+
+In this case consider adding: ``cluster.routing.allocation.same_shard.host: true``
+to your config. This will prevent allocating primary and replica
+of the same shard on the same machine even if more than one instances
+running on it.
+
 
 
 .. _YAML: http://en.wikipedia.org/wiki/YAML
@@ -1656,3 +1678,5 @@ to anything below or equal to 30.5GB.
 .. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
 
 .. _Lucene: https://lucene.apache.org/
+
+.. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
