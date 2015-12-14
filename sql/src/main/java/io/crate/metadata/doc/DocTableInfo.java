@@ -27,10 +27,12 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.TableColumn;
-import io.crate.metadata.table.AbstractDynamicTableInfo;
+import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
 import org.apache.lucene.util.BytesRef;
@@ -52,7 +54,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTable {
+public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
 
     private final TimeValue routingFetchTimeout;
 
@@ -71,7 +73,7 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
     private final BytesRef numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
     private final TableColumn docColumn;
-    private ExecutorService executorService;
+    private final ExecutorService executorService;
     private final ClusterService clusterService;
     private final TableParameterInfo tableParameterInfo;
     private static final ESLogger logger = Loggers.getLogger(DocTableInfo.class);
@@ -452,5 +454,47 @@ public class DocTableInfo extends AbstractDynamicTableInfo implements ShardedTab
             }
             routingFuture.setException(new IllegalStateException("Fetching table info routing timed out."));
         }
+    }
+
+    @Nullable
+    public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
+        boolean parentIsIgnored = false;
+        ColumnPolicy parentPolicy = columnPolicy();
+        if (!ident.isColumn()) {
+            // see if parent is strict object
+            ColumnIdent parentIdent = ident.getParent();
+            ReferenceInfo parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getReferenceInfo(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
+            }
+
+            if (parentInfo != null) {
+                parentPolicy = parentInfo.columnPolicy();
+            }
+        }
+
+        switch (parentPolicy) {
+            case DYNAMIC:
+                if (!forWrite) return null;
+                break;
+            case STRICT:
+                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn());
+                return null;
+            case IGNORED:
+                parentIsIgnored = true;
+                break;
+            default:
+                break;
+        }
+        DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
+        if (parentIsIgnored) {
+            reference.columnPolicy(ColumnPolicy.IGNORED);
+        }
+        return reference;
     }
 }
