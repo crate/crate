@@ -30,10 +30,10 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.ManyTableConsumer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class QuerySplitter {
 
@@ -55,30 +55,25 @@ public class QuerySplitter {
      *     t2.x = t3.x  ->  t2, t3
      * </pre>
      */
-    public static Map<Symbol, Collection<QualifiedName>> split(Symbol symbol) {
-        Context context = new Context();
-        SPLIT_VISITOR.process(symbol, context);
-        return context.splits;
+    public static Map<Set<QualifiedName>, Symbol> split(Symbol symbol) {
+        Map<Set<QualifiedName>, Symbol> splits = new HashMap<>();
+        SPLIT_VISITOR.process(symbol, splits);
+        return splits;
     }
 
-    private static class Context {
-
-        public Map<Symbol, Collection<QualifiedName>> splits = new HashMap<>();
-    }
-
-    private static class SplitVisitor extends SymbolVisitor<Context, Void> {
+    private static class SplitVisitor extends SymbolVisitor<Map<Set<QualifiedName>, Symbol>, Void> {
 
         @Override
-        public Void visitFunction(Function function, Context context) {
+        public Void visitFunction(Function function, Map<Set<QualifiedName>, Symbol> splits) {
             if (!function.info().equals(AndOperator.INFO)) {
                 HashSet<QualifiedName> qualifiedNames = new HashSet<>();
                 ManyTableConsumer.QualifiedNameCounter.INSTANCE.process(function, qualifiedNames);
-                context.splits.put(function, qualifiedNames);
+                splits.put(qualifiedNames, function);
                 return null;
             }
 
             for (Symbol arg : function.arguments()) {
-                process(arg, context);
+                process(arg, splits);
             }
             return null;
         }

@@ -26,12 +26,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.TwoTableJoin;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.relations.RelationSplitter;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
@@ -68,7 +66,7 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
-            if (mss.sources().size() > 2 && (mss.remainingOrderBy().isPresent()|| mss.querySpec().where().hasQuery())) {
+            if (mss.sources().size() > 2 && mss.remainingOrderBy().isPresent()) {
                 context.validationException(new ValidationException(
                         "Joining more than 2 tables with a join condition is not possible"));
                 return null;
@@ -93,6 +91,11 @@ public class ManyTableConsumer implements Consumer {
             AnalyzedRelation leftRelation = leftSource.relation();
             QuerySpec leftQuerySpec = leftSource.querySpec();
             Optional<OrderBy> remainingOrderBy = mss.remainingOrderBy();
+
+            Map<Set<QualifiedName>, Symbol> splitQuery = null;
+            if (mss.querySpec().where().hasQuery()) {
+                 splitQuery = QuerySplitter.split(mss.querySpec().where().query());
+            }
 
             /**
              * build a TwoTableJoin tree.
@@ -140,6 +143,11 @@ public class ManyTableConsumer implements Consumer {
                 QuerySpec newQuerySpec = rootQuerySpec.subset(predicate);
                 if (remainingOrderBy.isPresent()) {
                     remainingOrderBy = Optional.fromNullable(remainingOrderBy.get().subset(predicate));
+                }
+                Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
+                if (splitQuery != null && splitQuery.containsKey(names)) {
+                    Symbol symbol = splitQuery.get(names);
+                    newQuerySpec.where(new WhereClause(symbol));
                 }
 
                 TwoTableJoin join = new TwoTableJoin(

@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -29,9 +30,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class RelationAnalysisContext {
 
@@ -43,8 +42,9 @@ public class RelationAnalysisContext {
     private ParameterContext parameterContext;
     private AnalysisMetaData analysisMetaData;
     private FullQualifedNameFieldProvider fieldProvider;
+
     @Nullable
-    private Expression joinExpression;
+    private List<Expression> joinExpressions;
 
     public RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
         this.parameterContext = parameterContext;
@@ -97,12 +97,17 @@ public class RelationAnalysisContext {
         return expressionAnalysisContext;
     }
 
-    public void setJoinExpression(Expression joinExpression) {
-        this.joinExpression = joinExpression;
+    public List<Expression> joinExpressions() {
+        if (joinExpressions == null) {
+            return ImmutableList.of();
+        }
+        return joinExpressions;
     }
 
-    @Nullable
-    public Expression joinExpression() {
-        return joinExpression;
+    public void addJoinExpression(Expression expression) {
+        if (joinExpressions == null) {
+            joinExpressions = new ArrayList<>();
+        }
+        joinExpressions.add(expression);
     }
 }

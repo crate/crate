@@ -90,7 +90,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                context.setJoinExpression(((JoinOn) joinCriteria).getExpression());
+                context.addJoinExpression(((JoinOn) joinCriteria).getExpression());
             } else {
                 throw new UnsupportedOperationException(String.format("join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
@@ -272,8 +272,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        Expression joinExpression = context.joinExpression();
-        if (!where.isPresent() && joinExpression == null) {
+        List<Expression> joinExpressions = context.joinExpressions();
+        if (!where.isPresent() && joinExpressions.isEmpty()) {
             return WhereClause.MATCH_ALL;
         }
         Symbol query;
@@ -282,9 +282,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             query = Literal.BOOLEAN_TRUE;
         }
-        if (joinExpression != null) {
-            Symbol joinCondition = context.expressionAnalyzer().convert(joinExpression, context.expressionAnalysisContext());
-            query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
+        if (!joinExpressions.isEmpty()) {
+            for (Expression joinExpression : joinExpressions) {
+                Symbol joinCondition = context.expressionAnalyzer().convert(joinExpression, context.expressionAnalysisContext());
+                query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
+            }
         }
         query = context.expressionAnalyzer().normalize(query);
         return new WhereClause(query);

@@ -23,6 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -30,12 +31,11 @@ import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -65,34 +65,38 @@ public class QuerySplitterTest {
     @Test
     public void testSplitQueryWith3Relations() throws Exception {
         Symbol symbol = asSymbol("t1.a = t2.b and t2.b = t3.c");
-        Map<Symbol, Collection<QualifiedName>> split = QuerySplitter.split(symbol);
+        Map<Set<QualifiedName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
 
 
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t2t3 = asSymbol("t2.b = t3.c");
 
-        assertThat(split.containsKey(t1t2), is(true));
-        assertThat(split.get(t1t2), Matchers.containsInAnyOrder(tr1, tr2));
+        Set<QualifiedName> tr1AndTr2 = Sets.newHashSet(tr1, tr2);
+        assertThat(split.containsKey(tr1AndTr2), is(true));
+        assertThat(split.get(tr1AndTr2), is(t1t2));
 
-        assertThat(split.containsKey(t2t3), is(true));
-        assertThat(split.get(t2t3), Matchers.containsInAnyOrder(tr2, tr3));
+        Set<QualifiedName> tr2AndTr3 = Sets.newHashSet(tr2, tr3);
+        assertThat(split.containsKey(tr2AndTr3), is(true));
+        assertThat(split.get(tr2AndTr3), is(t2t3));
     }
 
     @Test
     public void testSplitQueryWith2TableJoinAnd3TableJoin() throws Exception {
         Symbol symbol = asSymbol("t1.a = t2.b and t2.b = t3.c || t1.a");
-        Map<Symbol, Collection<QualifiedName>> split = QuerySplitter.split(symbol);
+        Map<Set<QualifiedName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split.size(), is(2));
 
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t1t2t3 = asSymbol("t2.b = t3.c || t1.a");
 
-        assertThat(split.containsKey(t1t2), is(true));
-        assertThat(split.get(t1t2), Matchers.containsInAnyOrder(tr1, tr2));
+        Set<QualifiedName> tr1AndTr2 = Sets.newHashSet(tr1, tr2);
+        assertThat(split.containsKey(tr1AndTr2), is(true));
+        assertThat(split.get(tr1AndTr2), is(t1t2));
 
-        assertThat(split.containsKey(t1t2t3), is(true));
-        assertThat(split.get(t1t2t3), Matchers.containsInAnyOrder(tr1, tr2, tr3));
+        Set<QualifiedName> tr1AndTr2AndTr3 = Sets.newHashSet(tr1, tr2, tr3);
+        assertThat(split.containsKey(tr1AndTr2AndTr3), is(true));
+        assertThat(split.get(tr1AndTr2AndTr3), is(t1t2t3));
     }
 
 
