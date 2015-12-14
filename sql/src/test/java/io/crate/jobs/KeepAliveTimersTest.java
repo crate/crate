@@ -80,7 +80,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
         KeepAliveTimers.ResettableTimer timer = futureAndTimer.v2();
         SettableFuture<Void> future = futureAndTimer.v1();
         timer.start();
-        future.get(100, TimeUnit.MILLISECONDS);
+        future.get(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
