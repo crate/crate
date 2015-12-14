@@ -26,7 +26,7 @@ import com.google.common.math.LongMath;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -38,7 +38,7 @@ import org.joda.time.DateTimeUtils;
 
 import java.math.RoundingMode;
 
-public class CurrentTimestampFunction extends Scalar<Long, Integer> implements SymbolFormatter.FunctionFormatter {
+public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
 
     public static final String NAME = "CURRENT_TIMESTAMP";
     public static final int DEFAULT_PRECISION = 3;

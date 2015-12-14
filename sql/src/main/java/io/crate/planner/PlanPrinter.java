@@ -28,12 +28,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.format.SymbolFormatFunction;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 
@@ -208,7 +208,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             context.print(node.getClass().getSimpleName());
             context.indent();
             if (node.insertColumns() != null) {
-                context.print("insertColumns: %s", Joiner.on(", ").join(Iterables.transform(Arrays.asList(node.insertColumns()), SymbolFormatter.SYMBOL_FORMAT_FUNCTION)));
+                context.print("insertColumns: %s", Joiner.on(", ").join(Iterables.transform(Arrays.asList(node.insertColumns()), SymbolFormatFunction.INSTANCE)));
             }
             if (node.updateColumns() != null) {
                 context.print("updateColumns: %s", Joiner.on(", ").join(node.updateColumns()));
@@ -235,7 +235,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
                 helper.add("insertValues", Arrays.toString(item.insertValues()));
             }
             if (item.updateAssignments() != null) {
-                helper.add("updateAssignments", Joiner.on(", ").join(Lists.transform(Arrays.asList(item.updateAssignments()), SymbolFormatter.SYMBOL_FORMAT_FUNCTION)));
+                helper.add("updateAssignments", Joiner.on(", ").join(Lists.transform(Arrays.asList(item.updateAssignments()), SymbolFormatFunction.INSTANCE)));
             }
             return helper.toString();
         }

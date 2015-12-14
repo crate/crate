@@ -23,6 +23,7 @@
 package io.crate.operation;
 
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -56,7 +57,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             return new FunctionExpression<>(scalarImpl, argumentInputs);
         } else {
             throw new IllegalArgumentException(
-                    SymbolFormatter.formatTmpl("Cannot find implementation for function %s", function));
+                    SymbolFormatter.format("Cannot find implementation for function %s", function));
         }
     }
 
@@ -72,6 +73,6 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
     @Override
     protected Input<?> visitSymbol(Symbol symbol, C context) {
-        throw new UnsupportedOperationException(SymbolFormatter.formatTmpl("Can't handle Symbol %s", symbol));
+        throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", symbol));
     }
 }

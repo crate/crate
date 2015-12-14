@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -152,7 +152,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
     private void validateType(Symbol symbol, DataType dataType) {
         if (!dataType.equals(DataTypes.GEO_POINT)) {
-            throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+            throw new IllegalArgumentException(SymbolFormatter.format(
                     "Cannot convert %s to a geo point", symbol));
         }
     }

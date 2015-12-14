@@ -22,7 +22,7 @@
 package io.crate.operation.collect.files;
 
 import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
@@ -61,7 +61,7 @@ public class FileCollectInputSymbolVisitor
         LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol.info());
         if (implementation == null) {
             throw new IllegalArgumentException(
-                    SymbolFormatter.formatTmpl("Can't handle Reference \"%s\"", symbol));
+                    SymbolFormatter.format("Can't handle Reference \"%s\"", symbol));
         }
 
         context.expressions.add(implementation);

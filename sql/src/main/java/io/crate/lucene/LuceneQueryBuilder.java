@@ -33,6 +33,8 @@ import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.MatchQueryBuilder;
@@ -129,7 +131,7 @@ public class LuceneQueryBuilder {
         }
         if (LOGGER.isTraceEnabled()) {
             if (whereClause.hasQuery()) {
-                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolFormatter.INSTANCE.formatSimple(whereClause.query()), ctx.query);
+                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printSimple(whereClause.query()), ctx.query);
             }
         }
         return ctx;
@@ -1206,7 +1208,7 @@ public class LuceneQueryBuilder {
 
         private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.formatTmpl("Cannot convert function %s into a query", function));
+                    SymbolFormatter.format("Cannot convert function %s into a query", function));
         }
 
         @Override
@@ -1221,7 +1223,7 @@ public class LuceneQueryBuilder {
         @Override
         protected Query visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.formatTmpl("Can't build query from symbol %s", symbol));
+                    SymbolFormatter.format("Can't build query from symbol %s", symbol));
         }
     }
 

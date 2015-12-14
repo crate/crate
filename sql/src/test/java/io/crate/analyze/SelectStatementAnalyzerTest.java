@@ -745,7 +745,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testInnerJoinSyntaxExtendsWhereClause() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users inner join users_multi_pk on users.id = users_multi_pk.id");
         assertThat(analysis.relation().querySpec().where().query(),
-                isSQL("doc.users.id = doc.users_multi_pk.id"));
+                isSQL("(doc.users.id = doc.users_multi_pk.id)"));
     }
 
     @Test
@@ -754,7 +754,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "join users_multi_pk u2 on u1.id = u2.id " +
                                                    "join users_clustered_by_only u3 on u2.id = u3.id ");
         assertThat(analysis.relation().querySpec().where().query(),
-                isSQL("doc.users.id = doc.users_multi_pk.id and doc.users_multi_pk.id = doc.users_clustered_by_only.id"));
+                isSQL("((doc.users.id = doc.users_multi_pk.id) and (doc.users_multi_pk.id = doc.users_clustered_by_only.id))"));
     }
 
     @Test
@@ -793,12 +793,12 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 "select * from users join users_multi_pk on users.id = users_multi_pk.id " +
                 "where users.name = 'Arthur'");
         assertThat(analysis.relation().querySpec().where().query(),
-                isSQL("true and doc.users.id = doc.users_multi_pk.id"));
+                isSQL("(true and (doc.users.id = doc.users_multi_pk.id))"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
         MultiSourceSelect.Source users =
                 ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
-        assertThat(users.querySpec().where().query(), isSQL("doc.users.name = 'Arthur'"));
+        assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
     @Test

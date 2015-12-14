@@ -24,7 +24,12 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
@@ -73,7 +78,7 @@ public class ValueNormalizer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("%s can not be cast to \'%s\'", SymbolFormatter.INSTANCE.formatSimple(valueSymbol),
+                    String.format("%s can not be cast to \'%s\'", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
                             reference.valueType().getName()));
         }
         Object value = literal.value();
@@ -90,7 +95,7 @@ public class ValueNormalizer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    SymbolFormatter.formatTmpl(
+                    SymbolFormatter.format(
                             "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
                             literal,
                             reference

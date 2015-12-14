@@ -710,7 +710,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     @Test
     public void testNonPartitionedNotOptimized() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where x = 1");
-        assertThat(whereClause.query(), isSQL("doc.generated_col.x = 1"));
+        assertThat(whereClause.query(), isSQL("(doc.generated_col.x = 1)"));
     }
 
     @Test
@@ -738,7 +738,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     @Test
     public void testColumnReferencedTwiceInGeneratedColumnPartitioned() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from double_gen_parted where x = 4");
-        assertThat(whereClause.query(), isSQL("doc.double_gen_parted.x = 4"));
+        assertThat(whereClause.query(), isSQL("(doc.double_gen_parted.x = 4)"));
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
     }
@@ -746,7 +746,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     @Test
     public void testOptimizationNonRoundingFunctionGreater() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from double_gen_parted where x > 3");
-        assertThat(whereClause.query(), isSQL("doc.double_gen_parted.x > 3"));
+        assertThat(whereClause.query(), isSQL("(doc.double_gen_parted.x > 3)"));
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
     }

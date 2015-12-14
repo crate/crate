@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 
@@ -117,7 +118,7 @@ public class SymbolToFieldExtractor<T> {
         @Override
         protected FieldExtractor<T> visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.formatTmpl("Operation not supported with symbol %s", symbol));
+                    SymbolFormatter.format("Operation not supported with symbol %s", symbol));
         }
     }
 

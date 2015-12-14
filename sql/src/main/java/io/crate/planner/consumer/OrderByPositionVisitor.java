@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
@@ -85,7 +86,7 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
         if (idx >= 0) {
             context.orderByPositions.add(idx);
         } else {
-            throw new IllegalArgumentException(SymbolFormatter.formatTmpl("Cannot sort by: %s - not part of source symbols", symbol));
+            throw new IllegalArgumentException(SymbolFormatter.format("Cannot sort by: %s - not part of source symbols", symbol));
         }
         return null;
     }

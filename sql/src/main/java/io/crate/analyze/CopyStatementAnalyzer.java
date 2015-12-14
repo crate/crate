@@ -32,8 +32,8 @@ import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -156,7 +156,7 @@ public class CopyStatementAnalyzer {
             outputNames = new ArrayList<>(node.columns().size());
             for (Expression expression : node.columns()) {
                 Symbol symbol = context.processExpression(expression);
-                outputNames.add(SymbolFormatter.INSTANCE.formatSimple(symbol));
+                outputNames.add(SymbolPrinter.INSTANCE.printSimple(symbol));
                 outputs.add(DocReferenceConverter.convertIfPossible(symbol, tableRelation.tableInfo()));
             }
             columnsDefined = true;

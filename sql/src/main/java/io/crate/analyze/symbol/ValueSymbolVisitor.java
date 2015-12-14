@@ -21,6 +21,7 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -45,7 +46,7 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
     @Override
     protected T visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException(
-                SymbolFormatter.formatTmpl("Unable to get value from symbol: %s", symbol));
+                SymbolFormatter.format("Unable to get value from symbol: %s", symbol));
     }
 
 

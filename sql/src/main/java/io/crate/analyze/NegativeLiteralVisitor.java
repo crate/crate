@@ -22,7 +22,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.types.*;
 
@@ -51,6 +51,6 @@ public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
 
     @Override
     protected Literal visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(SymbolFormatter.formatTmpl("Cannot negate symbol %s", symbol));
+        throw new UnsupportedOperationException(SymbolFormatter.format("Cannot negate symbol %s", symbol));
     }
 }

@@ -31,6 +31,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.operation.Input;
@@ -1084,7 +1085,7 @@ public class ESQueryBuilder {
 
         private Void raiseUnsupported(Symbol symbol) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.formatTmpl("Cannot convert function <%s> into a query", symbol));
+                    SymbolFormatter.format("Cannot convert function <%s> into a query", symbol));
         }
     }
 }

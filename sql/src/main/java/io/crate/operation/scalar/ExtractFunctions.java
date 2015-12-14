@@ -25,7 +25,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.FunctionFormatSpec;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -111,7 +112,7 @@ public class ExtractFunctions {
         );
     }
 
-    private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements SymbolFormatter.FunctionFormatter {
+    private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements FunctionFormatSpec {
 
         public abstract int evaluate(long value);
 
@@ -143,7 +144,7 @@ public class ExtractFunctions {
 
         @Override
         public String afterArgs(Function function) {
-            return SymbolFormatter.Strings.PAREN_CLOSE;
+            return SymbolPrinter.Strings.PAREN_CLOSE;
         }
     }
 

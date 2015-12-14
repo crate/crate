@@ -22,6 +22,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
@@ -141,7 +142,7 @@ public class EvaluatingNormalizer {
                 return impl.normalizeSymbol(function);
             }
             if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.formatTmpl("No implementation found for function %s", function));
+                logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
             }
             return function;
         }
@@ -158,7 +159,7 @@ public class EvaluatingNormalizer {
             }
 
             if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.formatTmpl("Can't resolve reference %s", symbol));
+                logger.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
             }
             return symbol;
         }

@@ -24,6 +24,7 @@ package io.crate.action.sql.query;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -153,7 +154,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     @Override
     protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
         throw new UnsupportedOperationException(
-                SymbolFormatter.formatTmpl("sorting on %s is not supported", symbol));
+                SymbolFormatter.format("sorting on %s is not supported", symbol));
     }
 
     private SortField customSortField(String name,

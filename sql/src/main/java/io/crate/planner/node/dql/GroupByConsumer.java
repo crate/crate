@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 
@@ -95,10 +96,10 @@ public class GroupByConsumer {
         public Void visitReference(Reference symbol, DocTableRelation context) {
             if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.formatTmpl("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
+                        SymbolFormatter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
             } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.formatTmpl("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible", symbol));
+                        SymbolFormatter.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible", symbol));
             }
             return null;
         }

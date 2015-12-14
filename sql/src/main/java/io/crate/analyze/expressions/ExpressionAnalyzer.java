@@ -33,6 +33,8 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -234,11 +236,11 @@ public class ExpressionAnalyzer {
             } catch (ConversionException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
                 throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
-                        SymbolFormatter.INSTANCE.formatSimple(symbolToCast), targetType.getName()), e);
+                        SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()), e);
             }
         }
         throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
-                SymbolFormatter.INSTANCE.formatSimple(symbolToCast), targetType.getName()));
+                SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()));
     }
 
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
@@ -369,7 +371,7 @@ public class ExpressionAnalyzer {
                 } catch (Throwable e) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
-                                    SymbolFormatter.INSTANCE.formatSimple(literal),
+                                    SymbolPrinter.INSTANCE.printSimple(literal),
                                     leftType.getName()));
                 }
             }
@@ -396,7 +398,7 @@ public class ExpressionAnalyzer {
                     } else {
                         throw new IllegalArgumentException(
                                 String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
-                                        SymbolFormatter.INSTANCE.formatSimple(right),
+                                        SymbolPrinter.INSTANCE.printSimple(right),
                                         leftType.getName()));
                     }
                 }
@@ -519,7 +521,7 @@ public class ExpressionAnalyzer {
 
             if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.INSTANCE.formatTmpl("invalid array expression: '%s'", rightSymbol));
+                        SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
             DataType rightInnerType = ((CollectionType) rightType).innerType();
             if (rightInnerType.equals(DataTypes.OBJECT)) {
@@ -560,7 +562,7 @@ public class ExpressionAnalyzer {
 
             if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.INSTANCE.formatTmpl("invalid array expression: '%s'", rightSymbol));
+                        SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
             DataType rightInnerType = ((CollectionType) rightType).innerType();
 
@@ -752,7 +754,7 @@ public class ExpressionAnalyzer {
                 }
                 Preconditions.checkArgument(
                         column instanceof Field,
-                        SymbolFormatter.INSTANCE.formatTmpl("can only MATCH on columns, not on %s", column));
+                        SymbolFormatter.format("can only MATCH on columns, not on %s", column));
                 Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext.parameters());
                 identBoostMap.put(((Field) column), boost == null ? null : boost.doubleValue());
             }

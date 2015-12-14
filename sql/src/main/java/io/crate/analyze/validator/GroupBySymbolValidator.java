@@ -22,6 +22,7 @@
 package io.crate.analyze.validator;
 
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
 public class GroupBySymbolValidator {
@@ -66,7 +67,7 @@ public class GroupBySymbolValidator {
             if (!context.insideFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
                 throw new IllegalArgumentException(
                         String.format("Cannot GROUP BY '%s': invalid data type '%s'",
-                                SymbolFormatter.INSTANCE.formatSimple(field),
+                                SymbolPrinter.INSTANCE.printSimple(field),
                                 field.valueType()));
             }
             return null;

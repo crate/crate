@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -195,10 +196,10 @@ public class GlobalAggregateConsumer implements Consumer {
             if (context.insideAggregation) {
                 ReferenceInfo.IndexType indexType = symbol.info().indexType();
                 if (indexType == ReferenceInfo.IndexType.ANALYZED) {
-                    throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                    throw new IllegalArgumentException(SymbolFormatter.format(
                             "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
                 } else if (indexType == ReferenceInfo.IndexType.NO) {
-                    throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                    throw new IllegalArgumentException(SymbolFormatter.format(
                             "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
                 }
             }

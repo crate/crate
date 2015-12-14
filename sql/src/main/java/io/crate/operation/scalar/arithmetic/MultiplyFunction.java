@@ -22,7 +22,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -32,7 +32,7 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
-public abstract class MultiplyFunction extends ArithmeticFunction implements SymbolFormatter.OperatorFormatter {
+public abstract class MultiplyFunction extends ArithmeticFunction implements OperatorFormatSpec {
 
     public static final String NAME = "multiply";
     public static final String SQL_SYMBOL = "*";

@@ -29,7 +29,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;

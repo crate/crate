@@ -26,7 +26,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.types.DataTypes;
@@ -84,10 +84,10 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
             Symbol argumentColumn = super.convert(expression, context);
             if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.formatTmpl("Referenced column '%s' in VALUES expression not found", argumentColumn));
+                        SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
             }
             if (!(argumentColumn instanceof Field)) {
-                throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                throw new IllegalArgumentException(SymbolFormatter.format(
                         "Argument to VALUES expression must reference a column that " +
                                 "is part of the INSERT statement. %s is invalid", argumentColumn));
             }

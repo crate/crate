@@ -29,6 +29,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
@@ -248,7 +249,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             } catch (ClassCastException e) {
                 // symbol is no Input
                 throw new ColumnValidationException(columnIdent.name(),
-                        SymbolFormatter.formatTmpl("Invalid value '%s' in insert statement", valuesSymbol));
+                        SymbolFormatter.format("Invalid value '%s' in insert statement", valuesSymbol));
             }
 
             if (context.primaryKeyColumnIndices().contains(i)) {

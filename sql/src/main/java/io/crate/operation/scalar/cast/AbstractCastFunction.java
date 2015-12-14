@@ -27,7 +27,8 @@ import com.google.common.base.Throwables;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.FunctionFormatSpec;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
@@ -39,10 +40,10 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.analyze.symbol.SymbolFormatter.Strings.PAREN_CLOSE;
-import static io.crate.analyze.symbol.SymbolFormatter.Strings.PAREN_OPEN;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
-public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> implements SymbolFormatter.FunctionFormatter {
+public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> implements FunctionFormatSpec {
 
     public static final String TRY_CAST_SQL_NAME = "try_cast";
     public static final String CAST_SQL_NAME = "cast";
@@ -89,7 +90,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> imp
     protected Symbol onNormalizeException(Symbol argument, Throwable t) {
         throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "cannot cast %s to %s",
-                        SymbolFormatter.INSTANCE.formatSimple(argument), returnType), t);
+                        SymbolPrinter.INSTANCE.printSimple(argument), returnType), t);
     }
 
     protected To onEvaluateException(From argument, Throwable t) {

@@ -22,6 +22,7 @@
 package io.crate.analyze.validator;
 
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
 
@@ -56,7 +57,7 @@ public class SemanticSortValidator {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "Cannot ORDER BY '%s': invalid return type '%s'.",
-                                SymbolFormatter.INSTANCE.formatSimple(symbol),
+                                SymbolPrinter.INSTANCE.printSimple(symbol),
                                 symbol.valueType())
                 );
             }
@@ -88,7 +89,7 @@ public class SemanticSortValidator {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "Cannot ORDER BY '%s': invalid data type '%s'.",
-                                SymbolFormatter.INSTANCE.formatSimple(field),
+                                SymbolPrinter.INSTANCE.printSimple(field),
                                 field.valueType())
                 );
             }

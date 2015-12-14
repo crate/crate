@@ -30,7 +30,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -199,17 +199,17 @@ public class AnalyzedTableElements {
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferenceInfos);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData, parameterContext, tableReferenceResolver, null);
-        SymbolFormatter formatter = new SymbolFormatter(analysisMetaData.functions());
+        SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
-                processGeneratedExpression(expressionAnalyzer, formatter, columnDefinition, expressionAnalysisContext);
+                processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
             }
         }
     }
 
     private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
-                                            SymbolFormatter symbolFormatter,
+                                            SymbolPrinter symbolPrinter,
                                             AnalyzedColumnDefinition columnDefinition,
                                             ExpressionAnalysisContext expressionAnalysisContext) {
         // validate expression
@@ -225,10 +225,10 @@ public class AnalyzedTableElements {
                     "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
             Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Lists.newArrayList(function));
-            formattedExpression = symbolFormatter.format(castFunction, SymbolFormatter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
+            formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         } else {
             columnDefinition.dataType(function.valueType().getName());
-            formattedExpression = symbolFormatter.format(function, SymbolFormatter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
+            formattedExpression = symbolPrinter.print(function, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         }
 
         columnDefinition.formattedGeneratedExpression(formattedExpression);

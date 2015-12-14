@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -105,7 +106,7 @@ public class RowShardResolver {
 
         @Override
         protected Input<?> visitSymbol(Symbol symbol, ImplementationSymbolVisitor.Context context) {
-            throw new AssertionError(SymbolFormatter.formatTmpl("Symbol %s not supported", symbol));
+            throw new AssertionError(SymbolFormatter.format("Symbol %s not supported", symbol));
         }
 
         @Override

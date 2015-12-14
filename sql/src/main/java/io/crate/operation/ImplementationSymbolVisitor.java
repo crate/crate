@@ -24,7 +24,7 @@ package io.crate.operation;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -85,7 +85,7 @@ public class ImplementationSymbolVisitor extends
         FunctionImplementation impl = functions.get(symbol.functionIdent());
         if (impl == null) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.formatTmpl("Can't load aggregation impl for symbol %s", symbol));
+                    SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
         }
 
         AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);

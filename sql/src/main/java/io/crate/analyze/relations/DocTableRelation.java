@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -53,14 +54,14 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         public Void visitReference(Reference symbol, DocTableRelation context) {
             if (context.tableInfo.partitionedBy().contains(symbol.info().ident().columnIdent())) {
                 throw new UnsupportedOperationException(
-                        SymbolFormatter.formatTmpl(
+                        SymbolFormatter.format(
                                 "cannot use partitioned column %s in ORDER BY clause", symbol));
             } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
                 throw new UnsupportedOperationException(
-                        SymbolFormatter.formatTmpl("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
+                        SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
             } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
                 throw new UnsupportedOperationException(
-                        SymbolFormatter.formatTmpl("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
+                        SymbolFormatter.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
             }
             return null;
         }

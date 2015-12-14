@@ -28,12 +28,16 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 
 import java.util.Collection;
 import java.util.HashSet;
 
 public class SQLPrinter {
+
+    private static final TestingSymbolPrinter TESTING_SYMBOL_PRINTER = new TestingSymbolPrinter();
 
     public static String print(Object o) {
         if (o instanceof QuerySpec) {
@@ -53,45 +57,38 @@ public class SQLPrinter {
     }
 
     public static String print(Collection<Symbol> symbols) {
-        StringBuilder sb = new StringBuilder();
-        SymbolPrinter visitor = new SymbolPrinter(sb);
         Context ctx = new Context();
-        visitor.process(symbols, ctx);
-        return sb.toString();
+        TESTING_SYMBOL_PRINTER.process(symbols, ctx);
+        return ctx.printed();
     }
 
 
     public static String print(Symbol symbol) {
-        StringBuilder sb = new StringBuilder();
-        SymbolPrinter visitor = new SymbolPrinter(sb);
         Context ctx = new Context();
-        visitor.process(symbol, ctx);
-        return sb.toString();
+        TESTING_SYMBOL_PRINTER.process(symbol, ctx);
+        return ctx.printed();
     }
 
     public static String print(OrderBy orderBy) {
-        StringBuilder sb = new StringBuilder();
-        SymbolPrinter visitor = new SymbolPrinter(sb);
         Context ctx = new Context();
-        visitor.process(orderBy, ctx);
-        return sb.toString();
+        TESTING_SYMBOL_PRINTER.process(orderBy, ctx);
+        return ctx.printed();
     }
 
     public static String print(QuerySpec spec) {
         StringBuilder sb = new StringBuilder();
-        SymbolPrinter visitor = new SymbolPrinter(sb);
-        Context ctx = new Context();
+        Context ctx = new Context(sb);
 
         sb.append("SELECT ");
-        visitor.process(spec.outputs(), ctx);
+        TESTING_SYMBOL_PRINTER.process(spec.outputs(), ctx);
 
         if (spec.where().hasQuery()) {
             sb.append(" WHERE ");
-            visitor.process(spec.where().query(), ctx);
+            TESTING_SYMBOL_PRINTER.process(spec.where().query(), ctx);
         }
         if (spec.orderBy().isPresent()) {
             sb.append(" ORDER BY ");
-            visitor.process(spec.orderBy().get(), ctx);
+            TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), ctx);
         }
         if (spec.limit().isPresent()) {
             sb.append(" LIMIT ");
@@ -103,42 +100,38 @@ public class SQLPrinter {
             sb.append(spec.offset());
         }
 
-        return visitor.sb.toString();
+        return ctx.printed();
     }
 
     static class Context {
 
-        BiMap<AnalyzedRelation, String> relNames = HashBiMap.create();
+        private final StringBuilder sb;
 
-        String relIdent(AnalyzedRelation rel) {
-            String name = relNames.get(rel);
-            if (name != null) {
-                return name;
-            }
-            String prefix = name = SymbolFormatter.RelationNamer.INSTANCE.process(rel, null);
-            Integer idx = 1;
-            while (relNames.inverse().containsKey(name)) {
-                name = prefix + (idx++).toString();
-            }
-            relNames.put(rel, name);
-            return name;
+        public Context() {
+            this(new StringBuilder());
+        }
+
+        public Context(StringBuilder sb) {
+            this.sb = sb;
+        }
+
+        public String printed() {
+            return sb.toString();
         }
 
     }
 
-    private static class SymbolPrinter extends SymbolVisitor<Context, Void> {
-
-        private final StringBuilder sb;
-
-        public SymbolPrinter(StringBuilder sb) {
-            this.sb = sb;
-        }
+    /**
+     * produces same results as with {@link SymbolPrinter#printFullQualified(Symbol)} but is
+     * able to format other symbols that {@link SymbolPrinter} is not able to.
+     */
+    private static class TestingSymbolPrinter extends SymbolVisitor<Context, Void> {
 
         public void process(Iterable<? extends Symbol> symbols, Context ctx) {
             boolean first = true;
             for (Symbol arg : symbols) {
                 if (!first) {
-                    sb.append(", ");
+                    ctx.sb.append(", ");
                 }
                 first = false;
                 process(arg, ctx);
@@ -146,104 +139,8 @@ public class SQLPrinter {
         }
 
         @Override
-        public Void visitRelationColumn(RelationColumn relationColumn, Context context) {
-            sb.append("RELCOL(");
-            sb.append(relationColumn.relationName());
-            sb.append(", ");
-            sb.append(relationColumn.index());
-            sb.append(")");
-            return null;
-        }
-
-        @Override
-        public Void visitInputColumn(InputColumn inputColumn, Context context) {
-            sb.append("INPUT(");
-            sb.append(inputColumn.index());
-            sb.append(")");
-            return null;
-        }
-
-        @Override
-        public Void visitField(Field field, Context context) {
-            sb.append(context.relIdent(field.relation()));
-            sb.append('.');
-            sb.append(field.path().outputName());
-            return null;
-        }
-
-        @Override
-        public Void visitFetchReference(FetchReference fetchReference, Context context) {
-            sb.append("FETCH(");
-            process(fetchReference.docId(), context);
-            sb.append(", ");
-            process(fetchReference.ref(), context);
-            sb.append(")");
-            return null;
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, Context context) {
-
-            if (symbol.info().ident().name().startsWith("op_not")) {
-                if (symbol.arguments().size() == 1) {
-                    Function function = (Function) symbol.arguments().get(0);
-                    if (function.info().ident().name().startsWith("any_")) {
-                        visitAny(function, context, true);
-                    } else {
-                        sb.append(symbol.info().ident().name().substring(3));
-                        sb.append(" (");
-                        process(symbol.arguments().get(0), context);
-                        sb.append(")");
-                    }
-                }
-            } else if (symbol.info().ident().name().startsWith("op_")) {
-                if (symbol.arguments().size() == 1) {
-                    sb.append(symbol.info().ident().name().substring(3));
-                    sb.append('(');
-                    process(symbol.arguments().get(0), context);
-                    sb.append(')');
-                } else {
-                    assert symbol.arguments().size() == 2;
-                    process(symbol.arguments().get(0), context);
-                    sb.append(" ");
-                    sb.append(symbol.info().ident().name().substring(3));
-                    sb.append(" ");
-                    process(symbol.arguments().get(1), context);
-                }
-            } else if (symbol.info().ident().name().startsWith("any_")) {
-                visitAny(symbol, context, false);
-            } else if (symbol.info().ident().name().startsWith("op_like")) {
-                assert symbol.arguments().size() == 2;
-                process(symbol.arguments().get(0), context);
-                sb.append(" LIKE ");
-                process(symbol.arguments().get(1), context);
-                sb.append(" ");
-            } else {
-                sb.append(symbol.info().ident().name());
-                sb.append('(');
-                process(symbol.arguments(), context);
-                sb.append(')');
-            }
-            return null;
-        }
-
-        private void visitAny(Function function, Context context, boolean not) {
-            assert function.arguments().size() == 2;
-            process(function.arguments().get(0), context);
-            sb.append(String.format(" %s= ANY(", (not ? "!" : "")));
-            process(function.arguments().get(1), context);
-            sb.append(")");
-        }
-
-        @Override
-        public Void visitLiteral(Literal symbol, Context context) {
-            sb.append(SymbolFormatter.INSTANCE.formatSimple(symbol));
-            return null;
-        }
-
-        @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
-            sb.append(SymbolFormatter.INSTANCE.formatFullQualified(symbol));
+            context.sb.append(SymbolPrinter.INSTANCE.printFullQualified(symbol));
             return null;
         }
 
@@ -251,19 +148,19 @@ public class SQLPrinter {
             int i = 0;
             for (Symbol symbol : orderBy.orderBySymbols()) {
                 if (i > 0) {
-                    sb.append(", ");
+                    ctx.sb.append(", ");
                 }
                 process(symbol, ctx);
                 if (orderBy.reverseFlags()[i]) {
-                    sb.append(" DESC");
+                    ctx.sb.append(" DESC");
                 }
                 Boolean nullsFirst = orderBy.nullsFirst()[i];
                 if (nullsFirst != null) {
-                    sb.append(" NULLS");
+                    ctx.sb.append(" NULLS");
                     if (nullsFirst) {
-                        sb.append(" FIRST");
+                        ctx.sb.append(" FIRST");
                     } else {
-                        sb.append(" LAST");
+                        ctx.sb.append(" LAST");
                     }
                 }
                 i++;

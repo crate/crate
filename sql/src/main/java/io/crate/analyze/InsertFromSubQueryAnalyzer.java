@@ -27,6 +27,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -61,7 +62,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
             Reference reference = targetTableRelation.resolveField(argumentColumn);
             int i = targetColumns.indexOf(reference);
             if (i < 0) {
-                throw new IllegalArgumentException(SymbolFormatter.formatTmpl(
+                throw new IllegalArgumentException(SymbolFormatter.format(
                         "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                         argumentColumn));
             }

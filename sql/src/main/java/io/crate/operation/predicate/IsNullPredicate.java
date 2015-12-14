@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -34,7 +34,7 @@ import io.crate.types.DataTypes;
 import java.util.List;
 
 
-public class IsNullPredicate<T> extends Scalar<Boolean, T> implements SymbolFormatter.FunctionFormatter {
+public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFormatSpec {
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;

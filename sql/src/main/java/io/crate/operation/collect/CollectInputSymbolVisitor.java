@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
@@ -97,7 +97,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         } else {
             E docLevelExpression = referenceResolver.getImplementation(symbol.info());
             if (docLevelExpression == null) {
-                throw new UnhandledServerException(SymbolFormatter.formatTmpl("Cannot handle Reference %s", symbol));
+                throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
             }
             context.docLevelExpressions.add(docLevelExpression);
             return docLevelExpression;
