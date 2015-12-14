@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.15.0 which contains following changes:
+
+   - Added new format ``json_row`` which prints a dataset as json row-by-row
+     in separate lines.
+
+   - Added the ``sysinfo`` command which queries the ``sys`` tables for
+     system and cluster information. The command requires Crate >= 0.54.0
+
  - Added filtering support to ``COPY TO`` statement
 
  - Fix: disabled type detection for timestamps
