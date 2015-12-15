@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.fetch.FetchPushDown;
@@ -258,7 +259,7 @@ public class QueryThenFetchConsumer implements Consumer {
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit().orNull(),
+                    querySpec.limit().or(context.isRoot() ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT),
                     null
             );
             if (!querySpec.orderBy().isPresent()) {

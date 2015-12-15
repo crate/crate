@@ -228,8 +228,11 @@ public class NestedLoopConsumer implements Consumer {
                     }
                 }
             }
-
-            int topNLimit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
+            // due to weird subplanning, context.isRoot() is false here, so apply this hack
+            boolean isRoot = context.rootRelation() instanceof MultiSourceSelect;
+            int topNLimit = querySpec.limit().or(
+                    isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT
+            );
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     nlOutputs,
                     statement.remainingOrderBy().orNull(),
@@ -260,7 +263,7 @@ public class NestedLoopConsumer implements Consumer {
                         postNLOutputs,
                         orderByBeforeSplit,
                         querySpec.offset(),
-                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                        topNLimit,
                         querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);

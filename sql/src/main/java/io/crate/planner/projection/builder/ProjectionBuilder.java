@@ -21,9 +21,7 @@
 
 package io.crate.planner.projection.builder;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
@@ -127,9 +125,8 @@ public class ProjectionBuilder {
             Collection<? extends Symbol> inputs,
             @Nullable OrderBy orderBy,
             int offset,
-            @Nullable Integer limit,
+            int limit,
             @Nullable Collection<Symbol> outputs) {
-        limit = MoreObjects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);

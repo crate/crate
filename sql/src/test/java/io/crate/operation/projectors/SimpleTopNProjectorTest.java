@@ -23,7 +23,6 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.Constants;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
@@ -208,31 +207,16 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testProjectNoLimitNoOffset() throws Throwable {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = preparePipe(TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
-
-        int i = 0;
-        boolean carryOn;
-        do {
-            i++;
-            carryOn = pipe.setNextRow(row);
-        } while(carryOn);
-        assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
-        pipe.finish();
-        assertThat(rowReceiver.result().size(), is(Constants.DEFAULT_SELECT_LIMIT));
-
-        int iterateLength = Iterables.size(rowReceiver.result());
-        assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
-        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, TopN.NO_LIMIT, -10);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid offset");
+        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, 10, -10);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNegativeLimit() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit");
         new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, -100, TopN.NO_OFFSET);
     }
 
@@ -323,21 +307,11 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testProjectNoLimitNoOffsetUpStream() throws Throwable {
+    public void testProjectNoLimitNoOffset() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit");
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = preparePipe(TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
 
-        int i = 0;
-        boolean carryOn;
-        do {
-            i++;
-            carryOn = pipe.setNextRow(row);
-        } while(carryOn);
-        assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT));
-        pipe.finish();
-        assertThat(rowReceiver.result().size(), is(Constants.DEFAULT_SELECT_LIMIT));
-
-        int iterateLength = Iterables.size(rowReceiver.result());
-        assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
+        preparePipe(TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
     }
 }

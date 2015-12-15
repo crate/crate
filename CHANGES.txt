@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: All insert from subquery statements are now executed without ``limit``
+
  - Updated crate-admin to 0.17.0 which includes following changes:
 
      - Display current shard recovery status on table info page. It shows the
