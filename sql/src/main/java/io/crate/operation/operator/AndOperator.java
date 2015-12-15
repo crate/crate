@@ -28,6 +28,9 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
 public class AndOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_and";
@@ -109,5 +112,15 @@ public class AndOperator extends Operator<Boolean> {
         }
 
         return left && right;
+    }
+
+    public static Symbol join(Iterable<? extends Symbol> symbols) {
+        Iterator<? extends Symbol> it = symbols.iterator();
+        assert it.hasNext() : "argument symbols must have at least one item";
+        Symbol first = it.next();
+        while (it.hasNext()) {
+            first = new Function(INFO, Arrays.asList(first, it.next()));
+        }
+        return first;
     }
 }

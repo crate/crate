@@ -88,27 +88,6 @@ public class RelationSplitter {
         return specs.get(relation);
     }
 
-    private static Symbol joinQueryParts(Iterator<Symbol> iter) {
-        Symbol first;
-        if (iter.hasNext()) {
-            first = iter.next();
-        } else {
-            return null;
-        }
-        if (!iter.hasNext()) {
-            return first;
-        }
-        return new Function(AndOperator.INFO,
-                Arrays.asList(first, joinQueryParts(iter)));
-    }
-
-    @Nullable
-    public static Symbol joinQueryParts(Iterable<Symbol> queryParts) {
-        Iterator<Symbol> iter = queryParts.iterator();
-        return joinQueryParts(iter);
-    }
-
-
     private void process() {
         processOrderBy();
         processWhere();
@@ -169,7 +148,7 @@ public class RelationSplitter {
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query());
         querySpec.where(new WhereClause(context.query()));
         for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
-            getSpec(entry.getKey()).where(new WhereClause(joinQueryParts(entry.getValue())));
+            getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
         }
     }
 

@@ -115,20 +115,17 @@ public class GeneratedColumnComparisonReplacer {
         }
 
 
-        private Function addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
+        private Symbol addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
             Collection<GeneratedReferenceInfo> genColInfos = context.referencedRefsToGeneratedColumn.get(reference.info());
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
+            comparisonsToAdd.add(function);
             for (GeneratedReferenceInfo genColInfo : genColInfos) {
                 Function comparison = createAdditionalComparison(function, genColInfo, comparedAgainst);
                 if (comparison != null) {
                     comparisonsToAdd.add(comparison);
                 }
             }
-            Function withAddedComparisons = function;
-            for (Function comparison : comparisonsToAdd) {
-                withAddedComparisons = new Function(AndOperator.INFO, Arrays.<Symbol>asList(withAddedComparisons, comparison));
-            }
-            return withAddedComparisons;
+            return AndOperator.join(comparisonsToAdd);
         }
 
         @Nullable
