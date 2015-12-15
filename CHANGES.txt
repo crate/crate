@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: All insert from subquery statements are now executed without ``limit``
+
  - Fix: disabled type detection for timestamps
 
 2015/12/07 0.52.4
@@ -14,8 +16,8 @@ Unreleased
    has been changed to 0 (deactivated) from ``5m``
 
  - Updated crate-admin to 0.15.5 which includes following change:
- 
-   - fix: Unavailable dependency `angular-truncate` module caused blank 
+
+   - fix: Unavailable dependency `angular-truncate` module caused blank
      Admin UI. Switched to `angular-truncate-2` now.
 
 2015/12/02 0.52.3

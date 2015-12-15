@@ -182,6 +182,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
+                    // TODO: use TopN.NO_LIMIT as default once this can be used as subrelation
                     MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     node.offset(),
                     orderBySymbols,

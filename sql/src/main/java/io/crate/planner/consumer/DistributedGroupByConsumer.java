@@ -185,7 +185,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         querySpec.outputs(),
                         orderBy,
                         querySpec.offset(),
-                        querySpec.limit(),
+                        MoreObjects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT),
                         null);
                 localMergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),

@@ -163,13 +163,19 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                     collectOutputs.containsAll(table.querySpec().outputs());
             boolean collectorTopN = table.querySpec().limit() != null || table.querySpec().offset() > 0 || !outputsMatch;
-
+            boolean isRoot = context.rootRelation() == table;
+            int collectTopNLimit;
+            if (isRoot) {
+                collectTopNLimit = firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset();
+            } else {
+                collectTopNLimit = TopN.NO_LIMIT;
+            }
             if (collectorTopN) {
                 projections.add(projectionBuilder.topNProjection(
                         collectOutputs,
                         orderBy,
                         0, // no offset
-                        firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset(),
+                        collectTopNLimit,
                         table.querySpec().outputs()
                 ));
             }
@@ -184,6 +190,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
             MergePhase localMerge;
+            int topNLimit = firstNonNull(table.querySpec().limit(), (isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT));
             if (!ignoreSorting && collectorTopN && orderBy != null && orderBy.isSorted()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
@@ -192,7 +199,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                                 table.querySpec().outputs(),
                                 null, // omit order by
                                 table.querySpec().offset(),
-                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                topNLimit,
                                 table.querySpec().outputs()
                         )
                 );
@@ -211,7 +218,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                                 collectorTopN ? table.querySpec().outputs() : collectOutputs,
                                 orderBy,
                                 table.querySpec().offset(),
-                                firstNonNull(table.querySpec().limit(), Constants.DEFAULT_SELECT_LIMIT),
+                                topNLimit,
                                 table.querySpec().outputs()
                         )
                 );

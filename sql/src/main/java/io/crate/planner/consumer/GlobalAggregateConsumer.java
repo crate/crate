@@ -150,7 +150,9 @@ public class GlobalAggregateConsumer implements Consumer {
 
         TopNProjection topNProjection = projectionBuilder.topNProjection(
                 splitPoints.aggregates(),
-                null, 0, 1,
+                null,
+                0,
+                1,
                 table.querySpec().outputs()
         );
         projections.add(topNProjection);

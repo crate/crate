@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.Constants;
@@ -33,6 +34,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.operation.Paging;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -144,11 +146,12 @@ public class QueryThenFetchConsumer implements Consumer {
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
 
+            boolean isRoot = context.rootRelation() == table;
             TopNProjection topN = projectionBuilder.topNProjection(
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit(),
+                    MoreObjects.firstNonNull(querySpec.limit(), (isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT)),
                     null
             );
             if (orderBy == null || !orderBy.isSorted()) {

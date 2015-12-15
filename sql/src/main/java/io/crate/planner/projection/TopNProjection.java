@@ -42,7 +42,6 @@ public class TopNProjection extends Projection {
         }
     };
 
-
     private int limit;
     private int offset;
 
