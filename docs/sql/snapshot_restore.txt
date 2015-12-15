@@ -28,8 +28,9 @@ has a specific type which determines how snapshots are stored.
 
 CRATE supports different repository types:
 :ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
-and :ref:`ref-create-repository-types-url`. Support for further types
-might be added using :ref:`plugins`.
+:ref:`ref-create-repository-types-s3`, and
+:ref:`ref-create-repository-types-url`. Support for further types might be
+added using :ref:`plugins`.
 
 The creation of a repository simply configures it inside the crate cluster. In
 general no data is written, no snapshots inside repositories are changed or
