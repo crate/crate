@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -33,7 +34,10 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
+
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,10 +69,20 @@ public class T3 {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(T1_INFO.ident().name())).thenReturn(T1_INFO);
             when(schemaInfo.getTableInfo(T2_INFO.ident().name())).thenReturn(T2_INFO);
+            when(schemaInfo.getTableInfo(T3_INFO.ident().name())).thenReturn(T3_INFO);
             when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     };
 
+    public static final QualifiedName T1 = new QualifiedName("t1");
+    public static final QualifiedName T2 = new QualifiedName("t2");
+    public static final QualifiedName T3 = new QualifiedName("t3");
+
     public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
+    public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+            T1, TR_1,
+            T2, TR_2,
+            T3, TR_3
+    );
 }

@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
@@ -430,9 +429,6 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void test3TableJoinWithJoinFilters() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Joining more than 2 tables with a join condition is not possible");
-
         execute("create table users (id int primary key, name string) with (number_of_replicas = 0)");
         execute("create table events (id int primary key, name string) with (number_of_replicas = 0)");
         execute("create table logs (user_id int, event_id int) with (number_of_replicas = 0)");

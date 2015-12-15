@@ -33,6 +33,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class TwoTableJoin implements QueriedRelation {
@@ -57,7 +58,7 @@ public class TwoTableJoin implements QueriedRelation {
         this.left = left;
         this.rightName = rightName;
         this.right = right;
-        this.name = new QualifiedName("join(" + leftName.toString() + ", " + rightName.toString() + ")");
+        this.name = QualifiedName.of("join", leftName.toString(), rightName.toString());
         this.remainingOrderBy = remainingOrderBy;
         fields = new ArrayList<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {

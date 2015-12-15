@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for 2+ table joins
+
  - Fix: All insert from subquery statements are now executed without ``limit``
 
  - Updated crate-admin to 0.17.0 which includes following changes:
@@ -15,6 +17,7 @@ Unreleased
      - Updated calculation of underreplicated shards/records to work with the
        change in Crate server where shards in sys.shards table have a more fine
        granular state now and relocating shards are listed, too.
+
 
  - Added ``show schemas``, ``show tables``, and ``show columns``
    commands.

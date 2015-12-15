@@ -108,18 +108,17 @@ each shard of the used tables.
 Limitations
 ...........
 
- - Joining more than 2 tables is currently not possible
+ - Joining more than 2 tables can result in execution plans which perform
+   poorly as there is no query optimizer in place yet.
 
+ - The ORDER BY clause must not contain expressions which involve multiple
+   relations. ``ORDER BY t1.x + t2.x`` won't work, but ``ORDER BY t1.x, t2.x``
+   is allowed.
 
 Roadmap
 -------
 
-*Date: Nov 20th, 2015*
-
-Currently working on
-....................
-
-* Support for joining more than 2 tables.
+*Date: Dec 15th, 2015*
 
 Upcoming
 ........
