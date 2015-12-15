@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fix: Plugin modules are now instantiated with settings
 
  - Fix: All insert from subquery statements are now executed without ``limit``
 
