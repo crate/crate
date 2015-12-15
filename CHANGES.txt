@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: All insert from subquery statements are now executed without ``limit``
+
  - Fix: disabled type detection for timestamps
 
  - The ``jobs.keep_alive_timeout`` value can now be configured and the default

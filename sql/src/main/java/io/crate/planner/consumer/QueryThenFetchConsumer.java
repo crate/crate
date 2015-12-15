@@ -28,6 +28,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.TableIdent;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -129,11 +131,12 @@ public class QueryThenFetchConsumer implements Consumer {
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
 
+            boolean isRoot = context.rootRelation() == table;
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit().orNull(),
+                    querySpec.limit().or(isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT),
                     null
             );
             if (!querySpec.orderBy().isPresent()) {

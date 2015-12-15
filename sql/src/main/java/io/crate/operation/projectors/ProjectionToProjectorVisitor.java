@@ -117,6 +117,9 @@ public class ProjectionToProjectorVisitor
                     projection.limit(),
                     projection.offset()
             );
+        } else if (projection.limit() == TopN.NO_LIMIT
+                   && projection.offset() == TopN.NO_OFFSET) {
+            projector = new InputRowProjector(inputs, collectExpressions);
         } else {
             projector = new SimpleTopNProjector(
                     inputs,

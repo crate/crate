@@ -22,18 +22,13 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 
-public class SimpleTopNProjector extends AbstractProjector {
-
-    private final InputRow inputRow;
-    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+public class SimpleTopNProjector extends InputRowProjector {
 
     private int remainingOffset;
     private int toCollect;
@@ -42,16 +37,12 @@ public class SimpleTopNProjector extends AbstractProjector {
                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                int limit,
                                int offset) {
-        this.collectExpressions = collectExpressions;
-        Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
+        super(inputs, collectExpressions);
+
+        Preconditions.checkArgument(limit >= 0, "invalid limit");
         Preconditions.checkArgument(offset>=0, "invalid offset");
-        this.inputRow = new InputRow(inputs);
-        if (limit == TopN.NO_LIMIT) {
-            limit = Constants.DEFAULT_SELECT_LIMIT;
-        }
         this.remainingOffset = offset;
         this.toCollect = limit;
-
     }
 
     @Override
@@ -63,25 +54,13 @@ public class SimpleTopNProjector extends AbstractProjector {
             remainingOffset--;
             return true;
         }
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        if (!downstream.setNextRow(this.inputRow)) {
+        boolean wantMore = super.setNextRow(row);
+        if (!wantMore) {
             toCollect = -1;
             return false;
         } else {
             toCollect--;
             return toCollect > 0;
         }
-    }
-
-    @Override
-    public void finish() {
-        downstream.finish();
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
     }
 }
