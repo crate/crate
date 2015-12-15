@@ -104,8 +104,11 @@ public class CrateCorePlugin extends AbstractPlugin {
 
     @Override
     public Collection<Module> modules(Settings settings) {
+        Collection<Module> modules = new ArrayList<>();
         CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
-        return Collections.<Module>singletonList(crateCoreModule);
+        modules.add(crateCoreModule);
+        modules.addAll(pluginLoader.modules(settings));
+        return modules;
     }
 
     @Override

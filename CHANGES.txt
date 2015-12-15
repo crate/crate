@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Plugin modules are now instantiated with settings
+
  - Added support for 2+ table joins
 
  - Fix: All insert from subquery statements are now executed without ``limit``
