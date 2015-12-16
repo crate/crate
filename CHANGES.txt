@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added Amazon S3 support for Snapshot and Restore
+
  - Improved error message on type cast failure 
 
  - Made repository types and their settings pluggable,

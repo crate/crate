@@ -13,7 +13,7 @@ configurations {
 
 dependencies {
     compile 'com.google.code.findbugs:annotations:3.0.0'
-    compile 'joda-time:joda-time:2.5'
+    compile 'joda-time:joda-time:2.8.1'
     compile 'com.google.guava:guava:18.0'
     compile 'org.antlr:antlr-runtime:3.5'
 
