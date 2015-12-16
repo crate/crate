@@ -25,8 +25,7 @@ package io.crate.planner.consumer;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -56,26 +55,76 @@ public class ManyTableConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement) {
-        if (!statement.querySpec().orderBy().isPresent()) {
-            return statement.sources().keySet();
+    /**
+     * returns a new collection with the same items as relations contains but in an order which
+     * allows the most join condition push downs (assuming that a left-based tree is built later on)
+     *
+     *
+     * @param relations all relations, e.g. [t1, t2, t3, t3]
+     * @param joinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
+     * @param preSorted a ordered subset of the relations. The result will start with those relations.
+     *                  E.g. [t3] - This would cause the result to start with [t3]
+     */
+    static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
+                                                           Set<? extends Set<QualifiedName>> joinedRelations,
+                                                           Collection<QualifiedName> preSorted) {
+        if (relations.size() == preSorted.size()) {
+            return preSorted;
         }
-        OrderBy orderBy = statement.querySpec().orderBy().get();
-        Set<QualifiedName> orderByOrder = new LinkedHashSet<>(statement.sources().size());
-        Set<QualifiedName> names = new HashSet<>();
+        if (relations.size() == 2 || joinedRelations.isEmpty()) {
+            LinkedHashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>(preSorted);
+            qualifiedNames.addAll(relations);
+            return qualifiedNames;
+        }
 
+        // Create a Copy to ensure equals works correctly for the subList check below.
+        preSorted = ImmutableList.copyOf(preSorted);
+        Set<QualifiedName> pair = new HashSet<>(2);
+        Collection<QualifiedName> bestOrder = null;
+        int best = -1;
+        for (List<QualifiedName> permutation : Collections2.permutations(relations)) {
+            if (!preSorted.equals(permutation.subList(0, preSorted.size()))) {
+                continue;
+            }
+            int joinPushDowns = 0;
+            for (int i = 0; i < permutation.size() - 1; i++) {
+                QualifiedName a = permutation.get(i);
+                QualifiedName b = permutation.get(i + 1);
+
+                pair.clear();
+                pair.add(a);
+                pair.add(b);
+                joinPushDowns += joinedRelations.contains(pair) ? 1 : 0;
+            }
+            if (joinPushDowns == relations.size() - 1) {
+                return permutation;
+            }
+            if (joinPushDowns > best) {
+                best = joinPushDowns;
+                bestOrder = permutation;
+            }
+        }
+        return bestOrder;
+    }
+
+    private static Collection<QualifiedName> getNamesFromOrderBy(OrderBy orderBy) {
+        Set<QualifiedName> orderByOrder = new LinkedHashSet<>();
+        Set<QualifiedName> names = new HashSet<>();
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
             names.clear();
             QualifiedNameCounter.INSTANCE.process(orderBySymbol, names);
             orderByOrder.addAll(names);
         }
-        if (orderByOrder.isEmpty()) {
-            return statement.sources().keySet();
-        }
-        if (orderByOrder.size() < statement.sources().size()) {
-            orderByOrder.addAll(statement.sources().keySet());
-        }
         return orderByOrder;
+    }
+
+    private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
+                                                                     Set<? extends Set<QualifiedName>> relationPairs) {
+        Collection<QualifiedName> orderedRelations = ImmutableList.of();
+        if (statement.querySpec().orderBy().isPresent()) {
+            orderedRelations = getNamesFromOrderBy(statement.querySpec().orderBy().get());
+        }
+        return orderByJoinConditions(statement.sources().keySet(), relationPairs, orderedRelations);
     }
 
     /**
@@ -114,7 +163,12 @@ public class ManyTableConsumer implements Consumer {
      * </code>
      */
     static TwoTableJoin buildTwoTableJoinTree(MultiSourceSelect mss) {
-        Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss);
+        Map<Set<QualifiedName>, Symbol> splitQuery = ImmutableMap.of();
+        if (mss.querySpec().where().hasQuery()) {
+            splitQuery = QuerySplitter.split(mss.querySpec().where().query());
+            mss.querySpec().where(WhereClause.MATCH_ALL);
+        }
+        Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss, splitQuery.keySet());
         Iterator<QualifiedName> it = orderedRelationNames.iterator();
 
         QualifiedName leftName = it.next();
@@ -124,11 +178,6 @@ public class ManyTableConsumer implements Consumer {
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<OrderBy> remainingOrderBy = mss.remainingOrderBy();
 
-        Map<Set<QualifiedName>, Symbol> splitQuery = ImmutableMap.of();
-        if (mss.querySpec().where().hasQuery()) {
-            splitQuery = QuerySplitter.split(mss.querySpec().where().query());
-            mss.querySpec().where(WhereClause.MATCH_ALL);
-        }
         QualifiedName rightName;
         MultiSourceSelect.Source rightSource;
         while (it.hasNext()) {
@@ -210,7 +259,7 @@ public class ManyTableConsumer implements Consumer {
 
     private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss).iterator();
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
 
