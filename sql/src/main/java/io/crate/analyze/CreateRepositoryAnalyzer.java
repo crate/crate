@@ -72,6 +72,10 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
                     .put("fs", new TypeSettings(ImmutableSet.of("location"),  ImmutableSet.of("compress", "chunk_size")))
                     .put("hdfs", new TypeSettings(ImmutableSet.<String>of(), ImmutableSet.of(
                             "uri", "user", "path", "load_defaults", "conf_location", "concurrent_streams", "compress", "chunk_size")))
+                    .put("s3", new TypeSettings(ImmutableSet.<String>of(), ImmutableSet.of(
+                            "bucket", "region", "endpoint", "protocol", "base_path", "access_key", "secret_key",
+                            "concurrent_streams", "chunk_size", "compress", "server_side_encryption", "buffer_size",
+                            "max_retries", "canned_acl")))
                     .put("url", new TypeSettings(ImmutableSet.of("url"), ImmutableSet.<String>of()))
                     .build();
         }
