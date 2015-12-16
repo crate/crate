@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/12/16 0.54.0
+=================
+
  - Fix: Plugin modules are now instantiated with settings
 
  - Added support for 2+ table joins
