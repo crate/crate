@@ -385,6 +385,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into events (name, user_id) values ('a', 1), ('a', 2), ('b', 1)");
         execute("refresh table users, events");
+        ensureYellow(); // wait for shards of new partitions
 
         execute("select users.* from users join events on users.id = events.user_id order by users.id");
     }

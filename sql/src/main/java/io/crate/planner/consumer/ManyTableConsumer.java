@@ -244,8 +244,6 @@ public class ManyTableConsumer implements Consumer {
                         "Joining more than 2 tables with a join condition is not possible"));
                 return null;
             }
-            // TODO: instead of splitting Query spec and creating new source it would be possible to add a shortcut if mss.size() == 2
-
             replaceFieldsWithRelationColumns(mss);
             return planSubRelation(context, buildTwoTableJoinTree(mss));
         }
