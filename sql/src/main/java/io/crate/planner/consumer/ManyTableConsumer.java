@@ -207,6 +207,23 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
+
+    private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
+        assert mss.sources().size() == 2;
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss).iterator();
+        QualifiedName left = it.next();
+        QualifiedName right = it.next();
+
+        return new TwoTableJoin(
+                mss.querySpec(),
+                left,
+                mss.sources().get(left),
+                right,
+                mss.sources().get(right),
+                mss.remainingOrderBy()
+        );
+    }
+
     private static class Visitor extends RelationPlanningVisitor {
 
         private final ConsumingPlanner consumingPlanner;
@@ -218,6 +235,10 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
+            if (mss.sources().size() == 2) {
+                replaceFieldsWithRelationColumns(mss);
+                return planSubRelation(context, twoTableJoin(mss));
+            }
             if (mss.sources().size() > 2 && (mss.remainingOrderBy().isPresent())) {
                 context.validationException(new ValidationException(
                         "Joining more than 2 tables with a join condition is not possible"));
