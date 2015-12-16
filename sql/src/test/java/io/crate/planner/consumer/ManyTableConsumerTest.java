@@ -22,12 +22,16 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.analyze.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.T3;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -37,6 +41,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
@@ -86,6 +94,17 @@ public class ManyTableConsumerTest {
     }
 
     @Test
+    public void testQuerySplittingWithRelationReOrdering() throws Exception {
+        MultiSourceSelect mss = analyze("select * from t1, t2, t3 " +
+                                        "where t3.c = t2.b " +
+                                        "order by t3.c");
+        TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
+        TwoTableJoin left = (TwoTableJoin) root.left().relation();
+
+        assertThat(left.querySpec().where().query(), isSQL("(RELCOL(doc.t3, 0) = RELCOL(doc.t2, 0))"));
+    }
+
+    @Test
     public void testQuerySplittingWithBadRelationOrder() throws Exception {
         MultiSourceSelect mss = analyze("select * from t1 " +
                                         "join t2 on t1.a = t2.b " +
@@ -102,5 +121,28 @@ public class ManyTableConsumerTest {
                       "AND (RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)))"),
                 isSQL("((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) " +
                       "AND (RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)))")));
+    }
+
+    @Test
+    public void testOptimizeJoin() throws Exception {
+        Set<QualifiedName> pair1 = Sets.newHashSet(T3.T1, T3.T3);
+        Set<QualifiedName> pair2 = Sets.newHashSet(T3.T3, T3.T2);
+        @SuppressWarnings("unchecked")
+        Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
+                Arrays.asList(T3.T1, T3.T2, T3.T3),
+                Sets.newHashSet(pair1, pair2),
+                ImmutableList.<QualifiedName>of());
+
+        assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T3, T3.T2));
+    }
+
+    @Test
+    public void testOptimizeJoinWithoutJoinConditionsAndPreSort() throws Exception {
+        Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
+                Arrays.asList(T3.T1, T3.T2, T3.T3),
+                ImmutableSet.<Set<QualifiedName>>of(),
+                ImmutableList.of(T3.T2));
+
+        assertThat(qualifiedNames, Matchers.contains(T3.T2, T3.T1, T3.T3));
     }
 }
