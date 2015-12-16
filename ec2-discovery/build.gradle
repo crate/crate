@@ -6,22 +6,52 @@ group = 'io.crate'
 dependencies {
     compile project(':es')
     compile project(':core')
-    compile 'com.amazonaws:aws-java-sdk-ec2:1.9.34'
-    compile 'com.amazonaws:aws-java-sdk-s3:1.9.34'
+    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.12'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.10.12'
     testCompile project(':testing')
 }
 
 sourceSets {
     main {
         java {
-            srcDir 'upstream/src/main/java'
-            exclude 'org/elasticsearch/plugin/**'
-            exclude 'org/elasticsearch/respositories/**'
+            srcDir 'src/main/java'
         }
     }
     test {
         java {
-            srcDir 'upstream/src/test/java'
+            srcDir 'src/test/java'
         }
     }
+}
+
+task copyUpstreamSource << {
+    if (!file('upstream/src/main/java').exists()) {
+        throw new GradleException("Please run 'git submodule update --init' first")
+    }
+    if (!file('src/main/java/org/elasticsearch').exists()) {
+        copy {
+            from 'upstream/src/main/java'
+            into 'src/main/java'
+
+            // make it a crate plugin
+            filter { line ->
+                line.replaceAll("org\\.elasticsearch\\.plugins\\.AbstractPlugin", "io.crate.plugin.AbstractPlugin")
+            }
+        }
+    }
+    if (!file('src/test/java').exists()) {
+        copy {
+            from 'upstream/src/test/java'
+            into 'src/test/java'
+        }
+    }
+}
+
+task deleteUpstreamSource(type: Delete) {
+    delete "src/main/java"
+    delete "src/test/java"
+}
+
+compileJava {
+    dependsOn copyUpstreamSource
 }
