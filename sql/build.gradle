@@ -16,8 +16,9 @@ dependencies {
     compile project(':es')
     compile project(':core')
     compile project(':blob')
+    compile project(':ec2-discovery')
     compile project(':sql-parser')
-    compile ('com.amazonaws:aws-java-sdk-s3:1.9.34') {
+    compile ('com.amazonaws:aws-java-sdk-s3:1.10.12') {
         // es provides a compatible version
         exclude group: 'joda-time', module: 'joda-time'
     }
