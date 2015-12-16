@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2015/12/16 0.54.0
+=================
+
  - Fix: Plugin modules are now instantiated with settings
 
  - Added support for 2+ table joins
@@ -19,7 +22,6 @@ Unreleased
      - Updated calculation of underreplicated shards/records to work with the
        change in Crate server where shards in sys.shards table have a more fine
        granular state now and relocating shards are listed, too.
-
 
  - Added ``show schemas``, ``show tables``, and ``show columns``
    commands.
