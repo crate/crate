@@ -57,7 +57,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
     }
 
     private void pushDown(String stmt) {
-        SelectAnalyzedStatement a = (SelectAnalyzedStatement) analyze(stmt);
+        SelectAnalyzedStatement a = analyze(stmt);
         assertThat(a.relation(), instanceOf(MultiSourceSelect.class));
         mss = (MultiSourceSelect) a.relation();
         pd = MultiSourceFetchPushDown.pushDown(mss);
@@ -70,7 +70,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
     @Test
     public void testPushDown() throws Exception {
         pushDown("select a, b from t1, t2");
-        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1.a), FETCH(INPUT(1), doc.t2.b)"));
+        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), FETCH(INPUT(1), doc.t2._doc['b'])"));
         assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t2, 0)"));
         assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid"));
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._docid"));
@@ -82,7 +82,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
     @Test
     public void testPushDownWithOrder() throws Exception {
         pushDown("select a, b from t1, t2 order by b");
-        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1.a), INPUT(1)"));
+        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), INPUT(1)"));
         assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t2, 0) ORDER BY RELCOL(doc.t2, 0)"));
         assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid"));
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b ORDER BY doc.t2.b"));
@@ -94,7 +94,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
         assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid, doc.t1.x"));
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._docid, doc.t2.y"));
         assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t1, 1), RELCOL(doc.t2, 0), RELCOL(doc.t2, 1), subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1)) ORDER BY subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1))"));
-        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1.a), FETCH(INPUT(2), doc.t2.b)"));
+        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), FETCH(INPUT(2), doc.t2._doc['b'])"));
         assertThat(mss.remainingOrderBy().get().orderBySymbols(), isSQL("subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1))"));
     }
 }

@@ -64,9 +64,7 @@ public class FetchPushDown {
     private FetchReference allocateReference(Reference ref) {
         RowGranularity granularity = ref.info().granularity();
         if (granularity == RowGranularity.DOC) {
-            if (!ref.ident().columnIdent().isSystemColumn()) {
-                ref = DocReferenceConverter.toSourceLookup(ref);
-            }
+            ref = DocReferenceConverter.toSourceLookup(ref);
             if (fetchRefs == null) {
                 fetchRefs = new LinkedHashMap<>();
             }

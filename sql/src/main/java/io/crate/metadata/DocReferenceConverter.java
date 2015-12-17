@@ -29,8 +29,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -48,10 +46,6 @@ public class DocReferenceConverter {
             assert input != null;
 
             ReferenceIdent ident = input.info().ident();
-            if (ident.columnIdent().name().startsWith("_")) {
-                return false;
-            }
-
             String schema = ident.tableIdent().schema();
             return ReferenceInfos.isDefaultOrCustomSchema(schema);
         }
@@ -103,24 +97,11 @@ public class DocReferenceConverter {
 
     public static Reference toSourceLookup(Reference reference) {
         ReferenceIdent ident = reference.info().ident();
-        if (ident.columnIdent().name().equals(DocSysColumns.DOC.name())) {
-            // already converted
-            // symbols might be shared and visited twice.. prevent rewriting _doc[x] to _doc._doc[x]
+        if (ident.columnIdent().isSystemColumn()) {
             return reference;
         }
-        List<String> path = new ArrayList<>(ident.columnIdent().path());
-        if (path.isEmpty()) { // if it's empty it might be an empty immutableList
-            path = Arrays.asList(ident.columnIdent().name());
-        } else {
-            path.add(0, ident.columnIdent().name());
-        }
-        return new Reference(
-                new ReferenceInfo(
-                        new ReferenceIdent(ident.tableIdent(), DocSysColumns.DOC.name(), path),
-                        reference.info().granularity(),
-                        reference.valueType()
-                )
-        );
+        return new Reference(reference.info().getRelocated(
+                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name()))));
     }
 
     private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
