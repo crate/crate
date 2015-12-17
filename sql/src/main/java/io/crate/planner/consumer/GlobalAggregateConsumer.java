@@ -161,7 +161,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 projections,
                 collectPhase.executionNodes().size(),
                 collectPhase.outputTypes());
-        return new GlobalAggregate(collectPhase, localMergeNode, plannerContext.jobId());
+        return new GlobalAggregate(collectPhase, localMergeNode);
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

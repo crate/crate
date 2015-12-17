@@ -195,7 +195,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     projections,
                     collectPhase.executionNodes().size(),
                     collectPhase.outputTypes());
-            return new NonDistributedGroupBy(collectPhase, localMergeNode, context.plannerContext().jobId());
+            return new NonDistributedGroupBy(collectPhase, localMergeNode);
         }
     }
 

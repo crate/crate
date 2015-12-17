@@ -223,7 +223,7 @@ public class QueryAndFetchConsumer implements Consumer {
             }
             SimpleSelect.enablePagingIfApplicable(
                     collectPhase, mergeNode, querySpec.limit().orNull(), querySpec.offset(), plannerContext.clusterService().localNode().id());
-            return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());
+            return new CollectAndMerge(collectPhase, mergeNode);
         }
 
         private static List<Symbol> toInputColumns(List<Symbol> symbols) {

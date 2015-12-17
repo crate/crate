@@ -33,12 +33,10 @@ public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
 
     private final CollectPhase collectPhase;
     private final MergePhase localMerge;
-    private final UUID id;
 
-    public CollectAndMerge(CollectPhase collectPhase, @Nullable MergePhase localMerge, UUID id) {
+    public CollectAndMerge(CollectPhase collectPhase, @Nullable MergePhase localMerge) {
         this.collectPhase = collectPhase;
         this.localMerge = localMerge;
-        this.id = id;
     }
 
     public CollectPhase collectPhase() {
@@ -57,7 +55,7 @@ public class CollectAndMerge extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public UUID jobId() {
-        return id;
+        return collectPhase.jobId();
     }
 
     @Override

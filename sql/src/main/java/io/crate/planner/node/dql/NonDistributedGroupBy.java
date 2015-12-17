@@ -28,8 +28,8 @@ import java.util.UUID;
 
 public class NonDistributedGroupBy extends CollectAndMerge {
 
-    public NonDistributedGroupBy(CollectPhase collectPhase, @Nullable MergePhase localMerge, UUID id){
-        super(collectPhase, localMerge, id);
+    public NonDistributedGroupBy(CollectPhase collectPhase, @Nullable MergePhase localMerge){
+        super(collectPhase, localMerge);
     }
 
     @Override

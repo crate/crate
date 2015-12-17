@@ -28,8 +28,8 @@ import java.util.UUID;
 
 public class GlobalAggregate extends CollectAndMerge {
 
-    public GlobalAggregate(CollectPhase collectPhase, @Nullable MergePhase localMerge, UUID id) {
-        super(collectPhase, localMerge, id);
+    public GlobalAggregate(CollectPhase collectPhase, @Nullable MergePhase localMerge) {
+        super(collectPhase, localMerge);
     }
 
     @Override

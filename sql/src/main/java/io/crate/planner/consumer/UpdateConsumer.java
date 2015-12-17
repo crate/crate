@@ -158,7 +158,7 @@ public class UpdateConsumer implements Consumer {
                         collectPhase.executionNodes().size(),
                         collectPhase.outputTypes()
                 );
-                return new CollectAndMerge(collectPhase, mergeNode, plannerContext.jobId());
+                return new CollectAndMerge(collectPhase, mergeNode);
             } else {
                 return null;
             }

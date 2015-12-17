@@ -222,7 +222,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         collectPhase.outputTypes()
                 );
             }
-            return new NonDistributedGroupBy(collectPhase, localMerge, context.plannerContext().jobId());
+            return new NonDistributedGroupBy(collectPhase, localMerge);
         }
 
 
