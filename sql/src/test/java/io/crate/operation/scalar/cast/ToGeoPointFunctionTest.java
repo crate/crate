@@ -25,6 +25,7 @@ package io.crate.operation.scalar.cast;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;
@@ -61,8 +62,8 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateCastFromInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"POINT ((0 0), (1 1))\" to geo_point");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'POINT ((0 0), (1 1))' to type geo_point");
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         fn.evaluate(Literal.newLiteral(DataTypes.STRING, "POINT ((0 0), (1 1))"));
     }

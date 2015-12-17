@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;
@@ -71,8 +72,8 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidValueToInt() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to long_array");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to type long_array");
         eval($("foobar", "20", "30"), DataTypes.STRING);
     }
 

@@ -654,7 +654,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     @Test
     public void testAnyInvalidArrayType() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Can't convert \"foo\" to boolean");
+        expectedException.expectMessage("cannot cast ['foo', 'bar', 'baz'] to type boolean_array");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 

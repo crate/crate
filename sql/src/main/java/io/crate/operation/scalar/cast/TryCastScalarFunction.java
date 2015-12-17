@@ -64,12 +64,12 @@ public class TryCastScalarFunction extends AbstractCastFunction<Object, Object> 
     }
 
     @Override
-    protected Symbol onNormalizeException(Symbol argument, Throwable t) {
+    protected Symbol onNormalizeException(Symbol argument) {
         return Literal.NULL;
     }
 
     @Override
-    protected Object onEvaluateException(Object argument, Throwable t) {
+    protected Object onEvaluateException(Object argument) {
         // swallow exception
         return null;
     }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error message on type cast failure
+
  - Fixed: Columns of type array and analyzed columns can now be selected in
    statements that contain joins
 

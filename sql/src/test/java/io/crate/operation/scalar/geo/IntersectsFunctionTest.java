@@ -66,7 +66,7 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeFromInvalidLiteral() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage(stringContainsInOrder(Arrays.asList("Cannot convert", "to geo_shape")));
+        expectedException.expectMessage(stringContainsInOrder(Arrays.asList("cannot cast", "to type geo_shape")));
         Symbol normalized = normalize(FUNCTION_NAME,
                 Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[0, 0]}")),
                 Literal.newLiteral("LINESTRING (0 2, 0 -2)"));

@@ -25,11 +25,14 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.codehaus.groovy.ast.expr.CastExpression;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -67,8 +70,8 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast 'hello' to int");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type integer");
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
         Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
         castStringToInteger.normalizeSymbol(function);
@@ -78,24 +81,35 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Input<Object> arg1 = new Input<Object>() {
-            @Override
-            public Object value() {
-                return "123";
-            }
-        };
+        Literal arg1 = Literal.newLiteral("123");
         Object result = stringFn.evaluate(arg1);
         assertThat((Integer)result, is(123));
 
         ToPrimitiveFunction floatFn = getFunction(functionName, DataTypes.FLOAT);
-        arg1 = new Input<Object>() {
-            @Override
-            public Object value() {
-                return 42.5f;
-            }
-        };
+        arg1 = Literal.newLiteral(42.5f);
         result = floatFn.evaluate(arg1);
         assertThat((Integer)result, is(42));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEvaluateInvalidString() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type integer");
+        ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
+        Literal arg1 = Literal.newLiteral("hello");
+
+        stringFn.evaluate(arg1);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEvaluateInvalidByteRef() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type integer");
+        ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
+        Literal arg1 = Literal.newLiteral(new BytesRef("hello"));
+
+        stringFn.evaluate(arg1);
+    }
 }

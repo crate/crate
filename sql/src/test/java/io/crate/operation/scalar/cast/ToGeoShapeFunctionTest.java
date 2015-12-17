@@ -25,6 +25,7 @@ package io.crate.operation.scalar.cast;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -80,8 +81,8 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
 
     @Test
     public void testEvaluateCastFromInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert \"POINTE ()\" to geo_shape");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'POINTE ()' to type geo_shape");
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.STRING);
         fn.evaluate(Literal.newLiteral(DataTypes.STRING, INVALID_STR));
     }
@@ -103,8 +104,8 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
     public void testEvaluateCastFromInvalidObject() throws Exception {
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.OBJECT);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(allOf(startsWith("Cannot convert"), endsWith("to geo_shape")));
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage(allOf(startsWith("cannot cast"), endsWith("to type geo_shape")));
         fn.evaluate(Literal.newLiteral(DataTypes.OBJECT, INVALID_OBJECT));
     }
 
@@ -134,17 +135,17 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
 
     @Test
     public void testNormalizeFromInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast 'POINTE ()' to geo_shape");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'POINTE ()' to type geo_shape");
         normalize(FUNCTION_NAME, INVALID_STR, DataTypes.STRING);
     }
 
     @Test
     public void testNormalizeFromInvalidObject() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast {\"coordinates\"=[[0.0, 0.0], [42.0, 0.0], " +
                                         "[42.0, 1.0], [42.0, 42.0], " +
-                                        "[1.0, 42.0], [0.0, 0.0]], \"type\"='Polygon'} to geo_shape");
+                                        "[1.0, 42.0], [0.0, 0.0]], \"type\"='Polygon'} to type geo_shape");
         normalize(FUNCTION_NAME, INVALID_OBJECT, DataTypes.OBJECT);
     }
 
