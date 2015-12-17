@@ -272,4 +272,18 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
             out.writeString(s);
         }
     }
+
+    /**
+     * Create a new ColumnIdent with the name inserted at the start
+     *
+     * E.g. ColumnIdent y['z'].prepend('x') becomes ColumnIdent x['y']['z']
+     */
+    public ColumnIdent prepend(String name) {
+        if (path.isEmpty()) {
+            return new ColumnIdent(name, this.name);
+        }
+        List<String> newPath = new ArrayList<>(path);
+        newPath.add(0, this.name);
+        return new ColumnIdent(name, newPath);
+    }
 }

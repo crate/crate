@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.metadata.doc.DocSysColumns;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -71,5 +72,15 @@ public class ColumnIdentTest {
 
         assertThat(rootYX.isChildOf(root), is(true));
         assertThat(rootYX.isChildOf(rootX), is(false));
+    }
+
+    @Test
+    public void testPrepend() throws Exception {
+        ColumnIdent foo = new ColumnIdent("foo");
+        assertThat(foo.prepend(DocSysColumns.DOC.name()),
+                is(new ColumnIdent(DocSysColumns.DOC.name(), "foo")));
+
+        ColumnIdent fooBar = new ColumnIdent("foo", "bar");
+        assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));
     }
 }

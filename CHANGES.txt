@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed: Columns of type array and analyzed columns can now be selected in
+   statements that contain joins
+
 2015/12/16 0.54.0
 =================
 

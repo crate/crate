@@ -454,4 +454,18 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                    "Arthur| Hitch hiking on a vogon ship\n" +
                    "Trillian| Meeting Arthur\n"));
     }
+
+    @Test
+    public void testFetchArrayAndAnalyedColumnsWithJoin() throws Exception {
+        execute("create table t1 (id int primary key, text string index using fulltext)");
+        execute("create table t2 (id int primary key, tags array(string))");
+        ensureYellow();
+        execute("insert into t1 (id, text) values (1, 'Hello World')");
+        execute("insert into t2 (id, tags) values (1, ['foo', 'bar'])");
+        execute("refresh table t1, t2");
+
+        execute("select text, tags from t1 join t2 on t1.id = t2.id");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Hello World| [foo, bar]\n"));
+    }
 }

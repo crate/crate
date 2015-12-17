@@ -177,7 +177,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testFunctionWithJoinCondition() throws Exception {
         QueryThenFetch qtf = plan("select u1.name || u2.name from users u1, users u2");
         FetchProjection fetch = (FetchProjection) qtf.localMerge().projections().get(1);
-        assertThat(fetch.outputs(), isSQL("concat(FETCH(INPUT(0), doc.users.name), FETCH(INPUT(1), doc.users.name))"));
+        assertThat(fetch.outputs(), isSQL("concat(FETCH(INPUT(0), doc.users._doc['name']), FETCH(INPUT(1), doc.users._doc['name']))"));
     }
 
     @Test
@@ -216,7 +216,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(finalTopN.outputs().size(), is(3));
 
         FetchProjection fetchProjection = (FetchProjection) localMergePhase.projections().get(1);
-        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), doc.users.floats), INPUT(2)"));
+        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), doc.users._doc['floats']), INPUT(2)"));
     }
 
     @Test
