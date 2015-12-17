@@ -1401,7 +1401,7 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(0));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
 
-        assertThat(planNode.handlerMergeNode().isPresent(), is(true));
+        assertThat(planNode.handlerMergeNode().isPresent(), is(false));
     }
 
     @Test

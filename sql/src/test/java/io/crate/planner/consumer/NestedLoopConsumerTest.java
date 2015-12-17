@@ -76,6 +76,7 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -176,7 +177,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testFunctionWithJoinCondition() throws Exception {
         QueryThenFetch qtf = plan("select u1.name || u2.name from users u1, users u2");
-        FetchProjection fetch = (FetchProjection) qtf.localMerge().projections().get(1);
+        FetchProjection fetch = (FetchProjection) ((NestedLoop) qtf.subPlan()).nestedLoopPhase().projections().get(1);
         assertThat(fetch.outputs(), isSQL("concat(FETCH(INPUT(0), doc.users._doc['name']), FETCH(INPUT(1), doc.users._doc['name']))"));
     }
 
@@ -205,8 +206,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(3));
 
-        assertThat(plan.resultPhase(), instanceOf(MergePhase.class));
-        MergePhase localMergePhase = (MergePhase) plan.resultPhase();
+        assertThat(plan.localMerge(), nullValue()); // NL Plan is non-distributed and contains localMerge
+        MergePhase localMergePhase = ((MergePhase) ((NestedLoop) plan.subPlan()).resultPhase());
         assertThat(localMergePhase.projections(),
                 Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
@@ -232,7 +233,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.name from users u1 cross join users u2");
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
-        assertThat(nestedLoop.nestedLoopPhase().projections().size(), is(1));
+        assertThat(nestedLoop.nestedLoopPhase().projections(),
+                Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
         TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
         assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
         assertThat(topN.offset(), is(0));

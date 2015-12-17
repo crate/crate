@@ -125,7 +125,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public boolean resultIsDistributed() {
-        return localMerge == null;
+        return resultPhase().executionNodes().size() > 1;
     }
 
     @Override

@@ -69,6 +69,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final ClusterService clusterService;
     private final UpdateConsumer updateConsumer;
     private final CopyStatementPlanner copyStatementPlanner;
+    private final SelectStatementPlanner selectStatementPlanner;
 
     public static class Context {
 
@@ -280,11 +281,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     public Planner(ClusterService clusterService,
                    ConsumingPlanner consumingPlanner,
                    UpdateConsumer updateConsumer,
-                   CopyStatementPlanner copyStatementPlanner) {
+                   CopyStatementPlanner copyStatementPlanner,
+                   SelectStatementPlanner selectStatementPlanner) {
         this.clusterService = clusterService;
         this.updateConsumer = updateConsumer;
         this.consumingPlanner = consumingPlanner;
         this.copyStatementPlanner = copyStatementPlanner;
+        this.selectStatementPlanner = selectStatementPlanner;
     }
 
     /**
@@ -305,7 +308,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement.relation(), context);
+        return selectStatementPlanner.plan(statement, context);
     }
 
     @Override
