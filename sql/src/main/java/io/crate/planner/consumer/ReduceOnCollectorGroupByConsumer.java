@@ -36,10 +36,10 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.NonDistributedGroupBy;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -222,7 +222,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                         collectPhase.outputTypes()
                 );
             }
-            return new NonDistributedGroupBy(collectPhase, localMerge);
+            return new CollectAndMerge(collectPhase, localMerge);
         }
 
 

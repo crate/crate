@@ -73,7 +73,8 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -484,7 +485,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
-        GlobalAggregate globalAggregate = (GlobalAggregate) plan("select count(name) from users");
+        CollectAndMerge globalAggregate = (CollectAndMerge) plan("select count(name) from users");
         CollectPhase collectPhase = globalAggregate.collectPhase();
 
         assertEquals(DataTypes.LONG, collectPhase.outputTypes().get(0));
@@ -500,7 +501,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGroupByOnNodeLevel() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*), name from sys.nodes group by name");
         CollectPhase collectPhase = planNode.collectPhase();
         assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
@@ -770,7 +771,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testCountDistinctPlan() throws Exception {
-        GlobalAggregate globalAggregate = (GlobalAggregate) plan("select count(distinct name) from users");
+        CollectAndMerge globalAggregate = (CollectAndMerge) plan("select count(distinct name) from users");
 
         CollectPhase collectPhase = globalAggregate.collectPhase();
         Projection projection = collectPhase.projections().get(0);
@@ -796,7 +797,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*), id from users group by id limit 20");
         CollectPhase collectPhase = planNode.collectPhase();
         assertThat(collectPhase.projections().size(), is(2));
@@ -808,7 +809,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         CollectPhase collectPhase = planNode.collectPhase();
         assertThat(collectPhase.projections().size(), is(2));
@@ -829,7 +830,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         CollectPhase collectPhase = planNode.collectPhase();
         assertThat(collectPhase.projections().size(), is(2));
@@ -850,7 +851,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*), id, date from empty_parted group by id, date limit 20");
         CollectPhase collectPhase = planNode.collectPhase();
         assertThat(collectPhase.projections().size(), is(2));
@@ -904,7 +905,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
-        NonDistributedGroupBy planNode = (NonDistributedGroupBy) plan(
+        CollectAndMerge planNode = (CollectAndMerge) plan(
                 "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         CollectPhase collectPhase = planNode.collectPhase();
@@ -1230,7 +1231,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
         InsertFromSubQuery planNode = plan(
                 "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
-        NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
+        CollectAndMerge nonDistributedGroupBy = (CollectAndMerge)planNode.innerPlan();
         MergePhase mergeNode = nonDistributedGroupBy.localMerge();
         assertThat(mergeNode.projections().size(), is(2));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
@@ -1243,7 +1244,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupByWithCast() throws Exception {
         InsertFromSubQuery planNode = plan(
                 "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
-        NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
+        CollectAndMerge nonDistributedGroupBy = (CollectAndMerge)planNode.innerPlan();
         MergePhase mergeNode = nonDistributedGroupBy.localMerge();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
@@ -1328,7 +1329,7 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryGlobalAggregate() throws Exception {
         InsertFromSubQuery planNode = plan(
                 "insert into users (name, id) (select arbitrary(name), count(*) from users)");
-        GlobalAggregate globalAggregate = (GlobalAggregate)planNode.innerPlan();
+        CollectAndMerge globalAggregate = (CollectAndMerge)planNode.innerPlan();
         MergePhase mergeNode = globalAggregate.localMerge();
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
@@ -1448,8 +1449,8 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryReduceOnCollectorGroupBy() throws Exception {
         InsertFromSubQuery planNode = plan(
                 "insert into users (id, name) (select id, arbitrary(name) from users group by id)");
-        assertThat(planNode.innerPlan(), instanceOf(NonDistributedGroupBy.class));
-        NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
+        assertThat(planNode.innerPlan(), instanceOf(CollectAndMerge.class));
+        CollectAndMerge nonDistributedGroupBy = (CollectAndMerge)planNode.innerPlan();
 
         CollectPhase collectPhase = nonDistributedGroupBy.collectPhase();
         assertThat(collectPhase.projections(), hasSize(1));
@@ -1474,10 +1475,10 @@ public class PlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryReduceOnCollectorGroupByWithCast() throws Exception {
         InsertFromSubQuery planNode = plan(
                 "insert into users (id, name) (select id, count(*) from users group by id)");
-        assertThat(planNode.innerPlan(), instanceOf(NonDistributedGroupBy.class));
+        assertThat(planNode.innerPlan(), instanceOf(CollectAndMerge.class));
 
-        assertThat(planNode.innerPlan(), instanceOf(NonDistributedGroupBy.class));
-        NonDistributedGroupBy nonDistributedGroupBy = (NonDistributedGroupBy)planNode.innerPlan();
+        assertThat(planNode.innerPlan(), instanceOf(CollectAndMerge.class));
+        CollectAndMerge nonDistributedGroupBy = (CollectAndMerge)planNode.innerPlan();
 
         CollectPhase collectPhase = nonDistributedGroupBy.collectPhase();
         assertThat(collectPhase.projections(), hasSize(2));
@@ -1576,7 +1577,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGroupByHavingNonDistributed() throws Exception {
-        NonDistributedGroupBy planNode = plan(
+        CollectAndMerge planNode = plan(
                 "select id from users group by id having id > 0");
         CollectPhase collectPhase = planNode.collectPhase();
         assertThat(collectPhase.projections().size(), is(2));
@@ -1598,7 +1599,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGlobalAggregationHaving() throws Exception {
-        GlobalAggregate globalAggregate = plan(
+        CollectAndMerge globalAggregate = plan(
                 "select avg(date) from users having min(date) > '1970-01-01'");
         CollectPhase collectPhase = globalAggregate.collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
@@ -1851,7 +1852,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        GlobalAggregate globalAggregate = plan(
+        CollectAndMerge globalAggregate = plan(
                 "select min(name) from parted where date > 0");
 
         WhereClause whereClause = globalAggregate.collectPhase().whereClause();
@@ -1913,8 +1914,8 @@ public class PlannerTest extends CrateUnitTest {
     public void testGroupByOnClusteredByColumnPartitionedOnePartition() throws Exception {
         // only one partition hit
         Plan optimizedPlan = plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
-        assertThat(optimizedPlan, instanceOf(NonDistributedGroupBy.class));
-        NonDistributedGroupBy optimizedGroupBy = (NonDistributedGroupBy) optimizedPlan;
+        assertThat(optimizedPlan, instanceOf(CollectAndMerge.class));
+        CollectAndMerge optimizedGroupBy = (CollectAndMerge) optimizedPlan;
 
         assertThat(optimizedGroupBy.collectPhase().projections().size(), is(1));
         assertThat(optimizedGroupBy.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
@@ -2064,7 +2065,7 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        NonDistributedGroupBy nonDistributedGroup = plan("select count(*) from sys.cluster group by name");
+        CollectAndMerge nonDistributedGroup = plan("select count(*) from sys.cluster group by name");
         CollectPhase collectPhase = nonDistributedGroup.collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));

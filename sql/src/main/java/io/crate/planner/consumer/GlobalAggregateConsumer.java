@@ -38,8 +38,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.GlobalAggregate;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
@@ -161,7 +161,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 projections,
                 collectPhase.executionNodes().size(),
                 collectPhase.outputTypes());
-        return new GlobalAggregate(collectPhase, localMergeNode);
+        return new CollectAndMerge(collectPhase, localMergeNode);
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
