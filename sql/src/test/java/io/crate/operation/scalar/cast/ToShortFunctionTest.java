@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
@@ -81,8 +82,8 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast 'hello' to short");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type short");
         normalize("hello", DataTypes.STRING);
     }
 }

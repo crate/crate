@@ -61,8 +61,9 @@ public class IpType extends StringType {
     }
 
     private void validate(BytesRef ip) {
-        if(!isValid(ip))
-            throw new IllegalArgumentException("Failed to validate ip ["+ ip.utf8ToString() + "], not a valid ipv4 address");
+        if(!isValid(ip)) {
+            throw new IllegalArgumentException("Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
+        }
     }
 
     @Override

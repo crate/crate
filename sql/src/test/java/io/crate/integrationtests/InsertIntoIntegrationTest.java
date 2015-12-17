@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -187,7 +188,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureGreen();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for i: '192.168.1.500' can not be cast to 'ip'");
+        expectedException.expectMessage("Validation failed for i: '192.168.1.500' cannot be cast to type ip");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 

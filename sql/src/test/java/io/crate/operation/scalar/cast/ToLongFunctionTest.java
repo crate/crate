@@ -25,11 +25,13 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -70,8 +72,8 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast 'hello' to long");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type long");
         assertThat(normalize("hello", DataTypes.STRING), isLiteral(123L));
     }
 
@@ -95,5 +97,27 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
         assertThat(evaluate(42, DataTypes.INTEGER), is(42L));
         assertThat(evaluate(null, DataTypes.LONG), nullValue());
         assertThat(evaluate(null, DataTypes.INTEGER), nullValue());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEvaluateInvalidString() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type long");
+        ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
+        Literal arg1 = Literal.newLiteral("hello");
+
+        stringFn.evaluate(arg1);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEvaluateInvalidByteRef() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'hello' to type long");
+        ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
+        Literal arg1 = Literal.newLiteral(new BytesRef("hello"));
+
+        stringFn.evaluate(arg1);
     }
 }

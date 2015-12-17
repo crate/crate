@@ -21,10 +21,39 @@
 
 package io.crate.exceptions;
 
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.types.DataType;
+import org.apache.lucene.util.BytesRef;
+
+import java.util.Locale;
+
 public class ConversionException extends RuntimeException {
 
-    public ConversionException(String message) {
-        super(message);
+    private static String ERROR_MESSAGE = "cannot cast %s to type %s";
+
+    private String message;
+
+    public ConversionException(Object value, DataType type) {
+        super();
+
+        if (value instanceof Symbol) {
+            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                    SymbolPrinter.INSTANCE.printSimple((Symbol)value), type.toString());
+        } else if (value instanceof BytesRef) {
+            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                    String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
+        } else if (value instanceof String) {
+            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                    String.format(Locale.ENGLISH, "'%s'", value), type.toString());
+        } else {
+            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                    value.toString(), type.toString());
+        }
     }
 
+    @Override
+    public String getMessage() {
+        return message;
+    }
 }

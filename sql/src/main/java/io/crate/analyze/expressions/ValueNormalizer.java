@@ -78,7 +78,7 @@ public class ValueNormalizer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("%s can not be cast to \'%s\'", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
+                    String.format("%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
                             reference.valueType().getName()));
         }
         Object value = literal.value();

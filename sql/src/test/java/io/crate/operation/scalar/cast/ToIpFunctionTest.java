@@ -23,6 +23,7 @@ package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -61,43 +62,43 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateInvalidStringValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Failed to validate ip [not.a.valid.ip], not a valid ipv4 address");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'not.a.valid.ip' to type ip");
         assertThat(evaluate("not.a.valid.ip", DataTypes.STRING), is(nullValue()));
     }
 
     @Test
     public void testEvaluateInvalidBytesRefValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Failed to validate ip [257.0.1.1], not a valid ipv4 address");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast '257.0.1.1' to type ip");
         assertThat(evaluate(new BytesRef("257.0.1.1"), DataTypes.STRING), is(nullValue()));
     }
 
     @Test
     public void testEvaluateInvalidLongValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Failed to convert long value: -1 to ipv4 address");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast -1 ");
         assertThat(evaluate(-1L, DataTypes.LONG), is(nullValue()));
     }
 
     @Test
     public void testNormalizeInvalidStringValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast '257.0.0.0' to ip");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast '257.0.0.0' to type ip");
         normalize(functionName, "257.0.0.0", DataTypes.STRING);
     }
 
     @Test
     public void testNormalizeInvalidLongValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast -1 to ip");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast -1 to type ip");
         normalize(functionName, -1L, DataTypes.LONG);
     }
 
     @Test
     public void testNormalizeInvalidBytesRefValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast '257.0.0.0' to ip");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast '257.0.0.0' to type ip");
         normalize(functionName, new BytesRef("257.0.0.0"), DataTypes.STRING);
     }
 

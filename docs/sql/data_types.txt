@@ -137,7 +137,7 @@ Example::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
-    SQLActionException[Validation failed for ip_addr: 'not.a.real.ip' can not be cast to 'ip']
+    SQLActionException[Validation failed for ip_addr: 'not.a.real.ip' cannot be cast to type ip]
 
 
 timestamp
@@ -183,7 +183,7 @@ fractions. Example::
 ::
 
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
-    SQLActionException[Validation failed for first_column: 'wrong' can not be cast to 'timestamp']
+    SQLActionException[Validation failed for first_column: 'wrong' cannot be cast to type timestamp]
 
 
 .. note::
