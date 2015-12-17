@@ -10,7 +10,7 @@ Snapshot
 In CRATE, backups are called *Snapshots*. They represent the state of
 the tables in a CRATE cluster at the time the *Snapshot* was
 created. A *Snapshot* is always stored in a *Repository* which has to
-be created up front.
+be created first.
 
 Creating a Repository
 ~~~~~~~~~~~~~~~~~~~~~
@@ -24,15 +24,15 @@ They are created using the :ref:`ref-create-repository` statement::
     CREATE OK (... sec)
 
 Repositories are uniquely identified by their name. Every repository
-has a specific type which determines how snapshots are stored.
+has a specific type which determines how they are stored.
 
 CRATE supports different repository types:
 :ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
 and :ref:`ref-create-repository-types-url`. Support for further types
 might be added using :ref:`plugins`.
 
-The creation of a repository simply configures it inside the crate cluster. In
-general no data is written, no snapshots inside repositories are changed or
+The creation of a repository configures it inside the crate cluster. Generally
+no data is written, no snapshots inside repositories are changed or
 deleted. This way you can tell the CRATE cluster about existing repositories
 which already contain snapshots.
 
@@ -57,7 +57,7 @@ A snapshot is referenced by the name of the repository and the snapshot name,
 separated by a dot. If used with ``ALL``, all *user created* tables of the
 cluster (except blob tables) are stored inside the snapshot.
 
-It is also possible to only save a specific subset of tables in the snapshot by
+It's possible to only save a specific subset of tables in the snapshot by
 listing them explicitly::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes, doc.locations
@@ -78,9 +78,9 @@ listing them explicitly::
     cr> REFRESH TABLE parted_table;
     REFRESH OK (... sec)
 
-Even single partitions of :ref:`partitioned_tables` can be selected
-for backup. This is especially useful if old partitions must be
-deleted but it should be possible to restore them if needed::
+All partitions of :ref:`partitioned_tables` can be selected for backup.
+This is especially useful if old partitions must be deleted but can be restored
+if needed::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    locations,
@@ -88,14 +88,13 @@ deleted but it should be possible to restore them if needed::
     ... WITH (wait_for_completion=true);
     CREATE OK (... sec)
 
-Snapshots are **incremental**. Snapshots of the same cluster that were
-created later only store the data that is not already contained in the
-repository.
+Snapshots are **incremental**. Snapshots of the same cluster created later
+only store the data not already contained in the repository.
 
 All examples above are used with the argument ``wait_for_completion``
 set to *true*. As also described at the :ref:`ref-create-repository`
 reference documentation, by doing this, the statement will only respond
-(either sucessfully or not) when the snapshot is fully
+(either successfully or not) when the snapshot is fully
 created. Otherwise the snapshot will be created in the background and
 the statement will immediately respond successfully. The status of a
 created snapshot can be retrieved by querying the :ref:`sys.snapshots
@@ -107,8 +106,8 @@ Restore
 Once a snapshot is created, it can be used to restore its tables to
 the state when the snapshot was created.
 
-To get basic information about snapshots the :ref:`sys.snapshots
-<sys-snapshots>` table can be queried::
+To get basic information about snapshots query the :ref:`sys.snapshots
+<sys-snapshots>` table::
 
     cr> SELECT repository, name, state, concrete_indices
     ... FROM sys.snapshots
@@ -122,12 +121,12 @@ To get basic information about snapshots the :ref:`sys.snapshots
     +-----------------------+-----------+---------+--------------------...-+
     SELECT 3 rows in set (... sec)
 
-In order to restore a table from a snapshot we have to drop it beforehand::
+To restore a table from a snapshot we have to drop it beforehand::
 
     cr> DROP TABLE quotes;
     DROP OK (... sec)
 
-Restoring a snapshot is done using the :ref:`ref-restore-snapshot` statement.::
+Restoring a snapshot using the :ref:`ref-restore-snapshot` statement.::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
@@ -136,7 +135,7 @@ In this case only the ``quotes`` table from snapshot
 ``where_my_snapshots_go.snapshot2`` is restored. Using ``ALL`` instead
 of listing all tables restores the whole snapshot.
 
-It is not possible to restore tables that exist in the current cluster::
+It's not possible to restore tables that exist in the current cluster::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
     SQLActionException[The table 'doc.quotes' already exists.]
@@ -178,7 +177,7 @@ Dropping Snapshots
 ~~~~~~~~~~~~~~~~~~
 
 Dropping a snapshot deletes all files inside the repository that are
-only referenced by this snapshot. Due to its incremental nature this
+referenced by this snapshot. Due to its incremental nature this
 might be very few files (e.g. for intermediate snapshots). Snapshots
 are dropped using the :ref:`ref-drop-snapshot` command::
 
@@ -202,7 +201,7 @@ If a repository is not needed anymore, it can be dropped using the
 
 This statement, like :ref:`ref-create-repository`, does not manipulate
 repository contents but only deletes stored configuration for this
-repository in the cluster state, so it is not accessible any more.
+repository in the cluster state, so it's not accessible any more.
 
 
 .. Hidden: cleanup
