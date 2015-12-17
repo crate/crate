@@ -106,11 +106,8 @@ public class MultiSourceFetchPushDown {
                     }
                 }
                 for (Field field : canBeFetched) {
-                    Reference reference = rel.resolveField(field);
-                    if (reference != null && reference.info().granularity() == RowGranularity.DOC) {
-                        reference = DocReferenceConverter.toSourceLookup(reference);
-                    }
-                    FetchReference fr = new FetchReference(docIdInput, reference);
+                    FetchReference fr = new FetchReference(
+                            docIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
                     allocateFetchedReference(fr, rel);
                     topLevelOutputMap.put(field, fr);
                 }

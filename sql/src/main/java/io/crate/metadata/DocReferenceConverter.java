@@ -22,14 +22,11 @@
 package io.crate.metadata;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Visitor to change regular column references into references using the DOC sys column.
@@ -52,43 +49,6 @@ public class DocReferenceConverter {
     };
 
     /**
-     * re-writes any references to source lookup ( n -&gt; _doc['n'] )
-     * <p/>
-     * won't be converted: partition columns or non-doc-schema columns
-     */
-    public static Symbol convertIfPossible(Symbol symbol, DocTableInfo tableInfo) {
-        if (tableInfo.isPartitioned()) {
-            return convertIf(symbol, getNotPartitionPredicate(tableInfo));
-        } else {
-            return convertIf(symbol);
-        }
-    }
-
-    public static Predicate<Reference> getNotPartitionPredicate(DocTableInfo tableInfo) {
-        if (!tableInfo.isPartitioned()) {
-            return Predicates.alwaysTrue();
-        }
-        final List<ReferenceInfo> partitionedByColumns = tableInfo.partitionedByColumns();
-        return new Predicate<Reference>() {
-            @Override
-            public boolean apply(@Nullable Reference input) {
-                assert input != null;
-                return !partitionedByColumns.contains(input.info());
-            }
-        };
-    }
-
-    /**
-     * will convert any references that are analyzed or not indexed to doc-references
-     */
-    public static Symbol convertIf(Symbol symbol, @Nullable Predicate<Reference> predicate) {
-        if (predicate == null) {
-            return convertIf(symbol);
-        }
-        return VISITOR.process(symbol, Predicates.and(DEFAULT_PREDICATE, predicate));
-    }
-
-    /**
      * will convert any references that are analyzed or not indexed to doc-references
      */
     public static Symbol convertIf(Symbol symbol) {
@@ -100,8 +60,11 @@ public class DocReferenceConverter {
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
         }
-        return new Reference(reference.info().getRelocated(
-                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name()))));
+        if (reference.info().granularity() == RowGranularity.DOC) {
+            return new Reference(reference.info().getRelocated(
+                    new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name()))));
+        }
+        return reference;
     }
 
     private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
