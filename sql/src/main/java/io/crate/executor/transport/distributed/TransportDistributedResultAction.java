@@ -32,9 +32,9 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.PageResultListener;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -43,11 +43,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
+public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
     public static final  String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
-    private static final ESLogger LOGGER = Loggers.getLogger(TransportDistributedResultAction.class);
     /**
      * The request producer class can block the collectors which are running in the
      * <code>SEARCH</code> thread pool. To avoid dead locks, we must use a different thread pool
@@ -63,7 +62,9 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     public TransportDistributedResultAction(Transports transports,
                                             JobContextService jobContextService,
                                             ThreadPool threadPool,
-                                            TransportService transportService) {
+                                            TransportService transportService,
+                                            Settings settings) {
+        super(settings);
         this.transports = transports;
         this.jobContextService = jobContextService;
         scheduler = threadPool.scheduler();
@@ -146,14 +147,20 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
     private void retryOrFailureResponse(DistributedResultRequest request,
                                         ActionListener<DistributedResultResponse> listener,
                                         int retry) {
+
         if (retry > 20) {
             listener.onFailure(new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
         } else {
-            scheduler.schedule(new NodeOperationRunnable(request, listener, retry), (retry + 1) * 2, TimeUnit.MILLISECONDS);
+            int delay = (retry + 1) * 2;
+            if (logger.isTraceEnabled()) {
+                logger.trace("scheduling retry #{} to start node operation for jobId: {} in {}ms",
+                        retry, request.jobId(), delay);
+            }
+            scheduler.schedule(new NodeOperationRunnable(request, listener, retry), delay, TimeUnit.MILLISECONDS);
         }
     }
 
-    private static class SendResponsePageResultListener implements PageResultListener {
+    private class SendResponsePageResultListener implements PageResultListener {
         private final ActionListener<DistributedResultResponse> listener;
         private final DistributedResultRequest request;
 
@@ -164,7 +171,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
 
         @Override
         public void needMore(boolean needMore) {
-            LOGGER.trace("sending needMore response, need more? {}", needMore);
+            logger.trace("sending needMore response, need more? {}", needMore);
             listener.onResponse(new DistributedResultResponse(needMore));
         }
 

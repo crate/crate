@@ -28,8 +28,6 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.Callback;
@@ -48,8 +46,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
 public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(JobContextService.class);
 
     @BindingAnnotation
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
@@ -146,7 +142,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
-
         readLock.lock();
         try {
             newContext.setCloseCallback(new JobContextCallback());
@@ -157,6 +152,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             }
         } finally {
             readLock.unlock();
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("JobExecutionContext created for job {},  activeContexts: {}",
+                    jobId, activeContexts.size());
         }
         return newContext;
     }
@@ -208,10 +207,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         @Override
         public void handle(JobExecutionContext context) {
             activeContexts.remove(context.jobId());
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("[{}]: JobExecutionContext closed for job {} removed it -" +
+            if (logger.isTraceEnabled()) {
+                logger.trace("JobExecutionContext closed for job {} removed it -" +
                                 " {} executionContexts remaining",
-                        System.identityHashCode(activeContexts), context.jobId(), activeContexts.size());
+                        context.jobId(), activeContexts.size());
             }
         }
     }

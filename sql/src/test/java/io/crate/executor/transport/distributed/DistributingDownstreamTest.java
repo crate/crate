@@ -38,6 +38,7 @@ import io.crate.testing.RowSender;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportResponse;
@@ -108,7 +109,8 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 mock(Transports.class),
                 mock(JobContextService.class),
                 mock(ThreadPool.class),
-                mock(TransportService.class)) {
+                mock(TransportService.class),
+                ImmutableSettings.EMPTY) {
 
 
             @Override
@@ -209,7 +211,8 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 mock(Transports.class),
                 mock(JobContextService.class),
                 mock(ThreadPool.class),
-                mock(TransportService.class)) {
+                mock(TransportService.class),
+                ImmutableSettings.EMPTY) {
 
 
             @Override
