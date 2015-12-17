@@ -44,7 +44,6 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 
 public class CrateCorePlugin extends AbstractPlugin {
@@ -107,6 +106,7 @@ public class CrateCorePlugin extends AbstractPlugin {
         Collection<Module> modules = new ArrayList<>();
         CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
         modules.add(crateCoreModule);
+        modules.addAll(crateComponentLoader.modules(settings));
         modules.addAll(pluginLoader.modules(settings));
         return modules;
     }
