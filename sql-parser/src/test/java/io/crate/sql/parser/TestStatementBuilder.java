@@ -23,6 +23,7 @@ package io.crate.sql.parser;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
@@ -515,6 +516,23 @@ public class TestStatementBuilder {
         assertThat(allArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ALL));
         assertThat(allArrayComparison.getLeft(), instanceOf(StringLiteral.class));
         assertThat(allArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
+    }
+
+    @Test
+    public void testStringLiteral() throws Exception {
+        String[] testString = new String[]{
+                "foo' or 1='1",
+                "foo''bar",
+                "foo\\bar",
+                "foo\'bar",
+                "''''",
+                "''",
+                ""
+        };
+        for (String s : testString) {
+            Expression expr = SqlParser.createExpression(Literals.quoteStringLiteral(s));
+            assertThat(((StringLiteral)expr).getValue(), is(s));
+        }
     }
 
     @Test

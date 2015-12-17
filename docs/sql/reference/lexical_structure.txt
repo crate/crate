@@ -12,6 +12,27 @@ The syntax of a command defines its set of valid tokens.
 A token can be a key word, an identifier, a quoted identifier,
 a literal (or constant), or a special character symbol.
 
+String Literal
+==============
+
+String literals are defined as an arbitrary sequence of characters that are
+delimited with single quotes ``'`` as defined in ANSI SQL, for example
+``'This is a string'``.
+
+Escape Strings
+--------------
+
+The escape character in Crate is the single-quote ``'``. A character gets
+escaped when adding a single-quote before it. For example a single quote
+character within a string literal can be included by writing two adjacent
+single quotes, e.g. ``'Jack''s car'``.
+
+.. note::
+
+  Two adjacent single quotes are **not** equivalent to the double-quote
+  character ``"``.
+
+
 .. _sql_lexical_keywords_identifiers:
 
 Key Words and Identifiers
@@ -144,4 +165,3 @@ Example::
 
 
 .. _`crash`: https://github.com/crate/crash/
-
