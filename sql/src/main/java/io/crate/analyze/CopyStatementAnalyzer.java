@@ -157,7 +157,7 @@ public class CopyStatementAnalyzer {
             for (Expression expression : node.columns()) {
                 Symbol symbol = context.processExpression(expression);
                 outputNames.add(SymbolPrinter.INSTANCE.printSimple(symbol));
-                outputs.add(DocReferenceConverter.convertIfPossible(symbol, tableRelation.tableInfo()));
+                outputs.add(DocReferenceConverter.convertIf(symbol));
             }
             columnsDefined = true;
         } else {
