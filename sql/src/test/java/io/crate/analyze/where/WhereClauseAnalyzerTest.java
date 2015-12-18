@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
@@ -94,6 +95,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
                 .add(new MetaDataSysModule())
+                .add(new RepositorySettingsModule())
                 .add(new TestMetaDataModule()).createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         ctxMetaData = injector.getInstance(AnalysisMetaData.class);
