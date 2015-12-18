@@ -75,7 +75,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateRepository() throws Exception {
-        CreateRepositoryAnalyzedStatement statement = (CreateRepositoryAnalyzedStatement)analyze("CREATE REPOSITORY \"new_repository\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
+        CreateRepositoryAnalyzedStatement statement = analyze("CREATE REPOSITORY \"new_repository\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         assertThat(statement.repositoryName(), is("new_repository"));
         assertThat(statement.repositoryType(), is("fs"));
         assertThat(statement.settings().get("compress"), is("true"));
@@ -98,7 +98,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropExistingRepo() throws Exception {
-        DropRepositoryAnalyzedStatement statement = (DropRepositoryAnalyzedStatement)analyze("DROP REPOSITORY my_repo");
+        DropRepositoryAnalyzedStatement statement = analyze("DROP REPOSITORY my_repo");
         assertThat(statement.repositoryName(), is("my_repo"));
 
     }

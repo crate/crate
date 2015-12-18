@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Made repository types and their settings pluggable,
+   so Crate plugins may add additional repository types
+
  - Fixed: Columns of type array and analyzed columns can now be selected in
    statements that contain joins
 

@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
@@ -137,6 +138,7 @@ public class SQLPlugin extends AbstractPlugin {
         modules.add(ScalarFunctionModule.class);
         modules.add(BulkModule.class);
         modules.add(SysChecksModule.class);
+        modules.add(RepositorySettingsModule.class);
         return modules;
     }
 

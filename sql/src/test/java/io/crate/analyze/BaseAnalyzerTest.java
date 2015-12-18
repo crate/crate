@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -311,7 +313,9 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     }
 
     protected List<Module> getModules() {
-        return new ArrayList<>();
+        return Lists.<Module>newArrayList(
+                new RepositorySettingsModule()
+        );
     }
 
     @Before

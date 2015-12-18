@@ -11,6 +11,7 @@ import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.*;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -119,6 +120,7 @@ public class PlannerTest extends CrateUnitTest {
                 .add(new ScalarFunctionModule())
                 .add(new PredicateModule())
                 .add(new OperatorModule())
+                .add(new RepositorySettingsModule())
                 .add(new TestModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);

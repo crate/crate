@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.*;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -68,6 +69,7 @@ public class ManyTableConsumerTest {
                 .add(new AggregationImplModule())
                 .add(new ScalarFunctionModule())
                 .add(new PredicateModule())
+                .add(new RepositorySettingsModule())
                 .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);

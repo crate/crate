@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
@@ -105,6 +106,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
                 .add(new ScalarFunctionModule())
                 .add(new PredicateModule())
                 .add(new OperatorModule())
+                .add(new RepositorySettingsModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
