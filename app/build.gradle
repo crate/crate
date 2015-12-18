@@ -1,6 +1,5 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-
 buildscript {
     repositories {
         jcenter()
@@ -64,7 +63,6 @@ dependencies {
     compileNotTransitive project(':udc')
     compileNotTransitive project(':client')
     compileNotTransitive project(':dns-discovery')
-    compileNotTransitive project(':aws')
 }
 
 task release(dependsOn: 'distTar') << {
@@ -92,7 +90,6 @@ fatJar {
 
 
 task writeBuildInfo (dependsOn: [':core:getVersion']) << {
-    def stdout = new ByteArrayOutputStream()
     def hash = "git rev-parse HEAD".execute().in.text.trim()
 
     def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties");
@@ -145,7 +142,13 @@ task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
 
 task sourceJar (type : Jar) {
     classifier = 'sources'
-    from sourceSets.main.allSource + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava + project(':client').sourceSets.main.allJava
+    from (sourceSets.main.allSource +
+            project(':core').sourceSets.main.allJava +
+            project(':sql').sourceSets.main.allJava +
+            project(':sql-parser').sourceSets.main.allJava +
+            project(':blob').sourceSets.main.allJava +
+            project(':udc').sourceSets.main.allJava +
+            project(':client').sourceSets.main.allJava)
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }
@@ -173,7 +176,7 @@ install {
         mavenInstaller {
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app'}.each {
+                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' }.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -218,7 +221,7 @@ uploadArchives {
             }
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app'}.each {
+                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' }.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -398,11 +401,27 @@ task downloadPlugins << {
         from dest
         into 'plugins/hdfs'
     }
+
+    // copy aws jar
+    copy {
+        from(project(':aws').tasks.jar.archivePath)
+        into 'plugins/aws'
+    }
+    // copy aws deps
+    def awsLib = new File(project.projectDir, 'plugins/aws/lib')
+    awsLib.mkdirs()
+    copy {
+        from(project(':aws').configurations.awsDeps)
+        into awsLib
+    }
+
 }
 downloadPlugins.outputs.dir files(
     "$projectDir/plugins/crate-admin",
-    "$projectDir/plugins/hdfs"
+    "$projectDir/plugins/hdfs",
+    "$projectDir/plugins/aws"
 )
+downloadPlugins.dependsOn(':aws:jar')
 
 task downloadCrash << {
     def dest = download(
