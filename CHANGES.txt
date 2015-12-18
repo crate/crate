@@ -5,7 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Improved error message on type cast failure 
+ - Dropped core developer Matthias
+
+ - Improved error message on type cast failure
 
  - Made repository types and their settings pluggable,
    so Crate plugins may add additional repository types
