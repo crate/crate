@@ -2,16 +2,29 @@ apply plugin: 'java'
 
 archivesBaseName = 'crate-aws'
 group = 'io.crate'
+description = 'Crate.IO AWS Plugin'
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+    awsDeps
+    compile.extendsFrom awsDeps
+}
 
 dependencies {
     compile project(':es')
     compile project(':core')
-    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.12'
-    compile 'com.amazonaws:aws-java-sdk-s3:1.10.12'
     compile project(':sql')
+
+    awsDeps 'com.amazonaws:aws-java-sdk-ec2:1.10.12'
+    awsDeps 'com.amazonaws:aws-java-sdk-s3:1.10.12'
 
     testCompile project(':testing')
 }
+
+test {
+    testLogging.exceptionFormat = 'full'
+}
+
 
 sourceSets {
     main {
@@ -55,3 +68,19 @@ task deleteUpstreamSource(type: Delete) {
 compileJava {
     dependsOn copyUpstreamSource
 }
+
+// get version and set it on the project, so it gets appended to the jar name
+task getVersion(dependsOn: [':core:getVersion']) {
+    doFirst {
+        project.version = project(':core').getVersion.version
+    }
+}
+
+jar {
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO AWS Plugin", "Implementation-Version": project.version)
+        }
+    }
+}
+jar.dependsOn(getVersion)
