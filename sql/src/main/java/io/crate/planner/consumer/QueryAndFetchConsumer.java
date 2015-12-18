@@ -156,7 +156,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 List<Projection> projections = ImmutableList.of();
                 Integer nodePageSizeHint = null;
-                if (context.rootRelation() == table || querySpec.limit().isPresent()) {
+                if (context.isRoot() || querySpec.limit().isPresent()) {
                     int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
                     TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
                     topNProjection.outputs(allOutputs);
@@ -173,7 +173,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectPhase.nodePageSizeHint(nodePageSizeHint);
 
                 // MERGE
-                if (context.rootRelation() == table) {
+                if (context.isRoot()) {
                     TopNProjection tnp = new TopNProjection(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT), querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
@@ -207,7 +207,7 @@ public class QueryAndFetchConsumer implements Consumer {
                         outputSymbols,
                         ImmutableList.<Projection>of()
                 );
-                if (context.rootRelation() == table) {
+                if (context.isRoot()) {
                     mergeNode = MergePhase.localMerge(
                             plannerContext.jobId(),
                             plannerContext.nextExecutionPhaseId(),

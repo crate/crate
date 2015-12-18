@@ -22,20 +22,35 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.crate.Constants;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Reference;
+import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.planner.consumer.ESGetStatementPlanner;
+import io.crate.planner.consumer.SimpleSelect;
+import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.fetch.MultiSourceFetchPushDown;
+import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -57,6 +72,17 @@ public class SelectStatementPlanner {
         return visitor.process(statement.relation(), context);
     }
 
+    private static PlannedAnalyzedRelation subPlan(AnalyzedRelation rel, Planner.Context context) {
+        ConsumerContext consumerContext = new ConsumerContext(rel, context);
+        PlannedAnalyzedRelation subPlan =  context.planSubRelation(rel, consumerContext);
+        assert subPlan != null;
+        ValidationException validationException = consumerContext.validationException();
+        if (validationException != null) {
+            throw validationException;
+        }
+        return subPlan;
+    }
+
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
 
         private final ClusterService clusterService;
@@ -73,6 +99,85 @@ public class SelectStatementPlanner {
         }
 
         @Override
+        public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
+            QuerySpec querySpec = table.querySpec();
+            if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+                return consumingPlanner.plan(table, context);
+            }
+            if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
+                return ESGetStatementPlanner.convert(table, context);
+            }
+            if (querySpec.where().hasVersions()) {
+                throw new VersionInvalidException();
+            }
+            if (querySpec.where().noMatch()) {
+                return new NoopPlan(context.jobId());
+            }
+            table.tableRelation().validateOrderBy(querySpec.orderBy());
+
+            FetchPushDown fetchPushDown = new FetchPushDown(querySpec, table.tableRelation());
+            QueriedDocTable subRelation = fetchPushDown.pushDown();
+            if (subRelation == null) {
+                return consumingPlanner.plan(table, context);
+            }
+            PlannedAnalyzedRelation plannedSubQuery = subPlan(subRelation, context);
+            assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
+
+            CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
+            CollectPhase collectPhase = qaf.collectPhase();
+            if (collectPhase.nodePageSizeHint() == null) {
+                collectPhase.nodePageSizeHint(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
+            }
+
+            Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
+
+            FetchPhase fetchPhase = new FetchPhase(
+                    context.nextExecutionPhaseId(),
+                    readerAllocations.nodeReaders().keySet(),
+                    readerAllocations.bases(),
+                    readerAllocations.tableIndices(),
+                    fetchPushDown.fetchRefs()
+            );
+            FetchProjection fp = createFetchProjection(table, querySpec, fetchPushDown, readerAllocations, fetchPhase);
+
+            MergePhase localMergePhase;
+            assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
+
+            TopNProjection topN = ProjectionBuilder.topNProjection(
+                    collectPhase.toCollect(),
+                    null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
+                    querySpec.offset(),
+                    querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                    null
+            );
+            if (!querySpec.orderBy().isPresent()) {
+                localMergePhase = MergePhase.localMerge(
+                        context.jobId(),
+                        context.nextExecutionPhaseId(),
+                        ImmutableList.of(topN, fp),
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
+                );
+            } else {
+                localMergePhase = MergePhase.sortedMerge(
+                        context.jobId(),
+                        context.nextExecutionPhaseId(),
+                        querySpec.orderBy().get(),
+                        collectPhase.toCollect(),
+                        null,
+                        ImmutableList.of(topN, fp),
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
+                );
+            }
+            SimpleSelect.enablePagingIfApplicable(
+                    collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
+                    context.clusterService().localNode().id());
+            CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null);
+            return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.jobId());
+        }
+
+        @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
             if (mss.querySpec().where().noMatch()) {
                 return new NoopPlan(context.jobId());
@@ -84,9 +189,7 @@ public class SelectStatementPlanner {
             ConsumerContext consumerContext = new ConsumerContext(mss, context);
             // plan sub relation as if root so that it adds a mergePhase
             PlannedAnalyzedRelation plannedSubQuery = consumingPlanner.plan(mss, consumerContext);
-            if (plannedSubQuery == null) {
-                return null;
-            }
+            assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
             assert !plannedSubQuery.resultIsDistributed() : "subQuery must not have a distributed result";
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
@@ -113,5 +216,24 @@ public class SelectStatementPlanner {
             plannedSubQuery.addProjection(fp);
             return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
         }
+    }
+
+    private static FetchProjection createFetchProjection(QueriedDocTable table,
+                                                         QuerySpec querySpec,
+                                                         FetchPushDown fetchPushDown,
+                                                         Planner.Context.ReaderAllocations readerAllocations,
+                                                         FetchPhase fetchPhase) {
+        Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
+                new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
+                        ImmutableList.of(fetchPushDown.docIdCol()),
+                        fetchPushDown.fetchRefs()));
+
+        return new FetchProjection(
+                fetchPhase.executionPhaseId(),
+                fetchSources,
+                querySpec.outputs(),
+                readerAllocations.nodeReaders(),
+                readerAllocations.indices(),
+                readerAllocations.indicesToIdents());
     }
 }
