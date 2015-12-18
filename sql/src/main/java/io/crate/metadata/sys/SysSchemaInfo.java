@@ -53,6 +53,7 @@ public class SysSchemaInfo implements SchemaInfo {
                 .put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo(clusterService))
                 .put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService))
                 .put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo(clusterService))
+                .put(SysMatthiasTableInfo.IDENT.name(), new SysMatthiasTableInfo(clusterService))
                 .build();
     }
 

@@ -31,6 +31,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.sys.SysMatthiasTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -94,6 +95,7 @@ public class CollectSourceResolver {
         this.singleRowSource = new ProjectorSetupCollectSource(singleRowSource, projectorFactory);
 
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
+        nodeDocCollectSources.put(SysMatthiasTableInfo.IDENT.fqn(), this.singleRowSource);
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo) {
