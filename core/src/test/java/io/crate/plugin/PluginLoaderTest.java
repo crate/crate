@@ -82,4 +82,13 @@ public class PluginLoaderTest extends ElasticsearchIntegrationTest {
         return internalCluster().getInstance(ClusterService.class, nodeName).state().nodes().localNode().name();
     }
 
+    @Test
+    public void testDuplicates() throws Exception {
+        String node = startNodeWithPlugins("/io/crate/plugin/duplicates");
+        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
+        CrateCorePlugin corePlugin = (CrateCorePlugin) pluginsService.plugins().get(0).v2();
+
+        PluginLoader pluginLoader = corePlugin.pluginLoader;
+        assertThat(pluginLoader.plugins, Matchers.hasSize(1));
+    }
 }
