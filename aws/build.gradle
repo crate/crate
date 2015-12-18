@@ -8,6 +8,8 @@ dependencies {
     compile project(':core')
     compile 'com.amazonaws:aws-java-sdk-ec2:1.10.12'
     compile 'com.amazonaws:aws-java-sdk-s3:1.10.12'
+    compile project(':sql')
+
     testCompile project(':testing')
 }
 
@@ -15,6 +17,9 @@ sourceSets {
     main {
         java {
             srcDir 'src/main/java'
+        }
+        resources {
+            include '**/*.Plugin'
         }
     }
     test {
@@ -32,11 +37,6 @@ task copyUpstreamSource << {
         copy {
             from 'upstream/src/main/java'
             into 'src/main/java'
-
-            // make it a crate plugin
-            filter { line ->
-                line.replaceAll("org\\.elasticsearch\\.plugins\\.AbstractPlugin", "io.crate.plugin.AbstractPlugin")
-            }
         }
     }
     if (!file('src/test/java').exists()) {
