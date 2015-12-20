@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -81,7 +82,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
                 statement.table().ident(), statement.table(), analysisMetaData, analysis.parameterContext());
 
         int numCurrentPks = statement.table().primaryKey().size();
-        if (statement.table().primaryKey().contains(new ColumnIdent("_id"))) {
+        if (statement.table().primaryKey().contains(DocSysColumns.ID)) {
             numCurrentPks -= 1;
         }
         statement.newPrimaryKeys(statement.analyzedTableElements().primaryKeys().size() > numCurrentPks);
