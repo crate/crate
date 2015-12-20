@@ -85,10 +85,10 @@ public class InternalCountOperation implements CountOperation {
                 });
             }
         }
+        MergePartialCountFunction mergeFunction =  new MergePartialCountFunction();
         ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
-                executor, corePoolSize, callableList, new MergePartialCountFunction());
-
-        return Futures.transform(listListenableFuture, new MergePartialCountFunction());
+                executor, corePoolSize, callableList, mergeFunction);
+        return Futures.transform(listListenableFuture, mergeFunction);
     }
 
     @Override
