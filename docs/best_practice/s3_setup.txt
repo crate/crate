@@ -5,8 +5,8 @@
 Crate Setup for Amazon S3
 =========================
 
-You can create CRATE *Snapshots* on the `Amazon S3`_ (Amazon Simple Storage
-Service). For this, you need to register the `AWS` plugin with CRATE.
+Crate supports using the `Amazon S3`_ (Amazon Simple Storage Service) as a
+snapshot repository. For this, you need to register the `AWS` plugin with Crate.
 
 
 Basic Configuration
@@ -29,11 +29,11 @@ Authentication
 --------------
 
 It is recommended to restrict the permissions of Crate on the S3 to only the
-required extend. First, you need to create an IAM role. This `AWS guide`_
-gives you a short description of how you can create a policy offer CLI or
-the AWS management console. You need to restrict access of the snapshot to
-the S3 bucket you wish to use. An example policy file granting access to
-to anybody to a bucket called `snaps.example.com`` is attached below:
+required extend. First, an IAM role is required. This `AWS guide`_ gives
+a short description of how to create a policy offer using the CLI or the AWS
+management console. Further, access of the snapshot to the S3 bucket needs
+to be restricted. An example policy file granting anybody access to a bucket
+called `snaps.example.com`` is attached below:
 
 .. code-block:: json
 
@@ -70,7 +70,7 @@ to anybody to a bucket called `snaps.example.com`` is attached below:
     "Version": "2012-10-17"
   }
 
-You might want to restrict access permissions to a specific AWS Principal by
+Access permissions can be further restricted to a specific AWS Principal by
 changing the ``Statement.Principal`` setting. Please refer to `AWS principals`_
 for more information.
 
@@ -78,9 +78,9 @@ For further AWS policy examples and detailed information, please refer to
 `AWS policy examples`_ and the links therein.
 
 It has to be noted, that the bucket needs to exist before registering a
-repository for snapshots within Crate. You can also allow Crate to create
-the bucket for you. However this requires the following permissions to be
-contained within the policy:
+repository for snapshots within Crate. Crate can also be allowed to create
+the bucket. However this requires the following permissions to be contained
+within the policy:
 
 .. code-block:: json
 
