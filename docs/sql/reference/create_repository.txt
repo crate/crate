@@ -108,9 +108,10 @@ Parameters
   | *Type:*    ``long`` or ``string``
   | *Default:* ``null``
 
-  Defines the maximum size of a single file that gets created during snapshot creation.
-  The chunk size can be either specified in bytes or using size value notation (e.g.
-  ``1g``, ``5m``, or ``9k``). So big files will not be split up into smaller chunks.
+  Defines the maximum size of a single file that gets created during snapshot
+  creation. If set to ``null`` big files will not be split up into smaller
+  chunks. The chunk size can be either specified in bytes or using size value
+  notation (e.g. ``1g``, ``5m``, or ``9k``).
 
 .. _ref-create-repository-types-hdfs:
 
@@ -168,11 +169,13 @@ Parameters
   The actual table data is not compressed.
   
 **chunk_size**
-  | *Type:*    ``string``
+  | *Type:*    ``long`` or ``string``
   | *Default:* ``null``
 
-  Defines the maximum size of a single file that gets created during snapshot creation.
-  So big files will not be split up into smaller chunks.
+  Defines the maximum size of a single file that gets created during snapshot
+  creation. If set to ``null`` big files will not be split up into smaller
+  chunks. The chunk size can be either specified in bytes or using size value
+  notation (e.g. ``1g``, ``5m``, or ``9k``).
 
 .. _ref-create-repository-types-s3:
 
@@ -234,11 +237,13 @@ Parameters
   The number of concurrent streams to use for backup and restore.
 
 **chunk_size**
-  | *Type:*    ``string``
+  | *Type:*    ``long`` or ``string``
   | *Default:* ``null``
 
-  Defines the maximum size of a single file that gets created during snapshot creation.
-  So big files will not be split up into smaller chunks.
+  Defines the maximum size of a single file that gets created during snapshot
+  creation. If set to ``null`` big files will not be split up into smaller
+  chunks. The chunk size can be either specified in bytes or using size value
+  notation (e.g. ``1g``, ``5m``, or ``9k``).
 
 **compress**
   | *Type:*    ``boolean``
@@ -292,7 +297,7 @@ url
 
 A read-only repository that points to the location of
 a :ref:`ref-create-repository-types-fs` repository via ``http``, ``https``,
-``ftp``, ``file``and ``jar`` urls. It only allows for
+``ftp``, ``file`` and ``jar`` urls. It only allows for
 :ref:`ref-restore-snapshot` operations.
 
 Parameters
