@@ -150,6 +150,83 @@ chunk_size
   Defines the maximum size of a single file that gets created during snapshot creation.
   Defaults to ``null``. So big files will not be split up into smaller chunks.
 
+.. _ref-create-repository-types-s3:
+
+s3
+--
+
+A repository that stores its snapshot on the Amazon S3 service.
+
+Parameters
+~~~~~~~~~~
+
+bucket
+  Name of the S3 bucket to be used for storing snapshots. If the bucket
+  does not yet exist, a new bucket will be created on S3 (assuming the
+  required permissions are set).
+
+region
+  Region where the bucket is located. This defaults to ``us-east-1``
+
+endpoint
+  Endpoint to the S3 API. This defaults to AWS's default API endpoint.
+  Setting a region will override the endpoint setting.
+
+protocol
+  Protocol to be used (``http`` or ``https``). This defaults to ``https``
+
+base_path
+  Path within the bucket to the repository.
+
+access_key
+  Access key used for authentication. Defaults to the globally defined
+  environmental variable.
+
+secret_key
+  Secret key used for authentication. Defaults to the globally defined
+  environmental variable.
+
+concurrent_streams
+  The number of concurrent streams to use for backup and restore (Default: 5).
+
+chunk_size
+  Defines the maximum size of a single file that gets created during snapshot creation.
+  Defaults to ``null``. So big files will not be split up into smaller chunks.
+
+compress
+  ``true`` (Default) or ``false``.
+
+  Whether the metadata part of the snapshot should be compressed or not.
+  The actual table data is not compressed.
+
+server_side_encryption
+  ``false`` (Default) or ``true``.
+
+  If this is set to ``true``, files are encrypted on the server side using the
+  ``AES256`` algorithm.
+
+buffer_size
+  Minimum threshold below which chunks are uploaded with a single request.
+  If the threshold is exceeded, the chunks will be split into multiple parts
+  of ``buffer_size`` length. Each chunk will be uploaded separately. The
+  minimum allowed value is ``5mb``. which is also the default.
+
+max_retries
+  Number of retries in case of errors. Defaults to ``3``.
+
+read_only
+  ``false`` (Default) or ``true``.
+
+  If set to ``true`` the repository is made read-only.
+
+canned_acl
+  ``private`` (Default), ``public-read``, ``public-read-write``,
+  ``authenticated-read``, ``log-delivery-write``, ``bucket-owner-read``, or
+  ``bucket-owner-full-control``
+
+  When the repository creates buckets and objects, the specified canned ACL
+  is added.
+
 .. _ref-create-repository-types-url:
 
 url

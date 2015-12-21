@@ -10,4 +10,4 @@ include 'es',
         'sql-parser',
         'udc',
         'dns-discovery',
-        'ec2-discovery'
+        'aws'
