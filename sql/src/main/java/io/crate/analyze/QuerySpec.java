@@ -25,7 +25,9 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
@@ -188,15 +190,19 @@ public class QuerySpec {
     /**
      * create a new QuerySpec which is a subset of this which contains only symbols which match the predicate
      */
-    public QuerySpec subset(Predicate<? super Symbol> predicate) {
+    public QuerySpec subset(Predicate<? super Symbol> predicate, boolean traverseFunctions) {
         if (hasAggregates) {
             throw new UnsupportedOperationException("Cannot create a subset of a querySpec if it has aggregations");
         }
 
         QuerySpec newSpec = new QuerySpec()
                 .limit(limit.orNull())
-                .offset(offset)
-                .outputs(Lists.newArrayList(Iterables.filter(outputs, predicate)));
+                .offset(offset);
+        if (traverseFunctions) {
+            newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
+        } else {
+            newSpec.outputs(Lists.newArrayList(Iterables.filter(outputs, predicate)));
+        }
 
         if (!where.hasQuery()) {
             newSpec.where(where);
@@ -210,6 +216,33 @@ public class QuerySpec {
 
         return newSpec;
     }
+
+    private static class SubsetVisitor extends DefaultTraversalSymbolVisitor<SubsetVisitor.SubsetContext, Void> {
+
+        public static class SubsetContext {
+            Predicate<? super Symbol> predicate;
+            List<Symbol> outputs = new ArrayList<>();
+        }
+
+        public static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
+            SubsetVisitor.SubsetContext ctx = new SubsetVisitor.SubsetContext();
+            ctx.predicate = predicate;
+            SubsetVisitor visitor = new SubsetVisitor();
+            for (Symbol output : outputs) {
+                visitor.process(output, ctx);
+            }
+            return ctx.outputs;
+        }
+
+        @Override
+        public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
+            if(context.predicate.apply(relationColumn)) {
+                context.outputs.add(relationColumn);
+            }
+            return null;
+        }
+    }
+
 
     public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
         if (groupBy.isPresent() || having.isPresent()) {

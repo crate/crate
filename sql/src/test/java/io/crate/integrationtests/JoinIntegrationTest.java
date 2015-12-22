@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
@@ -467,5 +468,31 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select text, tags from t1 join t2 on t1.id = t2.id");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Hello World| [foo, bar]\n"));
+    }
+
+    @Test
+    public void test3TableJoinWithFunctionOrderBy() throws Exception {
+        execute("create table t1 (x integer)");
+        execute("create table t2 (y integer)");
+        execute("create table t3 (z integer)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1)");
+        execute("insert into t2 (y) values (2)");
+        execute("insert into t3 (z) values (3)");
+        execute("refresh table t1, t2, t3");
+        execute("select x+y+z from t1,t2,t3 order by x,y,z");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("6\n"));
+    }
+
+    @Test
+    public void testOrderByExpressionWithMultiRelationSymbol() throws Exception {
+        execute("create table t1 (x integer)");
+        execute("create table t2 (y integer)");
+        execute("create table t3 (z integer)");
+        ensureYellow();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("One Order by expression must not contain symbols from more than one table");
+        execute("select x,y,z from t1,t2,t3 order by x+y");
     }
 }
