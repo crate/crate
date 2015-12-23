@@ -28,8 +28,8 @@ contents of its shards.
 The created files are JSON formatted and contain one table row per line.
 
 If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
-This will generate one or more files in the given directory, named in such a
-way to prevent filename conflicts.
+This will generate one or more files in the given directory, named to prevent
+filename conflicts.
 
 
 
@@ -39,17 +39,16 @@ Implications of shard level export
 Exporting the data on a shard level is the fastest possible way to export data
 in Crate.
 
-But there are a few quirks that users have to be aware of when using ``COPY TO``:
+There are quirks users should be aware of when using ``COPY TO``:
 
 Since data is exported and written per shard there might be concurrent writes
 to the same file if a single node contains more than one shard. This could
-cause corruption in the file that is being written. The same also holds true
-when data is being written to a shared file system such as `Amazon S3`_ or
-`NFS`_.
+cause corruption in the file being written. The same holds true when data is
+written to a shared file system such as `Amazon S3`_ or `NFS`_.
 
-In order to prevent this from happening it is required to write to a separate
-file per shard. To do this the ``DIRECTORY`` keyword can be used. An example is
-given in :ref:`exporting_data`.
+To prevent this from happening writing a separate file per shard is required.
+To do this the ``DIRECTORY`` keyword can be used. An example is given in
+:ref:`exporting_data`.
 
 
 .. note::
@@ -74,8 +73,9 @@ Parameters
 WHERE Clause
 ------------
 
-`WHERE` clauses follow the same syntax as used in `SELECT` statements (see
-:ref:`sql_dql_where_clause` for more information).
+`WHERE` clauses follow the same syntax as used in `SELECT` statements allowing
+for partial exports that meet certain criteria. (see :ref:`sql_dql_where_clause`
+ for more information).
 
 
 Output URI
@@ -166,22 +166,20 @@ Possible values for the ``compression`` setting are:
 format
 ------
 
-Optional parameter to override default output behaviour.
+Optional parameter to override default output behavior.
 
 Possible values for the ``format`` settings are:
 
-:json_object: Output file contains one independently JSON serialised table row
-              per line. This is the default behaviour if no columns are
+:json_object: Output file contains one independently JSON serialized table row
+              per line. This is the default behavior if no columns are
               defined.
 
 :json_array: Output file contains on each line a JSON array storing column
-             values of one row. This is the default behaviour if columns are
+             values of one row. This is the default behavior if columns are
              defined.
 
 .. _gzip: http://www.gzip.org/
 
 .. _`Amazon S3`: http://aws.amazon.com/s3/
 
-.. _NFS: http://de.wikipedia.org/wiki/Network_File_System
-
-
+.. _NFS: http://en.wikipedia.org/wiki/Network_File_System
