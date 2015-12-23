@@ -39,7 +39,6 @@ representations of all the arguments concatenated. NULL values are ignored.
     SELECT 1 row in set (... sec)
 
 
-
 There is also a special concat operator ``||`` which can also be used::
 
     cr> select 'foo' || 'bar' from sys.cluster;
@@ -119,6 +118,8 @@ Example::
     +-------------------------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select char_length('©rate.io') from sys.cluster;
     +-------------------------+
     | char_length('©rate.io') |
@@ -151,6 +152,8 @@ Example::
     +------------------------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select bit_length('©rate.io') from sys.cluster;
     +------------------------+
     | bit_length('©rate.io') |
@@ -177,6 +180,8 @@ Example::
     |                        8 |
     +--------------------------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select octet_length('©rate.io') from sys.cluster;
     +--------------------------+
