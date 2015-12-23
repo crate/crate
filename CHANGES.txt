@@ -7,10 +7,13 @@ Unreleased
 
  - Added Amazon S3 support for Snapshot and Restore
 
- - Improved error message on type cast failure 
-
  - Made repository types and their settings pluggable,
    so Crate plugins may add additional repository types
+
+2015/12/23 0.54.1
+=================
+
+ - Improved error message on type cast failure
 
  - Fixed: Columns of type array and analyzed columns can now be selected in
    statements that contain joins
