@@ -115,19 +115,6 @@ Limitations
    relations. ``ORDER BY t1.x + t2.x`` won't work, but ``ORDER BY t1.x, t2.x``
    is allowed.
 
-Roadmap
--------
-
-*Date: Dec 15th, 2015*
-
-Upcoming
-........
-
-* Optimize join operation for Equi-Joins.
-
-Additionally, you can get the latest updates about JOINS on the
-`Crate.IO blog`_.
-
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
