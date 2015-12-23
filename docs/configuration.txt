@@ -43,6 +43,9 @@ will overwrite the prior one:
  3. options from config file
  4. command-line properties
 
+
+.. _conf_table_settings:
+
 Table Settings
 ==============
 

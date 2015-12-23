@@ -227,6 +227,48 @@ partitioned table, so they show ``4`` instead of ``5``::
     SELECT 2 rows in set (... sec)
 
 
+Table Settings
+==============
+
+Table settings specify configuration parameters for tables. Some settings can
+be set during Cluster runtime and others are only applied on cluster restart.
+This list of :ref:`conf_table_settings` shows detailed information of each
+parameter.
+Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
+With ``ALTER TABLE`` they can be set on already existing tables.
+
+The following statement creates a new table and sets the refresh interval of
+shards to 500 ms and sets the shard allocation for primary shards only::
+
+    cr> create table parameterized_table (id int, content string)
+    ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
+    CREATE OK (... sec)
+
+The settings can be verified by querying ``information_schema.tables``::
+
+    cr> select settings['routing']['allocation']['enable'] as alloc_enable,
+    ...   settings['refresh_interval'] as refresh_interval
+    ... from information_schema.tables
+    ... where table_name='parameterized_table';
+    +--------------+------------------+
+    | alloc_enable | refresh_interval |
+    +--------------+------------------+
+    | primaries    |              500 |
+    +--------------+------------------+
+    SELECT 1 row in set (... sec)
+
+
+On existing tables this needs to be done with ``ALTER TABLE`` statement::
+
+    cr> alter table parameterized_table
+    ... set ("routing.allocation.enable"='none');
+    ALTER OK (... sec)
+
+.. hide:
+
+    cr> drop table parameterized_table;
+    DROP OK (... sec)
+
 
 Routines
 ========
