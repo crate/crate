@@ -33,7 +33,7 @@ required extend. First, an IAM role is required. This `AWS guide`_ gives
 a short description of how to create a policy offer using the CLI or the AWS
 management console. Further, access of the snapshot to the S3 bucket needs
 to be restricted. An example policy file granting anybody access to a bucket
-called `snaps.example.com`` is attached below:
+called ``snaps.example.com`` is attached below:
 
 .. code-block:: json
 
