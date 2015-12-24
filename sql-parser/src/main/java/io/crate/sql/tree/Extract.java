@@ -23,6 +23,9 @@ package io.crate.sql.tree;
 
 import javax.annotation.concurrent.Immutable;
 
+import java.util.Locale;
+
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Immutable
@@ -30,7 +33,7 @@ public class Extract
         extends Expression
 {
     private final Expression expression;
-    private final Field field;
+    private final Expression field;
 
     public enum Field
     {
@@ -52,11 +55,12 @@ public class Extract
         TIMEZONE_MINUTE
     }
 
-    public Extract(Expression expression, Field field)
-    {
+    public Extract(Expression expression, Expression field) {
         checkNotNull(expression, "expression is null");
         checkNotNull(field, "field is null");
-
+        checkArgument(field instanceof  StringLiteral || field instanceof ParameterExpression,
+                // (ident is converted to StringLiteral in StatementBuilder.g
+                "field must be an ident, a string literal or a parameter expression");
         this.expression = expression;
         this.field = field;
     }
@@ -66,7 +70,19 @@ public class Extract
         return expression;
     }
 
-    public Field getField()
+
+    public Field getField(Object[] parameters) {
+        String fieldName;
+        if (field instanceof ParameterExpression) {
+            fieldName = parameters[((ParameterExpression) field).index()].toString();
+        } else {
+            assert field instanceof StringLiteral;
+            fieldName = ((StringLiteral) field).getValue();
+        }
+        return Field.valueOf(fieldName.toUpperCase(Locale.ENGLISH));
+    }
+
+    public Expression getField()
     {
         return field;
     }
@@ -92,7 +108,7 @@ public class Extract
         if (!expression.equals(that.expression)) {
             return false;
         }
-        if (field != that.field) {
+        if (!field.equals(that.field)) {
             return false;
         }
 

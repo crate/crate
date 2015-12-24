@@ -333,7 +333,9 @@ public class ExpressionAnalyzer {
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
             Symbol expression = process(node.getExpression(), context);
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
-            return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
+            return context.allocateFunction(
+                    ExtractFunctions.functionInfo(node.getField(parameterContext.parameters())),
+                    Arrays.asList(expression));
         }
 
         @Override

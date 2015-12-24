@@ -64,6 +64,7 @@ tokens {
     SIMPLE_CASE;
     SEARCHED_CASE;
     FUNCTION_CALL;
+    IDENT_EXPR;
     WINDOW;
     PARTITION_BY;
     UNBOUNDED_PRECEDING;
@@ -515,6 +516,11 @@ simpleExpr
     | STRING
     ;
 
+identExpr
+    : parameterOrSimpleLiteral
+    | ident                     -> ^(IDENT_EXPR ident)
+    ;
+
 parameterOrLiteral
     : parameterOrSimpleLiteral
     | ('[') => arrayLiteral
@@ -593,7 +599,7 @@ specialFunction
     | CURRENT_TIME ('(' integer ')')?              -> ^(CURRENT_TIME integer?)
     | CURRENT_TIMESTAMP ('(' integer ')')?         -> ^(CURRENT_TIMESTAMP integer?)
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
-    | EXTRACT '(' ident FROM expr ')'              -> ^(EXTRACT ident expr)
+    | EXTRACT '(' identExpr FROM expr ')'       -> ^(EXTRACT identExpr expr)
     | CAST '(' expr AS dataType ')'                -> ^(CAST expr dataType)
     | TRY_CAST '(' expr AS dataType ')'            -> ^(TRY_CAST expr dataType)
     ;

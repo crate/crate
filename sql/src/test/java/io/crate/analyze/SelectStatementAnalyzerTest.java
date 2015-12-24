@@ -1670,7 +1670,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testExtractFunctionWithLiteral() throws Exception {
-        SelectAnalyzedStatement statement = analyze("select extract(day from '2012-03-24') from users");
+        SelectAnalyzedStatement statement = analyze("select extract(? from '2012-03-24') from users", $("day"));
         Symbol symbol = statement.relation().querySpec().outputs().get(0);
         assertThat(symbol, isLiteral(24));
     }

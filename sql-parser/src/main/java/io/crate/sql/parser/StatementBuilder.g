@@ -386,7 +386,9 @@ parameterOrSimpleLiteral returns [Expression value]
     | decimal               { $value = new DoubleLiteral($decimal.value); }
     | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
     | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
+    | ^(IDENT_EXPR ident)   { $value = new StringLiteral($ident.value); }
     ;
+
 
 subscript returns [SubscriptExpression value]
     :   ^('[' a=expr b=expr) { $value = new SubscriptExpression($a.value, $b.value); }
@@ -464,7 +466,7 @@ frameBound returns [FrameBound value]
     ;
 
 extract returns [Extract value]
-    : ^(EXTRACT field=IDENT expr) { $value = new Extract($expr.value, Extract.Field.valueOf($field.text.toUpperCase())); }
+    : ^(EXTRACT f=expr e=expr) { $value = new Extract($e.value, $f.value); }
     ;
 
 cast returns [Cast value]

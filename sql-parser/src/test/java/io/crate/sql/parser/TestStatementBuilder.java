@@ -57,6 +57,7 @@ public class TestStatementBuilder {
 
         printStatement("select show from foo");
         printStatement("select extract(day from x), extract(dow from x) from y");
+        printStatement("select extract('day' from x), extract(? from x) from y");
 
         printStatement("select 1 + 13 || '15' from foo");
         printStatement("select col['x'] + col['y'] from foo");
