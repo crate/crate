@@ -7,13 +7,24 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+
+import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 2)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
@@ -197,6 +208,61 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             uris[i] = blobUri(digest);
         }
         assertEquals(true, mget(uris, headers, expected));
+    }
+
+    @Test
+    public void testHeadRequestConnectionIsNotClosed() throws Exception {
+        Socket socket = new Socket(address.getAddress(), address.getPort());
+        socket.setKeepAlive(true);
+        socket.setSoTimeout(3000);
+
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        int linesRead = 0;
+        while (linesRead < 4) {
+            String line = reader.readLine();
+            System.out.println(line);
+            linesRead++;
+        }
+
+        assertSocketIsConnected(socket);
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+        int read = reader.read();
+        assertThat(read, Matchers.greaterThan(-1));
+        assertSocketIsConnected(socket);
+    }
+
+    @Test
+    public void testResponseContainsCloseHeaderOnHttp10() throws Exception {
+        Socket socket = new Socket(address.getAddress(), address.getPort());
+        socket.setKeepAlive(false);
+        socket.setSoTimeout(3000);
+
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.0\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        List<String> lines = new ArrayList<>();
+        while ((line = reader.readLine()) != null) {
+            lines.add(line);
+        }
+        assertThat(lines, Matchers.hasItem("Connection: close"));
+    }
+
+    private void assertSocketIsConnected(Socket socket) {
+        assertThat(socket.isConnected(), is(true));
+        assertThat(socket.isClosed(), is(false));
+        assertThat(socket.isInputShutdown(), is(false));
+        assertThat(socket.isOutputShutdown(), is(false));
     }
 
     @Test

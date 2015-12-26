@@ -53,6 +53,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.core.Is.is;
+
 public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
     protected InetSocketAddress address;
@@ -108,7 +110,13 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);
         }
-        return httpClient.execute(httpPut);
+        return executeAndDefaultAssertions(httpPut);
+    }
+
+    private CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
+        CloseableHttpResponse resp = httpClient.execute(request);
+        assertThat(resp.containsHeader("Connection"), is(false));
+        return resp;
     }
 
     protected CloseableHttpResponse get(String uri) throws IOException {
@@ -158,20 +166,20 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
         if(headers != null){
            httpGet.setHeaders(headers);
         }
-        return httpClient.execute(httpGet);
+        return executeAndDefaultAssertions(httpGet);
     }
 
     protected CloseableHttpResponse head(String uri) throws IOException {
         HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-        return httpClient.execute(httpHead);
+        return executeAndDefaultAssertions(httpHead);
     }
 
     protected CloseableHttpResponse delete(String uri) throws IOException {
         HttpDelete httpDelete = new HttpDelete(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-        return httpClient.execute(httpDelete);
+        return executeAndDefaultAssertions(httpDelete);
     }
 
-    public int getNumberOfRedirects(String uri, InetSocketAddress address) throws ClientProtocolException, IOException {
+    public int getNumberOfRedirects(String uri, InetSocketAddress address) throws IOException {
         CloseableHttpResponse response = null;
         int redirects = 0;
 
