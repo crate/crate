@@ -83,6 +83,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
                 .add("id", DataTypes.INTEGER)
                 .add("name", DataTypes.STRING)
+                .add("age", DataTypes.INTEGER)
                 .add("shape", DataTypes.GEO_SHAPE)
                 .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
