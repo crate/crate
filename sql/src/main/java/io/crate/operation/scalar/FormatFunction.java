@@ -60,14 +60,13 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
         assert args.length > 1;
         assert args[0].value() != null;
 
-
-
         Object[] values = new Object[args.length - 1];
         for (int i = 0; i < args.length - 1; i++) {
-            if (args[i + 1].value() instanceof BytesRef) {
-                values[i] = ((BytesRef) args[i + 1].value()).utf8ToString();
+            Object value = args[i + 1].value();
+            if (value instanceof BytesRef) {
+                values[i] = ((BytesRef) value).utf8ToString();
             } else {
-                values[i] = args[i + 1].value();
+                values[i] = value;
             }
         }
 
@@ -83,38 +82,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     @Override
     public Symbol normalizeSymbol(Function function) {
         assert (function.arguments().size() > 1);
-
-        Symbol formatString = function.arguments().get(0);
-        if (formatString.symbolType() != SymbolType.LITERAL
-                && !formatString.valueType().equals(DataTypes.STRING)) {
-            // probably something like   format(column_with_format_string, arg1) ?
-            return function;
-        }
-
-        assert formatString instanceof Literal;
-        assert formatString.valueType().equals(DataTypes.STRING);
-        List<Object> objects = new ArrayList<>();
-        List<Symbol> arguments = function.arguments().subList(1, function.arguments().size());
-
-        for (Symbol argument : arguments) {
-            if (!argument.symbolType().isValueSymbol()) {
-                return function; // can't normalize if arguments still contain non-literals
-            }
-
-            assert argument instanceof Input; // valueSymbol must implement Input
-            Object value = ((Input)argument).value();
-
-            if (value instanceof BytesRef) {
-                objects.add(((BytesRef)value).utf8ToString());
-            } else {
-                objects.add(value);
-            }
-        }
-
-        return Literal.newLiteral(String.format(
-                Locale.ENGLISH,
-                ((BytesRef)((Literal) formatString).value()).utf8ToString(),
-                objects.toArray(new Object[objects.size()])));
+        return Scalar.evaluateIfLiterals(this, function);
     }
 
     @Override

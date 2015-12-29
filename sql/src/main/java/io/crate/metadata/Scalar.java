@@ -88,12 +88,8 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         for (Symbol arg : function.arguments()) {
             if (arg instanceof Input) {
                 Input inputArg =  (Input) arg;
-                if (inputArg.value() == null) {
-                    return Literal.newLiteral(arg.valueType(), null);
-                } else {
-                    inputs[idx] = inputArg;
-                    idx++;
-                }
+                inputs[idx] = inputArg;
+                idx++;
             } else {
                 return function;
             }
