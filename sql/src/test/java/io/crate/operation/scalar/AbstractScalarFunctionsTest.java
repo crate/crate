@@ -38,6 +38,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -83,6 +84,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
                 .add("id", DataTypes.INTEGER)
                 .add("name", DataTypes.STRING)
+                .add("tags", new ArrayType(DataTypes.STRING))
                 .add("age", DataTypes.INTEGER)
                 .add("shape", DataTypes.GEO_SHAPE)
                 .build();
