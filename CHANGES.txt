@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
+   setting of partitioned tables
+
  - Added Amazon S3 support for Snapshot and Restore
 
  - Made repository types and their settings pluggable,
