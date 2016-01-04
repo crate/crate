@@ -60,6 +60,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
             .add("column_name", DataTypes.STRING, null)
             .add("schema_name", DataTypes.STRING, null)
             .add("table_name", DataTypes.STRING, null)
+            .add("data_type", DataTypes.STRING, null)
             .build();
 
     public static final TableIdent TABLES = new TableIdent(InformationSchemaInfo.NAME, "tables");
@@ -74,7 +75,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
             CONSTRAINTS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("table_name", DataTypes.STRING, null)
             .add("schema_name", DataTypes.STRING, null)
-            .add("data_type", DataTypes.STRING, null)
+            .add("constraint_type", DataTypes.STRING, null)
             .add("constraint_name", new ArrayType(DataTypes.STRING), null)
             .build();
 
@@ -194,8 +195,8 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 .get(new QualifiedName("cl")).querySpec();
 
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.table_name," +
-                " information_schema.columns.schema_name, information_schema.columns.column_name" +
+                "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
+                " information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'information_schema'))" +
                 " AND (information_schema.columns.column_name LIKE '%'))" +
@@ -210,7 +211,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 .get(new QualifiedName("cl")).querySpec();
         assertThat(querySpec, isSQL(
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name" +
+                " information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'information_schema'))" +
                 " AND (information_schema.columns.column_name = 'id'))" +
@@ -224,7 +225,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 .get(new QualifiedName("cl")).querySpec();
         assertThat(querySpec, isSQL(
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name" +
+                " information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'doc'))" +
                 " AND (information_schema.columns.column_name LIKE '%'))" +
@@ -238,7 +239,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 .get(new QualifiedName("cl")).querySpec();
         assertThat(querySpec, isSQL(
                 "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name" +
+                " information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE ((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'doc'))" +
                 " ORDER BY information_schema.columns.column_name"));
