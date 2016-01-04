@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+
+ - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
+   setting of partitioned tables
  
  - Fix: Plugin modules are now instantiated with settings
 
