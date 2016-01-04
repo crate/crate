@@ -8,6 +8,11 @@ Unreleased
  - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
    setting of partitioned tables
 
+ - ``primary_key`` column has been removed from ``show columns`` result.
+
+ - fix: ``show columns`` command returns an empty list if the table contains
+   no constraints.
+
  - Added Amazon S3 support for Snapshot and Restore
 
  - Made repository types and their settings pluggable,

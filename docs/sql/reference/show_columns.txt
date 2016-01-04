@@ -18,8 +18,8 @@ Description
 ===========
 
 ``SHOW COLUMNS`` fetches all column names of a given table and displays their
-detailed information. The column names are listed in alphabetical order.
-The same list can be fetched by querying the ``information_schema.columns``
+column name and data type. The column names are listed in alphabetical order.
+More details can be fetched by querying the ``information_schema.columns``
 table.
 
 Parameters
