@@ -22,22 +22,24 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.Schemas;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class ShowStatementAnalyzer {
 
-    private final SelectStatementAnalyzer selectStatementAnalyzer;
+    private Analyzer analyzer;
 
     private String[] explicitSchemas = new String[]{"information_schema", "sys"};
 
-    @Inject
-    public ShowStatementAnalyzer(SelectStatementAnalyzer selectStatementAnalyzer) {
-        this.selectStatementAnalyzer = selectStatementAnalyzer;
+    public ShowStatementAnalyzer(Analyzer analyzer) {
+        this.analyzer = analyzer;
     }
 
     public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
@@ -53,15 +55,21 @@ public class ShowStatementAnalyzer {
          *     ORDER BY schema_name;
          * </code>
          */
+        List<String> params = new ArrayList<>();
         StringBuilder sb = new StringBuilder("SELECT schema_name ");
         sb.append("FROM information_schema.schemata ");
         if (node.likePattern().isPresent()) {
-            sb.append(String.format("WHERE schema_name LIKE '%s' ", node.likePattern().get()));
+            params.add(node.likePattern().get());
+            sb.append("WHERE schema_name LIKE ? ");
         } else if (node.whereExpression().isPresent()) {
             sb.append(String.format("WHERE %s ", node.whereExpression().get().toString()));
         }
         sb.append("ORDER BY schema_name");
-        return analyzeRewrite(sb.toString(), analysis);
+
+        Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
+                new ParameterContext(params.toArray(), new Object[0][], null));
+        analysis.rootRelation(newAnalysis.rootRelation());
+        return newAnalysis.analyzedStatement();
     }
 
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
@@ -71,32 +79,39 @@ public class ShowStatementAnalyzer {
          * </code>
          * needs to be rewritten to select query:
          * <code>
-         * SELECT column_name, data_type, column_name = ANY (constraint_name) as primary_key
-         * FROM information_schema.columns cl INNER JOIN information_schema.table_constraints cn
-         * ON cl.table_name = cn.table_name AND cl.schema_name = cn.schema_name AND
-         * cl.schema_name = {'doc' | ['%s'] }
-         * [ AND WHERE cl.table_name LIKE '%s' | column_name LIKE '%s']
+         * SELECT column_name, data_type
+         * FROM information_schema.columns
+         * WHERE schema_name = {'doc' | ['%s'] }
+         * [ AND WHERE table_name LIKE '%s' | column_name LIKE '%s']
          * ORDER BY column_name;
          * </code>
          */
+        List<String> params = new ArrayList<>();
         StringBuilder sb =
                 new StringBuilder(
-                        "SELECT column_name, data_type, column_name = ANY (constraint_name) as primary_key " +
-                        "FROM information_schema.columns cl INNER JOIN information_schema.table_constraints cn " +
-                        "ON cl.table_name = cn.table_name AND cl.schema_name = cn.schema_name ");
-        sb.append(String.format("WHERE cl.table_name = '%s' ", node.table().toString()));
+                        "SELECT column_name, data_type " +
+                        "FROM information_schema.columns ");
+        params.add(node.table().toString());
+        sb.append("WHERE table_name = ? ");
+
+        sb.append("AND schema_name = ? ");
         if (node.schema().isPresent()) {
-            sb.append(String.format("AND cl.schema_name = '%s' ", node.schema().get()));
+            params.add(node.schema().get().toString());
         } else {
-            sb.append("AND cl.schema_name = 'doc' ");
+            params.add(Schemas.DEFAULT_SCHEMA_NAME);
         }
         if (node.likePattern().isPresent()) {
-            sb.append(String.format("AND column_name LIKE '%s' ", node.likePattern().get()));
+            params.add(node.likePattern().get());
+            sb.append("AND column_name LIKE ? ");
         } else if (node.where().isPresent()) {
             sb.append(String.format("AND %s", ExpressionFormatter.formatExpression(node.where().get())));
         }
         sb.append("ORDER BY column_name");
-        return analyzeRewrite(sb.toString(), analysis);
+
+        Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
+                new ParameterContext(params.toArray(), new Object[0][], null));
+        analysis.rootRelation(newAnalysis.rootRelation());
+        return newAnalysis.analyzedStatement();
     }
 
     public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
@@ -114,13 +129,16 @@ public class ShowStatementAnalyzer {
          *     ORDER BY 1;
          * </code>
          */
+        List<String> params = new ArrayList<>();
         StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
         if (node.schema().isPresent()) {
-            sb.append(String.format("WHERE schema_name = '%s'", node.schema().get()));
+            params.add(node.schema().get().toString());
+            sb.append("WHERE schema_name = ?");
         } else {
             sb.append("WHERE schema_name NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
-                sb.append(String.format("'%s'", explicitSchemas[i]));
+                params.add(explicitSchemas[i]);
+                sb.append("?");
                 if (i < explicitSchemas.length - 1) {
                     sb.append(", ");
                 }
@@ -131,17 +149,15 @@ public class ShowStatementAnalyzer {
             sb.append(" AND (");
             sb.append(node.whereExpression().get().toString());
             sb.append(")");
-
         } else if (node.likePattern().isPresent()) {
-            sb.append(String.format(" AND table_name like '%s'", node.likePattern().get()));
+            params.add(node.likePattern().get());
+            sb.append(" AND table_name like ?");
         }
         sb.append(" ORDER BY 1");
-        return analyzeRewrite(sb.toString(), analysis);
-    }
 
-    private AnalyzedStatement analyzeRewrite(String sqlStmt, Analysis analysis) {
-        Statement statement = SqlParser.createStatement(sqlStmt);
-        return selectStatementAnalyzer.visitQuery((Query) statement, analysis);
+        Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
+                new ParameterContext(params.toArray(), new Object[0][], null));
+        analysis.rootRelation(newAnalysis.rootRelation());
+        return newAnalysis.analyzedStatement();
     }
-
 }

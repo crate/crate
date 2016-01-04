@@ -25,11 +25,76 @@ import org.elasticsearch.common.inject.Inject;
 
 public class Analyzer {
 
-    private final AnalyzerDispatcher dispatcher;
+    private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
+
+    private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
+    private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
+    private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
+    private final ShowStatementAnalyzer showStatementAnalyzer;
+    private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
+    private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
+    private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
+    private final RefreshTableAnalyzer refreshTableAnalyzer;
+    private final AlterTableAnalyzer alterTableAnalyzer;
+    private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
+    private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
+    private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
+    private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
+    private final CopyStatementAnalyzer copyStatementAnalyzer;
+    private final SelectStatementAnalyzer selectStatementAnalyzer;
+    private final UpdateStatementAnalyzer updateStatementAnalyzer;
+    private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+    private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
+    private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
+    private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
+    private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
+    private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
+
 
     @Inject
-    public Analyzer(AnalyzerDispatcher dispatcher) {
-        this.dispatcher = dispatcher;
+    public Analyzer(SelectStatementAnalyzer selectStatementAnalyzer,
+                    DropTableStatementAnalyzer dropTableStatementAnalyzer,
+                    CreateTableStatementAnalyzer createTableStatementAnalyzer,
+                    ShowCreateTableAnalyzer showCreateTableAnalyzer,
+                    CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
+                    CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
+                    DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
+                    RefreshTableAnalyzer refreshTableAnalyzer,
+                    AlterTableAnalyzer alterTableAnalyzer,
+                    AlterBlobTableAnalyzer alterBlobTableAnalyzer,
+                    AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
+                    InsertFromValuesAnalyzer insertFromValuesAnalyzer,
+                    InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
+                    CopyStatementAnalyzer copyStatementAnalyzer,
+                    UpdateStatementAnalyzer updateStatementAnalyzer,
+                    DeleteStatementAnalyzer deleteStatementAnalyzer,
+                    DropRepositoryStatementAnalyzer dropRepositoryAnalyzer,
+                    CreateRepositoryAnalyzer createRepositoryAnalyzer,
+                    DropSnapshotAnalyzer dropSnapshotAnalyzer,
+                    CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
+                    RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
+        this.selectStatementAnalyzer = selectStatementAnalyzer;
+        this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
+        this.createTableStatementAnalyzer = createTableStatementAnalyzer;
+        this.showCreateTableAnalyzer = showCreateTableAnalyzer;
+        this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
+        this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
+        this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
+        this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
+        this.refreshTableAnalyzer = refreshTableAnalyzer;
+        this.alterTableAnalyzer = alterTableAnalyzer;
+        this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
+        this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
+        this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
+        this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
+        this.copyStatementAnalyzer = copyStatementAnalyzer;
+        this.updateStatementAnalyzer = updateStatementAnalyzer;
+        this.deleteStatementAnalyzer = deleteStatementAnalyzer;
+        this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
+        this.createRepositoryAnalyzer = createRepositoryAnalyzer;
+        this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
+        this.createSnapshotStatementAnalyzer = createSnapshotStatementAnalyzer;
+        this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
     }
 
     public Analysis analyze(Statement statement, ParameterContext parameterContext) {
@@ -40,78 +105,7 @@ public class Analyzer {
         return analysis;
     }
 
-    public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
-
-        private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
-        private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
-        private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
-        private final ShowStatementAnalyzer showStatementAnalyzer;
-        private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
-        private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
-        private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
-        private final RefreshTableAnalyzer refreshTableAnalyzer;
-        private final AlterTableAnalyzer alterTableAnalyzer;
-        private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
-        private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
-        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
-        private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
-        private final CopyStatementAnalyzer copyStatementAnalyzer;
-        private final SelectStatementAnalyzer selectStatementAnalyzer;
-        private final UpdateStatementAnalyzer updateStatementAnalyzer;
-        private final DeleteStatementAnalyzer deleteStatementAnalyzer;
-        private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
-        private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
-        private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
-        private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
-        private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
-
-
-        @Inject
-        public AnalyzerDispatcher(SelectStatementAnalyzer selectStatementAnalyzer,
-                                  DropTableStatementAnalyzer dropTableStatementAnalyzer,
-                                  CreateTableStatementAnalyzer createTableStatementAnalyzer,
-                                  ShowCreateTableAnalyzer showCreateTableAnalyzer,
-                                  ShowStatementAnalyzer showStatementAnalyzer,
-                                  CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
-                                  CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                                  DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
-                                  RefreshTableAnalyzer refreshTableAnalyzer,
-                                  AlterTableAnalyzer alterTableAnalyzer,
-                                  AlterBlobTableAnalyzer alterBlobTableAnalyzer,
-                                  AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
-                                  InsertFromValuesAnalyzer insertFromValuesAnalyzer,
-                                  InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
-                                  CopyStatementAnalyzer copyStatementAnalyzer,
-                                  UpdateStatementAnalyzer updateStatementAnalyzer,
-                                  DeleteStatementAnalyzer deleteStatementAnalyzer,
-                                  DropRepositoryStatementAnalyzer dropRepositoryAnalyzer,
-                                  CreateRepositoryAnalyzer createRepositoryAnalyzer,
-                                  DropSnapshotAnalyzer dropSnapshotAnalyzer,
-                                  CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
-                                  RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
-            this.selectStatementAnalyzer = selectStatementAnalyzer;
-            this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
-            this.createTableStatementAnalyzer = createTableStatementAnalyzer;
-            this.showCreateTableAnalyzer = showCreateTableAnalyzer;
-            this.showStatementAnalyzer = showStatementAnalyzer;
-            this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
-            this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
-            this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
-            this.refreshTableAnalyzer = refreshTableAnalyzer;
-            this.alterTableAnalyzer = alterTableAnalyzer;
-            this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
-            this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
-            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
-            this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
-            this.copyStatementAnalyzer = copyStatementAnalyzer;
-            this.updateStatementAnalyzer = updateStatementAnalyzer;
-            this.deleteStatementAnalyzer = deleteStatementAnalyzer;
-            this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
-            this.createRepositoryAnalyzer = createRepositoryAnalyzer;
-            this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
-            this.createSnapshotStatementAnalyzer = createSnapshotStatementAnalyzer;
-            this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
-        }
+    private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {

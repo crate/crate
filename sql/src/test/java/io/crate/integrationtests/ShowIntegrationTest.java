@@ -269,52 +269,52 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowColumns() throws Exception {
         execute("create table my_table1 (" +
-                "column11 integer primary key, " +
-                "column12 integer primary key, " +
-                "column13 long primary key, " +
-                "column21 integer primary key, " +
-                "column22 string primary key, " +
-                "column31 integer primary key)"
+                "column11 integer, " +
+                "column12 integer, " +
+                "column13 long, " +
+                "column21 integer, " +
+                "column22 string, " +
+                "column31 integer)"
         );
 
         execute("create table my_s1.my_table1 (" +
-                "col11 timestamp primary key, " +
-                "col12 integer primary key, " +
-                "col13 integer primary key, " +
-                "col22 long primary key, " +
-                "col31 integer primary key)"
+                "col11 timestamp, " +
+                "col12 integer, " +
+                "col13 integer, " +
+                "col22 long, " +
+                "col31 integer)"
         );
 
         execute("show columns from my_table1");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("column11| integer| true\n" +
-                   "column12| integer| true\n" +
-                   "column13| long| true\n" +
-                   "column21| integer| true\n" +
-                   "column22| string| true\n" +
-                   "column31| integer| true\n"));
+                is("column11| integer\n" +
+                   "column12| integer\n" +
+                   "column13| long\n" +
+                   "column21| integer\n" +
+                   "column22| string\n" +
+                   "column31| integer\n"));
 
         execute("show columns in my_table1 like '%2'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("column12| integer| true\n" +
-                   "column22| string| true\n"));
+                is("column12| integer\n" +
+                   "column22| string\n"));
 
         execute("show columns from my_table1 where column_name = 'column12'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("column12| integer| true\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("column12| integer\n"));
 
         execute("show columns in my_table1 from my_s1 where data_type = 'long'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("col22| long| true\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("col22| long\n"));
 
         execute("show columns in my_table1 from my_s1 like 'col1%'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("col11| timestamp| true\n" +
-                   "col12| integer| true\n" +
-                   "col13| integer| true\n"));
+                is("col11| timestamp\n" +
+                   "col12| integer\n" +
+                   "col13| integer\n"));
 
         execute("show columns from my_table1 in my_s1 like '%1'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("col11| timestamp| true\n" +
-                   "col31| integer| true\n"));
+                is("col11| timestamp\n" +
+                   "col31| integer\n"));
 
     }
 

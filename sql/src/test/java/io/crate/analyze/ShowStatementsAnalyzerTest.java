@@ -31,7 +31,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -191,12 +190,9 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
     public void testShowColumnsLike() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns from schemata in information_schema like '%'");
-        QuerySpec querySpec = ((MultiSourceSelect) analyzedStatement.relation()).sources()
-                .get(new QualifiedName("cl")).querySpec();
-
+        QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name, information_schema.columns.data_type" +
+                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'information_schema'))" +
                 " AND (information_schema.columns.column_name LIKE '%'))" +
@@ -207,11 +203,9 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata from information_schema"
                                                             + " where column_name = 'id'");
 
-        QuerySpec querySpec = ((MultiSourceSelect) analyzedStatement.relation()).sources()
-                .get(new QualifiedName("cl")).querySpec();
+        QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name, information_schema.columns.data_type" +
+                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'information_schema'))" +
                 " AND (information_schema.columns.column_name = 'id'))" +
@@ -221,11 +215,9 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
     public void testShowColumnsLikeWithoutSpecifiedSchema() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata like '%'");
 
-        QuerySpec querySpec = ((MultiSourceSelect) analyzedStatement.relation()).sources()
-                .get(new QualifiedName("cl")).querySpec();
+        QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name, information_schema.columns.data_type" +
+                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE (((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'doc'))" +
                 " AND (information_schema.columns.column_name LIKE '%'))" +
@@ -235,11 +227,9 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
     public void testShowColumnsFromOneTable() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata");
 
-        QuerySpec querySpec = ((MultiSourceSelect) analyzedStatement.relation()).sources()
-                .get(new QualifiedName("cl")).querySpec();
+        QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.table_name, information_schema.columns.schema_name," +
-                " information_schema.columns.column_name, information_schema.columns.data_type" +
+                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
                 " WHERE ((information_schema.columns.table_name = 'schemata')" +
                 " AND (information_schema.columns.schema_name = 'doc'))" +
                 " ORDER BY information_schema.columns.column_name"));
