@@ -28,7 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.jobs.JobContextService;
 import io.crate.lucene.LuceneQueryBuilder;
 import org.apache.lucene.search.Filter;
-import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -51,18 +51,16 @@ public class SearchContextFactory {
     private LuceneQueryBuilder luceneQueryBuilder;
     private ClusterService clusterService;
     private final ScriptService scriptService;
-    private final CacheRecycler cacheRecycler;
     private final PageCacheRecycler pageCacheRecycler;
     private final BigArrays bigArrays;
     private final ThreadPool threadPool;
     private final TimeValue jobKeepAlive;
-    private final ImmutableMap<String, Filter> EMPTY_NAMED_FILTERS = ImmutableMap.of();
+    private final ImmutableMap<String, Query> EMPTY_NAMED_FILTERS = ImmutableMap.of();
 
     @Inject
     public SearchContextFactory(LuceneQueryBuilder luceneQueryBuilder,
                                 ClusterService clusterService,
                                 ScriptService scriptService,
-                                CacheRecycler cacheRecycler,
                                 PageCacheRecycler pageCacheRecycler,
                                 BigArrays bigArrays,
                                 ThreadPool threadPool,
@@ -70,7 +68,6 @@ public class SearchContextFactory {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.clusterService = clusterService;
         this.scriptService = scriptService;
-        this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -98,7 +95,6 @@ public class SearchContextFactory {
                 indexService,
                 indexshard,
                 scriptService,
-                cacheRecycler,
                 pageCacheRecycler,
                 bigArrays,
                 threadPool.estimatedTimeInMillisCounter(),

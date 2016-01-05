@@ -27,8 +27,8 @@ import com.spatial4j.core.shape.Shape;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
@@ -55,7 +55,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     private static Map<String, Object> parse(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(json).mapOrderedAndClose();
+            return JsonXContent.jsonXContent.createParser(json).mapOrdered();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -113,7 +113,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
             BytesStreamOutput out = new BytesStreamOutput();
             type.streamer().writeValueTo(out, value);
-            BytesStreamInput in = new BytesStreamInput(out.bytes());
+            StreamInput in = StreamInput.wrap(out.bytes());
             Map<String, Object> streamedValue = type.readValueFrom(in);
 
             assertThat(streamedValue.size(), is(value.size()));

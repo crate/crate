@@ -29,8 +29,8 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -46,8 +46,8 @@ public class FetchCollector {
     private final boolean visitorEnabled;
     private final Collection<LuceneCollectorExpression<?>> collectorExpressions;
     private final InputRow row;
-    private AtomicReader currentReader;
-    private final List<AtomicReaderContext> readerContexts;
+    private LeafReader currentReader;
+    private final List<LeafReaderContext> readerContexts;
 
     public FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                           MapperService mapperService,
@@ -66,7 +66,7 @@ public class FetchCollector {
 
     }
 
-    public void setNextReader(AtomicReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         currentReader = context.reader();
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
@@ -87,7 +87,7 @@ public class FetchCollector {
         for (IntCursor cursor : docIds) {
             final int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);
-            AtomicReaderContext subReaderContext = readerContexts.get(readerIndex);
+            LeafReaderContext subReaderContext = readerContexts.get(readerIndex);
             setNextReader(subReaderContext);
             setNextDocId(docId - subReaderContext.docBase);
             builder.add(row);

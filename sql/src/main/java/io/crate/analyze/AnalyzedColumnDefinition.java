@@ -28,7 +28,6 @@ import com.google.common.collect.Lists;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.DistanceUnit;
@@ -48,8 +47,8 @@ public class AnalyzedColumnDefinition {
     private String analyzer;
     private String objectType = "true"; // dynamic = true
     private boolean isPrimaryKey = false;
-    private Settings analyzerSettings = ImmutableSettings.EMPTY;
-    private Settings geoSettings = ImmutableSettings.EMPTY;
+    private Settings analyzerSettings = Settings.EMPTY;
+    private Settings geoSettings = Settings.EMPTY;
 
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
@@ -158,7 +157,7 @@ public class AnalyzedColumnDefinition {
 
     public Settings analyzerSettings() {
         if (!children().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            Settings.Builder builder = Settings.builder();
             builder.put(analyzerSettings);
             for (AnalyzedColumnDefinition child : children()) {
                 builder.put(child.analyzerSettings());

@@ -26,7 +26,7 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.FieldComparator;
 
@@ -69,7 +69,7 @@ public class FieldsVisitorInputFieldComparator extends InputFieldComparator {
     }
 
     @Override
-    public FieldComparator setNextReader(AtomicReaderContext context) throws IOException {
+    public FieldComparator setNextReader(LeafReaderContext context) throws IOException {
         currentReader = context.reader();
         return super.setNextReader(context);
     }

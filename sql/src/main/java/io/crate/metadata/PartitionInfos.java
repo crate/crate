@@ -52,7 +52,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         @Override
         public boolean apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
             return input != null
-                    && input.value.state() == IndexMetaData.State.OPEN
+                    && input.value.getState() == IndexMetaData.State.OPEN
                     && PartitionName.isPartition(input.key);
         }
     };
@@ -65,7 +65,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
             try {
                 Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));
-                BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.settings());
+                BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.getSettings());
                 return new PartitionInfo(partitionName, input.value.getNumberOfShards(), numberOfReplicas, valuesMap,
                         TableParameterInfo.tableParametersFromIndexMetaData(input.value));
             } catch (Exception e) {

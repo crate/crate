@@ -31,13 +31,11 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.netty.NettyUtils;
 import org.elasticsearch.common.netty.OpenChannelsHandler;
+import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.NetworkExceptionHelper;
-import org.elasticsearch.common.transport.PortsRange;
+import org.elasticsearch.common.transport.*;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
@@ -60,6 +58,8 @@ import org.jboss.netty.handler.timeout.ReadTimeoutException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -143,6 +143,8 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected volatile Channel serverChannel;
 
+    protected volatile List<Channel> serverChannels = new ArrayList<>();
+
     protected OpenChannelsHandler serverOpenChannels;
 
     protected volatile HttpServerAdapter httpServerAdapter;
@@ -161,38 +163,38 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             System.setProperty("org.jboss.netty.epollBugWorkaround", "true");
         }
 
-        ByteSizeValue maxContentLength = componentSettings.getAsBytesSize("max_content_length", settings.getAsBytesSize("http.max_content_length", new ByteSizeValue(100, ByteSizeUnit.MB)));
-        this.maxChunkSize = componentSettings.getAsBytesSize("max_chunk_size", settings.getAsBytesSize("http.max_chunk_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
-        this.maxHeaderSize = componentSettings.getAsBytesSize("max_header_size", settings.getAsBytesSize("http.max_header_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
-        this.maxInitialLineLength = componentSettings.getAsBytesSize("max_initial_line_length", settings.getAsBytesSize("http.max_initial_line_length", new ByteSizeValue(4, ByteSizeUnit.KB)));
+        ByteSizeValue maxContentLength = settings.getAsBytesSize("http.netty.max_content_length", settings.getAsBytesSize("http.max_content_length", new ByteSizeValue(100, ByteSizeUnit.MB)));
+        this.maxChunkSize = settings.getAsBytesSize("http.netty.max_chunk_size", settings.getAsBytesSize("http.max_chunk_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
+        this.maxHeaderSize = settings.getAsBytesSize("http.netty.max_header_size", settings.getAsBytesSize("http.max_header_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
+        this.maxInitialLineLength = settings.getAsBytesSize("http.netty.max_initial_line_length", settings.getAsBytesSize("http.max_initial_line_length", new ByteSizeValue(4, ByteSizeUnit.KB)));
         // don't reset cookies by default, since I don't think we really need to
         // note, parsing cookies was fixed in netty 3.5.1 regarding stack allocation, but still, currently, we don't need cookies
-        this.resetCookies = componentSettings.getAsBoolean("reset_cookies", settings.getAsBoolean("http.reset_cookies", false));
-        this.maxCumulationBufferCapacity = componentSettings.getAsBytesSize("max_cumulation_buffer_capacity", null);
-        this.maxCompositeBufferComponents = componentSettings.getAsInt("max_composite_buffer_components", -1);
-        this.workerCount = componentSettings.getAsInt("worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);
+        this.resetCookies = settings.getAsBoolean("http.netty.reset_cookies", settings.getAsBoolean("http.reset_cookies", false));
+        this.maxCumulationBufferCapacity = settings.getAsBytesSize("http.netty.max_cumulation_buffer_capacity", null);
+        this.maxCompositeBufferComponents = settings.getAsInt("http.netty.max_composite_buffer_components", -1);
+        this.workerCount = settings.getAsInt("http.netty.worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);
         this.blockingServer = settings.getAsBoolean("http.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));
-        this.port = componentSettings.get("port", settings.get("http.port", "4200-4300"));
-        this.bindHost = componentSettings.get("bind_host", settings.get("http.bind_host", settings.get("http.host")));
-        this.publishHost = componentSettings.get("publish_host", settings.get("http.publish_host", settings.get("http.host")));
-        this.publishPort = componentSettings.getAsInt("publish_port", settings.getAsInt("http.publish_port", 0));
-        this.tcpNoDelay = componentSettings.get("tcp_no_delay", settings.get(TCP_NO_DELAY, "true"));
-        this.tcpKeepAlive = componentSettings.get("tcp_keep_alive", settings.get(TCP_KEEP_ALIVE, "true"));
-        this.reuseAddress = componentSettings.getAsBoolean("reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));
-        this.tcpSendBufferSize = componentSettings.getAsBytesSize("tcp_send_buffer_size", settings.getAsBytesSize(TCP_SEND_BUFFER_SIZE, TCP_DEFAULT_SEND_BUFFER_SIZE));
-        this.tcpReceiveBufferSize = componentSettings.getAsBytesSize("tcp_receive_buffer_size", settings.getAsBytesSize(TCP_RECEIVE_BUFFER_SIZE, TCP_DEFAULT_RECEIVE_BUFFER_SIZE));
+        this.port = settings.get("http.netty.port", settings.get("http.port", "4200-4300"));
+        this.bindHost = settings.get("http.netty.bind_host", settings.get("http.bind_host", settings.get("http.host")));
+        this.publishHost = settings.get("http.netty.publish_host", settings.get("http.publish_host", settings.get("http.host")));
+        this.publishPort = settings.getAsInt("http.netty.publish_port", settings.getAsInt("http.publish_port", 0));
+        this.tcpNoDelay = settings.get("http.netty.tcp_no_delay", settings.get(TCP_NO_DELAY, "true"));
+        this.tcpKeepAlive = settings.get("http.netty.tcp_keep_alive", settings.get(TCP_KEEP_ALIVE, "true"));
+        this.reuseAddress = settings.getAsBoolean("http.netty.reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));
+        this.tcpSendBufferSize = settings.getAsBytesSize("http.netty.tcp_send_buffer_size", settings.getAsBytesSize(TCP_SEND_BUFFER_SIZE, TCP_DEFAULT_SEND_BUFFER_SIZE));
+        this.tcpReceiveBufferSize = settings.getAsBytesSize("http.netty.tcp_receive_buffer_size", settings.getAsBytesSize(TCP_RECEIVE_BUFFER_SIZE, TCP_DEFAULT_RECEIVE_BUFFER_SIZE));
         this.detailedErrorsEnabled = settings.getAsBoolean(SETTING_HTTP_DETAILED_ERRORS_ENABLED, true);
 
         long defaultReceiverPredictor = 512 * 1024;
-        if (JvmInfo.jvmInfo().mem().directMemoryMax().bytes() > 0) {
+        if (JvmInfo.jvmInfo().getMem().getDirectMemoryMax().bytes() > 0) {
             // we can guess a better default...
-            long l = (long) ((0.3 * JvmInfo.jvmInfo().mem().directMemoryMax().bytes()) / workerCount);
+            long l = (long) ((0.3 * JvmInfo.jvmInfo().getMem().getDirectMemoryMax().bytes()) / workerCount);
             defaultReceiverPredictor = Math.min(defaultReceiverPredictor, Math.max(l, 64 * 1024));
         }
 
         // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
-        ByteSizeValue receivePredictorMin = componentSettings.getAsBytesSize("receive_predictor_min", componentSettings.getAsBytesSize("receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));
-        ByteSizeValue receivePredictorMax = componentSettings.getAsBytesSize("receive_predictor_max", componentSettings.getAsBytesSize("receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));
+        ByteSizeValue receivePredictorMin = settings.getAsBytesSize("http.netty.receive_predictor_min", settings.getAsBytesSize("http.netty.receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));
+        ByteSizeValue receivePredictorMax = settings.getAsBytesSize("http.netty.receive_predictor_max", settings.getAsBytesSize("http.netty.receive_predictor_size", new ByteSizeValue(defaultReceiverPredictor)));
         if (receivePredictorMax.bytes() == receivePredictorMin.bytes()) {
             receiveBufferSizePredictorFactory = new FixedReceiveBufferSizePredictorFactory((int) receivePredictorMax.bytes());
         } else {
@@ -264,21 +266,53 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         }
 
         // Bind and start to accept incoming connections.
-        InetAddress hostAddressX;
+        InetAddress hostAddresses[];
         try {
-            hostAddressX = networkService.resolveBindHostAddress(bindHost);
+            hostAddresses = networkService.resolveBindHostAddress(bindHost);
         } catch (IOException e) {
             throw new BindHttpException("Failed to resolve host [" + bindHost + "]", e);
         }
-        final InetAddress hostAddress = hostAddressX;
 
+        List<InetSocketTransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
+        for (InetAddress address : hostAddresses) {
+            boundAddresses.add(bindAddress(address));
+        }
+
+        InetSocketTransportAddress boundAddress = boundAddresses.get(0);
+        InetSocketAddress publishAddress;
+        if (0 == publishPort) {
+            publishPort = boundAddress.getPort();
+        }
+        try {
+            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), publishPort);
+        } catch (Exception e) {
+            throw new BindTransportException("Failed to resolve publish address", e);
+        }
+        this.boundAddress = new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]), new InetSocketTransportAddress(publishAddress));
+
+        final String httpAddress = "http://" + publishAddress.getAddress().getHostAddress() + ":" + publishAddress.getPort();
+
+        discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
+            @Override
+            public Map<String, String> buildAttributes() {
+                return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
+            }
+        });
+    }
+
+    private InetSocketTransportAddress bindAddress(final InetAddress hostAddress) {
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference<>();
+        final AtomicReference<InetSocketAddress> boundSocket = new AtomicReference<>();
         boolean success = portsRange.iterate(new PortsRange.PortCallback() {
             @Override
             public boolean onPortNumber(int portNumber) {
                 try {
-                    serverChannel = serverBootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
+                    synchronized (serverChannels) {
+                        Channel channel = serverBootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
+                        serverChannels.add(channel);
+                        boundSocket.set((InetSocketAddress) channel.getLocalAddress());
+                    }
                 } catch (Exception e) {
                     lastException.set(e);
                     return false;
@@ -290,26 +324,10 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             throw new BindHttpException("Failed to bind to [" + port + "]", lastException.get());
         }
 
-        InetSocketAddress boundAddress = (InetSocketAddress) serverChannel.getLocalAddress();
-        InetSocketAddress publishAddress;
-        if (0 == publishPort) {
-            publishPort = boundAddress.getPort();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Bound http to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
-        try {
-            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), publishPort);
-        } catch (Exception e) {
-            throw new BindTransportException("Failed to resolve publish address", e);
-        }
-        this.boundAddress = new BoundTransportAddress(new InetSocketTransportAddress(boundAddress), new InetSocketTransportAddress(publishAddress));
-
-        final String httpAddress = "http://" + publishAddress.getAddress().getHostAddress() + ":" + publishAddress.getPort();
-
-        discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
-            @Override
-            public Map<String, String> buildAttributes() {
-                return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
-            }
-        });
+        return new InetSocketTransportAddress(boundSocket.get());
     }
 
     @Override
@@ -327,20 +345,6 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         if (serverBootstrap != null) {
             serverBootstrap.releaseExternalResources();
             serverBootstrap = null;
-        }
-    }
-
-    @Override
-    protected void doDisable() throws ElasticsearchException {
-        if (serverOpenChannels != null) {
-            serverOpenChannels.disable();
-        }
-    }
-
-    @Override
-    protected void doEnable() throws ElasticsearchException {
-        if (serverOpenChannels != null) {
-            serverOpenChannels.enable();
         }
     }
 
@@ -378,7 +382,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             ctx.getChannel().close();
         } else {
-            if (!(lifecycle.started() || lifecycle.disabled())) {
+            if (!lifecycle.started()) {
                 // ignore
                 return;
             }

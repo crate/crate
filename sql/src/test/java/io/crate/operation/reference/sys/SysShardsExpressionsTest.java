@@ -47,7 +47,6 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.*;
@@ -106,7 +105,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         @Override
         protected void configure() {
             bind(ThreadPool.class).toInstance(threadPool);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
 
             ClusterService clusterService = mock(ClusterService.class);
             bind(ClusterService.class).toInstance(clusterService);
