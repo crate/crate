@@ -601,39 +601,6 @@ public class TestingHelpers {
         };
     }
 
-    private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
-
-        private final Class<? extends Throwable> type;
-        private final String expectedMessage;
-
-        public CauseMatcher(Class<? extends Throwable> type, @Nullable String expectedMessage) {
-            this.type = type;
-            this.expectedMessage = expectedMessage;
-        }
-
-        @Override
-        protected boolean matchesSafely(Throwable item) {
-            return item.getClass().isAssignableFrom(type)
-                   && (null == expectedMessage || item.getMessage().contains(expectedMessage));
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("expects type ").appendValue(type);
-            if (expectedMessage != null) {
-                description.appendText(" and a message ").appendValue(expectedMessage);
-            }
-        }
-    }
-
-    public static Matcher<Throwable> cause(Class<? extends Throwable> type) {
-        return cause(type, null);
-    }
-
-    public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
-        return new CauseMatcher(type, expectedMessage);
-    }
-
     public static Object[][] range(int from, int to) {
         int size = to - from;
         Object[][] result = new Object[to - from][];
@@ -715,7 +682,7 @@ public class TestingHelpers {
 
     public static Map<String, Object> jsonMap(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(json).mapAndClose();
+            return JsonXContent.jsonXContent.createParser(json).map();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

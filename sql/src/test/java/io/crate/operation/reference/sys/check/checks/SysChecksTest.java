@@ -34,7 +34,7 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
@@ -95,7 +95,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithDefaultSetting() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-                new RecoveryExpectedNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(2));
         assertThat(recoveryExpectedNodesCheck.severity(), is(Severity.HIGH));
@@ -106,7 +106,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithLessThanQuorum() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-                new RecoveryExpectedNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(2));
         assertThat(recoveryExpectedNodesCheck.severity(), is(Severity.HIGH));
@@ -116,7 +116,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithCorrectSetting() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-                new RecoveryExpectedNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(2));
         assertThat(recoveryExpectedNodesCheck.severity(), is(Severity.HIGH));
@@ -126,7 +126,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithBiggerThanNumberOfNodes() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-                new RecoveryExpectedNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(2));
         assertThat(recoveryExpectedNodesCheck.severity(), is(Severity.HIGH));
@@ -136,7 +136,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithDefaultSetting() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
         when(clusterService.state()).thenReturn(clusterState);
         when(clusterState.nodes()).thenReturn(discoveryNodes);
@@ -153,7 +153,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithLessThanQuorum() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
         when(clusterService.state()).thenReturn(clusterState);
         when(clusterState.nodes()).thenReturn(discoveryNodes);
@@ -166,7 +166,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithCorrectSetting() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterNodesSysCheck(clusterService, ImmutableSettings.EMPTY);
+                new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
         when(clusterService.state()).thenReturn(clusterState);
         when(clusterState.nodes()).thenReturn(discoveryNodes);
@@ -180,7 +180,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithCorrectSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterTimeSysCheck(Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
@@ -190,7 +190,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithDefaultSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterTimeSysCheck(Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
@@ -204,7 +204,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithWrongSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-                new RecoveryAfterTimeSysCheck(ImmutableSettings.EMPTY);
+                new RecoveryAfterTimeSysCheck(Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(4));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));

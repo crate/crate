@@ -26,16 +26,20 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before
@@ -176,6 +180,5 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                      " 12.995452 52.417497))"));
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is((Object)1L));
-
     }
 }

@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.monitor.ExtendedOsStats;
 
 public class NodeOsCpuExpression extends SysNodeObjectReference {
 
@@ -36,12 +35,11 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
     public static final String USAGE = "used";
     public static final String STOLEN = "stolen";
 
-    @Inject
-    public NodeOsCpuExpression(OsStats stats) {
-        addChildImplementations(stats.cpu());
+    public NodeOsCpuExpression(ExtendedOsStats.Cpu cpuInfo) {
+        addChildImplementations(cpuInfo);
     }
 
-    private void addChildImplementations(final OsStats.Cpu cpu) {
+    private void addChildImplementations(final ExtendedOsStats.Cpu cpu) {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {

@@ -23,22 +23,26 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,7 +50,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.contains;
@@ -58,11 +65,26 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private ThreadPool threadPool;
+
+    @Before
+    public void initThreadPool() throws Exception {
+        threadPool = newMockedThreadPool();
+    }
 
     @Test
     public void testFileUriCollect() throws Exception {
         ClusterService clusterService = new NoopClusterService();
         Functions functions = getFunctions();
+        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+        when(discoveryNode.id()).thenReturn("dummyNodeId");
+        DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
+        when(discoveryNodes.localNodeId()).thenReturn("dummyNodeId");
+        ClusterState clusterState = mock(ClusterState.class);
+        when(clusterState.nodes()).thenReturn(discoveryNodes);
+        when(clusterService.state()).thenReturn(clusterState);
+        DiscoveryService discoveryService = mock(DiscoveryService.class);
+        when(discoveryService.localNode()).thenReturn(discoveryNode);
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
             public ReferenceImplementation getImplementation(ReferenceInfo referenceInfo) {
@@ -77,7 +99,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 referenceResolver,
                 mock(NodeSysExpression.class),
                 collectSourceResolver,
-                mock(ThreadPool.class)
+                threadPool
         );
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (FileWriter writer = new FileWriter(tmpFile)) {

@@ -25,20 +25,19 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.crate.core.CrateComponentLoader;
 import io.crate.module.CrateCoreModule;
-import io.crate.module.CrateCoreShardModule;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
@@ -46,19 +45,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 
-public class CrateCorePlugin extends AbstractPlugin {
+public class CrateCorePlugin extends Plugin {
 
-    private final Settings settings;
     private final CrateComponentLoader crateComponentLoader;
     @VisibleForTesting
     final PluginLoader pluginLoader;
+    @VisibleForTesting
+    final Settings settings;
 
     private static final ESLogger LOGGER = Loggers.getLogger(CrateCorePlugin.class);
 
     public CrateCorePlugin(Settings settings) {
-        this.settings = settings;
-        crateComponentLoader = CrateComponentLoader.getInstance(settings);
         pluginLoader = new PluginLoader(settings);
+        this.settings = Settings.builder()
+                .put(pluginLoader.additionalSettings())
+                .put(settings)
+                .build();
+        crateComponentLoader = CrateComponentLoader.getInstance(this.settings);
 
         try {
             initializeTrustStore();
@@ -79,57 +82,65 @@ public class CrateCorePlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
+        builder.put(settings);
         builder.put(crateComponentLoader.additionalSettings());
-        builder.put(pluginLoader.additionalSettings());
         return builder.build();
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
-        services.addAll(crateComponentLoader.services());
-        services.addAll(pluginLoader.services());
+        services.addAll(pluginLoader.nodeServices());
+        services.addAll(crateComponentLoader.nodeServices());
         return services;
     }
 
     @Override
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> indexModules = Lists.newArrayList();
-        indexModules.addAll(crateComponentLoader.indexModules());
-        indexModules.addAll(pluginLoader.indexModules());
+    public Collection<Module> nodeModules() {
+        Collection<Module> modules = new ArrayList<>();
+        CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
+        modules.add(crateCoreModule);
+        modules.addAll(pluginLoader.nodeModules());
+        modules.addAll(crateComponentLoader.nodeModules());
+        return modules;
+    }
+
+    @Override
+    public Collection<Class<? extends Closeable>> indexServices() {
+        return pluginLoader.indexServices();
+    }
+
+    @Override
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> indexModules = Lists.newArrayList();
+        indexModules.addAll(pluginLoader.indexModules(indexSettings));
+        indexModules.addAll(crateComponentLoader.indexModules(indexSettings));
         return indexModules;
     }
 
     @Override
-    public Collection<Module> modules(Settings settings) {
+    public Collection<Class<? extends Closeable>> shardServices() {
+        return pluginLoader.shardServices();
+    }
+
+    @Override
+    public Collection<Module> shardModules(Settings indexSettings) {
         Collection<Module> modules = new ArrayList<>();
-        CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
-        modules.add(crateCoreModule);
-        modules.addAll(crateComponentLoader.modules(settings));
-        modules.addAll(pluginLoader.modules(settings));
-        return modules;
-    }
-
-    @Override
-    public Collection<Class<? extends Module>> modules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
-        modules.addAll(crateComponentLoader.modules());
-        modules.addAll(pluginLoader.modules());
-        return modules;
-    }
-
-    @Override
-    public Collection<Class<? extends Module>> shardModules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(CrateCoreShardModule.class);
+            modules.addAll(pluginLoader.shardModules(indexSettings));
+            modules.addAll(crateComponentLoader.shardModules(indexSettings));
         }
         return modules;
     }
 
     public void onModule(RestModule restModule) {
         restModule.addRestAction(CrateRestMainAction.class);
+    }
+
+    public void onModule(Module module) {
+        crateComponentLoader.processModule(module);
+        pluginLoader.processModule(module);
     }
 
     /*

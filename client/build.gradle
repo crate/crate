@@ -51,8 +51,8 @@ dependencies {
     }
     // required by ES and Lucene Version classes - keep up to date with es dependencies
     // The version module is required by the DiscoveryNode module
-    compile 'org.apache.lucene:lucene-core:4.10.4'
-    compile 'org.apache.lucene:lucene-analyzers-common:4.10.4'
+    compile 'org.apache.lucene:lucene-core:5.3.1'
+    compile 'org.apache.lucene:lucene-analyzers-common:5.3.1'
 
     compile files(depClasses)
     testCompile 'io.crate:crate-testing:0.4.0'

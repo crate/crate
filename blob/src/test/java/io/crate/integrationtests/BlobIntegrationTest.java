@@ -7,10 +7,9 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -19,19 +18,20 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 2)
+
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
-        put(blobUri(digest), StringUtils.repeat("a", 1500));
+        CloseableHttpResponse response = put(blobUri(digest), StringUtils.repeat("a", 1500));
+        assertThat(response.getStatusLine().getStatusCode(), is(201));
         return digest;
     }
 
@@ -286,7 +286,8 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         CloseableHttpResponse res = httpClient.execute(httpPut);
         assertEquals(201, res.getStatusLine().getStatusCode());
         assertEquals("Created", res.getStatusLine().getReasonPhrase());
-        assertEquals("{\"_index\":\"test_no_blobs\",\"_type\":\"default\",\"_id\":\"1\",\"_version\":1,\"created\":true}",
+        assertEquals("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
+                     "\"_id\":\"1\",\"_version\":1,\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}",
                 EntityUtils.toString(res.getEntity()));
     }
 }

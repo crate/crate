@@ -35,7 +35,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
+import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -49,16 +49,16 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.compress.CompressedString;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -74,6 +74,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -81,7 +82,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  * creates one or more indices within one cluster-state-update-task
@@ -95,7 +96,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
+        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
         implements KillAllListener {
 
     public static final String NAME = "indices:admin/bulk_create";
@@ -130,8 +131,9 @@ public class TransportBulkCreateIndicesAction
                                                AllocationService allocationService,
                                                MetaDataCreateIndexService createIndexService,
                                                Set<IndexTemplateFilter> indexTemplateFilters,
+                                               IndexNameExpressionResolver indexNameExpressionResolver,
                                                ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters);
+        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest.class);
         this.environment = environment;
         this.metaDataService = metaDataService;
         this.aliasValidator = aliasValidator;
@@ -158,11 +160,6 @@ public class TransportBulkCreateIndicesAction
     @Override
     protected String executor() {
         return ThreadPool.Names.MANAGEMENT;
-    }
-
-    @Override
-    protected BulkCreateIndicesRequest newRequest() {
-        return new BulkCreateIndicesRequest();
     }
 
     @Override
@@ -363,7 +360,7 @@ public class TransportBulkCreateIndicesAction
 
             List<IndexTemplateMetaData> templates = findTemplates(request, currentState, indexTemplateFilter);
             applyTemplates(customs, mappings, templatesAliases, templateNames, templates);
-            File mappingsDir = new File(environment.configFile(), "mappings");
+            File mappingsDir = new File(environment.configFile().toFile(), "mappings");
             if (mappingsDir.isDirectory()) {
                 addMappingFromMappingsFile(mappings, mappingsDir, request);
             }
@@ -379,7 +376,7 @@ public class TransportBulkCreateIndicesAction
             // first, add the default mapping
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
                 try {
-                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedString(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false);
+                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing default mapping on index creation";
                     throw new MapperParsingException("mapping [" + MapperService.DEFAULT_MAPPING + "]", e);
@@ -391,7 +388,7 @@ public class TransportBulkCreateIndicesAction
                 }
                 try {
                     // apply the default here, its the first time we parse it
-                    mapperService.merge(entry.getKey(), new CompressedString(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true);
+                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing mappings on index creation";
                     throw new MapperParsingException("mapping [" + entry.getKey() + "]", e);
@@ -436,9 +433,9 @@ public class TransportBulkCreateIndicesAction
                     throw e;
                 }
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
-                        index, templateNames, indexMetaData.numberOfShards(), indexMetaData.numberOfReplicas(), mappings.keySet());
+                        index, templateNames, indexMetaData.getNumberOfShards(), indexMetaData.getNumberOfReplicas(), mappings.keySet());
 
-                indexService.indicesLifecycle().beforeIndexAddedToCluster(new Index(index), indexMetaData.settings());
+                indexService.indicesLifecycle().beforeIndexAddedToCluster(new Index(index), indexMetaData.getSettings());
                 newMetaDataBuilder.put(indexMetaData, false);
             }
             MetaData newMetaData = newMetaDataBuilder.build();
@@ -529,7 +526,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
-        ImmutableSettings.Builder indexSettingsBuilder = settingsBuilder();
+        Settings.Builder indexSettingsBuilder = settingsBuilder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
@@ -558,7 +555,7 @@ public class TransportBulkCreateIndicesAction
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, System.currentTimeMillis());
         }
 
-        indexSettingsBuilder.put(IndexMetaData.SETTING_UUID, Strings.randomBase64UUID());
+        indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, Strings.randomBase64UUID());
 
         return indexSettingsBuilder.build();
     }
@@ -592,7 +589,7 @@ public class TransportBulkCreateIndicesAction
 
         for (IndexTemplateMetaData template : templates) {
             templateNames.add(template.getName());
-            for (ObjectObjectCursor<String, CompressedString> cursor : template.mappings()) {
+            for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                 if (mappings.containsKey(cursor.key)) {
                     XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
                 } else {
@@ -607,7 +604,7 @@ public class TransportBulkCreateIndicesAction
                 if (existing == null) {
                     customs.put(type, custom);
                 } else {
-                    IndexMetaData.Custom merged = IndexMetaData.lookupFactorySafe(type).merge(existing, custom);
+                    IndexMetaData.Custom merged = existing.mergeWith(custom);
                     customs.put(type, merged);
                 }
             }
@@ -624,7 +621,7 @@ public class TransportBulkCreateIndicesAction
                                                       IndexTemplateFilter indexTemplateFilter) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
         CreateIndexClusterStateUpdateRequest dummyRequest =
-                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next());
+                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next(), false);
 
         // note: only use the first index name to see if template matches.
         // this means
@@ -645,7 +642,11 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+            return parser.map();
+        } catch (IOException e) {
+            throw new ElasticsearchException("failed to parse mapping", e);
+        }
     }
 
     @Override

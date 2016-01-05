@@ -26,14 +26,13 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 1, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, randomDynamicTemplates = false)
 public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -41,7 +40,7 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CrateCorePlugin.class.getName())
                 .build();
