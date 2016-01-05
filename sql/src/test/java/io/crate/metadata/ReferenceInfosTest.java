@@ -27,9 +27,12 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
@@ -60,6 +63,9 @@ public class ReferenceInfosTest {
 
     @Mock
     public Functions functions;
+
+    @Mock
+    public Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
 
     @Before
     public void setUp() throws Exception {
@@ -110,7 +116,12 @@ public class ReferenceInfosTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
-        return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class),
-                mock(TransportPutIndexTemplateAction.class), functions);
+        return new ReferenceInfos(
+                builtInSchema,
+                clusterService,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                mock(ThreadPool.class),
+                transportPutIndexTemplateActionProvider,
+                functions);
     }
 }

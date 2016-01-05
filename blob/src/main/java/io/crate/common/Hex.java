@@ -21,8 +21,6 @@
 
 package io.crate.common;
 
-import org.elasticsearch.ElasticsearchIllegalStateException;
-
 public class Hex {
 
     /**
@@ -92,16 +90,16 @@ public class Hex {
         return new String(encodeHex(data));
     }
 
-    public static byte[] decodeHex(String data) throws ElasticsearchIllegalStateException {
+    public static byte[] decodeHex(String data) throws IllegalStateException {
         return decodeHex(data.toCharArray());
     }
 
-    public static byte[] decodeHex(char[] data) throws ElasticsearchIllegalStateException {
+    public static byte[] decodeHex(char[] data) throws IllegalStateException {
 
         int len = data.length;
 
         if ((len & 0x01) != 0) {
-            throw new ElasticsearchIllegalStateException("Odd number of characters.");
+            throw new IllegalStateException("Odd number of characters.");
         }
 
         byte[] out = new byte[len >> 1];
@@ -118,10 +116,10 @@ public class Hex {
         return out;
     }
 
-    protected static int toDigit(char ch, int index) throws ElasticsearchIllegalStateException {
+    protected static int toDigit(char ch, int index) throws IllegalStateException {
         int digit = Character.digit(ch, 16);
         if (digit == -1) {
-            throw new ElasticsearchIllegalStateException("Illegal hexadecimal character " + ch + " at index " + index);
+            throw new IllegalStateException("Illegal hexadecimal character " + ch + " at index " + index);
         }
         return digit;
     }

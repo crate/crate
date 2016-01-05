@@ -27,7 +27,6 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 @Singleton
@@ -49,7 +48,7 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
             throw new RepositoryAlreadyExistsException(repositoryName);
         }
 
-        Settings settings = ImmutableSettings.EMPTY;
+        Settings settings = Settings.EMPTY;
         if (node.properties().isPresent()) {
             settings = GenericPropertiesConverter.genericPropertiesToSettings(node.properties().get(), context.parameterContext());
         }

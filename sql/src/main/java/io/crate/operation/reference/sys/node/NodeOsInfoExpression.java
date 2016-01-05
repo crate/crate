@@ -51,7 +51,7 @@ public class NodeOsInfoExpression extends SysNodeObjectReference {
         childImplementations.put(AVAILABLE_PROCESSORS, new OsInfoExpression() {
             @Override
             public Integer value() {
-                return info.availableProcessors();
+                return info.getAvailableProcessors();
             }
         });
         childImplementations.put(OS, new OsInfoExpression() {

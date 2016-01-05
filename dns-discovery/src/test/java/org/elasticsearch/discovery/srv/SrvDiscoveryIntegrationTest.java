@@ -22,7 +22,7 @@
 package org.elasticsearch.discovery.srv;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,10 +31,10 @@ import org.xbill.DNS.*;
 import java.io.IOException;
 import java.net.URL;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
-@ElasticsearchIntegrationTest.ClusterScope(numClientNodes = 0, numDataNodes = 0)
-public class SrvDiscoveryIntegrationTest extends ElasticsearchIntegrationTest {
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0)
+public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
     @Before
     public void prepare() throws Exception {

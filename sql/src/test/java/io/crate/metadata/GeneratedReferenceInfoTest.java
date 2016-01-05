@@ -31,7 +31,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.StringType;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -59,7 +59,7 @@ public class GeneratedReferenceInfoTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ReferenceInfo.toStream(generatedReferenceInfo, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         GeneratedReferenceInfo generatedReferenceInfo2 = ReferenceInfo.fromStream(in);
 
         assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));

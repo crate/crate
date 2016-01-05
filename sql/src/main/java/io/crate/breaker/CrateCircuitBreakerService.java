@@ -42,7 +42,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     public static final double DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.09;
     public static final String DEFAULT_QUERY_CIRCUIT_BREAKER_TYPE = "memory";
 
-    public static final CircuitBreaker.Name QUERY_BREAKER = CircuitBreaker.Name.register(3, "query");
+    public static final String QUERY = "query";
 
     public static final String BREAKING_EXCEPTION_MESSAGE =
             "[query] Data too large, data for [%s] would be larger than limit of [%d/%s]";
@@ -64,7 +64,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                 QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
                 DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT);
 
-        queryBreakerSettings = new BreakerSettings(QUERY_BREAKER, memoryLimit, overhead,
+        queryBreakerSettings = new BreakerSettings(QUERY, memoryLimit, overhead,
                 CircuitBreaker.Type.parseValue(
                         settings.get(QUERY_CIRCUIT_BREAKER_TYPE_SETTING,
                         DEFAULT_QUERY_CIRCUIT_BREAKER_TYPE)));
@@ -79,7 +79,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
-    public CircuitBreaker getBreaker(CircuitBreaker.Name name) {
+    public CircuitBreaker getBreaker(String name) {
         return esCircuitBreakerService.getBreaker(name);
     }
 
@@ -89,7 +89,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
-    public CircuitBreakerStats stats(CircuitBreaker.Name name) {
+    public CircuitBreakerStats stats(String name) {
         return esCircuitBreakerService.stats(name);
     }
 
@@ -120,7 +120,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                     || newQueryOverhead != CrateCircuitBreakerService.this.queryBreakerSettings.getOverhead()) {
 
                 BreakerSettings newQuerySettings = new BreakerSettings(
-                        QUERY_BREAKER, newQueryMax, newQueryOverhead,
+                        QUERY, newQueryMax, newQueryOverhead,
                         CrateCircuitBreakerService.this.queryBreakerSettings.getType());
                 registerBreaker(newQuerySettings);
             }

@@ -24,9 +24,9 @@ package io.crate.test.integration;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.lucene.util.AbstractRandomizedTest;
+import io.crate.test.GroovyTestSanitizer;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.test.ElasticsearchTestCase;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,11 +36,12 @@ import org.mockito.MockitoAnnotations;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @Listeners({LoggingListener.class})
-public abstract class CrateUnitTest extends AbstractRandomizedTest {
+public abstract class CrateUnitTest extends ESTestCase {
 
     static {
+        GroovyTestSanitizer.isGroovySanitized();
         // mute ES loggings
-        Loggers.getLogger(ElasticsearchTestCase.class).setLevel("WARN");
+        Loggers.getLogger(ESTestCase.class).setLevel("WARN");
     }
 
     @Rule

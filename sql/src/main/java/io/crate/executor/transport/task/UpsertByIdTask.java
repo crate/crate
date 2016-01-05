@@ -44,6 +44,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -59,6 +60,7 @@ import java.util.concurrent.CancellationException;
 public class UpsertByIdTask extends JobTask {
 
     private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -74,6 +76,7 @@ public class UpsertByIdTask extends JobTask {
 
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           Settings settings,
                           BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
@@ -82,6 +85,7 @@ public class UpsertByIdTask extends JobTask {
                           UpsertByIdNode node,
                           JobContextService jobContextService) {
         super(jobId);
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
@@ -89,7 +93,7 @@ public class UpsertByIdTask extends JobTask {
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        autoCreateIndex = new AutoCreateIndex(settings);
+        autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
 
         if (node.items().size() == 1) {
             // skip useless usage of bulk processor if only 1 item in statement
@@ -181,6 +185,8 @@ public class UpsertByIdTask extends JobTask {
         BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
+                indexNameExpressionResolver,
+                settings,
                 bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),
                 node.items().size(),

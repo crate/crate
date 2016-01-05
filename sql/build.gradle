@@ -53,6 +53,9 @@ test {
     jvmArgs '-XX:-UseSplitVerifier'
 
     jacoco.excludes = ["*Test*"]
+
+    // make sure sources are first on classpath because we do override some class(es) (currently: lucene's AssertingLeafReader)
+    classpath = sourceSets.main.output + sourceSets.test.output + configurations.testCompile
 }
 
 clean.dependsOn(cleanTest)

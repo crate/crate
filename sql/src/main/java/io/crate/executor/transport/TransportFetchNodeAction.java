@@ -69,17 +69,14 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.transports = transports;
         this.statsTables = statsTables;
         this.nodeFetchOperation = nodeFetchOperation;
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
 
-        transportService.registerHandler(TRANSPORT_ACTION,
-                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {
-                    @Override
-                    public NodeFetchRequest newInstance() {
-                        return new NodeFetchRequest();
-                    }
-                });
+        transportService.registerRequestHandler(TRANSPORT_ACTION,
+                NodeFetchRequest.class,
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) { });
     }
 
     public void execute(String targetNode,

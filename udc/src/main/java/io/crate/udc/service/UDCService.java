@@ -22,6 +22,7 @@
 package io.crate.udc.service;
 
 import io.crate.ClusterIdService;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.udc.ping.PingTask;
 import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.ElasticsearchException;
@@ -31,7 +32,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.service.NodeService;
 
 import java.util.Timer;
 
@@ -41,14 +41,15 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
 
     private final ClusterService clusterService;
     private final Provider<ClusterIdService> clusterIdServiceProvider;
-    private final NodeService nodeService;
+    private final ExtendedNodeInfo extendedNodeInfo;
 
     @Inject
     public UDCService(Settings settings,
-                      NodeService nodeService, ClusterService clusterService,
+                      ExtendedNodeInfo extendedNodeInfo,
+                      ClusterService clusterService,
                       Provider<ClusterIdService> clusterIdServiceProvider) {
         super(settings);
-        this.nodeService = nodeService;
+        this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
         this.clusterIdServiceProvider = clusterIdServiceProvider;
         this.timer = new Timer("crate-udc");
@@ -63,7 +64,7 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         if (logger.isDebugEnabled()) {
             logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), nodeService, url);
+        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), extendedNodeInfo, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 

@@ -21,7 +21,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,8 +33,8 @@ import java.util.UUID;
 /**
  * Base Request Class for Blob Transfers
  */
-public abstract class BlobTransferRequest<T extends ShardReplicationOperationRequest>
-    extends ShardReplicationOperationRequest<T>
+public abstract class BlobTransferRequest<T extends ReplicationRequest>
+    extends ReplicationRequest<T>
     implements IPutChunkRequest
 {
 

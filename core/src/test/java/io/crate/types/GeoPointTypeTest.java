@@ -22,8 +22,8 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -40,7 +40,7 @@ public class GeoPointTypeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         DataTypes.GEO_POINT.writeValueTo(out, p1);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         Double[] p2 = DataTypes.GEO_POINT.readValueFrom(in);
 
         assertThat(p1, equalTo(p2));

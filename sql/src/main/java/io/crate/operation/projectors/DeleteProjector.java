@@ -31,6 +31,7 @@ import io.crate.operation.collect.CollectExpression;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -38,7 +39,10 @@ import java.util.UUID;
 
 public class DeleteProjector extends DMLProjector<ShardDeleteRequest> {
 
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+
     public DeleteProjector(ClusterService clusterService,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
                            Settings settings,
                            ShardId shardId,
                            TransportActionProvider transportActionProvider,
@@ -47,6 +51,7 @@ public class DeleteProjector extends DMLProjector<ShardDeleteRequest> {
                            UUID jobId) {
         super(clusterService, settings, shardId, transportActionProvider, bulkRetryCoordinatorPool,
                 collectUidExpression, jobId);
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
@@ -58,6 +63,8 @@ public class DeleteProjector extends DMLProjector<ShardDeleteRequest> {
         return new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
+                settings,
                 bulkRetryCoordinatorPool,
                 false,
                 bulkSize,

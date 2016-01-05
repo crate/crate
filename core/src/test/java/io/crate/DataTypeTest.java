@@ -26,8 +26,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -43,7 +43,7 @@ public class DataTypeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = DataTypes.STRING.streamer();
         streamer.writeValueTo(out, b1);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         BytesRef b2 = (BytesRef) streamer.readValueFrom(in);
         assertEquals(b1, b2);
     }
@@ -54,7 +54,7 @@ public class DataTypeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = DataTypes.STRING.streamer();
         streamer.writeValueTo(out, b1);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         BytesRef b2 = (BytesRef) streamer.readValueFrom(in);
         assertNull(b2);
     }

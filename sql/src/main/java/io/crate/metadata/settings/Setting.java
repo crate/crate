@@ -72,4 +72,9 @@ public abstract class Setting<T, E> {
         return builder.build().reverse();
 
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" + settingName() + "}";
+    }
 }

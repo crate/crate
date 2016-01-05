@@ -29,7 +29,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,7 +41,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
@@ -113,7 +113,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
-        assertEquals(115L, response.rowCount());
+        assertEquals(116L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
@@ -435,7 +435,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(333L, response.rowCount());
+        assertEquals(329L, response.rowCount());
     }
 
     @Test

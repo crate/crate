@@ -25,8 +25,6 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.transport.StreamBucket;
-import org.elasticsearch.common.io.ThrowableObjectInputStream;
-import org.elasticsearch.common.io.ThrowableObjectOutputStream;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -136,12 +134,7 @@ public class DistributedResultRequest extends TransportRequest {
 
         boolean failure = in.readBoolean();
         if (failure) {
-            ThrowableObjectInputStream tis = new ThrowableObjectInputStream(in);
-            try {
-                throwable = (Throwable) tis.readObject();
-            } catch (ClassNotFoundException e) {
-                throwable = new UnknownUpstreamFailure();
-            }
+            throwable = in.readThrowable();
         } else {
             StreamBucket bucket = new StreamBucket(streamers);
             bucket.readFrom(in);
@@ -162,8 +155,7 @@ public class DistributedResultRequest extends TransportRequest {
         boolean failure = throwable != null;
         out.writeBoolean(failure);
         if (failure) {
-            ThrowableObjectOutputStream too = new ThrowableObjectOutputStream(out);
-            too.writeObject(throwable);
+            out.writeThrowable(throwable);
         } else {
             // TODO: we should not rely on another bucket in this class and instead write to the stream directly
             StreamBucket.writeBucket(out, streamers, rows);
