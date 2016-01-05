@@ -107,7 +107,7 @@ public class ContextPreparer extends AbstractComponent {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         this.threadPool = threadPool;
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
         innerPreparer = new InnerPreparer();
@@ -135,7 +135,7 @@ public class ContextPreparer extends AbstractComponent {
                 nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
         List<ExecutionSubContext> handlerContexts = new ArrayList<>(handlerPhases.size());
-        IntOpenHashSet leafs = new IntOpenHashSet();
+        IntHashSet leafs = new IntHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionPhase phase = handlerPhase.v1();
             preparerContext.handlerRowReceivers.put(phase.executionPhaseId(), handlerPhase.v2());
@@ -310,8 +310,8 @@ public class ContextPreparer extends AbstractComponent {
         /**
          * from toKey(phaseId, inputId) to RowReceiver.
          */
-        private final LongObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new LongObjectOpenHashMap<>();
-        private final IntObjectOpenHashMap<RowReceiver> handlerRowReceivers = new IntObjectOpenHashMap<>();
+        private final LongObjectMap<RowReceiver> phaseIdToRowReceivers = new LongObjectHashMap<>();
+        private final IntObjectMap<RowReceiver> handlerRowReceivers = new IntObjectHashMap<>();
 
         @Nullable
         private final SharedShardContexts sharedShardContexts;

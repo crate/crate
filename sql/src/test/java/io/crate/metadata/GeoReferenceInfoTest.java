@@ -23,7 +23,7 @@
 package io.crate.metadata;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -35,19 +35,19 @@ public class GeoReferenceInfoTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         TableIdent tableIdent = new TableIdent("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "geo_column");
-        GeoReferenceInfo geoReferenceInfo = new GeoReferenceInfo(referenceIdent, "some_tree", 3, 0.5d);
+        GeoReferenceInfo geoReferenceInfo = new GeoReferenceInfo(referenceIdent, "some_tree", "1m", 3, 0.5d);
 
         BytesStreamOutput out = new BytesStreamOutput();
         ReferenceInfo.toStream(geoReferenceInfo, out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         GeoReferenceInfo geoReferenceInfo2 = ReferenceInfo.fromStream(in);
 
         assertThat(geoReferenceInfo2, is(geoReferenceInfo));
 
-        GeoReferenceInfo geoReferenceInfo3 = new GeoReferenceInfo(referenceIdent, "some_tree", null, null);
+        GeoReferenceInfo geoReferenceInfo3 = new GeoReferenceInfo(referenceIdent, "some_tree", null, null, null);
         out = new BytesStreamOutput();
         ReferenceInfo.toStream(geoReferenceInfo3, out);
-        in = new BytesStreamInput(out.bytes());
+        in = StreamInput.wrap(out.bytes());
         GeoReferenceInfo geoReferenceInfo4 = ReferenceInfo.fromStream(in);
 
         assertThat(geoReferenceInfo4, is(geoReferenceInfo3));

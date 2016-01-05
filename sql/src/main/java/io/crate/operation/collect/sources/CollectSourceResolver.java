@@ -46,6 +46,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -68,6 +69,7 @@ public class CollectSourceResolver {
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
+                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                  Functions functions,
                                  NestedReferenceResolver clusterReferenceResolver,
                                  Settings settings,
@@ -88,6 +90,7 @@ public class CollectSourceResolver {
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,

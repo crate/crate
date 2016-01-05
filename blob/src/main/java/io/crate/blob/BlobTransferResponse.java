@@ -21,13 +21,13 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.ActionWriteResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class BlobTransferResponse extends ActionResponse {
+public class BlobTransferResponse extends ActionWriteResponse {
 
     // current size of the file on the target
     private long size;

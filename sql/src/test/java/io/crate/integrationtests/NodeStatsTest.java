@@ -182,21 +182,21 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         assertThat((Long) results.get("timestamp"), greaterThan(0L));
-        assertThat((Long) results.get("uptime"), greaterThan(0L));
+        assertThat((Long) results.get("uptime"), greaterThanOrEqualTo(-1L));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("system"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("system"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("system"), lessThanOrEqualTo((short) 100));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("user"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("user"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("user"), lessThanOrEqualTo((short) 100));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("used"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("used"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("used"), lessThanOrEqualTo((short) 100));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("idle"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("idle"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("idle"), lessThanOrEqualTo((short) 100));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
     }
 
@@ -262,13 +262,14 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         }
 
         Object[] data = (Object[])fs.get("data");
-        // only one data path configured in test mode
-
-        int numDataPaths = GLOBAL_CLUSTER.getInstance(NodeEnvironment.class).nodeDataPaths().length;
-        assertThat(data.length, is(numDataPaths));
-        Map<String, Object> someData = (Map<String, Object>)data[0];
-        assertThat(someData.keySet().size(), is(2));
-        assertThat(someData.keySet(), hasItems("dev", "path"));
+        if (data.length > 0) {
+            // without sigar, no data definition returned
+            int numDataPaths = GLOBAL_CLUSTER.getInstance(NodeEnvironment.class).nodeDataPaths().length;
+            assertThat(data.length, is(numDataPaths));
+            Map<String, Object> someData = (Map<String, Object>) data[0];
+            assertThat(someData.keySet().size(), is(2));
+            assertThat(someData.keySet(), hasItems("dev", "path"));
+        }
     }
 
     @Test

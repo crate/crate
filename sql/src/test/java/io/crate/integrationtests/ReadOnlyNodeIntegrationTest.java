@@ -30,9 +30,8 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportBaseSQLAction;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +43,7 @@ import java.nio.file.Paths;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     private SQLTransportExecutor readOnlyExecutor;
@@ -69,7 +68,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put(TransportBaseSQLAction.NODE_READ_ONLY_SETTING, true);

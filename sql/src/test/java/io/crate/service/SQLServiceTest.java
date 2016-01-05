@@ -21,15 +21,19 @@
 
 package io.crate.service;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.TransportSQLAction;
+import io.crate.plugin.CrateCorePlugin;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.node.NodeBuilder;
-import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.node.MockNode;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.junit.Test;
 
@@ -37,8 +41,7 @@ public class SQLServiceTest extends CrateUnitTest {
 
     @Test
     public void testDisableAndReEnable() throws Exception {
-        InternalNode node = (InternalNode) NodeBuilder.nodeBuilder().local(true).data(true).settings(
-                ImmutableSettings.builder()
+        Settings nodeSettings = Settings.builder()
                         .put(ClusterName.SETTING, getClass().getName())
                         .put("node.name", getClass().getName())
                         .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
@@ -47,9 +50,10 @@ public class SQLServiceTest extends CrateUnitTest {
                         .put("http.enabled", false)
                         .put("index.store.type", "ram")
                         .put("config.ignore_system_properties", true)
-                        .put("gateway.type", "none")).build();
+                        .put("path.home", createTempDir()).build();
+        Node node = new MockNode(nodeSettings, Version.CURRENT,
+                ImmutableList.<Class<? extends Plugin>>of(CrateCorePlugin.class));
         node.start();
-
 
         SQLService sqlService = node.injector().getInstance(SQLService.class);
         TransportSQLAction transportSQLAction = node.injector().getInstance(TransportSQLAction.class);

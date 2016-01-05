@@ -48,6 +48,7 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -56,9 +57,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -75,10 +74,11 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 
+
 public class ShardProjectorChainTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private ThreadPool threadPool;
@@ -94,7 +94,6 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 new ScalarFunctionModule(),
                 new OperatorModule(),
                 new AggregationImplModule(),
-                new HighlightModule(),
                 new TestModule(),
                 new MetaDataModule());
         Injector injector = builder.createInjector();
@@ -104,8 +103,9 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
                 functions,
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class),
                 implementationSymbolVisitor,
@@ -128,7 +128,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
         }
     }
 

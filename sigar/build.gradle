@@ -1,0 +1,37 @@
+apply plugin: 'java'
+
+archivesBaseName = 'crate-sigar'
+group = 'io.crate'
+description = 'Crate.IO Sigar Plugin'
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+dependencies {
+    compile project(':es')
+    compile project(':core')
+
+    // we add the sigar libs as system dep since it is checked in
+    compile fileTree(dir: 'lib/', include: '*.jar')
+
+    testCompile project(':testing')
+}
+
+// get version and set it on the project, so it gets appended to the jar name
+task getVersion(dependsOn: [':core:getVersion']) {
+    doFirst {
+        project.version = project(':core').getVersion.version
+    }
+}
+
+sourceSets.test.output.resourcesDir = null
+
+jar {
+    doLast {
+        manifest {
+            attributes("Implementation-Title": description, "Implementation-Version": project.version)
+        }
+    }
+}
+jar.dependsOn(getVersion)

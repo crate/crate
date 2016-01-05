@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal
 import io.crate.planner.node.dql.CollectAndMerge
 import io.crate.planner.node.dql.FileUriCollectPhase
 import io.crate.planner.projection.SourceIndexWriterProjection
+import io.crate.test.GroovyTestSanitizer
 import org.apache.lucene.util.BytesRef
 import org.junit.Test
 

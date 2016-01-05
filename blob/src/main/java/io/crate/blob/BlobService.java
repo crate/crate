@@ -54,9 +54,10 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
 
     @Inject
     public BlobService(Settings settings,
-            ClusterService clusterService, Injector injector,
-            BlobHeadRequestHandler blobHeadRequestHandler,
-            BlobEnvironment blobEnvironment) {
+                       ClusterService clusterService,
+                       Injector injector,
+                       BlobHeadRequestHandler blobHeadRequestHandler,
+                       BlobEnvironment blobEnvironment) {
         super(settings);
         this.clusterService = clusterService;
         this.injector = injector;
@@ -80,9 +81,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         ESLogger transportServiceLogger = Loggers.getLogger(TransportService.class);
         String previousLevel = transportServiceLogger.getLevel();
         transportServiceLogger.setLevel("ERROR");
-
         injector.getInstance(BlobRecoverySource.class).registerHandler();
-
         transportServiceLogger.setLevel(previousLevel);
 
         // validate the optional blob path setting
@@ -107,10 +106,16 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
 
     @Override
     protected void doStop() throws ElasticsearchException {
+        if (settings.getAsBoolean("http.enabled", true)) {
+            injector.getInstance(HttpServer.class).stop();
+        }
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
+        if (settings.getAsBoolean("http.enabled", true)) {
+            injector.getInstance(HttpServer.class).close();
+        }
     }
 
     /**

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.LifecycleScope;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
@@ -29,7 +30,7 @@ import io.crate.test.utils.Blobs;
 import io.crate.testing.TestingHelpers;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -49,10 +50,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
@@ -314,7 +319,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -405,7 +410,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[]{uri});
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -467,7 +472,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToDirectoryPath() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
+        expectedException.expectMessage(containsString("Failed to open output: 'Output path is a directory: "));
         execute("create table characters (" +
                 " race string," +
                 " gender string," +
@@ -527,7 +532,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create blob table blobs with (number_of_replicas = 0)");
         execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
 
-        File tmpDir = newTempDir();
+        File tmpDir = newTempDir(LifecycleScope.TEST);
         File file = new File(tmpDir, "names.json");
         String r1 = "{\"id\": 1, \"name\": \"Arthur\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";

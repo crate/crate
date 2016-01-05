@@ -31,7 +31,7 @@ import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,11 +43,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -68,8 +67,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                 // doc_values: true is default and not included
+                "\"col1\":{\"type\":\"integer\"}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -104,7 +104,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.refresh_interval\":\"0\"," +
+                "\"index.refresh_interval\":\"0ms\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
@@ -114,7 +114,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.refresh_interval\":\"5000\"," +
+                "\"index.refresh_interval\":\"5000ms\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
@@ -124,7 +124,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"0\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.refresh_interval\":\"1000\"," +
+                "\"index.refresh_interval\":\"1000ms\"," +
                 "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
@@ -155,8 +155,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"routing\":\"col1\"}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                "\"col1\":{\"type\":\"integer\"}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -184,8 +184,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"primary_keys\":[\"col1\"]}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                      // doc_values: true is default for integer and (string + not_analyzed)
+                     // defaults are not included so it's missing here
+                "\"col1\":{\"type\":\"integer\"}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -208,8 +210,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic\":\"true\"," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
-                                 // precision is automatically converted to tree_levels by elasticsearch
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"tree_levels\":26,\"distance_error_pct\":0.25}" +
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}" +
                                  "}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
@@ -463,7 +464,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             assertTrue("did not fail for existing column o", false);
         } catch (SQLActionException e) {
             // column o exists already
-            assertThat(e.getMessage(), is("The table doc.t already has a column named o"));
+            assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));
         }
         execute("select * from information_schema.columns where " +
                 "table_name = 't' and schema_name='doc'" +
@@ -568,7 +569,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -679,8 +680,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"doc_values\":true,\"format\":\"dateOptionalTime\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"doc_values\":true,\"format\":\"dateOptionalTime\"}" +
+                                 "\"day\":{\"type\":\"date\",\"format\":\"strict_date_optional_time||epoch_millis\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"format\":\"strict_date_optional_time||epoch_millis\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

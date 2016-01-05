@@ -26,20 +26,19 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.cli.Terminal;
+import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
+import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -64,12 +63,13 @@ public class NodeSettingsTest {
             loggingConfigured = true;
         }
         tmp.create();
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
             .put("node.name", "node-test")
             .put("node.data", true)
-            .put("index.store.type", "memory")
+            .put("index.store.type", "default")
             .put("index.store.fs.memory.enabled", "true")
-            .put("gateway.type", "none")
+            .put("gateway.type", "default")
+            .put("path.home", tmp.getRoot())
             .put("path.data", new File(tmp.getRoot(), "data"))
             .put("path.work", new File(tmp.getRoot(), "work"))
             .put("path.logs", new File(tmp.getRoot(), "logs"))
@@ -77,10 +77,11 @@ public class NodeSettingsTest {
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
             .put("node.local", true);
-        Tuple<Settings,Environment> settingsEnvironmentTuple = InternalSettingsPreparer.prepareSettings(builder.build(), true);
+
+        Terminal terminal = Terminal.DEFAULT;
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
         node = NodeBuilder.nodeBuilder()
-            .settings(settingsEnvironmentTuple.v1())
-            .loadConfigSettings(false)
+            .settings(environment.settings())
             .build();
         node.start();
         client = node.client();
@@ -94,7 +95,7 @@ public class NodeSettingsTest {
             client = null;
         }
         if (node != null) {
-            node.stop();
+            Releasables.close(node);
             node = null;
         }
 
@@ -124,36 +125,6 @@ public class NodeSettingsTest {
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
         System.clearProperty("es.cluster.name");
 
-    }
-
-    /**
-     * The location of the used config file might be defined with the system
-     * property crate.config. The configuration located at crate's default
-     * location will get ignored.
-     *
-     * @throws IOException
-     */
-    @Test
-    public void testCustomYMLSettings() throws IOException {
-
-        File custom = new File("custom");
-        custom.mkdir();
-        File file = new File(custom, "custom.yml");
-        try (FileWriter customWriter = new FileWriter(file, false)) {
-            customWriter.write("cluster.name: custom");
-        }
-
-        System.setProperty("es.config", "custom/custom.yml");
-
-        doSetup();
-
-        file.delete();
-        custom.delete();
-        System.clearProperty("es.config");
-
-        assertEquals("custom",
-            client.admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName());
     }
 
     @Test

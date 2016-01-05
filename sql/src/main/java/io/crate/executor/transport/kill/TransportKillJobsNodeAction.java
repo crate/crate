@@ -60,12 +60,11 @@ public class TransportKillJobsNodeAction extends AbstractComponent implements No
         this.jobContextService = jobContextService;
         this.clusterService = clusterService;
         this.transports = transports;
-        transportService.registerHandler(TRANSPORT_ACTION, new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {
-            @Override
-            public KillJobsRequest newInstance() {
-                return new KillJobsRequest();
-            }
-        });
+
+        transportService.registerRequestHandler(TRANSPORT_ACTION,
+                KillJobsRequest.class,
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) { });
     }
 
     public void executeKillOnAllNodes(KillJobsRequest request, final ActionListener<KillResponse> listener) {

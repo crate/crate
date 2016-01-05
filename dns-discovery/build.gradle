@@ -9,3 +9,9 @@ dependencies {
     compile 'dnsjava:dnsjava:2.1.7'
     testCompile project(':testing')
 }
+
+sourceSets {
+    main {
+        output.resourcesDir = null
+    }
+}
