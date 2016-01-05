@@ -85,57 +85,46 @@ public class CrateComponentLoader {
         this.onModuleReferences = onModuleReferences.immutableMap();
     }
 
-    public Collection<Class<? extends Module>> modules() {
-        List<Class<? extends Module>> modules = Lists.newArrayList();
+    public Collection<Module> nodeModules() {
+        List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.modules());
+            modules.addAll(plugin.nodeModules());
         }
         return modules;
     }
 
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            services.addAll(plugin.services());
+            services.addAll(plugin.nodeServices());
         }
         return services;
     }
 
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.indexModules());
+            modules.addAll(plugin.indexModules(indexSettings));
         }
         return modules;
     }
 
-    public Collection<Module> modules(Settings settings) {
+    public Collection<Module> shardModules(Settings indexSettings) {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.modules(settings));
+            modules.addAll(plugin.shardModules(indexSettings));
         }
         return modules;
     }
 
-    public Collection<Class<? extends Module>> shardModules() {
-        List<Class<? extends Module>> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.shardModules());
+    public void processModules(Iterable<Module> modules) {
+        for (Module module : modules) {
+            processModule(module);
         }
-        return modules;
-    }
-
-    public Collection<Module> shardModules(Settings settings) {
-        List<Module> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.shardModules(settings));
-        }
-        return modules;
     }
 
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {
-            plugin.processModule(module);
             // see if there are onModule references
             List<OnModuleReference> references = onModuleReferences.get(plugin);
             if (references != null) {

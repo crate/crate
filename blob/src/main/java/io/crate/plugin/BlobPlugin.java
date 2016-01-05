@@ -31,11 +31,11 @@ import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
 
-public class BlobPlugin extends AbstractPlugin {
+public class BlobPlugin extends Plugin {
 
     private final Settings settings;
 
@@ -60,37 +60,37 @@ public class BlobPlugin extends AbstractPlugin {
     }
 
     @Override
-    public Collection<Class<? extends Module>> modules() {
-        Collection<Class<? extends Module>> modules = Lists.newArrayList();
+    public Collection<Module> nodeModules() {
+        Collection<Module> modules = Lists.newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(BlobModule.class);
-            modules.add(BlobIndicesModule.class);
+            modules.add(new BlobModule());
+            modules.add(new BlobIndicesModule());
         }
         return modules;
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         // only start the service if we have a data node
         if (!settings.getAsBoolean("node.client", false)) {
             Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
             services.add(BlobService.class);
             return services;
         }
-        return super.services();
+        return super.nodeServices();
     }
 
     @Override
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> modules = Lists.newArrayList();
-        modules.add(BlobIndexModule.class);
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> modules = Lists.newArrayList();
+        modules.add(new BlobIndexModule(indexSettings));
         return modules;
     }
 
     @Override
-    public Collection<Class<? extends Module>> shardModules() {
-        Collection<Class<? extends Module>> modules = Lists.newArrayList();
-        modules.add(BlobShardModule.class);
+    public Collection<Module> shardModules(Settings indexSettings) {
+        Collection<Module> modules = Lists.newArrayList();
+        modules.add(new BlobShardModule(indexSettings));
         return modules;
     }
 

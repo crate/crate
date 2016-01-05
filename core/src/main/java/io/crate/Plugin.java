@@ -27,6 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * An extension point allowing to plug in custom functionality.
@@ -35,73 +36,64 @@ import java.util.Collection;
  * preferred to an empty one.
  * </p>
  */
-public interface Plugin {
+public abstract class Plugin {
 
     /**
      * The name of the plugin.
      */
-    public String name();
+    public abstract String name();
 
     /**
      * The description of the plugin.
      */
-    public String description();
+    public abstract String description();
 
     /**
      * Node level modules (classes, will automatically be created).
      */
-    public Collection<Class<? extends Module>> modules();
-
-    /**
-     * Node level modules (instances)
-     *
-     * @param settings The node level settings.
-     */
-    public Collection<? extends Module> modules(Settings settings);
+    public Collection<Module> nodeModules() {
+        return Collections.emptyList();
+    }
 
     /**
      * Node level services that will be automatically started/stopped/closed.
      */
-    public Collection<Class<? extends LifecycleComponent>> services();
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+        return Collections.emptyList();
+    }
 
     /**
      * Per index modules.
      */
-    public Collection<Class<? extends Module>> indexModules();
-
-    /**
-     * Per index modules.
-     */
-    public Collection<? extends Module> indexModules(Settings settings);
+    public Collection<Module> indexModules(Settings indexSettings) {
+        return Collections.emptyList();
+    }
 
     /**
      * Per index services that will be automatically closed.
      */
-    public Collection<Class<? extends Closeable>> indexServices();
+    public Collection<Class<? extends Closeable>> indexServices() {
+        return Collections.emptyList();
+    }
 
     /**
      * Per index shard module.
      */
-    public Collection<Class<? extends Module>> shardModules();
-
-    /**
-     * Per index shard module.
-     */
-    public Collection<? extends Module> shardModules(Settings settings);
+    public Collection<Module> shardModules(Settings indexSettings) {
+        return Collections.emptyList();
+    }
 
     /**
      * Per index shard service that will be automatically closed.
      */
-    public Collection<Class<? extends Closeable>> shardServices();
-
-    /**
-     * Process a specific module. Note, its simpler to implement a custom <tt>onModule(AnyModule module)</tt>
-     * method, which will be automatically be called by the relevant type.
-     */
-    public void processModule(Module module);
+    public Collection<Class<? extends Closeable>> shardServices() {
+        return Collections.emptyList();
+    }
 
     /**
      * Additional node settings loaded by the plugin
      */
-    public Settings additionalSettings();
+    public Settings additionalSettings() {
+        return Settings.Builder.EMPTY_SETTINGS;
+    }
 }

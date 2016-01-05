@@ -25,15 +25,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.crate.core.CrateComponentLoader;
 import io.crate.module.CrateCoreModule;
-import io.crate.module.CrateCoreShardModule;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
 import javax.net.ssl.SSLContext;
@@ -46,7 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 
-public class CrateCorePlugin extends AbstractPlugin {
+public class CrateCorePlugin extends Plugin {
 
     private final Settings settings;
     private final CrateComponentLoader crateComponentLoader;
@@ -86,50 +84,49 @@ public class CrateCorePlugin extends AbstractPlugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
-        services.addAll(crateComponentLoader.services());
-        services.addAll(pluginLoader.services());
+        services.addAll(crateComponentLoader.nodeServices());
+        services.addAll(pluginLoader.nodeServices());
         return services;
     }
 
     @Override
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> indexModules = Lists.newArrayList();
-        indexModules.addAll(crateComponentLoader.indexModules());
-        indexModules.addAll(pluginLoader.indexModules());
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> indexModules = Lists.newArrayList();
+        indexModules.addAll(crateComponentLoader.indexModules(indexSettings));
+        indexModules.addAll(pluginLoader.indexModules(indexSettings));
         return indexModules;
     }
 
     @Override
-    public Collection<Module> modules(Settings settings) {
+    public Collection<Module> nodeModules() {
         Collection<Module> modules = new ArrayList<>();
         CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
         modules.add(crateCoreModule);
-        modules.addAll(crateComponentLoader.modules(settings));
-        modules.addAll(pluginLoader.modules(settings));
+        modules.addAll(crateComponentLoader.nodeModules());
+        modules.addAll(pluginLoader.nodeModules());
         return modules;
     }
 
     @Override
-    public Collection<Class<? extends Module>> modules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
-        modules.addAll(crateComponentLoader.modules());
-        modules.addAll(pluginLoader.modules());
-        return modules;
-    }
-
-    @Override
-    public Collection<Class<? extends Module>> shardModules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
+    public Collection<Module> shardModules(Settings indexSettings) {
+        Collection<Module> modules = new ArrayList<>();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(CrateCoreShardModule.class);
+            modules.addAll(crateComponentLoader.shardModules(indexSettings));
+            modules.addAll(pluginLoader.shardModules(indexSettings));
+
+            crateComponentLoader.processModules(modules);
         }
         return modules;
     }
 
     public void onModule(RestModule restModule) {
         restModule.addRestAction(CrateRestMainAction.class);
+    }
+
+    public void onModule(Module module) {
+        crateComponentLoader.processModule(module);
     }
 
     /*

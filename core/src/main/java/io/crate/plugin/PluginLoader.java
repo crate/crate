@@ -38,7 +38,6 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 
 import java.io.File;
@@ -256,54 +255,37 @@ public class PluginLoader {
         return list;
     }
 
-    public Collection<Class<? extends Module>> modules() {
-        List<Class<? extends Module>> modules = Lists.newArrayList();
+    public Collection<Module> nodeModules() {
+        List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.modules());
+            modules.addAll(plugin.nodeModules());
         }
         return modules;
     }
 
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            services.addAll(plugin.services());
+            services.addAll(plugin.nodeServices());
         }
         return services;
     }
 
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> modules = new ArrayList<>();
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.indexModules());
+            modules.addAll(plugin.indexModules(indexSettings));
         }
         return modules;
     }
 
-    public Collection<Module> modules(Settings settings) {
+    public Collection<Module> shardModules(Settings indexSettings) {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.modules(settings));
+            modules.addAll(plugin.shardModules(indexSettings));
         }
         return modules;
     }
-
-    public Collection<Class<? extends Module>> shardModules() {
-        List<Class<? extends Module>> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.shardModules());
-        }
-        return modules;
-    }
-
-    public Collection<Module> shardModules(Settings settings) {
-        List<Module> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.shardModules(settings));
-        }
-        return modules;
-    }
-
 
     public Settings additionalSettings() {
         Settings.Builder builder = Settings.settingsBuilder();
@@ -313,9 +295,14 @@ public class PluginLoader {
         return builder.build();
     }
 
+    public void processModules(Iterable<Module> modules) {
+        for (Module module : modules) {
+            processModule(module);
+        }
+    }
+
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {
-            plugin.processModule(module);
             // see if there are onModule references
             List<CrateComponentLoader.OnModuleReference> references = onModuleReferences.get(plugin);
             if (references != null) {
