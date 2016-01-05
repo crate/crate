@@ -22,10 +22,10 @@
 package io.crate.testing.plugin;
 
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.plugin.AbstractPlugin;
+import io.crate.Plugin;
 import io.crate.testing.SleepScalarFunction;
 
-public class CrateTestingPlugin extends AbstractPlugin {
+public class CrateTestingPlugin extends Plugin {
 
     @Override
     public String name() {

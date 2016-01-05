@@ -47,11 +47,13 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -90,7 +92,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class TransportShardUpsertAction
-        extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
+        extends TransportReplicationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
         implements KillAllListener {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
@@ -114,28 +116,17 @@ public class TransportShardUpsertAction
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       Functions functions,
-                                      Schemas schemas) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
+                                      Schemas schemas,
+                                      MappingUpdatedAction mappingUpdatedAction,
+                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool,
+                shardStateAction, mappingUpdatedAction, actionFilters, indexNameExpressionResolver,
+                ShardUpsertRequest.class, ShardUpsertRequest.class, ThreadPool.Names.BULK);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
         jobContextService.addListener(this);
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.BULK;
-    }
-
-    @Override
-    protected ShardUpsertRequest newRequestInstance() {
-        return new ShardUpsertRequest();
-    }
-
-    @Override
-    protected ShardUpsertRequest newReplicaRequestInstance() {
-        return new ShardUpsertRequest();
     }
 
     @Override
@@ -153,7 +144,8 @@ public class TransportShardUpsertAction
         return false;
     }
 
-    @Override
+    // TODOL FIX ME! Override
+    // @Override
     protected boolean ignoreReplicas() {
         return true;
     }
@@ -161,7 +153,7 @@ public class TransportShardUpsertAction
     @Override
     protected ShardIterator shards(ClusterState state, InternalRequest request) {
         return clusterService.operationRouting()
-                .getShards(state, request.request().index(), request.request().shardId(), Preference.PRIMARY.type());
+                .getShards(state, request.request().index(), request.request().shardId().id(), Preference.PRIMARY.type());
     }
 
     @Override
@@ -195,7 +187,7 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    protected void shardOperationOnReplica(ShardId shardId, ShardUpsertRequest shardRequest) {
     }
 
     protected ShardUpsertResponse processRequestItems(ShardId shardId,
@@ -289,12 +281,12 @@ public class TransportShardUpsertAction
                 true, item.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
@@ -336,7 +328,8 @@ public class TransportShardUpsertAction
                 .parent(parent)
                 .source(updatedSourceAsMap, updateSourceContentType)
                 .version(getResult.getVersion());
-        indexRequest.operationThreaded(false);
+        // TODO: FIX ME!
+        // indexRequest.operationThreaded(false);
         return indexRequest;
     }
 
@@ -377,13 +370,14 @@ public class TransportShardUpsertAction
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
+        // TODO: FIX ME!
         IndexRequest indexRequest = Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())
                 .routing(request.routing())
                 .source(source)
-                .create(!request.overwriteDuplicates())
-                .operationThreaded(false);
+                .create(!request.overwriteDuplicates());
+        //        .operationThreaded(false);
         if (logger.isTraceEnabled()) {
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
@@ -407,7 +401,9 @@ public class TransportShardUpsertAction
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+            // TODO: FIX ME!
+            // sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+            sourceAsMap = new LinkedHashMap<>();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

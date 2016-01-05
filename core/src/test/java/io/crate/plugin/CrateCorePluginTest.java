@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -49,15 +49,17 @@ public class CrateCorePluginTest extends CrateUnitTest {
     @Test
     public void testPluginLoadsCrateComponentModulesWithSettings() throws Exception {
 
-        CrateCorePlugin plugin = new CrateCorePlugin(ImmutableSettings.EMPTY);
+        Settings settings = Settings.builder().put("path.home", createTempDir().toAbsolutePath()).build();
+        CrateCorePlugin plugin = new CrateCorePlugin(settings);
         ModulesBuilder modulesBuilder = new ModulesBuilder();
 
         // mock ClusterService for ClusterIdService, which is bound in CrateCoreModule
         modulesBuilder.add(new TestModule());
 
-        for (Module module : plugin.modules(ImmutableSettings.EMPTY)) {
+        for (Module module : plugin.nodeModules()) {
             modulesBuilder.add(module);
         }
+
         ExampleCrateComponent.IBound iBoundImpl = modulesBuilder.createInjector()
                 .getInstance(ExampleCrateComponent.IBound.class);
         assertThat(iBoundImpl, instanceOf(ExampleCrateComponent.Bound.class));

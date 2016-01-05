@@ -55,12 +55,13 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(node.persistentSettings());
         request.transientSettings(node.transientSettings());
-        if (node.persistentSettingsToRemove() != null) {
+        //TODO: FIX ME! methods not available anymore
+        /*if (node.persistentSettingsToRemove() != null) {
             request.persistentSettingsToRemove(node.persistentSettingsToRemove());
         }
         if (node.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(node.transientSettingsToRemove());
-        }
+        }*/
         listener = new ClusterUpdateSettingsResponseListener(result);
     }
 

@@ -37,7 +37,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -162,7 +161,7 @@ public class AnalyzedTableElements {
     }
 
     public Settings settings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (AnalyzedColumnDefinition column : columns) {
             builder.put(column.analyzerSettings());
         }

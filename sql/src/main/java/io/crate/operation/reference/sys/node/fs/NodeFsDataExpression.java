@@ -28,23 +28,26 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.monitor.sigar.SigarService;
-import org.hyperic.sigar.FileSystem;
+// import org.elasticsearch.monitor.sigar.SigarService;
+// import org.hyperic.sigar.FileSystem;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
+// TODO: FIX ME! sigar removal!
 public class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NodeFsDataExpression.class);
 
-    private final SigarService sigarService;
+    // private final SigarService sigarService;
     private final NodeEnvironment nodeEnvironment;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-    protected NodeFsDataExpression(SigarService sigarService, NodeEnvironment nodeEnvironment) {
-        this.sigarService = sigarService;
+    // TODO: FIX ME! sigar removal!
+    protected NodeFsDataExpression(Object sigarService, NodeEnvironment nodeEnvironment) {
+        // this.sigarService = sigarService;
         this.nodeEnvironment = nodeEnvironment;
     }
 
@@ -57,7 +60,7 @@ public class NodeFsDataExpression extends SysStaticObjectArrayReference {
     }
 
     private void addChildImplementations() {
-        if (!sigarService.sigarAvailable()) {
+        /* if (!sigarService.sigarAvailable()) {
             LOGGER.trace("sigar is not available");
             return;
         }
@@ -87,7 +90,7 @@ public class NodeFsDataExpression extends SysStaticObjectArrayReference {
             }
         } catch (Exception e) {
             LOGGER.warn("error getting fs['data'] expression", e);
-        }
+        } */
     }
 
 

@@ -76,6 +76,12 @@ public class NumericScalarSortScript extends AbstractCatchingSearchScript {
 
             return new NumericScalarSortScript(ctx.function, missing);
         }
+
+        // TODO: FIX ME! Implement me!
+        @Override
+        public boolean needsScores() {
+            return false;
+        }
     }
 
     private final AbstractScalarScriptFactory.ScalarArgument function;
@@ -90,7 +96,8 @@ public class NumericScalarSortScript extends AbstractCatchingSearchScript {
 
     @Override
     public Object doRun() {
-        Object returnValue = this.function.evaluate(doc());
+        // TODO: FIX ME! doc should now be a LeafDocLookup
+        Object returnValue = null; //this.function.evaluate(doc());
 
         if (returnValue == null) {
             if (missing != null && missing.equals("_first")) {

@@ -19,13 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
+//package io.crate.bootstrap;
 package io.crate.bootstrap;
 
-import org.elasticsearch.bootstrap.Bootstrap;
+//import org.elasticsearch.bootstrap.Bootstrap;
 
 /**
  * A main entry point when starting from the command line.
  */
-public class Crate extends Bootstrap {
+// TODO: FIX ME!
+public class Crate {} /*extends Bootstrap {
 
-}
+}*/

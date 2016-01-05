@@ -37,7 +37,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -55,7 +54,7 @@ import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateClient {
 
@@ -84,15 +83,16 @@ public class CrateClient {
                 .put("threadpool.get.size", 1)
                 .put("threadpool.percolate.size", 1)
                 .build();
-        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
-            settings, loadConfigSettings);
+        // TODO: FIX ME!
+        Tuple<Settings, Environment> tuple = null; /*InternalSettingsPreparer.prepareSettings(
+            settings, loadConfigSettings);*/
 
         // override classloader
-        CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
-        this.settings = ImmutableSettings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
+        CrateClientClassLoader clientClassLoader = null; //new CrateClientClassLoader(tuple.v1().getClassLoader());
+        this.settings = null; //Settings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
         Version version = Version.CURRENT;
 
-        CompressorFactory.configure(this.settings);
+        //CompressorFactory.configure(this.settings);
 
         threadPool = new ThreadPool(this.settings);
 
@@ -120,11 +120,11 @@ public class CrateClient {
     }
 
     public CrateClient() {
-        this(ImmutableSettings.Builder.EMPTY_SETTINGS, true);
+        this(Settings.Builder.EMPTY_SETTINGS, true);
     }
 
     public CrateClient(String... servers) {
-        this(ImmutableSettings.EMPTY, true, servers);
+        this(Settings.EMPTY, true, servers);
     }
 
     @Nullable
@@ -138,7 +138,8 @@ public class CrateClient {
         }
 
         if (uri.getHost() != null) {
-            return new InetSocketTransportAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300);
+            // TODO: FIX ME!
+            return null; //new InetSocketTransportAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300);
         }
         return null;
     }

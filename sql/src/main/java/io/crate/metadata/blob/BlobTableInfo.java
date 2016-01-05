@@ -131,7 +131,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
                 clusterService.state(),
-                Strings.EMPTY_ARRAY,
                 new String[]{index},
                 null,
                 preference

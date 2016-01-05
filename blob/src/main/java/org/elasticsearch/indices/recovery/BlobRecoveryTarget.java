@@ -92,29 +92,18 @@ public class BlobRecoveryTarget extends AbstractComponent {
         this.indexRecoveryTarget = indexRecoveryTarget;
         this.indicesService = indicesService;
 
-        transportService.registerHandler(Actions.START_RECOVERY, new StartRecoveryRequestHandler());
-        transportService.registerHandler(Actions.START_PREFIX, new StartPrefixSyncRequestHandler());
-        transportService.registerHandler(Actions.TRANSFER_CHUNK, new TransferChunkRequestHandler());
-        transportService.registerHandler(Actions.START_TRANSFER, new StartTransferRequestHandler());
-        transportService.registerHandler(Actions.DELETE_FILE, new DeleteFileRequestHandler());
-        transportService.registerHandler(Actions.FINALIZE_RECOVERY, new FinalizeRecoveryRequestHandler());
+        // TODO: FIX ME! Maybe add the Blob prefix to all Handlers
+        transportService.registerRequestHandler(Actions.START_RECOVERY, BlobStartRecoveryRequest.class, ThreadPool.Names.GENERIC, new StartRecoveryRequestHandler());
+        transportService.registerRequestHandler(Actions.START_PREFIX, BlobStartPrefixSyncRequest.class, ThreadPool.Names.GENERIC, new StartPrefixSyncRequestHandler());
+        // TODO: FIX ME! Rename handlers to match request names
+        transportService.registerRequestHandler(Actions.TRANSFER_CHUNK, BlobRecoveryChunkRequest.class, ThreadPool.Names.GENERIC, new TransferChunkRequestHandler());
+        transportService.registerRequestHandler(Actions.START_TRANSFER, BlobRecoveryStartTransferRequest.class, ThreadPool.Names.GENERIC, new StartTransferRequestHandler());
+        transportService.registerRequestHandler(Actions.DELETE_FILE, BlobRecoveryDeleteRequest.class, ThreadPool.Names.GENERIC, new DeleteFileRequestHandler());
+        transportService.registerRequestHandler(Actions.FINALIZE_RECOVERY, BlobFinalizeRecoveryRequest.class, ThreadPool.Names.GENERIC, new FinalizeRecoveryRequestHandler());
     }
 
-    abstract class BaseHandler<T extends TransportRequest> extends BaseTransportRequestHandler<T> {
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.GENERIC;
-        }
-    }
-
-    class StartRecoveryRequestHandler extends BaseHandler<BlobStartRecoveryRequest> {
-
-        @Override
-        public BlobStartRecoveryRequest newInstance() {
-            return new BlobStartRecoveryRequest();
-        }
-
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {
         @Override
         public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel) throws Exception {
 
@@ -123,7 +112,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().index().name())
                                                   .shardSafe(request.shardId().id());
-            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
+            // TODO: FIX ME! Patch ES 2.1 or find different solution - currently just ignoring things
+            RecoveryStatus onGoingIndexRecovery = null; // indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
 
             if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
                 throw new IndexShardClosedException(request.shardId());
@@ -140,13 +130,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    class TransferChunkRequestHandler extends BaseHandler<BlobRecoveryChunkRequest> {
-
-        @Override
-        public BlobRecoveryChunkRequest newInstance() {
-            return new BlobRecoveryChunkRequest();
-        }
-
+    class TransferChunkRequestHandler implements TransportRequestHandler<BlobRecoveryChunkRequest> {
         @Override
         public void messageReceived(BlobRecoveryChunkRequest request, TransportChannel channel) throws Exception {
 
@@ -202,13 +186,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    class StartPrefixSyncRequestHandler extends BaseHandler<BlobStartPrefixSyncRequest> {
-
-        @Override
-        public BlobStartPrefixSyncRequest newInstance() {
-            return new BlobStartPrefixSyncRequest();
-        }
-
+    class StartPrefixSyncRequestHandler implements TransportRequestHandler<BlobStartPrefixSyncRequest> {
         @Override
         public void messageReceived(BlobStartPrefixSyncRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -227,14 +205,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    private class StartTransferRequestHandler extends BaseHandler<BlobRecoveryStartTransferRequest> {
-
-
-        @Override
-        public BlobRecoveryStartTransferRequest newInstance() {
-            return new BlobRecoveryStartTransferRequest();
-        }
-
+    private class StartTransferRequestHandler implements TransportRequestHandler<BlobRecoveryStartTransferRequest> {
         @Override
         public void messageReceived(BlobRecoveryStartTransferRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -281,12 +252,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         }
     }
 
-    private class DeleteFileRequestHandler extends BaseHandler<BlobRecoveryDeleteRequest> {
-        @Override
-        public BlobRecoveryDeleteRequest newInstance() {
-            return new BlobRecoveryDeleteRequest();
-        }
-
+    private class DeleteFileRequestHandler implements TransportRequestHandler<BlobRecoveryDeleteRequest> {
         @Override
         public void messageReceived(BlobRecoveryDeleteRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -300,13 +266,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         }
     }
 
-    private class FinalizeRecoveryRequestHandler extends BaseHandler<BlobFinalizeRecoveryRequest> {
-
-        @Override
-        public BlobFinalizeRecoveryRequest newInstance() {
-            return new BlobFinalizeRecoveryRequest();
-        }
-
+    private class FinalizeRecoveryRequestHandler implements TransportRequestHandler<BlobFinalizeRecoveryRequest> {
         @Override
         public void messageReceived(BlobFinalizeRecoveryRequest request, TransportChannel channel) throws Exception {
 

@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -46,7 +45,7 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+        return Settings.builder().put(super.nodeSettings(nodeOrdinal))
                 .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
                 .build();
     }

@@ -29,7 +29,6 @@ import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -62,7 +61,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             transportExecutor.exec(
                 "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
             BlobIndices blobIndices = GLOBAL_CLUSTER.getInstance(BlobIndices.class);
-            Settings indexSettings = ImmutableSettings.builder()
+            Settings indexSettings = Settings.builder()
                     .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
                     .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
                     .build();

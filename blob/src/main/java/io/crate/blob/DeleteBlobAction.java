@@ -21,10 +21,10 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.Action;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class DeleteBlobAction extends ClientAction<DeleteBlobRequest, DeleteBlobResponse, DeleteBlobRequestBuilder> {
+public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobResponse, DeleteBlobRequestBuilder> {
 
     public static final DeleteBlobAction INSTANCE = new DeleteBlobAction();
     public static final String NAME = "delete_blob";
@@ -34,8 +34,8 @@ public class DeleteBlobAction extends ClientAction<DeleteBlobRequest, DeleteBlob
     }
 
     @Override
-    public DeleteBlobRequestBuilder newRequestBuilder(Client client) {
-        return new DeleteBlobRequestBuilder(client);
+    public DeleteBlobRequestBuilder newRequestBuilder(ElasticsearchClient client) {
+        return new DeleteBlobRequestBuilder(client, this);
     }
 
     @Override
