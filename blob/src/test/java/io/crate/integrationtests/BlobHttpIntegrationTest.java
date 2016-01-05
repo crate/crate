@@ -36,12 +36,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -55,22 +52,12 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
+public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .put(InternalNode.HTTP_ENABLED, true)
-                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
-                .build();
-    }
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
@@ -80,7 +67,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
         address2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
 
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
                 .build();
@@ -89,23 +76,23 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
         client().admin().indices().prepareCreate("test_no_blobs")
                 .setSettings(
-                        ImmutableSettings.builder()
+                        Settings.builder()
                                 .put("number_of_shards", 2)
                                 .put("number_of_replicas", 0).build()).execute().actionGet();
         ensureGreen();
     }
 
-    protected String blobUri(String digest){
+    protected String blobUri(String digest) {
         return blobUri("test", digest);
     }
 
-    protected String blobUri(String index, String digest){
+    protected String blobUri(String index, String digest) {
         return String.format(Locale.ENGLISH, "%s/%s", index, digest);
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
         HttpPut httpPut = new HttpPut(Blobs.url(address, uri));
-        if(body != null){
+        if (body != null) {
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);
         }
@@ -141,7 +128,8 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
                             logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d\n",
                                     indexerId, resultContent.length(), expected.length()));
                         }
-                        results.put(indexerId, (statusCode >= 200 && statusCode < 300 && expected.equals(resultContent)));
+                        results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
+                                                expected.equals(resultContent)));
                     } catch (Exception e) {
                         logger.warn("**** failed indexing thread {}", e, indexerId);
                     } finally {
@@ -162,8 +150,8 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
     protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
         HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-        if(headers != null){
-           httpGet.setHeaders(headers);
+        if (headers != null) {
+            httpGet.setHeaders(headers);
         }
         return executeAndDefaultAssertions(httpGet);
     }
@@ -187,11 +175,11 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
             HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
             response = httpClient.execute(httpHead, context);
             // get all redirection locations
-            if(context.getRedirectLocations() != null){
+            if (context.getRedirectLocations() != null) {
                 redirects = context.getRedirectLocations().size();
             }
         } finally {
-            if(response != null) {
+            if (response != null) {
                 response.close();
             }
         }

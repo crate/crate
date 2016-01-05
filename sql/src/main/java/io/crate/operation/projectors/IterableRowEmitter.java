@@ -25,6 +25,7 @@ package io.crate.operation.projectors;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 
@@ -69,7 +70,7 @@ public class IterableRowEmitter implements Runnable {
         try {
             while (rowsIt.hasNext()) {
                 if (executionState != null && executionState.isKilled()) {
-                    rowReceiver.fail(new CancellationException());
+                    rowReceiver.fail(new CancellationException(JobKilledException.MESSAGE));
                     return;
                 }
                 boolean wantsMore = rowReceiver.setNextRow(rowsIt.next());

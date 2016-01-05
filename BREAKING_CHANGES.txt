@@ -1,0 +1,27 @@
+
+Temporary file for breaking changes. The entries should latter be integrated
+into CHANGES.txt
+
+
+## Breaking Changes 
+
+ - It is no longer possible to specify the location of the config file with the
+   `CONF_FILE` environment variable, or the `-Des.config`, `-Des.default.config`,
+   or `-Delasticsearch.config` parameters.
+
+   The config file must now be named `crate.yml` and must be located in the
+   default `config/` directory, in the directory specified in the `CONF_DIR`
+   environmental variable, or the one specified in the `-Des.path.home`
+   parameter.
+
+ - The `gateway.local.sync` setting has been renamed to `translog.sync_interval`
+
+
+## Other changes
+
+
+ - Removed internal migration code that ensured schema backward compatibility
+   to Crate versions <= 0.45.
+   This means a direct upgrade from a version that is lower than 0.45 is no
+   longer possible. Only upgrades from a version > 0.46 and <= 0.54 are
+   possible.

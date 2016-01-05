@@ -39,7 +39,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 public abstract class AggregationTest extends CrateUnitTest {
 
     protected static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     protected Functions functions;
 

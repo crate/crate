@@ -25,7 +25,7 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.StringType;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -46,7 +46,7 @@ public class IndexReferenceInfoTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ReferenceInfo.toStream(indexReferenceInfo, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         IndexReferenceInfo indexReferenceInfo2 = ReferenceInfo.fromStream(in);
 
         assertThat(indexReferenceInfo2, is(indexReferenceInfo));

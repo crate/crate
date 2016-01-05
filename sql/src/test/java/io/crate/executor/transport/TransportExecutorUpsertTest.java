@@ -50,7 +50,7 @@ import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
@@ -67,7 +67,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
-        ensureGreen();
+        ensureYellow();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
         Planner.Context ctx = newPlannerContext();
@@ -154,7 +154,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertMultiValuesWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
-        ensureGreen();
+        ensureYellow();
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
         Planner.Context ctx = newPlannerContext();

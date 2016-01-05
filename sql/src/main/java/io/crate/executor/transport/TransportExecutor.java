@@ -63,6 +63,7 @@ import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -77,6 +78,7 @@ public class TransportExecutor implements Executor {
 
     private static final ESLogger LOGGER = Loggers.getLogger(TransportExecutor.class);
 
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
     private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
@@ -100,6 +102,7 @@ public class TransportExecutor implements Executor {
                              JobContextService jobContextService,
                              ContextPreparer contextPreparer,
                              TransportActionProvider transportActionProvider,
+                             IndexNameExpressionResolver indexNameExpressionResolver,
                              ThreadPool threadPool,
                              Functions functions,
                              NestedReferenceResolver referenceResolver,
@@ -111,6 +114,7 @@ public class TransportExecutor implements Executor {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.showStatementDispatcherProvider = showStatementDispatcherProvider;
@@ -124,6 +128,7 @@ public class TransportExecutor implements Executor {
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
@@ -291,6 +296,7 @@ public class TransportExecutor implements Executor {
         public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
             return singleTask(new UpsertByIdTask(jobId,
                     clusterService,
+                    indexNameExpressionResolver,
                     clusterService.state().metaData().settings(),
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),

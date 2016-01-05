@@ -38,6 +38,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,6 +61,12 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private ThreadPool threadPool;
+
+    @Before
+    public void initThreadPool() throws Exception {
+        threadPool = newMockedThreadPool();
+    }
 
     @Test
     public void testFileUriCollect() throws Exception {
@@ -79,7 +86,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 referenceResolver,
                 mock(NodeSysExpression.class),
                 collectSourceResolver,
-                mock(ThreadPool.class)
+                threadPool
         );
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (FileWriter writer = new FileWriter(tmpFile)) {

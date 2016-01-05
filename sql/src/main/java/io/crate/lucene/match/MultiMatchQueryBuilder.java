@@ -31,7 +31,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
 import javax.annotation.Nullable;
@@ -79,11 +79,11 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
     }
 
     @Override
-    protected Query blendTermQuery(Term term, FieldMapper mapper) {
+    protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
         if (builder == null) {
-            super.blendTermQuery(term, mapper);
+            super.blendTermQuery(term, fieldType);
         }
-        return builder.blendTerm(term, mapper);
+        return builder.blendTerm(term, fieldType);
     }
 
     @Override
@@ -128,16 +128,16 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             if (groupDismax) {
                 return new DisjunctionMaxQuery(queries, tieBreaker);
             } else {
-                final BooleanQuery booleanQuery = new BooleanQuery();
+                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 for (Query query : queries) {
                     booleanQuery.add(query, BooleanClause.Occur.SHOULD);
                 }
-                return booleanQuery;
+                return booleanQuery.build();
             }
         }
 
-        public Query blendTerm(Term term, FieldMapper mapper) {
-            return MultiMatchQueryBuilder.super.blendTermQuery(term, mapper);
+        public Query blendTerm(Term term, MappedFieldType fieldType) {
+            return MultiMatchQueryBuilder.super.blendTermQuery(term, fieldType);
         }
 
         public boolean forceAnalyzeQueryString() {
@@ -146,7 +146,7 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
     }
 
     private class CrossFieldsQueryBuilder extends GroupQueryBuilder {
-        private FieldAndMapper[] blendedFields;
+        private FieldAndFieldType[] blendedFields;
 
         public CrossFieldsQueryBuilder(float tieBreaker) {
             super(false, tieBreaker);
@@ -156,43 +156,42 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
         public List<Query> buildGroupedQueries(org.elasticsearch.index.query.MultiMatchQueryBuilder.Type type,
                                                Map<String, Object> fieldNames,
                                                BytesRef queryString) throws IOException {
-            Map<Analyzer, List<FieldAndMapper>> groups = new HashMap<>();
+            Map<Analyzer, List<FieldAndFieldType>> groups = new HashMap<>();
             List<Tuple<String, Float>> missing = new ArrayList<>();
             for (Map.Entry<String, Object> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
-                MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(name);
-                if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
-                    Analyzer actualAnalyzer = getAnalyzer(smartNameFieldMappers.mapper(), smartNameFieldMappers);
-                    name = smartNameFieldMappers.mapper().names().indexName();
+                MappedFieldType fieldType = mapperService.smartNameFieldType(name);
+                if (fieldType != null) {
+                    Analyzer actualAnalyzer = getAnalyzer(fieldType);
+                    name = fieldType.names().indexName();
                     if (!groups.containsKey(actualAnalyzer)) {
-                        groups.put(actualAnalyzer, new ArrayList<FieldAndMapper>());
+                        groups.put(actualAnalyzer, new ArrayList<FieldAndFieldType>());
                     }
                     Float boost = floatOrNull(entry.getValue());
                     boost = boost == null ? Float.valueOf(1.0f) : boost;
-                    groups.get(actualAnalyzer).add(new FieldAndMapper(name, smartNameFieldMappers.mapper(), boost));
+                    groups.get(actualAnalyzer).add(new FieldAndFieldType(name, fieldType, boost));
                 } else {
                     missing.add(new Tuple<>(name, floatOrNull(entry.getValue())));
                 }
             }
             List<Query> queries = new ArrayList<>();
             for (Tuple<String, Float> tuple : missing) {
-                Query q = singleQueryAndApply(
-                    type.matchQueryType(), tuple.v1(), queryString, tuple.v2());
+                Query q = singleQueryAndApply(type.matchQueryType(), tuple.v1(), queryString, tuple.v2());
                 if (q != null) {
                     queries.add(q);
                 }
             }
-            for (List<FieldAndMapper> group : groups.values()) {
+            for (List<FieldAndFieldType> group : groups.values()) {
                 if (group.size() > 1) {
-                    blendedFields = new FieldAndMapper[group.size()];
+                    blendedFields = new FieldAndFieldType[group.size()];
                     int i = 0;
-                    for (FieldAndMapper fieldAndMapper : group) {
-                        blendedFields[i++] = fieldAndMapper;
+                    for (FieldAndFieldType fieldAndFieldType : group) {
+                        blendedFields[i++] = fieldAndFieldType;
                     }
                 } else {
                     blendedFields = null;
                 }
-                final FieldAndMapper fieldAndMapper= group.get(0);
+                final FieldAndFieldType fieldAndMapper= group.get(0);
                 Query q = singleQueryAndApply(
                     type.matchQueryType(), fieldAndMapper.field, queryString, fieldAndMapper.boost);
                 if (q != null) {
@@ -206,9 +205,9 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             return blendedFields != null;
         }
 
-        public Query blendTerm(Term term, FieldMapper mapper) {
+        public Query blendTerm(Term term, MappedFieldType fieldType) {
             if (blendedFields == null) {
-                return super.blendTerm(term, mapper);
+                return super.blendTerm(term, fieldType);
             }
             final Term[] terms = new Term[blendedFields.length];
             float[] blendedBoost = new float[blendedFields.length];
@@ -228,20 +227,20 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
         }
     }
 
-    private static class FieldAndMapper {
-        private final String field;
-        private final FieldMapper mapper;
-        private final float boost;
+    private static final class FieldAndFieldType {
+        final String field;
+        final MappedFieldType fieldType;
+        final float boost;
 
-        private FieldAndMapper(String field, FieldMapper mapper, float boost) {
+        private FieldAndFieldType(String field, MappedFieldType fieldType, float boost) {
             this.field = field;
-            this.mapper = mapper;
+            this.fieldType = fieldType;
             this.boost = boost;
         }
 
         public Term newTerm(String value) {
             try {
-                final BytesRef bytesRef = mapper.indexedValueForSearch(value);
+                final BytesRef bytesRef = fieldType.indexedValueForSearch(value);
                 return new Term(field, bytesRef);
             } catch (Exception ex) {
                 // we can't parse it just use the incoming value -- it will
@@ -250,5 +249,4 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             return new Term(field, value);
         }
     }
-
 }

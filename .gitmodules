@@ -1,6 +1,3 @@
 [submodule "es/upstream"]
 	path = es/upstream
 	url = https://github.com/crate/elasticsearch.git
-[submodule "aws/upstream"]
-	path = aws/upstream
-	url = https://github.com/crate/elasticsearch-cloud-aws.git

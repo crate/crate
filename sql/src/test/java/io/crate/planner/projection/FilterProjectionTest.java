@@ -30,7 +30,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -46,7 +46,7 @@ public class FilterProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         FilterProjection p2 = (FilterProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);

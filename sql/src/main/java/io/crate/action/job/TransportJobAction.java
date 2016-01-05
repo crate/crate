@@ -62,13 +62,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
-
-        transportService.registerHandler(ACTION_NAME, new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
-            @Override
-            public JobRequest newInstance() {
-                return new JobRequest();
-            }
-        });
+        transportService.registerRequestHandler(ACTION_NAME,
+                JobRequest.class,
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<JobRequest, JobResponse>(this) { });
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {

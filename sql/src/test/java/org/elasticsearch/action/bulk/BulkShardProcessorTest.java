@@ -22,8 +22,8 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.analyze.symbol.Reference;
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -35,9 +35,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.operation.OperationRouting;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -83,7 +84,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         };
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -99,6 +100,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -149,7 +152,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -166,6 +169,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -230,7 +235,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -247,6 +252,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,

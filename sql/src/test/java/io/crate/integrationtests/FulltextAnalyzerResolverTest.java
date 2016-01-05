@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -278,7 +277,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 is("arabic, armenian, basque, brazilian, bulgarian, catalan, chinese, cjk, " +
                         "classic, czech, danish, default, dutch, english, finnish, french, " +
                         "galician, german, greek, hindi, hungarian, indonesian, irish, " +
-                        "italian, keyword, latvian, norwegian, pattern, persian, portuguese, " +
+                        "italian, keyword, latvian, lithuanian, norwegian, pattern, persian, portuguese, " +
                         "romanian, russian, simple, snowball, sorani, spanish, standard, " +
                         "standard_html_strip, stop, swedish, thai, turkish, whitespace"));
     }
@@ -424,7 +423,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                     ")");
             fail("Reusing existing tokenizer worked");
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("Non-existing tokenizer 'a9tok'"));
+            assertThat(e.getMessage(), containsString("Non-existing tokenizer 'a9tok'"));
         }
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
@@ -462,7 +461,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Settings analyzerSettings = FulltextAnalyzerResolver.decodeSettings(settings.get("crate.analysis.custom.analyzer.a11"));
         Settings tokenFilterSettings = FulltextAnalyzerResolver.decodeSettings(settings.get("crate" +
                 ".analysis.custom.filter.a11_mystop"));
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(analyzerSettings);
         builder.put(tokenFilterSettings);
 

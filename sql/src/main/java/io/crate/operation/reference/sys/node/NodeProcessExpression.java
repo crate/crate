@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.process.ProcessInfo;
+import io.crate.monitor.ExtendedProcessCpuStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 
 public class NodeProcessExpression extends SysNodeObjectReference {
@@ -33,11 +33,11 @@ public class NodeProcessExpression extends SysNodeObjectReference {
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
 
-    public NodeProcessExpression(ProcessInfo processInfo, ProcessStats processStats) {
-        addChildImplementations(processInfo, processStats);
+    public NodeProcessExpression(ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
+        addChildImplementations(processStats, cpuStats);
     }
 
-    private void addChildImplementations(final ProcessInfo processInfo, final ProcessStats processStats) {
+    private void addChildImplementations(final ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
         childImplementations.put(OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
@@ -51,8 +51,8 @@ public class NodeProcessExpression extends SysNodeObjectReference {
         childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                if (processInfo != null) {
-                    return processInfo.getMaxFileDescriptors();
+                if (processStats != null) {
+                    return processStats.getMaxFileDescriptors();
                 } else {
                     return -1L;
                 }
@@ -62,10 +62,12 @@ public class NodeProcessExpression extends SysNodeObjectReference {
             @Override
             public Long value() {
                 if (processStats != null) {
-                    return processStats.timestamp();
-                } else { return -1L; }
+                    return processStats.getTimestamp();
+                } else {
+                    return -1L;
+                }
             }
         });
-        childImplementations.put(SysNodesTableInfo.SYS_COL_PROCESS_CPU, new NodeProcessCpuExpression(processStats));
+        childImplementations.put(SysNodesTableInfo.SYS_COL_PROCESS_CPU, new NodeProcessCpuExpression(cpuStats));
     }
 }
