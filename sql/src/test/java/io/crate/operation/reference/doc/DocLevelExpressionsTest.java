@@ -27,13 +27,12 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.junit.After;
 import org.junit.Before;
@@ -47,25 +46,25 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected CollectorContext ctx;
     protected IndexFieldDataService ifd;
-    protected AtomicReaderContext readerContext;
+    protected LeafReaderContext readerContext;
     private IndexWriter writer;
 
     @Before
     public void prepare() throws Exception {
-        Settings settings = ImmutableSettings.builder().put("index.fielddata.cache", "none").build();
+        Settings settings = Settings.builder().put("index.fielddata.cache", "none").build();
         IndexService indexService = createIndex("test", settings);
         ifd = indexService.fieldData();
 
         MapperService mapperService = mock(MapperService.class);
-        FieldMapper fieldMapper = mock(FieldMapper.class);
+        MappedFieldType fieldMapper = mock(MappedFieldType.class);
         when(fieldMapper.names()).thenReturn(fieldName());
         when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
+        when(mapperService.smartNameFieldType(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
 
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
-                new IndexWriterConfig(Lucene.VERSION, new StandardAnalyzer())
+                new IndexWriterConfig(new StandardAnalyzer())
                         .setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
@@ -86,7 +85,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;
 
-    protected abstract FieldMapper.Names fieldName();
+    protected abstract MappedFieldType.Names fieldName();
 
     protected abstract FieldDataType fieldType();
 }

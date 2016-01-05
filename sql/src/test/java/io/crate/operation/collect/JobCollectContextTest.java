@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
@@ -29,7 +30,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -53,7 +53,7 @@ import static org.powermock.api.mockito.PowerMockito.mock;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(CrateSearchContext.class)
-public class JobCollectContextTest extends CrateUnitTest {
+public class JobCollectContextTest extends RandomizedTest {
 
     private JobCollectContext jobCollectContext;
     private RoutedCollectPhase collectPhase;
@@ -63,7 +63,6 @@ public class JobCollectContextTest extends CrateUnitTest {
 
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         localNodeId = "dummyLocalNodeId";
         collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);

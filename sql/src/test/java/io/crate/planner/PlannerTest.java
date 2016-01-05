@@ -37,8 +37,10 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
 public class PlannerTest extends AbstractPlannerTest {

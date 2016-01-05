@@ -282,11 +282,11 @@ statements (see :ref:`sql-ddl-custom-analyzer`)::
     +----------------------+--------------+
     | routine_name         | routine_type |
     +----------------------+--------------+
+    | PathHierarchy        | TOKENIZER    |
     | apostrophe           | TOKEN_FILTER |
     | arabic               | ANALYZER     |
     | arabic_normalization | TOKEN_FILTER |
     | arabic_stem          | TOKEN_FILTER |
-    | armenian             | ANALYZER     |
     +----------------------+--------------+
     SELECT 5 rows in set (... sec)
 
@@ -295,20 +295,20 @@ For example you can use this table to list existing tokenizers like this::
     cr> select routine_name from information_schema.routines
     ... where routine_type='TOKENIZER'
     ... order by routine_name asc limit 10;
-    +----------------+
-    | routine_name   |
-    +----------------+
-    | classic        |
-    | e2_mypattern   |
-    | edgeNGram      |
-    | edge_ngram     |
-    | keyword        |
-    | letter         |
-    | lowercase      |
-    | nGram          |
-    | ngram          |
-    | path_hierarchy |
-    +----------------+
+    +---------------+
+    | routine_name  |
+    +---------------+
+    | PathHierarchy |
+    | classic       |
+    | e2_mypattern  |
+    | edgeNGram     |
+    | edge_ngram    |
+    | keyword       |
+    | letter        |
+    | lowercase     |
+    | nGram         |
+    | ngram         |
+    +---------------+
     SELECT 10 rows in set (... sec)
 
 Or get an overview of how many routines and routine types are available::
@@ -318,9 +318,9 @@ Or get an overview of how many routines and routine types are available::
     +----------+--------------+
     | count(*) | routine_type |
     +----------+--------------+
-    |       47 | ANALYZER     |
+    |       48 | ANALYZER     |
     |        5 | CHAR_FILTER  |
-    |       15 | TOKENIZER    |
+    |       16 | TOKENIZER    |
     |       54 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)

@@ -31,33 +31,41 @@ import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class BlobTableInfoBuilder {
 
     private final TableIdent ident;
-    private final MetaData metaData;
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
     private final Functions functions;
+    private final ClusterState state;
+    private final MetaData metaData;
     private String[] concreteIndices;
 
     public BlobTableInfoBuilder(TableIdent ident,
                                 ClusterService clusterService,
+                                IndexNameExpressionResolver indexNameExpressionResolver,
                                 BlobEnvironment blobEnvironment,
                                 Environment environment,
                                 Functions functions) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
         this.functions = functions;
-        this.metaData = clusterService.state().metaData();
+        this.state = clusterService.state();
+        this.metaData = state.metaData();
         this.ident = ident;
     }
 
@@ -65,8 +73,8 @@ public class BlobTableInfoBuilder {
         DocIndexMetaData docIndexMetaData;
         String index = BlobIndices.fullIndexName(ident.name());
         try {
-            concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), index);
-        } catch (IndexMissingException ex) {
+            concreteIndices = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), index);
+        } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
         docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
@@ -98,7 +106,7 @@ public class BlobTableInfoBuilder {
     private BytesRef blobsPath(DocIndexMetaData md) {
         BytesRef blobsPath;
         String blobsPathStr = metaData.index(md.concreteIndexName())
-                .settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+                .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
@@ -106,8 +114,8 @@ public class BlobTableInfoBuilder {
             if (path != null) {
                 blobsPath = new BytesRef(path.getPath());
             } else {
-                File[] dataFiles = environment.dataFiles();
-                blobsPath = new BytesRef(dataFiles[0].getAbsolutePath());
+                Path[] dataFiles = environment.dataFiles();
+                blobsPath = new BytesRef(dataFiles[0].toFile().getAbsolutePath());
             }
         }
         return blobsPath;

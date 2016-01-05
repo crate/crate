@@ -48,6 +48,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.sql.parser.SqlParser;
+import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -60,7 +61,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -70,7 +70,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -84,18 +85,19 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
+public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
+
+    static {
+        GroovyTestSanitizer.isGroovySanitized();
+    }
 
     protected final SQLTransportExecutor sqlExecutor;
 
     private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
     }
 
     protected long responseDuration;
@@ -106,10 +108,15 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 new SQLTransportExecutor.ClientProvider() {
                     @Override
                     public Client client() {
-                        return ElasticsearchIntegrationTest.client();
+                        return ESIntegTestCase.client();
                     }
                 }
         ));
+    }
+
+    @Override
+    protected double getPerTestTransportClientRatio() {
+        return 0.0d;
     }
 
     public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
@@ -119,10 +126,11 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @Override
     public Settings indexSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
-        return ImmutableSettings.builder().put("number_of_replicas", 0).build();
+        return Settings.builder().put("number_of_replicas", 0).build();
     }
 
-    @Override
+    // TODO: FIX ME! Not needed anymore?
+    //@Override
     public void waitForConcreteMappingsOnAll(String index, String type, String... fieldNames) throws Exception {
         waitForMappingUpdateOnAll(index, fieldNames);
     }
@@ -360,7 +368,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetaData indexMetaData = metaData.iterator().next();
-        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.mappings().values()) {
+        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.getMappings().values()) {
             builder.field(cursor.value.type());
             builder.map(cursor.value.sourceAsMap());
         }
@@ -409,9 +417,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex(), XContentBuilder.FieldCaseConversion.NONE);
             builder.startObject("settings");
-            Settings settings = indexMetaData.settings();
+            Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
@@ -445,14 +453,14 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         SQLBaseResponse sqlResponse;
         Object[][] bulkArgs = context.bulkArgs();
         if (bulkArgs != null && bulkArgs.length > 0) {
-            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client());
+            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client(), SQLBulkAction.INSTANCE);
             requestBuilder.bulkArgs(context.bulkArgs());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
             requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         } else {
-            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
             requestBuilder.args(context.args());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);

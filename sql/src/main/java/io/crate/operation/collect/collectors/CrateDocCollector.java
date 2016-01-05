@@ -35,11 +35,9 @@ import io.crate.operation.collect.UnexpectedCollectionTerminatedException;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.BulkScorer;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.*;
+import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
@@ -61,12 +59,14 @@ public class CrateDocCollector implements CrateCollector {
     private final CrateSearchContext searchContext;
     private final RowReceiver rowReceiver;
     private final Collection<? extends LuceneCollectorExpression<?>> expressions;
-    private final Collector luceneCollector;
+    private final SimpleCollector luceneCollector;
     private final TopRowUpstream upstreamState;
     private final State state = new State();
+    private final boolean doScores;
 
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
+                             boolean doScores,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
                              List<Input<?>> inputs,
@@ -79,7 +79,7 @@ public class CrateDocCollector implements CrateCollector {
                     @Override
                     public void run() {
                         traceLog("resume collect");
-                        innerCollect(state.collector, state.weight, state.leaveIt, state.scorer);
+                        innerCollect(state.collector, state.weight, state.leaveIt, state.bulkScorer, state.leaf);
                     }
                 },
                 new Runnable() {
@@ -87,9 +87,8 @@ public class CrateDocCollector implements CrateCollector {
                     public void run() {
                         debugLog("repeat collect");
                         ContextIndexSearcher indexSearcher = searchContext.searcher();
-                        indexSearcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-                        Iterator<AtomicReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
-                        innerCollect(state.collector, state.weight, iterator, null);
+                        Iterator<LeafReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
+                        innerCollect(state.collector, state.weight, iterator, null, null);
                     }
                 }
         );
@@ -102,10 +101,12 @@ public class CrateDocCollector implements CrateCollector {
                 ((int) searchContext.id())
         );
         rowReceiver.setUpstream(upstreamState);
-        Collector collector = new LuceneDocCollector(
+        this.doScores = doScores || searchContext.minimumScore() != null;
+        SimpleCollector collector = new LuceneDocCollector(
                 ramAccountingContext,
                 upstreamState,
                 rowReceiver,
+                this.doScores,
                 new InputRow(inputs),
                 expressions
         );
@@ -132,17 +133,16 @@ public class CrateDocCollector implements CrateCollector {
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        Collector collector = luceneCollector;
+        SimpleCollector collector = luceneCollector;
         if (collectorContext.visitor().required()) {
             collector = new FieldVisitorCollector(collector, collectorContext.visitor());
         }
         ContextIndexSearcher contextIndexSearcher = searchContext.searcher();
-        contextIndexSearcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
 
         Weight weight;
-        Iterator<AtomicReaderContext> leavesIt;
+        Iterator<LeafReaderContext> leavesIt;
         try {
-            weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query());
+            weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query(), doScores);
             leavesIt = contextIndexSearcher.getTopReaderContext().leaves().iterator();
         } catch (Throwable e) {
             fail(e);
@@ -151,13 +151,15 @@ public class CrateDocCollector implements CrateCollector {
         // these won't change anymore, so safe the state once in case there is a pause or resume
         state.collector = collector;
         state.weight = weight;
+        state.leaveIt = leavesIt;
 
-        innerCollect(collector, weight, leavesIt, null);
+        innerCollect(collector, weight, leavesIt, null, null);
     }
 
-    private void innerCollect(Collector collector, Weight weight, Iterator<AtomicReaderContext> leavesIt, @Nullable BulkScorer scorer) {
+    private void innerCollect(SimpleCollector collector, Weight weight, Iterator<LeafReaderContext> leavesIt,
+                              @Nullable BulkScorer scorer, @Nullable LeafReaderContext leaf) {
         try {
-            if (collectLeaves(collector, weight, leavesIt, scorer) == Result.FINISHED) {
+            if (collectLeaves(collector, weight, leavesIt, scorer, leaf) == Result.FINISHED) {
                 finishCollect();
             } else {
                 traceLog("paused collect");
@@ -172,7 +174,6 @@ public class CrateDocCollector implements CrateCollector {
     private void fail(Throwable t) {
         debugLog("finished collect with failure");
         try {
-            searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
             searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         } catch (AssertionError e) {
             // log it, the original failure is more interesting than the stage assertion
@@ -183,27 +184,29 @@ public class CrateDocCollector implements CrateCollector {
 
     private void finishCollect() {
         debugLog("finished collect");
-        searchContext.searcher().finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
         searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         rowReceiver.finish();
     }
 
-    private Result collectLeaves(Collector collector,
+    private Result collectLeaves(SimpleCollector collector,
                                  Weight weight,
-                                 Iterator<AtomicReaderContext> leaves,
-                                 @Nullable BulkScorer scorer) throws IOException {
-        if (scorer != null) {
-            if (processScorer(collector, leaves, scorer)) return Result.PAUSED;
+                                 Iterator<LeafReaderContext> leaves,
+                                 @Nullable BulkScorer bulkScorer,
+                                 @Nullable LeafReaderContext leaf) throws IOException {
+        if (bulkScorer != null) {
+            assert leaf != null : "leaf must not be null if bulkScorer isn't null";
+            if (processScorer(collector, leaf, bulkScorer)) return Result.PAUSED;
         }
         try {
             while (leaves.hasNext()) {
-                AtomicReaderContext leaf = leaves.next();
-                collector.setNextReader(leaf);
-                scorer = weight.bulkScorer(leaf, !collector.acceptsDocsOutOfOrder(), leaf.reader().getLiveDocs());
+                leaf = leaves.next();
+                LeafCollector leafCollector = collector.getLeafCollector(leaf);
+                Scorer scorer = weight.scorer(leaf);
                 if (scorer == null) {
                     continue;
                 }
-                if (processScorer(collector, leaves, scorer)) return Result.PAUSED;
+                bulkScorer = new DefaultBulkScorer(scorer);
+                if (processScorer(leafCollector, leaf, bulkScorer)) return Result.PAUSED;
             }
         } finally {
             searchContext.clearReleasables(SearchContext.Lifetime.COLLECTION);
@@ -211,12 +214,12 @@ public class CrateDocCollector implements CrateCollector {
         return Result.FINISHED;
     }
 
-    private boolean processScorer(Collector collector, Iterator<AtomicReaderContext> leaves, BulkScorer scorer) throws IOException {
+    private boolean processScorer(LeafCollector leafCollector, LeafReaderContext leaf, BulkScorer scorer) throws IOException {
         try {
-            scorer.score(collector);
+            scorer.score(leafCollector, leaf.reader().getLiveDocs());
         } catch (CollectionPauseException e) {
-            state.leaveIt = leaves;
-            state.scorer = scorer;
+            state.leaf = leaf;
+            state.bulkScorer = scorer;
             upstreamState.pauseProcessed();
             return true;
         }
@@ -229,30 +232,40 @@ public class CrateDocCollector implements CrateCollector {
     }
 
     static class State {
-        BulkScorer scorer;
-        Iterator<AtomicReaderContext> leaveIt;
-        Collector collector;
+        BulkScorer bulkScorer;
+        Iterator<LeafReaderContext> leaveIt;
+        SimpleCollector collector;
         Weight weight;
+        LeafReaderContext leaf;
     }
 
-    static class LuceneDocCollector extends Collector {
+    static class LuceneDocCollector extends SimpleCollector {
 
         private final RamAccountingContext ramAccountingContext;
         private final TopRowUpstream topRowUpstream;
         private final RowReceiver rowReceiver;
+        private final boolean doScores;
         private final Row inputRow;
         private final LuceneCollectorExpression[] expressions;
 
         public LuceneDocCollector(RamAccountingContext ramAccountingContext,
                                   TopRowUpstream topRowUpstream,
                                   RowReceiver rowReceiver,
+                                  boolean doScores,
                                   Row inputRow,
                                   Collection<? extends LuceneCollectorExpression<?>> expressions) {
             this.ramAccountingContext = ramAccountingContext;
             this.topRowUpstream = topRowUpstream;
             this.rowReceiver = rowReceiver;
+            this.doScores = doScores;
             this.inputRow = inputRow;
             this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
+        }
+
+
+        @Override
+        public boolean needsScores() {
+            return doScores;
         }
 
         @Override
@@ -261,6 +274,7 @@ public class CrateDocCollector implements CrateCollector {
                 expression.setScorer(scorer);
             }
         }
+
 
         @Override
         public void collect(int doc) throws IOException {
@@ -289,15 +303,39 @@ public class CrateDocCollector implements CrateCollector {
         }
 
         @Override
-        public void setNextReader(AtomicReaderContext context) throws IOException {
+        protected void doSetNextReader(LeafReaderContext context) throws IOException {
+            // trigger keep-alive here as well
+            // in case we have a long running query without actual matches
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextReader(context);
             }
         }
+    }
+
+    private static class DefaultBulkScorer extends BulkScorer {
+
+        private final Scorer scorer;
+
+        public DefaultBulkScorer(Scorer scorer) {
+            this.scorer = scorer;
+        }
 
         @Override
-        public boolean acceptsDocsOutOfOrder() {
-            return false;
+        public int score(LeafCollector collector, Bits acceptDocs, int min, int max) throws IOException {
+            // TODO: figure out if min/max can be used to optimize this and still work correctly with pause/resume
+            // and also check if twoPhaseIterator can be used
+            collector.setScorer(scorer);
+            for (int doc = scorer.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = scorer.nextDoc()) {
+                if (acceptDocs == null || acceptDocs.get(doc)) {
+                    collector.collect(doc);
+                }
+            }
+            return DocIdSetIterator.NO_MORE_DOCS;
+        }
+
+        @Override
+        public long cost() {
+            return scorer.cost();
         }
     }
 }

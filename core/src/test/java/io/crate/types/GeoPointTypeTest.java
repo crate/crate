@@ -22,9 +22,9 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Rule;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
@@ -45,7 +45,7 @@ public class GeoPointTypeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         DataTypes.GEO_POINT.writeValueTo(out, p1);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         Double[] p2 = DataTypes.GEO_POINT.readValueFrom(in);
 
         assertThat(p1, equalTo(p2));
@@ -60,7 +60,7 @@ public class GeoPointTypeTest extends CrateUnitTest {
 
     @Test
     public void testInvalidWktToGeoPointValue() throws Exception {
-        expectedException.expectMessage("Cannot convert \"POINT(54.321 -123.456)\" to geo_point");
+        expectedException.expectMessage("Bad Y value -123.456 is not in boundary");
         DataTypes.GEO_POINT.value("POINT(54.321 -123.456)");
     }
 

@@ -47,7 +47,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.*;
 
 import java.io.IOException;
@@ -62,7 +62,7 @@ import java.util.concurrent.TimeUnit;
 @TimeoutSuite(millis = TimeUnits.HOUR) // 1 hour
 @ThreadLeakLingering(linger = 5000 * 60) // 5 minutes
 @ThreadLeakFilters(defaultFilters = true, filters = { LuceneDocCollectorBenchmark.BenchmarkThreadFilter.class })
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     public static final class BenchmarkThreadFilter implements ThreadFilter {

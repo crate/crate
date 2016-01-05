@@ -27,14 +27,14 @@ package io.crate.plugin;
 
 import io.crate.rest.action.admin.AdminUIFrontpageAction;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
 /**
  * Crate Admin-UI Plugin
  *
  */
-public class AdminUIPlugin extends AbstractPlugin {
+public class AdminUIPlugin extends Plugin {
 
     private final Settings settings;
 

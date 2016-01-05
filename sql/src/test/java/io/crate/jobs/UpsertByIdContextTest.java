@@ -5,8 +5,8 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.junit.Before;
@@ -49,7 +49,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ShardResponse response = mock(ShardResponse.class);
         listener.getValue().onResponse(response);
 
-        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(CancellationException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 
@@ -57,7 +57,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public void testKillBeforeStart() throws Exception {
         context.prepare();
         context.kill(null);
-        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(CancellationException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 

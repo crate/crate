@@ -40,7 +40,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -75,7 +76,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 TestingHelpers.getFunctions(),
-                ImmutableSettings.EMPTY,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class),
@@ -114,7 +116,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 TestingHelpers.getFunctions(),
-                ImmutableSettings.EMPTY,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),

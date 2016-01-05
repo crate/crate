@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Map;
@@ -30,6 +30,7 @@ import java.util.Map;
 public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
     protected SourceLookup sourceLookup;
+    private LeafReaderContext context;
 
     public ObjectColumnReference(String columnName) {
         super(columnName);
@@ -37,12 +38,12 @@ public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Ma
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setNextDocId(doc);
+        sourceLookup.setSegmentAndDocument(context, doc);
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) {
-        sourceLookup.setNextReader(context);
+    public void setNextReader(LeafReaderContext context) {
+        this.context = context;
     }
 
     @Override

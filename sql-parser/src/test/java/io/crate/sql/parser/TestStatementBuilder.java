@@ -567,14 +567,14 @@ public class TestStatementBuilder {
             SqlParser.createExpression("{a=func('abc')");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'func'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'func' expecting '{'"));
         }
 
         try {
             SqlParser.createExpression("{b=identifier}");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'identifier'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'identifier' expecting '{'"));
         }
 
         try {
@@ -588,7 +588,7 @@ public class TestStatementBuilder {
             SqlParser.createExpression("{d=sub['script']}");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'sub'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'sub' expecting '{'"));
         }
     }
 
